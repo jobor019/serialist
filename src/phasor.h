@@ -36,16 +36,19 @@ public:
             increment = step_size * (time - previous_update_time);
 
         }
-
         previous_update_time = time;
 
         double val = current_value + increment;
+
+        // modulo (supports negative numerator but not negative denominator)
         current_value = std::fmod(std::fmod(val, max) + max, max);
 
         // Handle fmod rounding errors
         if (std::abs(current_value-max) < 1e-8) {
             current_value = 0;
         }
+
+
 
         return current_value;
     }
