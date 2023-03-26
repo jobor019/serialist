@@ -32,6 +32,7 @@ TEST_CASE("rendering", "[midi, renderer]") {
     MidiEvent m{-1, 6000, 127, 2};
     renderer.render(&m);
 
+
 }
 
 

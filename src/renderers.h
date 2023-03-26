@@ -17,7 +17,7 @@ public:
     virtual void render(Event* event) = 0;
 
 
-// Note Problematic: what if one of the call fails?
+// Note: Problematic! What if one of the call fails?
 //    /**
 //     * @throws IOError if rendering fails
 //     */
