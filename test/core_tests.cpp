@@ -3,6 +3,8 @@
 
 #include "../src/transport.h"
 #include "../src/phasor.h"
+#include "../src/oscillator.h"
+#include "../src/map.h"
 
 
 #include <chrono>
@@ -88,8 +90,71 @@ TEST_CASE("phasor stepped", "[phasor]") {
         REQUIRE_THAT(p.process(0), Catch::Matchers::WithinAbs(0.0, 1e-8));
         REQUIRE_THAT(p.process(0), Catch::Matchers::WithinAbs(0.1, 1e-8));
     }
+}
 
+TEST_CASE("oscillators", "[generation]") {
+    SECTION("cos") {
+        Cosine o;
 
+        REQUIRE_THAT(o.process(0), Catch::Matchers::WithinAbs(1, 1e-8));
+        REQUIRE_THAT(o.process(0.25), Catch::Matchers::WithinAbs(0.5, 1e-8));
+        REQUIRE_THAT(o.process(0.5), Catch::Matchers::WithinAbs(0, 1e-8));
+        REQUIRE_THAT(o.process(0.75), Catch::Matchers::WithinAbs(0.5, 1e-8));
+        REQUIRE_THAT(o.process(1), Catch::Matchers::WithinAbs(1, 1e-8));
+    }
+
+    SECTION("square") {
+        Square o{0.5};
+
+        REQUIRE_THAT(o.process(0), Catch::Matchers::WithinAbs(1, 1e-8));
+        REQUIRE_THAT(o.process(0.5), Catch::Matchers::WithinAbs(1, 1e-8));
+        REQUIRE_THAT(o.process(0.500001), Catch::Matchers::WithinAbs(0, 1e-8));
+        REQUIRE_THAT(o.process(1), Catch::Matchers::WithinAbs(0, 1e-8));
+
+        o.set_duty(0.0);
+        REQUIRE_THAT(o.process(0), Catch::Matchers::WithinAbs(1, 1e-8));
+        REQUIRE_THAT(o.process(0.000001), Catch::Matchers::WithinAbs(0, 1e-8));
+        REQUIRE_THAT(o.process(0.5), Catch::Matchers::WithinAbs(0, 1e-8));
+        REQUIRE_THAT(o.process(1), Catch::Matchers::WithinAbs(0, 1e-8));
+
+        o.set_duty(0.8);
+        REQUIRE_THAT(o.process(0), Catch::Matchers::WithinAbs(1, 1e-8));
+        REQUIRE_THAT(o.process(0.8), Catch::Matchers::WithinAbs(1, 1e-8));
+        REQUIRE_THAT(o.process(0.800001), Catch::Matchers::WithinAbs(0, 1e-8));
+        REQUIRE_THAT(o.process(1), Catch::Matchers::WithinAbs(0, 1e-8));
+
+        o.set_duty(1.0);
+        REQUIRE_THAT(o.process(0), Catch::Matchers::WithinAbs(1, 1e-8));
+        REQUIRE_THAT(o.process(1), Catch::Matchers::WithinAbs(1, 1e-8));
+    }
+
+    SECTION("triangle") {
+        // TODO
+    }
+}
+
+TEST_CASE("mappings") {
+    SECTION("map elements") {
+        SECTION("empty") {
+            MapElement<int> m{};
+        }
+
+        SECTION("one elem") {
+            MapElement<int> m{123};
+            REQUIRE(m.temp_first() == 123);
+        }
+
+        SECTION("several") {
+            MapElement<int> m{123, 234, 888};
+            REQUIRE(m.temp_first() == 123);
+        }
+    }
+
+    SECTION("mapping") {
+        Mapping<int> m{{1}, {2, 3}};
+        std::cout << m.at(0).temp_first() << "\n";
+        std::cout << m.at(1).temp_first() << "\n";
+    }
 }
 
 

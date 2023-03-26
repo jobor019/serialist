@@ -18,10 +18,10 @@ public:
 };
 
 
-class Sinusoid : public Oscillator {
+class Cosine : public Oscillator {
 public:
     double process(double x) override {
-        return std::sin(x);
+        return 0.5 * std::cos(2 * M_PI * x) + 0.5;
     }
 };
 
