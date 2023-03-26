@@ -12,14 +12,15 @@ public:
             : numerator(numerator), denominator(denominator) {}
 
 
+    [[nodiscard]]
     double duration() const {
         return numerator / static_cast<double>(denominator);
     }
 
 
-    int get_numerator() const { return numerator; }
+    [[nodiscard]] int get_numerator() const { return numerator; }
 
-    int get_denominator() const { return denominator; }
+    [[nodiscard]] int get_denominator() const { return denominator; }
 
 
 private:
@@ -32,11 +33,11 @@ private:
 
 class TimePoint {
 public:
-    explicit TimePoint(double tick = 0.0, double tempo = 120.0, double beat = 0.0, Meter&& meter = Meter())
+    explicit TimePoint(double tick = 0.0, double tempo = 120.0, double beat = 0.0, Meter meter = Meter())
             : tick(tick), tempo(tempo), beat(beat), meter(meter) {}
 
 
-    void increment(uint64_t delta_ms) {
+    void increment(int64_t delta_ms) {
         double tick_increment = static_cast<double>(delta_ms) * 0.001 * tempo / 60.0;
         tick += tick_increment;
         beat = fmod(beat + tick_increment, meter.duration());
@@ -44,13 +45,13 @@ public:
     }
 
 
-    double get_tick() const { return tick; }
+    [[nodiscard]] double get_tick() const { return tick; }
 
-    double get_tempo() const { return tempo; }
+    [[nodiscard]] double get_tempo() const { return tempo; }
 
-    double get_beat() const { return beat; }
+    [[nodiscard]] double get_beat() const { return beat; }
 
-    const Meter& get_meter() const { return meter; }
+    [[nodiscard]] const Meter& get_meter() const { return meter; }
 
 
 private:
@@ -73,8 +74,8 @@ public:
 
     explicit Transport(TimePoint&& initial_time, bool active)
             : time_point(initial_time)
-              , previous_update_time(std::chrono::system_clock::now())
-              , active(active) {}
+              , active(active)
+              , previous_update_time(std::chrono::system_clock::now()) {}
 
 
     void start() {
@@ -88,8 +89,7 @@ public:
     }
 
 
-    [[nodiscard]]
-    const TimePoint& get_current_time() {
+    const TimePoint& update_time() {
         if (active) {
             auto current_time = std::chrono::system_clock::now();
             auto time_delta = std::chrono::duration_cast<std::chrono::milliseconds>(

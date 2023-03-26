@@ -1,0 +1,112 @@
+
+
+#ifndef SERIALIST_LOOPER_RENDERERS_H
+#define SERIALIST_LOOPER_RENDERERS_H
+
+#include <vector>
+
+#include "events.h"
+#include "exceptions.h"
+
+#include <juce_audio_devices/juce_audio_devices.h>
+
+
+class Renderer {
+public:
+
+    virtual void render(Event* event) = 0;
+
+
+// Note Problematic: what if one of the call fails?
+//    /**
+//     * @throws IOError if rendering fails
+//     */
+//    void render(std::vector<std::unique_ptr<Event>> events) {
+//        for (auto& event: events) {
+//            render(std::move(event));
+//        }
+//    }
+
+
+};
+
+class MidiRenderer : public Renderer {
+public:
+
+    /**
+     * @throws: IOError if a device is already initialized and override is `false`
+     */
+    bool initialize(const juce::String& device_identifier, bool override = false) {
+        if (is_initialized() && !override) {
+            throw IOError("A MIDI device is already initialized");
+        }
+
+        for (auto& device: juce::MidiOutput::getAvailableDevices()) {
+            if (device.identifier == device_identifier) {
+                midi_output_device = juce::MidiOutput::openDevice(device.identifier);
+            }
+        }
+
+        return is_initialized();
+    }
+
+
+    /**
+     * @throws: IOError if a device is already initialized and override is `false`
+     */
+    bool initialize(int device_index, bool override = false) {
+        // juce::Array::operator[] implements bounds checking, will return a
+        //   default (empty) MidiDeviceInfo if out of bounds
+        return initialize(get_devices()[device_index].identifier, override);
+    }
+
+
+    /**
+     * @throws: IOError if a device is already initialized and override is `false`
+     */
+    bool initialize(const std::string& device_name, bool override = false) {
+        for (const auto& device: get_devices()) {
+            if (device.name == juce::String(device_name)) {
+                return initialize(device.identifier, override);
+            }
+        }
+
+        return false;
+    }
+
+
+    /**
+     * @throws: IOError if device isn't initialized or if the event is of an invalid type
+     */
+    void render(Event* event) override {
+        if (midi_output_device == nullptr) {
+            throw IOError("Device is not initialized");
+        }
+
+        auto* midi_event = dynamic_cast<MidiEvent*>(event);
+
+        if (midi_event) {
+            midi_output_device->sendMessageNow(juce::MidiMessage::noteOn(midi_event->get_channel()
+                                                                         , midi_event->get_note_number()
+                                                                         , (juce::uint8) midi_event->get_velocity()));
+        } else {
+            throw IOError("Invalid event type");
+        }
+    }
+
+
+    static juce::Array<juce::MidiDeviceInfo> get_devices() {
+        return juce::MidiOutput::getAvailableDevices();
+    }
+
+
+    bool is_initialized() {
+        return static_cast<bool>(midi_output_device);
+    }
+
+
+private:
+    std::unique_ptr<juce::MidiOutput> midi_output_device;
+};
+
+#endif //SERIALIST_LOOPER_RENDERERS_H
