@@ -5,6 +5,7 @@
 #include "../src/phasor.h"
 #include "../src/oscillator.h"
 #include "../src/map.h"
+#include "../src/generation_graph.h"
 
 
 #include <chrono>
@@ -90,6 +91,11 @@ TEST_CASE("phasor stepped", "[phasor]") {
         REQUIRE_THAT(p.process(0), Catch::Matchers::WithinAbs(0.0, 1e-8));
         REQUIRE_THAT(p.process(0), Catch::Matchers::WithinAbs(0.1, 1e-8));
     }
+}
+
+
+TEST_CASE("generation graph", "[generation]") {
+    SimplisticMidiGraphV1 graph;
 }
 
 TEST_CASE("oscillators", "[generation]") {
