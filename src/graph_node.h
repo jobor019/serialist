@@ -10,7 +10,7 @@ template<typename T>
 class GraphNode {
 public:
     // TODO: Should return some sort of container, not just a raw T
-//    virtual MapElement<T> process(const TimePoint& time) = 0;
+//    virtual MapElement<T> process(const TimePoint& m_time) = 0;
     virtual T process(const TimePoint& time) = 0;
 };
 

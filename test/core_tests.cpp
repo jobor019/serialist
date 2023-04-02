@@ -18,13 +18,13 @@ TEST_CASE("dummy test", "[dummytag1, dummytag2]") {
     REQUIRE(1 == 1);
 }
 
-TEST_CASE("phasor stepped", "[phasor]") {
+TEST_CASE("m_phasor stepped", "[m_phasor]") {
 
 //    std::cout << std::fixed;
 //    std::cout << std::setprecision(16);
 
 
-    SECTION("unity phasor") {
+    SECTION("unity m_phasor") {
         double gain = 0.1;
         double max = 1.0;
         Phasor p{gain, max, 0.0, Phasor::Mode::stepped, 0.0};
@@ -156,7 +156,7 @@ TEST_CASE("mappings") {
         }
     }
 
-    SECTION("mapping") {
+    SECTION("m_mapping") {
         Mapping<int> m{{1}, {2, 3}};
         std::cout << m.at(0).temp_first() << "\n";
         std::cout << m.at(1).temp_first() << "\n";
@@ -185,6 +185,9 @@ TEST_CASE("transport test", "[transport]") {
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     REQUIRE_THAT(transport.update_time().get_tick(), Catch::Matchers::WithinAbs(1.0 / 3.0, 0.1));
+}
 
+TEST_CASE("generation graph", "[generation, integration]") {
+    SimplisticMidiGraphV1 m;
 
 }

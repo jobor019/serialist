@@ -43,7 +43,7 @@ public:
 
         for (auto& device: juce::MidiOutput::getAvailableDevices()) {
             if (device.identifier == device_identifier) {
-                midi_output_device = juce::MidiOutput::openDevice(device.identifier);
+                m_midi_output = juce::MidiOutput::openDevice(device.identifier);
             }
         }
 
@@ -79,16 +79,16 @@ public:
      * @throws: IOError if device isn't initialized or if the event is of an invalid type
      */
     void render(Event* event) override {
-        if (midi_output_device == nullptr) {
+        if (m_midi_output == nullptr) {
             throw IOError("Device is not initialized");
         }
 
         auto* midi_event = dynamic_cast<MidiEvent*>(event);
 
         if (midi_event) {
-            midi_output_device->sendMessageNow(juce::MidiMessage::noteOn(midi_event->get_channel()
-                                                                         , midi_event->get_note_number()
-                                                                         , (juce::uint8) midi_event->get_velocity()));
+            m_midi_output->sendMessageNow(juce::MidiMessage::noteOn(midi_event->get_channel()
+                                                                    , midi_event->get_note_number()
+                                                                    , (juce::uint8) midi_event->get_velocity()));
         } else {
             throw IOError("Invalid event type");
         }
@@ -101,12 +101,12 @@ public:
 
 
     bool is_initialized() {
-        return static_cast<bool>(midi_output_device);
+        return static_cast<bool>(m_midi_output);
     }
 
 
 private:
-    std::unique_ptr<juce::MidiOutput> midi_output_device;
+    std::unique_ptr<juce::MidiOutput> m_midi_output;
 };
 
 #endif //SERIALIST_LOOPER_RENDERERS_H

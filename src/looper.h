@@ -12,9 +12,9 @@ class Looper : public GraphNode<T> {
 public:
     explicit Looper() = default;
 
-    explicit Looper(Phasor phasor) : phasor(phasor) {}
+    explicit Looper(Phasor phasor) : m_phasor(phasor) {}
 
-//    explicit Looper(Phasor phasor, Mapping mapping) {}
+//    explicit Looper(Phasor m_phasor, Mapping m_mapping) {}
 
 
     T process(const TimePoint& time) override {
@@ -23,8 +23,8 @@ public:
 
 
 private:
-    Phasor phasor;
-    std::vector<MapElement<T> > mapping;  // TODO: Tempo: Should be a Mapping<MapEntry<T>> later
+    Phasor m_phasor;
+    std::vector<MapElement<T> > m_mapping;  // TODO: Tempo: Should be a Mapping<MapEntry<T>> later
 
 };
 

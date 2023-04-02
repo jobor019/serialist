@@ -34,31 +34,31 @@ private:
 class TimePoint {
 public:
     explicit TimePoint(double tick = 0.0, double tempo = 120.0, double beat = 0.0, Meter meter = Meter())
-            : tick(tick), tempo(tempo), beat(beat), meter(meter) {}
+            : m_tick(tick), m_tempo(tempo), m_beat(beat), m_meter(meter) {}
 
 
     void increment(int64_t delta_ms) {
-        double tick_increment = static_cast<double>(delta_ms) * 0.001 * tempo / 60.0;
-        tick += tick_increment;
-        beat = fmod(beat + tick_increment, meter.duration());
+        double tick_increment = static_cast<double>(delta_ms) * 0.001 * m_tempo / 60.0;
+        m_tick += tick_increment;
+        m_beat = fmod(m_beat + tick_increment, m_meter.duration());
 
     }
 
 
-    [[nodiscard]] double get_tick() const { return tick; }
+    [[nodiscard]] double get_tick() const { return m_tick; }
 
-    [[nodiscard]] double get_tempo() const { return tempo; }
+    [[nodiscard]] double get_tempo() const { return m_tempo; }
 
-    [[nodiscard]] double get_beat() const { return beat; }
+    [[nodiscard]] double get_beat() const { return m_beat; }
 
-    [[nodiscard]] const Meter& get_meter() const { return meter; }
+    [[nodiscard]] const Meter& get_meter() const { return m_meter; }
 
 
 private:
-    double tick;
-    double tempo;
-    double beat;
-    Meter meter;
+    double m_tick;
+    double m_tempo;
+    double m_beat;
+    Meter m_meter;
 };
 
 
@@ -73,39 +73,39 @@ public:
 
 
     explicit Transport(TimePoint&& initial_time, bool active)
-            : time_point(initial_time)
-              , active(active)
-              , previous_update_time(std::chrono::system_clock::now()) {}
+            : m_time_point(initial_time)
+              , m_active(active)
+              , m_previous_update_time(std::chrono::system_clock::now()) {}
 
 
     void start() {
-        active = true;
-        previous_update_time = std::chrono::system_clock::now();
+        m_active = true;
+        m_previous_update_time = std::chrono::system_clock::now();
     }
 
 
     void stop() {
-        active = false;
+        m_active = false;
     }
 
 
     const TimePoint& update_time() {
-        if (active) {
+        if (m_active) {
             auto current_time = std::chrono::system_clock::now();
             auto time_delta = std::chrono::duration_cast<std::chrono::milliseconds>(
-                    current_time - previous_update_time).count();
-            time_point.increment(time_delta);
+                    current_time - m_previous_update_time).count();
+            m_time_point.increment(time_delta);
         }
 
-        return time_point;
+        return m_time_point;
     }
 
 
 private:
-    TimePoint time_point;
+    TimePoint m_time_point;
 
-    bool active;
-    std::chrono::time_point<std::chrono::system_clock> previous_update_time;
+    bool m_active;
+    std::chrono::time_point<std::chrono::system_clock> m_previous_update_time;
 
 
 };

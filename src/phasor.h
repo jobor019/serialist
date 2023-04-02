@@ -21,74 +21,74 @@ public:
                     , double phase = 0.0
                     , Mode mode = Mode::stepped
                     , double current_time = 0.0)
-            : step_size(step_size)
-              , max(max)
-              , current_value(std::fmod(phase, 1.0) * max)
-              , mode(mode)
-              , previous_update_time(current_time) {}
+            : m_step_size(step_size)
+              , m_max(max)
+              , m_current_value(std::fmod(phase, 1.0) * max)
+              , m_mode(mode)
+              , m_previous_update_time(current_time) {}
 
 
     double process(double time) {
         double increment;
-        if (mode == Mode::stepped) {
-            increment = step_size;
+        if (m_mode == Mode::stepped) {
+            increment = m_step_size;
         } else {
-            increment = step_size * (time - previous_update_time);
+            increment = m_step_size * (time - m_previous_update_time);
 
         }
-        previous_update_time = time;
+        m_previous_update_time = time;
 
-        double val = current_value + increment;
+        double val = m_current_value + increment;
 
         // modulo (supports negative numerator but not negative denominator)
-        current_value = std::fmod(std::fmod(val, max) + max, max);
+        m_current_value = std::fmod(std::fmod(val, m_max) + m_max, m_max);
 
         // Handle fmod rounding errors
-        if (std::abs(current_value - max) < 1e-8) {
-            current_value = 0;
+        if (std::abs(m_current_value - m_max) < 1e-8) {
+            m_current_value = 0;
         }
 
-        return current_value;
+        return m_current_value;
     }
 
 
     void set_phase(double value) {
-        current_value = std::fmod(value, 1.0) * max;
+        m_current_value = std::fmod(value, 1.0) * m_max;
     }
 
 
     void set_step_size(double value) {
-        Phasor::step_size = value;
+        Phasor::m_step_size = value;
     }
 
 
     void set_max(double value) {
-        Phasor::max = value;
+        Phasor::m_max = value;
     }
 
 
     void set_mode(Mode new_mode) {
-        mode = new_mode;
+        m_mode = new_mode;
     }
 
 
     [[nodiscard]]
-    double get_step_size() const { return step_size; }
+    double get_step_size() const { return m_step_size; }
 
     [[nodiscard]]
-    double get_max() const { return max; }
+    double get_max() const { return m_max; }
 
     [[nodiscard]]
-    Mode get_mode() const { return mode; }
+    Mode get_mode() const { return m_mode; }
 
 
 private:
-    double step_size;
-    double max;
-    double current_value;
-    Mode mode;
+    double m_step_size;
+    double m_max;
+    double m_current_value;
+    Mode m_mode;
 
-    double previous_update_time;
+    double m_previous_update_time;
 };
 
 #endif //SERIALIST_LOOPER_PHASOR_H

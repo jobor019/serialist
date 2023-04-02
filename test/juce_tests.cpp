@@ -18,7 +18,7 @@ TEST_CASE("rendering", "[midi, renderer]") {
 //    }
 //
 //    if (midi_output) {
-//        midi_output->sendMessageNow(juce::MidiMessage::noteOn(1, 60, (juce::uint8) 127)); // channel 1
+//        midi_output->sendMessageNow(juce::MidiMessage::noteOn(1, 60, (juce::uint8) 127)); // m_channel 1
 //    } else {
 //        std::cout << "no midi output\n";
 //    }

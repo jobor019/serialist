@@ -7,7 +7,7 @@
 
 class Event {
 public:
-    explicit Event(double time) : time(time) {}
+    explicit Event(double time) : m_time(time) {}
 
     Event(const Event&) = default;
 
@@ -19,10 +19,10 @@ public:
 
     virtual ~Event() = default;
 
-    [[nodiscard]] double get_time() const { return time; }
+    [[nodiscard]] double get_time() const { return m_time; }
 
 private:
-    double time;
+    double m_time;
 };
 
 
@@ -42,7 +42,7 @@ public:
 class MidiEvent : public Event {
 public:
     MidiEvent(double time, int midi_cents, int velocity, int channel)
-            : Event(time), midi_cents(midi_cents), velocity(velocity), channel(channel) {}
+            : Event(time), m_midi_cents(midi_cents), m_velocity(velocity), m_channel(channel) {}
 
 
     static MidiEvent note_on(double time, int midi_cents, int velocity, int channel) {
@@ -64,19 +64,19 @@ public:
     }
 
 
-    [[nodiscard]] int get_midi_cents() const { return midi_cents; }
+    [[nodiscard]] int get_midi_cents() const { return m_midi_cents; }
 
-    [[nodiscard]] int get_note_number() const { return midi_cents / 100; }
+    [[nodiscard]] int get_note_number() const { return m_midi_cents / 100; }
 
-    [[nodiscard]] int get_velocity() const { return velocity; }
+    [[nodiscard]] int get_velocity() const { return m_velocity; }
 
-    [[nodiscard]] int get_channel() const { return channel; }
+    [[nodiscard]] int get_channel() const { return m_channel; }
 
 
 private:
-    int midi_cents;
-    int velocity;
-    int channel;
+    int m_midi_cents;
+    int m_velocity;
+    int m_channel;
 };
 
 #endif //SERIALIST_LOOPER_EVENTS_H
