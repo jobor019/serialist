@@ -21,8 +21,8 @@ public:
 //    /**
 //     * @throws IOError if rendering fails
 //     */
-//    void render(std::vector<std::unique_ptr<Event>> events) {
-//        for (auto& event: events) {
+//    void render(std::vector<std::unique_ptr<Event>> m_events) {
+//        for (auto& event: m_events) {
 //            render(std::move(event));
 //        }
 //    }

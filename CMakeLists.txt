@@ -18,10 +18,10 @@ juce_add_gui_app(serialistLooper
         # COMPANY_NAME ...                  # Specify the name of the app's author
         PRODUCT_NAME "Serialist Looper")
 
+#juce_adD_gui_app(midiGeneratorV1
+#        PRODUCT_NAME "MIDI Generator V1")
 
-target_sources(serialistLooper
-        PRIVATE
-        ${CMAKE_SOURCE_DIR}/app/Main.cpp
+set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/main_component.h
         ${CMAKE_SOURCE_DIR}/src/events.h
         ${CMAKE_SOURCE_DIR}/src/generation_graph.h
@@ -29,14 +29,18 @@ target_sources(serialistLooper
         ${CMAKE_SOURCE_DIR}/src/generator.h
         ${CMAKE_SOURCE_DIR}/src/graph_node.h
         ${CMAKE_SOURCE_DIR}/src/looper.h
-        ${CMAKE_SOURCE_DIR}/src/map.h
+        ${CMAKE_SOURCE_DIR}/src/mapping.h
         ${CMAKE_SOURCE_DIR}/src/oscillator.h
         ${CMAKE_SOURCE_DIR}/src/renderers.h
         ${CMAKE_SOURCE_DIR}/src/phasor.h
         ${CMAKE_SOURCE_DIR}/src/scheduler.h
         ${CMAKE_SOURCE_DIR}/src/transport.h
-        ${CMAKE_SOURCE_DIR}/src/exceptions.h
-        )
+        ${CMAKE_SOURCE_DIR}/src/exceptions.h)
+
+target_sources(serialistLooper
+        PRIVATE
+        ${CMAKE_SOURCE_DIR}/app/serialist_looper.cpp
+        ${SOURCES})
 
 target_compile_definitions(serialistLooper
         PRIVATE

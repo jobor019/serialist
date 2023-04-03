@@ -56,7 +56,7 @@ public:
                                     , note_duration.value());
         events.emplace_back(std::make_unique<MidiEvent>(note.first));
         events.emplace_back(std::make_unique<MidiEvent>(note.second));
-        events.emplace_back(std::make_unique<TriggerEvent>(next_onset.value()));
+        events.emplace_back(std::make_unique<TriggerEvent>(next_onset.value() + t.get_tick()));
 
         return events;
     }

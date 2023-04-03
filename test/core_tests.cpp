@@ -7,6 +7,7 @@
 #include "../src/mapping.h"
 #include "../src/generation_graph.h"
 #include "../src/looper.h"
+#include "../src/scheduler.h"
 
 
 #include <chrono>
@@ -160,7 +161,8 @@ TEST_CASE("mappings") {
     }
 
     SECTION("m_mapping") {
-        Mapping<int> m{{1}, {2, 3}};
+        Mapping<int> m{{  1}
+                       , {2, 3}};
         std::cout << m.get(0)[0] << "\n";
         std::cout << m.get(1)[0] << "\n";
     }
@@ -192,7 +194,11 @@ TEST_CASE("transport test", "[transport]") {
 
 
 TEST_CASE("stepped looper", "[generation]") {
-    Looper<int> looper{Mapping<int>{{60}, {62}, {64}, {67}, {68}}, 1.0, 0.0, Phasor::Mode::stepped};
+    Looper<int> looper{Mapping<int>{{  60}
+                                    , {62}
+                                    , {64}
+                                    , {67}
+                                    , {68}}, 1.0, 0.0, Phasor::Mode::stepped};
 
     SECTION("uniform integer looper") {
         REQUIRE(looper.process(TimePoint{}).at(0) == 60);
@@ -246,10 +252,20 @@ TEST_CASE("stepped looper", "[generation]") {
     }
 }
 
-TEST_CASE("generation graph", "[generation, integration]") {
-//    SimplisticMidiGraphV1 m{std::make_unique<Looper<double>>(), std::make_unique<Looper<double>>(), std::make_unique<Looper<int>>(), std::make_unique<Looper<int>>(), std::make_unique<Looper<int>>()};
-//    m.process(TimePoint());
-//    auto m = std::make_unique<Looper<int>>();
-//        auto m = MapElement<int>{1};
 
+TEST_CASE("scheduler", "[scheduling]") {
+    Scheduler s;
+    s.add_event(std::make_unique<MidiEvent>(1.0, 7200, 127, 1));
+    s.add_event(std::make_unique<TriggerEvent>(3.0));
+    s.add_event(std::make_unique<TriggerEvent>(2.0));
+
+    auto v = s.get_events(2.4);
+
+    for (auto& e: v) {
+        std::cout << e->get_time() << "\n";
+    }
+
+    // TODO
 }
+
+
