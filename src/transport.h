@@ -9,23 +9,23 @@
 class Meter {
 public:
     explicit Meter(int numerator = 4, int denominator = 4)
-            : numerator(numerator), denominator(denominator) {}
+            : m_numerator(numerator), m_denominator(denominator) {}
 
 
     [[nodiscard]]
     double duration() const {
-        return numerator / static_cast<double>(denominator);
+        return m_numerator / static_cast<double>(m_denominator);
     }
 
 
-    [[nodiscard]] int get_numerator() const { return numerator; }
+    [[nodiscard]] int get_numerator() const { return m_numerator; }
 
-    [[nodiscard]] int get_denominator() const { return denominator; }
+    [[nodiscard]] int get_denominator() const { return m_denominator; }
 
 
 private:
-    int numerator;
-    int denominator;
+    int m_numerator;
+    int m_denominator;
 };
 
 

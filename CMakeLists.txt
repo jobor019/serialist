@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
+SET(CMAKE_CXX_STANDARD 17)
+
 project(serialist_looper VERSION 0.0.1)
 
 list(APPEND CMAKE_PREFIX_PATH "/Applications/JUCE/install")

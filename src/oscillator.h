@@ -30,21 +30,21 @@ public:
 
 class Square : public Oscillator {
 public:
-    explicit Square(double duty = 0.5) : duty(duty) {}
+    explicit Square(double duty = 0.5) : m_duty(duty) {}
 
 
     double process(double x) override {
-        return static_cast<double>(x <= duty);
+        return static_cast<double>(x <= m_duty);
     }
 
 
     [[nodiscard]]
-    double get_duty() const { return duty; }
+    double get_duty() const { return m_duty; }
 
-    void set_duty(double value) { Square::duty = value; }
+    void set_duty(double value) { Square::m_duty = value; }
 
 private:
-    double duty;
+    double m_duty;
 };
 
 
@@ -52,35 +52,35 @@ private:
 
 class Triangle : public Oscillator {
 public:
-    explicit Triangle(double duty = 0.5, double curve = 1.0) : duty(duty), curve(curve) {
+    explicit Triangle(double duty = 0.5, double curve = 1.0) : m_duty(duty), m_curve(curve) {
         if (curve <= 0) {
-            throw std::range_error("curve parameter must be greater than 0");
+            throw std::range_error("m_curve parameter must be greater than 0");
         }
     }
 
     double process(double x) override {
-        if (duty < 1e-8) {                  // duty = 0 => negative phase only (avoid div0)
-            return std::pow(1 - x, curve);
-        } else if (x <= duty) {             // positive phase
-            return std::pow(x / duty, curve);
+        if (m_duty < 1e-8) {                  // m_duty = 0 => negative phase only (avoid div0)
+            return std::pow(1 - x, m_curve);
+        } else if (x <= m_duty) {             // positive phase
+            return std::pow(x / m_duty, m_curve);
         } else {                            // negative phase
-            return std::pow(1 - (x - duty) / (1 - duty), curve);
+            return std::pow(1 - (x - m_duty) / (1 - m_duty), m_curve);
         }
     }
 
     [[nodiscard]]
-    double get_duty() const { return duty; }
+    double get_duty() const { return m_duty; }
 
-    void set_duty(double value) { Triangle::duty = value; }
+    void set_duty(double value) { Triangle::m_duty = value; }
 
     [[nodiscard]]
-    double get_curve() const { return curve; }
+    double get_curve() const { return m_curve; }
 
-    void set_curve(double value) { Triangle::curve = value; }
+    void set_curve(double value) { Triangle::m_curve = value; }
 
 private:
-    double duty;
-    double curve;
+    double m_duty;
+    double m_curve;
 };
 
 
@@ -89,12 +89,13 @@ private:
 class WhiteNoise : public Oscillator {
 public:
     double process(double x) override {
+        (void) x;
         throw std::runtime_error("this is not implemented yet");
     }
 
 
 private:
-    std::mt19937 rng; // TODO: Initialize (and seed) in ctor
+    std::mt19937 m_rng; // TODO: Initialize (and seed) in ctor
 };
 
 
@@ -103,6 +104,7 @@ private:
 class BrownNoise : public Oscillator {
 public:
     double process(double x) override {
+        (void) x;
         throw std::runtime_error("this is not implemented yet");
     }
 };
@@ -113,6 +115,7 @@ class BalancedRandom : public Oscillator {
     //  (avoiding duplicates, biasing based on what's been generated)
 
     double process(double x) override {
+        (void) x;
         throw std::runtime_error("this is not implemented yet");
     }
 };

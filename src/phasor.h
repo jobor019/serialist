@@ -25,16 +25,20 @@ public:
               , m_max(max)
               , m_current_value(std::fmod(phase, 1.0) * max)
               , m_mode(mode)
-              , m_previous_update_time(current_time) {}
+              , m_previous_update_time(current_time)
+              , m_is_first_value(true) {}
 
 
     double process(double time) {
         double increment;
         if (m_mode == Mode::stepped) {
+            if (m_is_first_value) {
+                m_is_first_value = false;
+                return m_current_value;
+            }
             increment = m_step_size;
         } else {
             increment = m_step_size * (time - m_previous_update_time);
-
         }
         m_previous_update_time = time;
 
@@ -48,12 +52,14 @@ public:
             m_current_value = 0;
         }
 
+        m_is_first_value = false;
         return m_current_value;
     }
 
 
-    void set_phase(double value) {
-        m_current_value = std::fmod(value, 1.0) * m_max;
+    void set_phase(double value, bool reset_to = false) {
+        m_is_first_value = reset_to;
+        m_current_value = std::fmod(value, m_max);
     }
 
 
@@ -72,14 +78,13 @@ public:
     }
 
 
-    [[nodiscard]]
-    double get_step_size() const { return m_step_size; }
+    [[nodiscard]] double get_step_size() const { return m_step_size; }
 
-    [[nodiscard]]
-    double get_max() const { return m_max; }
+    [[nodiscard]] double get_max() const { return m_max; }
 
-    [[nodiscard]]
-    Mode get_mode() const { return m_mode; }
+    [[nodiscard]] Mode get_mode() const { return m_mode; }
+
+    [[nodiscard]] double get_current_value() const { return m_current_value; }
 
 
 private:
@@ -89,6 +94,7 @@ private:
     Mode m_mode;
 
     double m_previous_update_time;
+    bool m_is_first_value;
 };
 
 #endif //SERIALIST_LOOPER_PHASOR_H

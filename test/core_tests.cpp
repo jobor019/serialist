@@ -4,8 +4,9 @@
 #include "../src/transport.h"
 #include "../src/phasor.h"
 #include "../src/oscillator.h"
-#include "../src/map.h"
+#include "../src/mapping.h"
 #include "../src/generation_graph.h"
+#include "../src/looper.h"
 
 
 #include <chrono>
@@ -30,7 +31,7 @@ TEST_CASE("m_phasor stepped", "[m_phasor]") {
         Phasor p{gain, max, 0.0, Phasor::Mode::stepped, 0.0};
 
         double x;
-        for (int i = 1; i < 100; ++i) {
+        for (int i = 0; i < 100; ++i) {
             x = p.process(0);
             REQUIRE_THAT(x, Catch::Matchers::WithinAbs(std::fmod(gain * i, max), 1e-8));
             REQUIRE(x < max);
@@ -44,7 +45,7 @@ TEST_CASE("m_phasor stepped", "[m_phasor]") {
         Phasor p{gain, max, 0.0, Phasor::Mode::stepped, 0.0};
 
         double x;
-        for (int i = 1; i < 100; ++i) {
+        for (int i = 0; i < 100; ++i) {
             x = p.process(0);
             REQUIRE_THAT(x, Catch::Matchers::WithinAbs(std::fmod(gain * i, max), 1e-8));
             REQUIRE(x < max);
@@ -59,43 +60,45 @@ TEST_CASE("m_phasor stepped", "[m_phasor]") {
 
         double x;
         double y = 0;
-        for (int i = 1; i < 100; ++i) {
+        for (int i = 0; i < 100; ++i) {
             x = p.process(0);
-            y += gain;
             if (y < 0) {
                 y += max;
             }
             REQUIRE_THAT(x, Catch::Matchers::WithinAbs(y, 1e-8));
             REQUIRE(x < max);
             REQUIRE(x >= 0);
+            y += gain;
         }
     }
 
     SECTION("Variable step size") {
         double max = 1.0;
         Phasor p{0.1, max, 0.0, Phasor::Mode::stepped, 0.0};
-        REQUIRE_THAT(p.process(0), Catch::Matchers::WithinAbs(0.1, 1e-8));
+        REQUIRE_THAT(p.process(0), Catch::Matchers::WithinAbs(0.0, 1e-8));
         p.set_step_size(0.2);
-        REQUIRE_THAT(p.process(0), Catch::Matchers::WithinAbs(0.3, 1e-8));
-        p.set_step_size(0.7);
+        REQUIRE_THAT(p.process(0), Catch::Matchers::WithinAbs(0.2, 1e-8));
+        p.set_step_size(0.8);
         REQUIRE_THAT(p.process(0), Catch::Matchers::WithinAbs(0.0, 1e-8));
     }
 
     SECTION("Variable phase") {
         double max = 1.0;
         Phasor p{0.1, max, 0.5, Phasor::Mode::stepped, 0.0};
+        REQUIRE_THAT(p.process(0), Catch::Matchers::WithinAbs(0.5, 1e-8));
         REQUIRE_THAT(p.process(0), Catch::Matchers::WithinAbs(0.6, 1e-8));
         p.set_phase(0.2);
+        REQUIRE_THAT(p.process(0), Catch::Matchers::WithinAbs(0.2, 1e-8));
         REQUIRE_THAT(p.process(0), Catch::Matchers::WithinAbs(0.3, 1e-8));
         p.set_phase(0.9);
+        REQUIRE_THAT(p.process(0), Catch::Matchers::WithinAbs(0.9, 1e-8));
         REQUIRE_THAT(p.process(0), Catch::Matchers::WithinAbs(0.0, 1e-8));
-        REQUIRE_THAT(p.process(0), Catch::Matchers::WithinAbs(0.1, 1e-8));
     }
 }
 
 
 TEST_CASE("generation graph", "[generation]") {
-    SimplisticMidiGraphV1 graph;
+//    SimplisticMidiGraphV1 graph;
 }
 
 TEST_CASE("oscillators", "[generation]") {
@@ -158,8 +161,8 @@ TEST_CASE("mappings") {
 
     SECTION("m_mapping") {
         Mapping<int> m{{1}, {2, 3}};
-        std::cout << m.at(0).temp_first() << "\n";
-        std::cout << m.at(1).temp_first() << "\n";
+        std::cout << m.get(0)[0] << "\n";
+        std::cout << m.get(1)[0] << "\n";
     }
 }
 
@@ -187,7 +190,66 @@ TEST_CASE("transport test", "[transport]") {
     REQUIRE_THAT(transport.update_time().get_tick(), Catch::Matchers::WithinAbs(1.0 / 3.0, 0.1));
 }
 
+
+TEST_CASE("stepped looper", "[generation]") {
+    Looper<int> looper{Mapping<int>{{60}, {62}, {64}, {67}, {68}}, 1.0, 0.0, Phasor::Mode::stepped};
+
+    SECTION("uniform integer looper") {
+        REQUIRE(looper.process(TimePoint{}).at(0) == 60);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 62);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 64);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 67);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 68);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 60);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 62);
+    }
+
+    SECTION("double step looper") {
+        looper.set_step_size(2.0);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 60);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 64);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 68);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 62);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 67);
+    }
+
+    SECTION("negative looper") {
+        looper.set_step_size(-1.0);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 60);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 68);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 67);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 64);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 62);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 60);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 68);
+    }
+
+    SECTION("euclidean looper") {
+        looper.set_step_size(1.7);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 60);  // 0   ~ 0
+        REQUIRE(looper.process(TimePoint{}).at(0) == 62);  // 1.7 ~ 1
+        REQUIRE(looper.process(TimePoint{}).at(0) == 67);  // 3.4 ~ 3
+        REQUIRE(looper.process(TimePoint{}).at(0) == 60);  // 5.1 ~ 0
+        REQUIRE(looper.process(TimePoint{}).at(0) == 62);  // 6.8 ~ 1
+        REQUIRE(looper.process(TimePoint{}).at(0) == 67);  // 8.5 ~ 3
+    }
+
+    SECTION("mid-way add") {
+        REQUIRE(looper.process(TimePoint{}).at(0) == 60);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 62);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 64);
+        looper.add(MapElement<int>(72), 0);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 67);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 68);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 72);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 60);
+    }
+}
+
 TEST_CASE("generation graph", "[generation, integration]") {
-    SimplisticMidiGraphV1 m;
+//    SimplisticMidiGraphV1 m{std::make_unique<Looper<double>>(), std::make_unique<Looper<double>>(), std::make_unique<Looper<int>>(), std::make_unique<Looper<int>>(), std::make_unique<Looper<int>>()};
+//    m.process(TimePoint());
+//    auto m = std::make_unique<Looper<int>>();
+//        auto m = MapElement<int>{1};
 
 }

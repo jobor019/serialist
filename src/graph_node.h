@@ -4,14 +4,15 @@
 #define SERIALIST_LOOPER_GRAPH_NODE_H
 
 #include "transport.h"
-#include "map.h"
+#include "mapping.h"
 
 template<typename T>
 class GraphNode {
 public:
-    // TODO: Should return some sort of container, not just a raw T
-//    virtual MapElement<T> process(const TimePoint& m_time) = 0;
-    virtual T process(const TimePoint& time) = 0;
+    virtual ~GraphNode() = default;
+
+
+    virtual std::vector<T> process(const TimePoint& time) = 0;
 };
 
 #endif //SERIALIST_LOOPER_GRAPH_NODE_H
