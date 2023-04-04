@@ -261,6 +261,8 @@ TEST_CASE("scheduler", "[scheduling]") {
 
     auto v = s.get_events(2.4);
 
+    REQUIRE(s.size() == 1);
+
     for (auto& e: v) {
         std::cout << e->get_time() << "\n";
     }

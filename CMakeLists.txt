@@ -10,19 +10,7 @@ find_package(Catch2 3 REQUIRED)
 # add_subdirectory(JUCE)                    # If you've put JUCE in a subdirectory called JUCE
 
 
-juce_add_gui_app(serialistLooper
-        # VERSION ...                       # Set this if the app version is different to the project version
-        # ICON_BIG ...                      # ICON_* arguments specify a path to an image file to use as an icon
-        # ICON_SMALL ...
-        # DOCUMENT_EXTENSIONS ...           # Specify file extensions that should be associated with this app
-        # COMPANY_NAME ...                  # Specify the name of the app's author
-        PRODUCT_NAME "Serialist Looper")
-
-#juce_adD_gui_app(midiGeneratorV1
-#        PRODUCT_NAME "MIDI Generator V1")
-
 set(SOURCES
-        ${CMAKE_SOURCE_DIR}/src/main_component.h
         ${CMAKE_SOURCE_DIR}/src/events.h
         ${CMAKE_SOURCE_DIR}/src/generation_graph.h
         ${CMAKE_SOURCE_DIR}/src/generation_layer.h
@@ -35,7 +23,33 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/phasor.h
         ${CMAKE_SOURCE_DIR}/src/scheduler.h
         ${CMAKE_SOURCE_DIR}/src/transport.h
-        ${CMAKE_SOURCE_DIR}/src/exceptions.h)
+        ${CMAKE_SOURCE_DIR}/src/exceptions.h
+        ${CMAKE_SOURCE_DIR}/src/gui/looper_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/main_component.h
+        )
+
+set(MODULE_DEPENDENCIES_JUCE
+        juce::juce_gui_basics
+        juce::juce_gui_extra
+        juce::juce_audio_devices)
+
+set(FLAGS_JUCE
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_lto_flags
+        juce::juce_recommended_warning_flags)
+
+#####################################################################################
+## TARGET: SERIALIST LOOPER
+#####################################################################################
+
+
+juce_add_gui_app(serialistLooper
+        # VERSION ...                       # Set this if the app version is different to the project version
+        # ICON_BIG ...                      # ICON_* arguments specify a path to an image file to use as an icon
+        # ICON_SMALL ...
+        # DOCUMENT_EXTENSIONS ...           # Specify file extensions that should be associated with this app
+        # COMPANY_NAME ...                  # Specify the name of the app's author
+        PRODUCT_NAME "Serialist Looper")
 
 target_sources(serialistLooper
         PRIVATE
@@ -51,26 +65,48 @@ target_compile_definitions(serialistLooper
         JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:serialistLooper,JUCE_VERSION>"
         )
 
-# If your target needs extra binary assets, you can add them here. The first argument is the name of
-# a new static library target that will include all the binary resources. There is an optional
-# `NAMESPACE` argument that can specify the namespace of the generated binary data class. Finally,
-# the SOURCES argument should be followed by a list of source files that should be built into the
-# static library. These source files can be of any kind (wav data, images, fonts, icons etc.).
-# Conversion to binary-data will happen when your target is built.
-
-# juce_add_binary_data(GuiAppData SOURCES ...)
-
 target_link_libraries(serialistLooper
         PRIVATE
         # GuiAppData            # If we'd created a binary data target, we'd link to it here
-        juce::juce_gui_basics
-        juce::juce_gui_extra
-        juce::juce_audio_devices
+        ${MODULE_DEPENDENCIES_JUCE}
         PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_lto_flags
-        juce::juce_recommended_warning_flags
+        ${FLAGS_JUCE})
+
+#####################################################################################
+## TARGET: MIDI GENERATOR V1
+#####################################################################################
+
+
+
+juce_add_gui_app(midiGeneratorV1
+        PRODUCT_NAME "MIDI Generator V1")
+
+
+target_sources(midiGeneratorV1
+        PRIVATE
+        ${CMAKE_SOURCE_DIR}/app/midi_generator_v1.cpp
+        ${SOURCES})
+
+target_compile_definitions(midiGeneratorV1
+        PRIVATE
+        # JUCE_WEB_BROWSER and JUCE_USE_CURL would be on by default, but you might not need them.
+        JUCE_WEB_BROWSER=0  # If you remove this, add `NEEDS_WEB_BROWSER TRUE` to the `juce_add_gui_app` call
+        JUCE_USE_CURL=0     # If you remove this, add `NEEDS_CURL TRUE` to the `juce_add_gui_app` call
+        JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:serialistLooper,JUCE_PRODUCT_NAME>"
+        JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:serialistLooper,JUCE_VERSION>"
         )
+
+target_link_libraries(midiGeneratorV1
+        PRIVATE
+        # GuiAppData            # If we'd created a binary data target, we'd link to it here
+        ${MODULE_DEPENDENCIES_JUCE}
+        PUBLIC
+        ${FLAGS_JUCE})
+
+
+#####################################################################################
+## TARGET: TESTS
+#####################################################################################
 
 add_executable(tests
         ${CMAKE_SOURCE_DIR}/test/core_tests.cpp
@@ -80,15 +116,10 @@ add_executable(tests
 target_link_libraries(tests
         PRIVATE
         # GuiAppData            # If we'd created a binary data target, we'd link to it here
-        juce::juce_gui_basics
-        juce::juce_gui_extra
-        juce::juce_audio_devices
+        ${MODULE_DEPENDENCIES_JUCE}
         PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_lto_flags
-        juce::juce_recommended_warning_flags
+        ${FLAGS_JUCE}
         )
-
 
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
 

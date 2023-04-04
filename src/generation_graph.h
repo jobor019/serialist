@@ -12,6 +12,7 @@
 
 class GenerationGraph {
 public:
+    virtual ~GenerationGraph() = default;
     virtual std::vector<std::unique_ptr<Event>> process(const TimePoint& t) = 0;
 };
 
@@ -23,11 +24,11 @@ class MidiGraph : public GenerationGraph {
 
 class SimplisticMidiGraphV1 : public MidiGraph {
 public:
-    SimplisticMidiGraphV1(std::unique_ptr<GraphNode<double>>&& onset
-                          , std::unique_ptr<GraphNode<double>>&& duration
-                          , std::unique_ptr<GraphNode<int>>&& pitch
-                          , std::unique_ptr<GraphNode<int>>&& velocity
-                          , std::unique_ptr<GraphNode<int>>&& channel)
+    SimplisticMidiGraphV1(std::shared_ptr<GraphNode<double>>&& onset
+                          , std::shared_ptr<GraphNode<double>>&& duration
+                          , std::shared_ptr<GraphNode<int>>&& pitch
+                          , std::shared_ptr<GraphNode<int>>&& velocity
+                          , std::shared_ptr<GraphNode<int>>&& channel)
             : m_onset(std::move(onset))
               , m_duration(std::move(duration))
               , m_pitch(std::move(pitch))
@@ -71,11 +72,11 @@ private:
     }
 
 
-    std::unique_ptr<GraphNode<double> > m_onset;
-    std::unique_ptr<GraphNode<double> > m_duration;
-    std::unique_ptr<GraphNode<int> > m_pitch;
-    std::unique_ptr<GraphNode<int> > m_velocity;
-    std::unique_ptr<GraphNode<int> > m_channel;
+    std::shared_ptr<GraphNode<double> > m_onset;
+    std::shared_ptr<GraphNode<double> > m_duration;
+    std::shared_ptr<GraphNode<int> > m_pitch;
+    std::shared_ptr<GraphNode<int> > m_velocity;
+    std::shared_ptr<GraphNode<int> > m_channel;
 
 };
 

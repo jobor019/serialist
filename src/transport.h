@@ -95,6 +95,7 @@ public:
             auto time_delta = std::chrono::duration_cast<std::chrono::milliseconds>(
                     current_time - m_previous_update_time).count();
             m_time_point.increment(time_delta);
+            m_previous_update_time = current_time;
         }
 
         return m_time_point;

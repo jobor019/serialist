@@ -52,7 +52,7 @@ public:
         return {m_mapping.at(index).temp_first()};
     }
 
-    typename std::vector<MapElement<T>>::size_type size() {
+    std::size_t size() {
         return m_mapping.size();
     }
 

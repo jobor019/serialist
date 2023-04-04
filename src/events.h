@@ -4,6 +4,7 @@
 #define SERIALIST_LOOPER_EVENTS_H
 
 #include <vector>
+#include "transport.h"
 
 class Event {
 public:
@@ -32,6 +33,8 @@ class TriggerEvent : public Event {
 public:
     // TODO: TRIGGER TIME VS TARGET TIME
     explicit TriggerEvent(double time) : Event(time) {}
+
+    explicit TriggerEvent(const TimePoint& time_point) : Event(time_point.get_tick()) {}
 
 };
 

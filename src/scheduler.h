@@ -12,6 +12,16 @@ public:
         m_events.push_back(std::move(event));
     }
 
+    void add_events(std::vector<std::unique_ptr<Event>> events) {
+        for (auto& event : events) {
+            m_events.push_back(std::move(event));
+        }
+    }
+
+    std::vector<std::unique_ptr<Event>> get_events(const TimePoint& time_point) {
+        return get_events(time_point.get_tick());
+    }
+
     std::vector<std::unique_ptr<Event>> get_events(double current_time) {
         auto not_passed = [&](const std::unique_ptr<Event>& event) {
             return event->get_time() > current_time;
@@ -31,6 +41,11 @@ public:
     bool is_empty() {
         return m_events.empty();
     }
+
+    std::size_t size() {
+        return m_events.size();
+    }
+
 
 private:
     std::vector<std::unique_ptr<Event>> m_events;

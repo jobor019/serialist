@@ -1,4 +1,4 @@
-#include "../src/main_component.h"
+#include "../src/gui/main_component.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
