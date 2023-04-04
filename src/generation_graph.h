@@ -54,7 +54,7 @@ public:
                                     , note_pitch.value()
                                     , note_velocity.value()
                                     , note_channel.value()
-                                    , note_duration.value());
+                                    , next_onset.value() * note_duration.value());
         events.emplace_back(std::make_unique<MidiEvent>(note.first));
         events.emplace_back(std::make_unique<MidiEvent>(note.second));
         events.emplace_back(std::make_unique<TriggerEvent>(next_onset.value() + t.get_tick()));
