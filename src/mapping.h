@@ -39,6 +39,12 @@ public:
 
     Mapping(std::initializer_list<MapElement<T> > values) : m_mapping{values} {}
 
+    explicit Mapping(std::vector<T> values) {
+        for (auto value : values) {
+            m_mapping.emplace_back(MapElement<T>(value));
+        }
+    }
+
     std::vector<T> get(typename std::vector<MapElement<T>>::size_type index) const {
         // TODO: Implement getter with different behaviours for polyphonic MapElements
         if (m_mapping.empty()) {

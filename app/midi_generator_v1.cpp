@@ -7,6 +7,7 @@
 #include "../src/generation_graph.h"
 #include "../src/looper.h"
 #include "../src/gui/looper_component.h"
+#include "../src/gui/mapping_component.h"
 
 class MidiGeneratorV1Component : public juce::Component
                                  , private juce::HighResolutionTimer {
@@ -48,6 +49,7 @@ public:
         addAndMakeVisible(*m_pitch);
         addAndMakeVisible(*m_velocity);
         addAndMakeVisible(*m_channel);
+
 
         m_graph = std::make_unique<SimplisticMidiGraphV1>(onset, duration, pitch, velocity, channel);
 
@@ -118,6 +120,12 @@ private:
     std::unique_ptr<LooperComponent<int>> m_pitch;
     std::unique_ptr<LooperComponent<int>> m_velocity;
     std::unique_ptr<LooperComponent<int>> m_channel;
+
+    std::unique_ptr<TempMappingComponent<double>> m_onset_values;
+    std::unique_ptr<TempMappingComponent<double>> m_duration_values;
+    std::unique_ptr<TempMappingComponent<int>> m_pitch_values;
+    std::unique_ptr<TempMappingComponent<int>> m_velocity_values;
+    std::unique_ptr<TempMappingComponent<int>> m_channel_values;
 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MidiGeneratorV1Component)

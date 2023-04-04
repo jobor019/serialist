@@ -25,6 +25,11 @@ public:
         return m_mapping.get(static_cast<unsigned long>(std::floor(x)));
     }
 
+    void set_mapping(Mapping<T> mapping) {
+        m_mapping = mapping;
+        m_phasor.set_max(static_cast<double>(mapping.size()));
+    }
+
 
     void add(MapElement<T> element, long index = -1) {
         m_mapping.add(std::move(element), index);

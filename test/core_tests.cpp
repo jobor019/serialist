@@ -166,6 +166,11 @@ TEST_CASE("mappings") {
         std::cout << m.get(0)[0] << "\n";
         std::cout << m.get(1)[0] << "\n";
     }
+
+    SECTION("mapping from vector") {
+        std::vector<int> v{1,2, 3};
+        Mapping<int> m(v);
+    }
 }
 
 

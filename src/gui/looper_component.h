@@ -5,6 +5,7 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "../looper.h"
+#include "mapping_component.h"
 
 template<typename T>
 class LooperComponent : public juce::Component
@@ -12,7 +13,8 @@ class LooperComponent : public juce::Component
 public:
     explicit LooperComponent(std::shared_ptr<Looper<T>> looper, const std::string& name)
             : m_looper(looper)
-            , m_name("name", name) {
+            , m_name("name", name)
+            , m_mapping_component(looper) {
         addAndMakeVisible(m_name);
 
         m_step_size.setRange(-8, 8, 0.1);
@@ -21,6 +23,8 @@ public:
         m_step_size.addListener(this);
 
         addAndMakeVisible(m_step_size);
+
+        addAndMakeVisible(m_mapping_component);
 
     }
 
@@ -45,12 +49,15 @@ private:
         auto bounds = getLocalBounds();
         m_name.setBounds(bounds.removeFromLeft(100));
         m_step_size.setBounds(bounds.removeFromLeft(100));
+        m_mapping_component.setBounds(bounds);
     }
 
     std::shared_ptr<Looper<T>> m_looper;
 
     juce::Slider m_step_size;
     juce::Label m_name;
+
+    TempMappingComponent<T> m_mapping_component;
 };
 
 #endif //SERIALIST_LOOPER_LOOPER_COMPONENT_H

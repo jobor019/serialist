@@ -26,6 +26,7 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/exceptions.h
         ${CMAKE_SOURCE_DIR}/src/gui/looper_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/main_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/mapping_component.h
         )
 
 set(MODULE_DEPENDENCIES_JUCE
