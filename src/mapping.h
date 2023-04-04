@@ -58,8 +58,12 @@ public:
         return {m_mapping.at(index).temp_first()};
     }
 
-    std::size_t size() {
+    std::size_t size() const {
         return m_mapping.size();
+    }
+
+    bool empty() const {
+        return m_mapping.empty();
     }
 
     void add(MapElement<T> element, long index = -1) {

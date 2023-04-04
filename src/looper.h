@@ -21,6 +21,10 @@ public:
 
 
     std::vector<T> process(const TimePoint& time) override {
+        if (m_mapping.empty()){
+            return {};
+        }
+
         double x = m_phasor.process(time.get_tick());
         return m_mapping.get(static_cast<unsigned long>(std::floor(x)));
     }

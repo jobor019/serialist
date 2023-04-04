@@ -168,7 +168,7 @@ TEST_CASE("mappings") {
     }
 
     SECTION("mapping from vector") {
-        std::vector<int> v{1,2, 3};
+        std::vector<int> v{1, 2, 3};
         Mapping<int> m(v);
     }
 }
@@ -255,6 +255,27 @@ TEST_CASE("stepped looper", "[generation]") {
         REQUIRE(looper.process(TimePoint{}).at(0) == 72);
         REQUIRE(looper.process(TimePoint{}).at(0) == 60);
     }
+
+    SECTION("mid-way replace and empty mapping") {
+        REQUIRE(looper.process(TimePoint{}).at(0) == 60);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 62);
+        REQUIRE(looper.process(TimePoint{}).at(0) == 64);
+        looper.set_mapping({});
+        REQUIRE(looper.process(TimePoint{}).empty());
+        REQUIRE(looper.process(TimePoint{}).empty());
+        REQUIRE(looper.process(TimePoint{}).empty());
+        std::vector<int> new_elements = {60, 70, 80};
+        looper.set_mapping(Mapping<int>(new_elements));
+        std::vector<int> output;
+        output.emplace_back(looper.process(TimePoint{}).at(0));
+        output.emplace_back(looper.process(TimePoint{}).at(0));
+        output.emplace_back(looper.process(TimePoint{}).at(0));
+
+        REQUIRE(std::all_of(new_elements.begin(), new_elements.end(), [&output](int i) {
+            return std::find(output.begin(), output.end(), i) != output.end();
+        }));
+    }
+
 }
 
 
