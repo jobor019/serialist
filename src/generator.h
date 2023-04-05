@@ -15,25 +15,34 @@ template<typename T>
 class Generator : public GraphNode<T> {
 public:
 
-    enum class MapMode {
-        cont, mod, clip, pass
-    };
+    Generator() = default;
 
-    explicit Generator() = default;
 
     explicit Generator(std::shared_ptr<Oscillator>& oscillator
                        , double step_size = 1.0
                        , double phase = 0.0
+                       , double mul = 1.0
                        , Phasor::Mode mode = Phasor::Mode::stepped
-                       , std::optional<Mapping<T>> mapping = std::nullopt
-                       , MapMode map_mode = MapMode::cont)
+                       , std::optional<InterpolationMapping<T> > mapping = std::nullopt)
             : m_oscillator(oscillator)
-              , m_phasor{step_size, static_cast<double>(mapping.size()), phase, mode}
+              , m_phasor{step_size, 1.0, phase, mode}
               , m_mapping(mapping)
-              , m_map_mode(map_mode) {}
+              , m_mul(mul) {}
+
 
     std::vector<T> process(const TimePoint& time) override {
-        throw std::runtime_error("not implemented");
+        auto x = m_phasor.process(time.get_tick()) * m_mul;
+        if (m_mapping) {
+            auto res = m_mapping->interpolate(x);
+            if (!res) {
+                return {};          // std::nullopt
+            }
+            return {res.value()};   // always only one value
+        }
+
+        return {static_cast<T>(x)};
+
+
     }
 
     void set_oscillator(std::shared_ptr<Oscillator>& oscillator) {
@@ -59,20 +68,15 @@ public:
         m_mapping = mapping;
     }
 
-    void set_map_mode(MapMode map_mode) {
-        m_map_mode = map_mode;
-    }
-
 
 private:
-
     std::shared_ptr<Oscillator> m_oscillator;
-    std::optional<Mapping<T>> m_mapping;
     Phasor m_phasor;
-    MapMode m_map_mode;
+    std::optional<InterpolationMapping<T> > m_mapping;
 
+    double m_mul = 1.0;
 
-}
+};
 
 
 #endif //SERIALIST_LOOPER_GENERATOR_H

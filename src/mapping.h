@@ -4,6 +4,9 @@
 #define SERIALIST_LOOPER_MAPPING_H
 
 #include <vector>
+#include <optional>
+
+#include "interpolator.h"
 
 
 // TODO: Implement getters, multielement MapElements, etc.
@@ -35,17 +38,24 @@ private:
 template<typename T>
 class Mapping {
 public:
+
     Mapping() = default;
+
 
     Mapping(std::initializer_list<MapElement<T> > values) : m_mapping{values} {}
 
-    explicit Mapping(std::vector<T> values) {
-        for (auto value : values) {
+
+    Mapping(std::initializer_list<T> values) : Mapping(std::vector(values)) {}
+
+
+    explicit Mapping(const std::vector<T>& values) {
+        for (auto value: values) {
             m_mapping.emplace_back(MapElement<T>(value));
         }
     }
 
-    std::vector<T> get(typename std::vector<MapElement<T>>::size_type index) const {
+
+    std::vector<T> get(std::size_t index) const {
         // TODO: Implement getter with different behaviours for polyphonic MapElements
         if (m_mapping.empty()) {
             return {};
@@ -58,13 +68,16 @@ public:
         return {m_mapping.at(index).temp_first()};
     }
 
-    std::size_t size() const {
+
+    [[nodiscard]] std::size_t size() const {
         return m_mapping.size();
     }
 
-    bool empty() const {
+
+    [[nodiscard]] bool empty() const {
         return m_mapping.empty();
     }
+
 
     void add(MapElement<T> element, long index = -1) {
         // handle negative indices (insert from end)
@@ -78,6 +91,7 @@ public:
 
         m_mapping.insert(m_mapping.begin() + position, std::move(element));
     }
+
 
     void add(std::vector<MapElement<T> > elements, long start_index = -1) {
         if (start_index < 0) {
@@ -97,5 +111,57 @@ public:
 private:
     std::vector<MapElement<T> > m_mapping;
 };
+
+
+// ==============================================================================================
+
+template<typename T>
+class InterpolationMapping {
+public:
+
+    InterpolationMapping() = default;
+
+
+    InterpolationMapping(std::initializer_list<T> values) : InterpolationMapping(std::vector(values)) {}
+
+
+    explicit InterpolationMapping(const std::vector<T>& values, std::shared_ptr<Interpolator<T>> interpolator)
+            : m_mapping(values)
+              , m_interpolator(interpolator) {}
+
+
+    std::optional<T> interpolate(double x) {
+        if (!m_mapping.empty() && m_interpolator) {
+            return m_interpolator->interpolate(x, m_mapping);
+        }
+        return std::nullopt;
+    }
+
+
+    [[nodiscard]] std::size_t size() const {
+        return m_mapping.size();
+    }
+
+
+    [[nodiscard]] bool empty() const {
+        return m_mapping.empty();
+    }
+
+
+    void set_mapping(const std::vector<T>& mapping) {
+        m_mapping = mapping;
+    }
+
+
+    void set_interpolator(const std::shared_ptr<Interpolator<T>>& interpolator) {
+        m_interpolator = interpolator;
+    }
+
+
+private:
+    std::vector<T> m_mapping;
+    std::shared_ptr<Interpolator<T>> m_interpolator; // TODO: std::optional rather than std::shared_ptr if possible
+};
+
 
 #endif //SERIALIST_LOOPER_MAPPING_H

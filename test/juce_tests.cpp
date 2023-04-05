@@ -44,18 +44,11 @@ TEST_CASE("midi graph", "[generation, integration]") {
 
 
     SimplisticMidiGraphV1 m{
-            std::make_unique<Looper<double>>(Mapping<double>{{  1.0}
-                , {1.0}
-                , {1.0}
-                , {2.0}
-                , {1.0}}, 1.0, 0.0, Phasor::Mode::stepped)
-            , std::make_unique<Looper<double>>(Mapping<double>{{1.0}}, 1.0, 0.0, Phasor::Mode::stepped)
-            , std::make_unique<Looper<int>>(Mapping<int>{{  6000}
-                , {6200}
-                , {6400}
-                , {6700}}, 1.0, 0.0, Phasor::Mode::stepped)
-            , std::make_unique<Looper<int>>(Mapping<int>{{100}}, 1.0, 0.0, Phasor::Mode::stepped)
-            , std::make_unique<Looper<int>>(Mapping<int>{{1}}, 1.0, 0.0, Phasor::Mode::stepped)};
+            std::make_unique<Looper<double>>(Mapping<double>{1.0, 1.0, 1.0, 2.0, 1.0}, 1.0, 0.0, Phasor::Mode::stepped)
+            , std::make_unique<Looper<double>>(Mapping<double>{1.0}, 1.0, 0.0, Phasor::Mode::stepped)
+            , std::make_unique<Looper<int>>(Mapping<int>{6000, 6200, 6400, 6700}, 1.0, 0.0, Phasor::Mode::stepped)
+            , std::make_unique<Looper<int>>(Mapping<int>{100}, 1.0, 0.0, Phasor::Mode::stepped)
+            , std::make_unique<Looper<int>>(Mapping<int>{1}, 1.0, 0.0, Phasor::Mode::stepped)};
 
     double t = 0.0;
     for (int i = 0; i < 10; ++i) {
@@ -81,7 +74,7 @@ TEST_CASE("midi graph", "[generation, integration]") {
 
     double time = 0;
     while (!scheduler.is_empty()) {
-        std::this_thread::sleep_for(std::chrono::milliseconds (1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
         auto events = scheduler.get_events(time);
 
@@ -94,8 +87,6 @@ TEST_CASE("midi graph", "[generation, integration]") {
 
         time += 0.001;
     }
-
-
 
 
 }

@@ -8,6 +8,7 @@
 #include "../src/generation_graph.h"
 #include "../src/looper.h"
 #include "../src/scheduler.h"
+#include "../src/generator.h"
 
 
 #include <chrono>
@@ -173,6 +174,124 @@ TEST_CASE("mappings") {
     }
 }
 
+TEST_CASE("interpolator", "[generation]") {
+
+    SECTION("continue") {
+        auto mapping = std::vector<int>{0, 2, 4, 5, 7, 9, 11};
+
+        ContinueInterpolator<int> m{12};
+
+        REQUIRE(m.interpolate(0, mapping).value() == 0);
+        REQUIRE(m.interpolate(1, mapping).value() == 12);
+        REQUIRE(m.interpolate(2, mapping).value() == 24);
+        REQUIRE(m.interpolate(10, mapping).value() == 120);
+        REQUIRE(m.interpolate(0.5, mapping).value() == 5);
+        REQUIRE(m.interpolate(1.5, mapping).value() == (12 + 5));
+        REQUIRE(m.interpolate(10.5, mapping).value() == (120 + 5));
+        REQUIRE(m.interpolate(-1, mapping).value() == -12);
+
+        mapping = std::vector<int>{0};
+
+        REQUIRE(m.interpolate(0, mapping).value() == 0);
+        REQUIRE(m.interpolate(0.5, mapping).value() == 0);
+        REQUIRE(m.interpolate(0.99, mapping).value() == 0);
+        REQUIRE(m.interpolate(1, mapping).value() == 12);
+        REQUIRE(m.interpolate(2, mapping).value() == 24);
+
+
+        mapping = std::vector<int>{};
+
+        REQUIRE(m.interpolate(0, mapping) == std::nullopt);
+        REQUIRE(m.interpolate(0.5, mapping) == std::nullopt);
+        REQUIRE(m.interpolate(1, mapping) == std::nullopt);
+        REQUIRE(m.interpolate(2, mapping) == std::nullopt);
+    }
+
+
+    SECTION("modulo") {
+        auto v = std::vector<int>{0, 2, 4, 5, 7, 9, 11};
+
+        ModuloInterpolator<int> m;
+
+        REQUIRE(m.interpolate(0, v) == 0);
+        REQUIRE(m.interpolate(0.5, v) == 5);
+        REQUIRE(m.interpolate(1, v) == 0);
+        REQUIRE(m.interpolate(1.5, v) == 5);
+        REQUIRE(m.interpolate(10, v) == 0);
+
+        v = {0};
+
+        REQUIRE(m.interpolate(0, v) == 0);
+        REQUIRE(m.interpolate(0.5, v) == 0);
+        REQUIRE(m.interpolate(1, v) == 0);
+        REQUIRE(m.interpolate(1.5, v) == 0);
+        REQUIRE(m.interpolate(10, v) == 0);
+
+        v = std::vector<int>{};
+
+        REQUIRE(m.interpolate(0, v) == std::nullopt);
+        REQUIRE(m.interpolate(0.5, v) == std::nullopt);
+        REQUIRE(m.interpolate(1, v) == std::nullopt);
+        REQUIRE(m.interpolate(2, v) == std::nullopt);
+    }
+
+    SECTION("clip") {
+        auto v = std::vector<int>{0, 2, 4, 5, 7, 9, 11};
+
+        ClipInterpolator<int> m;
+
+        REQUIRE(m.interpolate(0, v) == 0);
+        REQUIRE(m.interpolate(0.5, v) == 5);
+        REQUIRE(m.interpolate(1, v) == 11);
+        REQUIRE(m.interpolate(1.5, v) == 11);
+        REQUIRE(m.interpolate(10, v) == 11);
+
+        v = {0};
+
+        REQUIRE(m.interpolate(0, v) == 0);
+        REQUIRE(m.interpolate(0.5, v) == 0);
+        REQUIRE(m.interpolate(1, v) == 0);
+        REQUIRE(m.interpolate(1.5, v) == 0);
+        REQUIRE(m.interpolate(10, v) == 0);
+
+        v = std::vector<int>{};
+
+        REQUIRE(m.interpolate(0, v) == std::nullopt);
+        REQUIRE(m.interpolate(0.5, v) == std::nullopt);
+        REQUIRE(m.interpolate(1, v) == std::nullopt);
+        REQUIRE(m.interpolate(2, v) == std::nullopt);
+    }
+
+    SECTION("pass") {
+        auto v = std::vector<int>{0, 2, 4, 5, 7, 9, 11};
+
+        PassInterpolator<int> m;
+
+        REQUIRE(m.interpolate(0, v) == 0);
+        REQUIRE(m.interpolate(0.5, v) == 5);
+        REQUIRE(m.interpolate(1, v) == std::nullopt);
+        REQUIRE(m.interpolate(1.5, v) == std::nullopt);
+        REQUIRE(m.interpolate(10, v) == std::nullopt);
+
+        v = {0};
+
+        REQUIRE(m.interpolate(0, v) == 0);
+        REQUIRE(m.interpolate(0.5, v) == 0);
+        REQUIRE(m.interpolate(0, v) == 0);
+        REQUIRE(m.interpolate(1, v) == std::nullopt);
+        REQUIRE(m.interpolate(1.5, v) == std::nullopt);
+        REQUIRE(m.interpolate(10, v) == std::nullopt);
+
+        v = std::vector<int>{};
+
+        REQUIRE(m.interpolate(0, v) == std::nullopt);
+        REQUIRE(m.interpolate(0.5, v) == std::nullopt);
+        REQUIRE(m.interpolate(1, v) == std::nullopt);
+        REQUIRE(m.interpolate(2, v) == std::nullopt);
+    }
+
+}
+
 
 TEST_CASE("transport test", "[transport]") {
     Transport transport(TimePoint(0.0, 60.0, 0.0, Meter(4, 4)), true);
@@ -199,11 +318,7 @@ TEST_CASE("transport test", "[transport]") {
 
 
 TEST_CASE("stepped looper", "[generation]") {
-    Looper<int> looper{Mapping<int>{{  60}
-                                    , {62}
-                                    , {64}
-                                    , {67}
-                                    , {68}}, 1.0, 0.0, Phasor::Mode::stepped};
+    Looper<int> looper{Mapping<int>{60, 62, 64, 67, 68}, 1.0, 0.0, Phasor::Mode::stepped};
 
     SECTION("uniform integer looper") {
         REQUIRE(looper.process(TimePoint{}).at(0) == 60);
@@ -294,6 +409,19 @@ TEST_CASE("scheduler", "[scheduling]") {
     }
 
     // TODO
+}
+
+TEST_CASE("interpolation mapping", "[generation]") {
+    auto e = InterpolationMapping<int>{{1, 2, 3}, nullptr};
+}
+
+
+TEST_CASE("generator", "[generation]") {
+    std::shared_ptr<Oscillator> oscillator = std::make_shared<Cosine>();
+
+    Generator<int> generator{oscillator, 1.0};
+//    generator.set_phase(1.0);
+//    generator.set_oscillator(oscillator);
 }
 
 

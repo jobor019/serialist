@@ -14,6 +14,8 @@ public:
      */
     Oscillator() = default;
 
+    virtual ~Oscillator() = default;
+
     virtual double process(double x) = 0;
 };
 
