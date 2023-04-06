@@ -125,7 +125,10 @@ public:
     InterpolationMapping(std::initializer_list<T> values) : InterpolationMapping(std::vector(values)) {}
 
 
-    explicit InterpolationMapping(const std::vector<T>& values, std::shared_ptr<Interpolator<T>> interpolator)
+    explicit InterpolationMapping(
+            const std::vector<T>& values
+            , std::shared_ptr<Interpolator<T>> interpolator = std::make_shared<ClipInterpolator<T>>()
+    )
             : m_mapping(values)
               , m_interpolator(interpolator) {}
 

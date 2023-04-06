@@ -20,6 +20,18 @@ public:
 };
 
 
+// ==============================================================================================
+
+class Identity : public Oscillator {
+public:
+    double process(double x) override {
+        return x;
+    }
+};
+
+
+// ==============================================================================================
+
 class Cosine : public Oscillator {
 public:
     double process(double x) override {

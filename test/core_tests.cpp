@@ -417,11 +417,41 @@ TEST_CASE("interpolation mapping", "[generation]") {
 
 
 TEST_CASE("generator", "[generation]") {
-    std::shared_ptr<Oscillator> oscillator = std::make_shared<Cosine>();
+    SECTION("no mapping") {
+        Generator<double> generator{std::make_shared<Triangle>(), 0.25, 0.0, 1.0, Phasor::Mode::stepped, std::nullopt};
 
-    Generator<int> generator{oscillator, 1.0};
-//    generator.set_phase(1.0);
-//    generator.set_oscillator(oscillator);
+        REQUIRE_THAT(generator.process(TimePoint(0.0)).at(0), Catch::Matchers::WithinAbs(0, 1e-8));
+        REQUIRE_THAT(generator.process(TimePoint(0.0)).at(0), Catch::Matchers::WithinAbs(0.5, 1e-8));
+        REQUIRE_THAT(generator.process(TimePoint(0.0)).at(0), Catch::Matchers::WithinAbs(1, 1e-8));
+        REQUIRE_THAT(generator.process(TimePoint(0.0)).at(0), Catch::Matchers::WithinAbs(0.5, 1e-8));
+        REQUIRE_THAT(generator.process(TimePoint(0.0)).at(0), Catch::Matchers::WithinAbs(0, 1e-8));
+    }
+
+    SECTION("with simple mapping") {
+        Generator<double> generator{std::make_shared<Identity>(), 1.0/3.0 + 1e-8, 0.0, 1.0, Phasor::Mode::stepped, std::nullopt};
+
+        generator.set_mapping(std::make_optional(InterpolationMapping<double>{
+                {10.0, 30.0, 105.0}, std::make_shared<ClipInterpolator<double>>()}));
+
+        REQUIRE_THAT(generator.process(TimePoint(0.0)).at(0), Catch::Matchers::WithinAbs(10, 1e-8));
+        REQUIRE_THAT(generator.process(TimePoint(0.0)).at(0), Catch::Matchers::WithinAbs(30, 1e-8));
+        REQUIRE_THAT(generator.process(TimePoint(0.0)).at(0), Catch::Matchers::WithinAbs(105, 1e-8));
+    }
+
+    SECTION("with continue mapping") {
+        Generator<double> generator{std::make_shared<Identity>(), 1.0/12.0 + 1e-8, 0.0, 4.0, Phasor::Mode::stepped, std::nullopt};
+
+        generator.set_mapping(std::make_optional(InterpolationMapping<double>{
+                {0, 2, 5}, std::make_shared<ContinueInterpolator<double>>(10)}));
+
+        REQUIRE_THAT(generator.process(TimePoint(0.0)).at(0), Catch::Matchers::WithinAbs(0, 1e-8));
+        REQUIRE_THAT(generator.process(TimePoint(0.0)).at(0), Catch::Matchers::WithinAbs(2, 1e-8));
+        REQUIRE_THAT(generator.process(TimePoint(0.0)).at(0), Catch::Matchers::WithinAbs(5, 1e-8));
+        REQUIRE_THAT(generator.process(TimePoint(0.0)).at(0), Catch::Matchers::WithinAbs(10, 1e-8));
+        REQUIRE_THAT(generator.process(TimePoint(0.0)).at(0), Catch::Matchers::WithinAbs(12, 1e-8));
+        REQUIRE_THAT(generator.process(TimePoint(0.0)).at(0), Catch::Matchers::WithinAbs(15, 1e-8));
+    }
+
 }
 
 

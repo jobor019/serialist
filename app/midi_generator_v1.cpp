@@ -13,30 +13,19 @@ class MidiGeneratorV1Component : public juce::Component
                                  , private juce::HighResolutionTimer {
 public:
     MidiGeneratorV1Component() {
-        auto onset = std::make_shared<Looper<double>>(Mapping<double>{
-                {  1.0}
-                , {1.0}
-                , {1.0}
-                , {2.0}
-                , {1.0}}, 1.0, 0.0, Phasor::Mode::stepped);
+        auto onset = std::make_shared<Looper<double>>(
+                Mapping<double>{1.0, 1.0, 1.0, 2.0, 1.0}, 1.0, 0.0
+                , Phasor::Mode::stepped);
 
 
-        auto duration = std::make_shared<Looper<double>>(Mapping<double>{{1.0}}
+        auto duration = std::make_shared<Looper<double>>(Mapping<double>{1.0}
                                                          , 1.0
                                                          , 0.0
                                                          , Phasor::Mode::stepped);
-        auto pitch = std::make_shared<Looper<int>>(Mapping<int>{{  6000}
-                                                                , {6200}
-                                                                , {6400}
-                                                                , {6700}}, 1.0, 0.0, Phasor::Mode::stepped);
-        auto velocity = std::make_shared<Looper<int>>(Mapping<int>{{100}}
-                                                      , 1.0
-                                                      , 0.0
-                                                      , Phasor::Mode::stepped);
-        auto channel = std::make_shared<Looper<int>>(Mapping<int>{{1}}
-                                                     , 1.0
-                                                     , 0.0
-                                                     , Phasor::Mode::stepped);
+        auto pitch = std::make_shared<Looper<int>>(Mapping<int>{6000, 6200, 6400, 6700}, 1.0, 0.0
+                                                   , Phasor::Mode::stepped);
+        auto velocity = std::make_shared<Looper<int>>(Mapping<int>{100}, 1.0, 0.0, Phasor::Mode::stepped);
+        auto channel = std::make_shared<Looper<int>>(Mapping<int>{1}, 1.0, 0.0, Phasor::Mode::stepped);
 
         m_onset = std::make_unique<LooperComponent<double>>(onset, "onset");
         m_duration = std::make_unique<LooperComponent<double>>(duration, "duration");
@@ -115,17 +104,23 @@ private:
     MidiRenderer m_midi_renderer;
     std::unique_ptr<SimplisticMidiGraphV1> m_graph;
 
-    std::unique_ptr<LooperComponent<double>> m_onset;
-    std::unique_ptr<LooperComponent<double>> m_duration;
-    std::unique_ptr<LooperComponent<int>> m_pitch;
-    std::unique_ptr<LooperComponent<int>> m_velocity;
-    std::unique_ptr<LooperComponent<int>> m_channel;
+    std::unique_ptr<Component> m_onset;
+    std::unique_ptr<Component> m_duration;
+    std::unique_ptr<Component> m_pitch;
+    std::unique_ptr<Component> m_velocity;
+    std::unique_ptr<Component> m_channel;
 
     std::unique_ptr<TempMappingComponent<double>> m_onset_values;
     std::unique_ptr<TempMappingComponent<double>> m_duration_values;
     std::unique_ptr<TempMappingComponent<int>> m_pitch_values;
     std::unique_ptr<TempMappingComponent<int>> m_velocity_values;
     std::unique_ptr<TempMappingComponent<int>> m_channel_values;
+
+    juce::TextButton onset_type;
+    juce::TextButton duration_type;
+    juce::TextButton pitch_type;
+    juce::TextButton velocity_type;
+    juce::TextButton channel_type;
 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MidiGeneratorV1Component)
