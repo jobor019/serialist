@@ -15,10 +15,7 @@ template<typename T>
 class Generator : public GraphNode<T> {
 public:
 
-    Generator() = default;
-
-
-    explicit Generator(std::shared_ptr<Oscillator> oscillator
+    explicit Generator(std::shared_ptr<Oscillator> oscillator = std::make_shared<Identity>()
                        , double step_size = 0.1
                        , double phase = 0.0
                        , double mul = 1.0

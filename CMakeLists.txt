@@ -28,6 +28,7 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/gui/looper_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/main_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/mapping_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/generator_component.h
 
         )
 

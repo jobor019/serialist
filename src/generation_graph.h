@@ -13,8 +13,12 @@
 class GenerationGraph {
 public:
     virtual ~GenerationGraph() = default;
+
     virtual std::vector<std::unique_ptr<Event>> process(const TimePoint& t) = 0;
 };
+
+
+// ==============================================================================================
 
 
 class MidiGraph : public GenerationGraph {
@@ -22,8 +26,20 @@ class MidiGraph : public GenerationGraph {
 };
 
 
+// ==============================================================================================
+
 class SimplisticMidiGraphV1 : public MidiGraph {
 public:
+
+    enum class Node {
+        onset = 0
+        , duration = 1
+        , pitch = 2
+        , velocity = 3
+        , channel = 4
+    };
+
+
     SimplisticMidiGraphV1(std::shared_ptr<GraphNode<double>>&& onset
                           , std::shared_ptr<GraphNode<double>>&& duration
                           , std::shared_ptr<GraphNode<int>>&& pitch
@@ -61,6 +77,56 @@ public:
 
         return events;
     }
+
+    // TODO: Find proper solution for templated type
+    template<typename T>
+    void set_node(int id, std::shared_ptr<GraphNode<T> > new_node) {
+        switch (id) {
+            case static_cast<int>(Node::onset):
+                m_onset = std::move(new_node);
+                break;
+            case static_cast<int>(Node::duration):
+                m_duration = std::move(new_node);
+                break;
+            case static_cast<int>(Node::pitch):
+                m_pitch = std::move(new_node);
+                break;
+            case static_cast<int>(Node::velocity):
+                m_velocity = std::move(new_node);
+                break;
+            case static_cast<int>(Node::channel):
+                m_channel = std::move(new_node);
+                break;
+            default:
+                throw std::runtime_error("invalid id");
+        }
+    }
+
+    template<typename T>
+    void set_node(Node node_position, std::shared_ptr<GraphNode<T> > new_node) {
+        set_node(static_cast<int>(node_position), std::move(new_node));
+    }
+
+    void set_onset(std::shared_ptr<GraphNode<double>> new_node) {
+        m_onset = std::move(new_node);
+    }
+
+    void set_duration(std::shared_ptr<GraphNode<double>> new_node) {
+        m_duration = std::move(new_node);
+    }
+
+    void set_pitch(std::shared_ptr<GraphNode<int>> new_node) {
+        m_pitch = std::move(new_node);
+    }
+
+    void set_velocity(std::shared_ptr<GraphNode<int>> new_node) {
+        m_velocity = std::move(new_node);
+    }
+
+    void set_channel(std::shared_ptr<GraphNode<int>> new_node) {
+        m_channel = std::move(new_node);
+    }
+
 
 private:
     template<typename T>

@@ -6,22 +6,25 @@
 #include "../src/transport.h"
 #include "../src/generation_graph.h"
 #include "../src/looper.h"
+#include "../src/generator.h"
 #include "../src/gui/looper_component.h"
 #include "../src/gui/mapping_component.h"
 
 class MidiGeneratorV1Component : public juce::Component
+                                 , public juce::ComboBox::Listener
                                  , private juce::HighResolutionTimer {
 public:
+    static const int LOOPER_ID = 1;
+    static const int GENERATOR_ID = 2;
+
+
     MidiGeneratorV1Component() {
         auto onset = std::make_shared<Looper<double>>(
                 Mapping<double>{1.0, 1.0, 1.0, 2.0, 1.0}, 1.0, 0.0
                 , Phasor::Mode::stepped);
 
 
-        auto duration = std::make_shared<Looper<double>>(Mapping<double>{1.0}
-                                                         , 1.0
-                                                         , 0.0
-                                                         , Phasor::Mode::stepped);
+        auto duration = std::make_shared<Looper<double>>(Mapping<double>{1.0}, 1.0, 0.0, Phasor::Mode::stepped);
         auto pitch = std::make_shared<Looper<int>>(Mapping<int>{6000, 6200, 6400, 6700}, 1.0, 0.0
                                                    , Phasor::Mode::stepped);
         auto velocity = std::make_shared<Looper<int>>(Mapping<int>{100}, 1.0, 0.0, Phasor::Mode::stepped);
@@ -38,6 +41,12 @@ public:
         addAndMakeVisible(*m_pitch);
         addAndMakeVisible(*m_velocity);
         addAndMakeVisible(*m_channel);
+
+        populate_combo_box(&m_onset_type);
+        populate_combo_box(&m_duration_type);
+        populate_combo_box(&m_pitch_type);
+        populate_combo_box(&m_velocity_type);
+        populate_combo_box(&m_channel_type);
 
 
         m_graph = std::make_unique<SimplisticMidiGraphV1>(onset, duration, pitch, velocity, channel);
@@ -67,23 +76,33 @@ public:
 
     void resized() override {
         auto bounds = getLocalBounds();
-        m_onset->setBounds(bounds.removeFromTop(60));
-        m_duration->setBounds(bounds.removeFromTop(60));
-        m_pitch->setBounds(bounds.removeFromTop(60));
-        m_velocity->setBounds(bounds.removeFromTop(60));
-        m_channel->setBounds(bounds.removeFromTop(60));
+
+        auto row = bounds.removeFromTop(60);
+        m_onset_type.setBounds(row.removeFromLeft(90));
+        m_onset->setBounds(row);
+
+        row = bounds.removeFromTop(60);
+        m_duration_type.setBounds(row.removeFromLeft(90));
+        m_duration->setBounds(row);
+
+        row = bounds.removeFromTop(60);
+        m_pitch_type.setBounds(row.removeFromLeft(90));
+        m_pitch->setBounds(row);
+
+        row = bounds.removeFromTop(60);
+        m_velocity_type.setBounds(row.removeFromLeft(90));
+        m_velocity->setBounds(row);
+
+        row = bounds.removeFromTop(60);
+        m_channel_type.setBounds(row.removeFromLeft(90));
+        m_channel->setBounds(row);
     }
 
 
     void hiResTimerCallback() override {
-//    void timerCallback() override {
-//        std::cout << "(start)\n";
         const auto& time = m_transport.update_time();
-//        std::cout << "timer callback (" << time.get_tick() << ")\n";
         auto events = m_scheduler.get_events(time);
-//        std::cout << "n events: " << events.size() << "(remaining: " << m_scheduler.size() << ")\n";
 
-//        std::cout << "timer callback ()\n";
         for (auto& event: events) {
             if (dynamic_cast<TriggerEvent*>(event.get())) {
                 std::cout << "#################### Trigger: " << event->get_time() << "\n";
@@ -94,7 +113,56 @@ public:
                 m_midi_renderer.render(note_event);
             }
         }
-//        std::cout << "(end)\n";
+    }
+
+
+    void comboBoxChanged(juce::ComboBox* combo_box) override {
+        bool to_generator = combo_box->getSelectedId() == GENERATOR_ID;
+        if (combo_box == &m_onset_type) {
+            std::shared_ptr<GraphNode<double>> new_node;
+            if (to_generator) {
+                new_node = std::make_shared<Generator<double>>();
+            } else {
+                new_node = std::make_shared<Looper<double>>();
+            }
+            m_graph->set_onset(std::move(new_node));
+
+        } else if (combo_box == &m_duration_type) {
+            std::shared_ptr<GraphNode<double>> new_node;
+            if (to_generator) {
+                new_node = std::make_shared<Generator<double>>();
+            } else {
+                new_node = std::make_shared<Looper<double>>();
+            }
+            m_graph->set_duration(std::move(new_node));
+
+        } else if (combo_box == &m_pitch_type) {
+            std::shared_ptr<GraphNode<int>> new_node;
+            if (to_generator) {
+                new_node = std::make_shared<Generator<int>>();
+            } else {
+                new_node = std::make_shared<Looper<int>>();
+            }
+            m_graph->set_pitch(std::move(new_node));
+
+        } else if (combo_box == &m_velocity_type) {
+            std::shared_ptr<GraphNode<int>> new_node;
+            if (to_generator) {
+                new_node = std::make_shared<Generator<int>>();
+            } else {
+                new_node = std::make_shared<Looper<int>>();
+            }
+            m_graph->set_velocity(std::move(new_node));
+
+        } else if (combo_box == &m_channel_type) {
+            std::shared_ptr<GraphNode<int>> new_node;
+            if (to_generator) {
+                new_node = std::make_shared<Generator<int>>();
+            } else {
+                new_node = std::make_shared<Looper<int>>();
+            }
+            m_graph->set_channel(std::move(new_node));
+        }
     }
 
 
@@ -110,17 +178,19 @@ private:
     std::unique_ptr<Component> m_velocity;
     std::unique_ptr<Component> m_channel;
 
-    std::unique_ptr<TempMappingComponent<double>> m_onset_values;
-    std::unique_ptr<TempMappingComponent<double>> m_duration_values;
-    std::unique_ptr<TempMappingComponent<int>> m_pitch_values;
-    std::unique_ptr<TempMappingComponent<int>> m_velocity_values;
-    std::unique_ptr<TempMappingComponent<int>> m_channel_values;
+    juce::ComboBox m_onset_type;
+    juce::ComboBox m_duration_type;
+    juce::ComboBox m_pitch_type;
+    juce::ComboBox m_velocity_type;
+    juce::ComboBox m_channel_type;
 
-    juce::TextButton onset_type;
-    juce::TextButton duration_type;
-    juce::TextButton pitch_type;
-    juce::TextButton velocity_type;
-    juce::TextButton channel_type;
+    void populate_combo_box(juce::ComboBox* box) {
+        addAndMakeVisible(box);
+        box->addItem("Looper", LOOPER_ID);
+        box->addItem("Generator", GENERATOR_ID);
+        box->setSelectedId(1);
+        box->addListener(this);
+    }
 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MidiGeneratorV1Component)
@@ -131,6 +201,7 @@ private:
 
 class MidiGeneratorV1 : public juce::JUCEApplication {
 public:
+
     MidiGeneratorV1() = default;
 
     const juce::String getApplicationName() override { return JUCE_APPLICATION_NAME_STRING; }
