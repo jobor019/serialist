@@ -9,6 +9,7 @@
 #include "../src/generator.h"
 #include "../src/gui/looper_component.h"
 #include "../src/gui/mapping_component.h"
+#include "../src/gui/generator_component.h"
 
 class MidiGeneratorV1Component : public juce::Component
                                  , public juce::ComboBox::Listener
@@ -120,49 +121,69 @@ public:
         bool to_generator = combo_box->getSelectedId() == GENERATOR_ID;
         if (combo_box == &m_onset_type) {
             std::shared_ptr<GraphNode<double>> new_node;
+            std::unique_ptr<Component> new_component;
             if (to_generator) {
                 new_node = std::make_shared<Generator<double>>();
+                m_onset = std::make_unique<GeneratorComponent<double>>(std::dynamic_pointer_cast<Generator<double>>(new_node), "onset");
             } else {
                 new_node = std::make_shared<Looper<double>>();
+                m_onset = std::make_unique<LooperComponent<double>>(std::dynamic_pointer_cast<Looper<double>>(new_node), "onset");
             }
             m_graph->set_onset(std::move(new_node));
+            addAndMakeVisible(*m_onset);
+
 
         } else if (combo_box == &m_duration_type) {
             std::shared_ptr<GraphNode<double>> new_node;
             if (to_generator) {
                 new_node = std::make_shared<Generator<double>>();
+                m_duration = std::make_unique<GeneratorComponent<double>>(std::dynamic_pointer_cast<Generator<double>>(new_node), "duration");
             } else {
                 new_node = std::make_shared<Looper<double>>();
+                m_duration = std::make_unique<LooperComponent<double>>(std::dynamic_pointer_cast<Looper<double>>(new_node), "duration");
             }
             m_graph->set_duration(std::move(new_node));
+            addAndMakeVisible(*m_duration);
 
         } else if (combo_box == &m_pitch_type) {
             std::shared_ptr<GraphNode<int>> new_node;
             if (to_generator) {
                 new_node = std::make_shared<Generator<int>>();
+                m_pitch = std::make_unique<GeneratorComponent<int>>(std::dynamic_pointer_cast<Generator<int>>(new_node), "pitch");
             } else {
                 new_node = std::make_shared<Looper<int>>();
+                auto e =std::dynamic_pointer_cast<Looper<int>>(new_node);
+                m_pitch = std::make_unique<LooperComponent<int>>(std::dynamic_pointer_cast<Looper<int>>(new_node), "pitch");
             }
             m_graph->set_pitch(std::move(new_node));
+            addAndMakeVisible(*m_pitch);
 
         } else if (combo_box == &m_velocity_type) {
             std::shared_ptr<GraphNode<int>> new_node;
             if (to_generator) {
                 new_node = std::make_shared<Generator<int>>();
+                m_velocity = std::make_unique<GeneratorComponent<int>>(std::dynamic_pointer_cast<Generator<int>>(new_node), "velocity");
             } else {
                 new_node = std::make_shared<Looper<int>>();
+                m_velocity = std::make_unique<LooperComponent<int>>(std::dynamic_pointer_cast<Looper<int>>(new_node), "velocity");
             }
             m_graph->set_velocity(std::move(new_node));
+            addAndMakeVisible(*m_velocity);
 
         } else if (combo_box == &m_channel_type) {
             std::shared_ptr<GraphNode<int>> new_node;
             if (to_generator) {
                 new_node = std::make_shared<Generator<int>>();
+                m_channel = std::make_unique<GeneratorComponent<int>>(std::dynamic_pointer_cast<Generator<int>>(new_node), "channel");
             } else {
                 new_node = std::make_shared<Looper<int>>();
+                m_channel = std::make_unique<LooperComponent<int>>(std::dynamic_pointer_cast<Looper<int>>(new_node), "channel");
             }
             m_graph->set_channel(std::move(new_node));
+            addAndMakeVisible(*m_channel);
         }
+
+        resized();
     }
 
 
@@ -188,7 +209,7 @@ private:
         addAndMakeVisible(box);
         box->addItem("Looper", LOOPER_ID);
         box->addItem("Generator", GENERATOR_ID);
-        box->setSelectedId(1);
+        box->setSelectedId(1, juce::dontSendNotification);
         box->addListener(this);
     }
 

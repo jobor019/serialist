@@ -51,6 +51,10 @@ public:
         m_phasor.set_step_size(step_size);
     }
 
+    void set_mul(double mul) {
+        m_mul = mul;
+    }
+
 
     void set_phase(double phase) {
         m_phasor.set_phase(phase, true);
