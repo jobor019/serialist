@@ -10,7 +10,7 @@
 
 // TODO: Note: this is not a generalized implementation that would work for any type of mapping.
 //  Right now, it will only work for Looper since the Looper needs to update its Phasor and we therefore cannot
-//  set the values directly in the Mapping. For this, a better solution is required.
+//  set the values directly in the MultiMapping. For this, a better solution is required.
 template<typename T>
 class TempMappingComponent : public juce::Component
                              , private juce::Label::Listener {
@@ -33,7 +33,7 @@ private:
         auto [rc, values] = parse_input(labelThatHasChanged->getText().toStdString());
         value_input_success.setToggleState(rc, juce::dontSendNotification);
         if (rc) {
-            m_looper->set_mapping(Mapping<T>(values));
+            m_looper->set_mapping(MultiMapping<T>(values));
             std::cout << "New values: ";
             for (auto& value: values) {
                 std::cout << value << " ";
@@ -102,7 +102,7 @@ private:
         auto [rc, values] = parse_input(labelThatHasChanged->getText().toStdString());
         value_input_success.setToggleState(rc, juce::dontSendNotification);
         if (rc) {
-            m_generator->set_mapping(InterpolationMapping<T>(values));
+            m_generator->set_mapping(SingleMapping<T>(values));
             std::cout << "New values: ";
             for (auto& value: values) {
                 std::cout << value << " ";

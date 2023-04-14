@@ -52,30 +52,33 @@ public:
               , m_channel(std::move(channel)) {}
 
     std::vector<std::unique_ptr<Event>> process(const TimePoint& t) override {
-        auto note_pitch = get_first_if_applicable(m_pitch->process(t));
-        auto note_velocity = get_first_if_applicable(m_velocity->process(t));
-        auto note_duration = get_first_if_applicable(m_duration->process(t));
-        auto note_channel = get_first_if_applicable(m_channel->process(t));
-        auto next_onset = get_first_if_applicable(m_onset->process(t));
-
-        std::vector<std::unique_ptr<Event>> events;
-
-        if (!(note_pitch && note_velocity && note_duration && note_channel && next_onset)) {
-            // if any is nullopt: ignore all and requeue trigger
-            events.emplace_back(std::make_unique<TriggerEvent>(t.get_tick() + 1));
-            return events;
-        }
-
-        auto note = MidiEvent::note(t.get_tick()
-                                    , note_pitch.value()
-                                    , note_velocity.value()
-                                    , note_channel.value()
-                                    , next_onset.value() * note_duration.value());
-        events.emplace_back(std::make_unique<MidiEvent>(note.first));
-        events.emplace_back(std::make_unique<MidiEvent>(note.second));
-        events.emplace_back(std::make_unique<TriggerEvent>(next_onset.value() + t.get_tick()));
-
-        return events;
+//        auto note_pitch = get_first_if_applicable(m_pitch->process(t));
+//        auto note_velocity = get_first_if_applicable(m_velocity->process(t));
+//        auto note_duration = get_first_if_applicable(m_duration->process(t));
+//        auto note_channel = get_first_if_applicable(m_channel->process(t));
+//        auto next_onset = get_first_if_applicable(m_onset->process(t));
+//
+//        std::vector<std::unique_ptr<Event>> events;
+//
+//        if (!(note_pitch && note_velocity && note_duration && note_channel && next_onset)) {
+//            // if any is nullopt: ignore all and requeue trigger
+//            events.emplace_back(std::make_unique<TriggerEvent>(t.get_tick() + 1));
+//            return events;
+//        }
+//
+//        auto note = MidiEvent::note(t.get_tick()
+//                                    , note_pitch.value()
+//                                    , note_velocity.value()
+//                                    , note_channel.value()
+//                                    , next_onset.value() * note_duration.value());
+//        events.emplace_back(std::make_unique<MidiEvent>(note.first));
+//        events.emplace_back(std::make_unique<MidiEvent>(note.second));
+//        events.emplace_back(std::make_unique<TriggerEvent>(next_onset.value() + t.get_tick()));
+//
+//        return events;
+        // TODO: TEMP
+        (void) t;
+        return {};
     }
 
     // TODO: Find proper solution for templated type

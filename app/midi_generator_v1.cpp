@@ -21,15 +21,15 @@ public:
 
     MidiGeneratorV1Component() {
         auto onset = std::make_shared<Looper<double>>(
-                Mapping<double>{1.0, 1.0, 1.0, 2.0, 1.0}, 1.0, 0.0
+                MultiMapping<double>{1.0, 1.0, 1.0, 2.0, 1.0}, 1.0, 0.0
                 , Phasor::Mode::stepped);
 
 
-        auto duration = std::make_shared<Looper<double>>(Mapping<double>{1.0}, 1.0, 0.0, Phasor::Mode::stepped);
-        auto pitch = std::make_shared<Looper<int>>(Mapping<int>{6000, 6200, 6400, 6700}, 1.0, 0.0
+        auto duration = std::make_shared<Looper<double>>(MultiMapping<double>{1.0}, 1.0, 0.0, Phasor::Mode::stepped);
+        auto pitch = std::make_shared<Looper<int>>(MultiMapping<int>{6000, 6200, 6400, 6700}, 1.0, 0.0
                                                    , Phasor::Mode::stepped);
-        auto velocity = std::make_shared<Looper<int>>(Mapping<int>{100}, 1.0, 0.0, Phasor::Mode::stepped);
-        auto channel = std::make_shared<Looper<int>>(Mapping<int>{1}, 1.0, 0.0, Phasor::Mode::stepped);
+        auto velocity = std::make_shared<Looper<int>>(MultiMapping<int>{100}, 1.0, 0.0, Phasor::Mode::stepped);
+        auto channel = std::make_shared<Looper<int>>(MultiMapping<int>{1}, 1.0, 0.0, Phasor::Mode::stepped);
 
         m_onset = std::make_unique<LooperComponent<double>>(onset, "onset");
         m_duration = std::make_unique<LooperComponent<double>>(duration, "duration");
@@ -149,7 +149,8 @@ public:
             std::shared_ptr<GraphNode<int>> new_node;
             if (to_generator) {
                 new_node = std::make_shared<Generator<int>>();
-                m_pitch = std::make_unique<GeneratorComponent<int>>(std::dynamic_pointer_cast<Generator<int>>(new_node), "pitch");
+                auto a = std::dynamic_pointer_cast<Generator<int>>(new_node);
+                m_pitch = std::make_unique<GeneratorComponent<int>>(a, "pitch");
             } else {
                 new_node = std::make_shared<Looper<int>>();
                 auto e =std::dynamic_pointer_cast<Looper<int>>(new_node);

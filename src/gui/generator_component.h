@@ -12,7 +12,7 @@ class GeneratorComponent : public juce::Component
                         , private juce::Slider::Listener {
 public:
     explicit GeneratorComponent(std::shared_ptr<Generator<T> > generator, const std::string& name)
-            : m_generator(std::move(generator))
+            : m_generator(generator)
               , m_name("name", name)
               , m_mapping_component(generator) {
         addAndMakeVisible(m_name);

@@ -15,12 +15,17 @@ public:
     explicit Looper(Mapping<T> mapping
                     , double step_size = 1.0
                     , double phase = 0.0
-                    , Phasor::Mode mode = Phasor::Mode::stepped)
+                    , Phasor::Mode mode = Phasor::Mode::stepped
+                    , double add = 0.0
+                    , double mul = 1.0)
             : m_mapping(mapping)
-              , m_phasor{step_size, static_cast<double>(mapping.size()), phase, mode} {}
+              , m_phasor{step_size, static_cast<double>(mapping.size()), phase, mode} {
+        (void) add;
+        (void) mul; // TODO TEMP
+    }
 
 
-    std::vector<T> process(const TimePoint& time) override {
+    std::optional<T> process(const TimePoint& time) override {
         if (m_mapping.empty()){
             return {};
         }
@@ -35,7 +40,7 @@ public:
     }
 
 
-    void add(MapElement<T> element, long index = -1) {
+    void add_element(T element, long index = -1) {
         m_mapping.add(std::move(element), index);
 
         // Increment phasor range by number of elements inserted

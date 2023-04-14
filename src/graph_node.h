@@ -6,6 +6,8 @@
 #include "transport.h"
 #include "mapping.h"
 
+#include <optional>
+
 template<typename T>
 class GraphNode {
 public:
@@ -18,12 +20,12 @@ public:
 
     GraphNode& operator=(const GraphNode&) = default;
 
-    GraphNode(GraphNode&&)  noexcept = default;
+    GraphNode(GraphNode&&) noexcept = default;
 
-    GraphNode& operator=(GraphNode&&)  noexcept = default;
+    GraphNode& operator=(GraphNode&&) noexcept = default;
 
 
-    virtual std::vector<T> process(const TimePoint& time) = 0;
+    virtual std::optional<T> process(const TimePoint& time) = 0;
 };
 
 #endif //SERIALIST_LOOPER_GRAPH_NODE_H

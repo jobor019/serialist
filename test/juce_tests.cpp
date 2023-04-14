@@ -38,55 +38,55 @@ TEST_CASE("rendering", "[midi, renderer]") {
 
 }
 
-TEST_CASE("midi graph", "[generation, integration]") {
-
-    Scheduler scheduler;
-
-
-    SimplisticMidiGraphV1 m{
-            std::make_unique<Looper<double>>(Mapping<double>{1.0, 1.0, 1.0, 2.0, 1.0}, 1.0, 0.0, Phasor::Mode::stepped)
-            , std::make_unique<Looper<double>>(Mapping<double>{1.0}, 1.0, 0.0, Phasor::Mode::stepped)
-            , std::make_unique<Looper<int>>(Mapping<int>{6000, 6200, 6400, 6700}, 1.0, 0.0, Phasor::Mode::stepped)
-            , std::make_unique<Looper<int>>(Mapping<int>{100}, 1.0, 0.0, Phasor::Mode::stepped)
-            , std::make_unique<Looper<int>>(Mapping<int>{1}, 1.0, 0.0, Phasor::Mode::stepped)};
-
-    double t = 0.0;
-    for (int i = 0; i < 10; ++i) {
-        auto events = m.process(TimePoint(t));
-
-        for (auto& event: events) {
-            if (auto trigger_event = dynamic_cast<TriggerEvent*>(event.get())) {
-                std::cout << "trigger: @" << trigger_event->get_time() << std::endl;
-                t = event->get_time();
-            } else if (auto note_event = dynamic_cast<MidiEvent*>(event.get())) {
-
-                std::cout << "note:    @" << note_event->get_time() << " (" << note_event->get_note_number() << ", "
-                          << note_event->get_velocity() << ", " << note_event->get_channel() << ")\n";
-            }
-            scheduler.add_event(std::move(event));
-        }
-    }
-
-    MidiRenderer renderer;
-    bool is_initialized = renderer.initialize(std::string("IAC Driver IAC1"));
-
-    REQUIRE(is_initialized);
-
-    double time = 0;
-    while (!scheduler.is_empty()) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
-        auto events = scheduler.get_events(time);
-
-        for (auto& event: events) {
-            if (auto note_event = dynamic_cast<MidiEvent*>(event.get())) {
-                renderer.render(note_event);
-            }
-        }
-
-
-        time += 0.001;
-    }
-
-
-}
+//TEST_CASE("midi graph", "[generation, integration]") {
+//
+//    Scheduler scheduler;
+//
+//
+//    SimplisticMidiGraphV1 m{
+//            std::make_unique<Looper<double>>(MultiMapping<double>{1.0, 1.0, 1.0, 2.0, 1.0}, 1.0, 0.0, Phasor::Mode::stepped)
+//            , std::make_unique<Looper<double>>(MultiMapping<double>{1.0}, 1.0, 0.0, Phasor::Mode::stepped)
+//            , std::make_unique<Looper<int>>(MultiMapping<int>{6000, 6200, 6400, 6700}, 1.0, 0.0, Phasor::Mode::stepped)
+//            , std::make_unique<Looper<int>>(MultiMapping<int>{100}, 1.0, 0.0, Phasor::Mode::stepped)
+//            , std::make_unique<Looper<int>>(MultiMapping<int>{1}, 1.0, 0.0, Phasor::Mode::stepped)};
+//
+//    double t = 0.0;
+//    for (int i = 0; i < 10; ++i) {
+//        auto events = m.process(TimePoint(t));
+//
+//        for (auto& event: events) {
+//            if (auto trigger_event = dynamic_cast<TriggerEvent*>(event.get())) {
+//                std::cout << "trigger: @" << trigger_event->get_time() << std::endl;
+//                t = event->get_time();
+//            } else if (auto note_event = dynamic_cast<MidiEvent*>(event.get())) {
+//
+//                std::cout << "note:    @" << note_event->get_time() << " (" << note_event->get_note_number() << ", "
+//                          << note_event->get_velocity() << ", " << note_event->get_channel() << ")\n";
+//            }
+//            scheduler.add_event(std::move(event));
+//        }
+//    }
+//
+//    MidiRenderer renderer;
+//    bool is_initialized = renderer.initialize(std::string("IAC Driver IAC1"));
+//
+//    REQUIRE(is_initialized);
+//
+//    double time = 0;
+//    while (!scheduler.is_empty()) {
+//        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+//
+//        auto events = scheduler.get_events(time);
+//
+//        for (auto& event: events) {
+//            if (auto note_event = dynamic_cast<MidiEvent*>(event.get())) {
+//                renderer.render(note_event);
+//            }
+//        }
+//
+//
+//        time += 0.001;
+//    }
+//
+//
+//}

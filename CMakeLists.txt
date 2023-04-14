@@ -24,7 +24,7 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/scheduler.h
         ${CMAKE_SOURCE_DIR}/src/transport.h
         ${CMAKE_SOURCE_DIR}/src/exceptions.h
-        ${CMAKE_SOURCE_DIR}/src/interpolator.h
+        ${CMAKE_SOURCE_DIR}/src/accessor.h
         ${CMAKE_SOURCE_DIR}/src/gui/looper_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/main_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/mapping_component.h
@@ -114,6 +114,8 @@ target_link_libraries(midiGeneratorV1
 
 add_executable(tests
         ${CMAKE_SOURCE_DIR}/test/core_tests.cpp
+        ${CMAKE_SOURCE_DIR}/test/mapping_tests.cpp
+        ${CMAKE_SOURCE_DIR}/test/accessor_tests.cpp
         ${CMAKE_SOURCE_DIR}/test/juce_tests.cpp
         )
 

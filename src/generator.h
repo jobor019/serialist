@@ -15,35 +15,38 @@ template<typename T>
 class Generator : public GraphNode<T> {
 public:
 
-    explicit Generator(std::shared_ptr<Oscillator> oscillator = std::make_shared<Identity>()
+    explicit Generator(std::unique_ptr<Oscillator> oscillator = std::make_unique<Identity>()
                        , double step_size = 0.1
                        , double phase = 0.0
                        , double mul = 1.0
                        , Phasor::Mode mode = Phasor::Mode::stepped
-                       , std::optional<InterpolationMapping<T> > mapping = std::nullopt)
+//                       , std::optional<SingleMapping<T> > mapping = std::nullopt)
+            )
             : m_oscillator(std::move(oscillator))
               , m_phasor{step_size, 1.0, phase, mode}
-              , m_mapping(mapping)
+//              , m_mapping(mapping)
               , m_mul(mul) {}
 
 
     std::vector<T> process(const TimePoint& time) override {
-        auto x = m_phasor.process(time.get_tick());
-        auto y = m_oscillator->process(x) * m_mul;
-        if (m_mapping) {
-            auto res = m_mapping->interpolate(y);
-            if (!res) {
-                return {};          // std::nullopt
-            }
-            return {res.value()};   // always only one value
-        }
-
-        return {static_cast<T>(y)};
+//        auto x = m_phasor.process(time.get_tick());
+//        auto y = m_oscillator->process(x) * m_mul;
+//        if (m_mapping) {
+//            auto res = m_mapping->interpolate(y);
+//            if (!res) {
+//                return {};          // std::nullopt
+//            }
+//            return {res.value()};   // always only one value
+//        }
+//
+//        return {static_cast<T>(y)};
+        (void) time;
+        return {};  //TODO TEMP
     }
 
 
-    void set_oscillator(std::shared_ptr<Oscillator>& oscillator) {
-        m_oscillator = oscillator;
+    void set_oscillator(std::unique_ptr<Oscillator> oscillator) {
+        m_oscillator = std::move(oscillator);
     }
 
 
@@ -65,15 +68,15 @@ public:
         m_phasor.set_mode(mode);
     }
 
-    void set_mapping(std::optional<InterpolationMapping<T> > mapping) {
-        m_mapping = mapping;
-    }
+//    void set_mapping(std::optional<SingleMapping<T> > mapping) {
+//        m_mapping = mapping;
+//    }
 
 
 private:
-    std::shared_ptr<Oscillator> m_oscillator;
+    std::unique_ptr<Oscillator> m_oscillator;
     Phasor m_phasor;
-    std::optional<InterpolationMapping<T> > m_mapping;
+//    std::optional<SingleMapping<T> > m_mapping;
 
     double m_mul = 1.0;
 
