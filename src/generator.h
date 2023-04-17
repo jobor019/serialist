@@ -22,10 +22,10 @@ public:
                        , Phasor::Mode mode = Phasor::Mode::stepped
                        , std::unique_ptr<Oscillator> oscillator = std::make_unique<Identity>()
                        , std::unique_ptr<Mapping<T>> mapping = nullptr
-                       , std::unique_ptr<Interpolator<T>> interpolator = ClipInterpolator<T>()
-                       , std::unique_ptr<Selector<T>> selector = IdentitySelector<T>()
-                       , std::unique_ptr<GraphNode<double>> output_add = nullptr
-                       , std::unique_ptr<GraphNode<double>> output_mul = nullptr
+                       , std::unique_ptr<Interpolator<T>> interpolator = std::make_unique<ClipInterpolator<T>>()
+                       , std::unique_ptr<Selector<T>> selector = std::make_unique<IdentitySelector<T>>()
+                       , std::unique_ptr<GraphNode<T>> output_add = nullptr
+                       , std::unique_ptr<GraphNode<T>> output_mul = nullptr
                        , std::unique_ptr<GraphNode<double>> oscillator_add = nullptr
                        , std::unique_ptr<GraphNode<double>> oscillator_mul = nullptr)
             : m_phasor{step_size, 1.0, phase, mode}
@@ -37,21 +37,20 @@ public:
               , m_output_mul(std::move(output_mul))
               , m_oscillator_add(std::move(oscillator_add))
               , m_oscillator_mul(std::move(oscillator_mul)) {
-        if (!oscillator)
+        if (!m_oscillator)
             throw std::runtime_error("An oscillator must always be provided");
-        if (!interpolator)
+        if (!m_interpolator)
             throw std::runtime_error("An interpolator must always be provided");
-        if (!selector)
+        if (!m_selector)
             throw std::runtime_error("A selector must always be provided");
 
-        if constexpr (std::is_arithmetic_v<T>) {
-            if (!mapping)
-                throw std::runtime_error("A mapping must be provided for any non-arithmetic type T");
-        } else {
-            if (output_add)
+        if constexpr (!std::is_arithmetic_v<T>) {
+            if (m_output_add)
                 throw std::runtime_error("output_add can only be provided for arithmetic types T");
-            if (output_mul)
+            if (m_output_mul)
                 throw std::runtime_error("output_mul can only be provided for arithmetic types T");
+            if (!m_mapping)
+                throw std::runtime_error("A mapping must be provided for any non-arithmetic type T");
         }
     }
 
@@ -60,11 +59,13 @@ public:
         auto x = calculate_phasor_position(time);
         auto y = m_oscillator->process(x);
 
+        std::cout << y << "\n";
+
         if (!m_mapping) {               // may only occur if T is arithmetic
             return {static_cast<T>(y)};
         }
 
-        auto output_candidates = m_interpolator->get(y, m_mapping);  // TODO: Handle type of m_mapping
+        auto output_candidates = m_interpolator->get(y, m_mapping.get());
 
         output_candidates = apply_output_add_mul(output_candidates, time);
 

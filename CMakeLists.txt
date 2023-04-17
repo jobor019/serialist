@@ -120,6 +120,7 @@ add_executable(tests
         ${CMAKE_SOURCE_DIR}/test/interpolator_tests.cpp
         ${CMAKE_SOURCE_DIR}/test/selector_tests.cpp
         ${CMAKE_SOURCE_DIR}/test/looper_tests.cpp
+        ${CMAKE_SOURCE_DIR}/test/generator_tests.cpp
         ${CMAKE_SOURCE_DIR}/test/juce_tests.cpp
         )
 

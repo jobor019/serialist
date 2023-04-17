@@ -4,7 +4,6 @@
 
 #include "../src/mapping.h"
 #include "../src/interpolator.h"
-#include "../src/selector.h"
 
 
 TEST_CASE("Test ContinueInterpolator with MapElement<int>") {
@@ -15,41 +14,49 @@ TEST_CASE("Test ContinueInterpolator with MapElement<int>") {
     ContinueInterpolator<int> interpolator(12);
 
     SECTION("Test get with position 0.0") {
-        auto result = interpolator.get(0.0, mapping);
+        auto result = interpolator.get(0.0, &mapping);
         REQUIRE(result.size() == 2);
         REQUIRE(result[0] == 0);
         REQUIRE(result[1] == 2);
     }
 
     SECTION("Test get with position 1.0") {
-        auto result = interpolator.get(1.0, mapping);
+        auto result = interpolator.get(1.0, &mapping);
         REQUIRE(result.size() == 2);
         REQUIRE(result[0] == 12);
         REQUIRE(result[1] == 14);
     }
 
     SECTION("Test get with position 0.5") {
-        auto result = interpolator.get(0.5, mapping);
+        auto result = interpolator.get(0.5, &mapping);
         REQUIRE(result.size() == 1);
         REQUIRE(result[0] == 5);
     }
 
     SECTION("Test get with position 2.5") {
-        auto result = interpolator.get(2.5, mapping);
+        auto result = interpolator.get(2.5, &mapping);
         REQUIRE(result.size() == 1);
         REQUIRE(result[0] == 5 + 12 * 2);
     }
 
     SECTION("Test get with position -1.5") {
-        auto result = interpolator.get(-1.5, mapping);
+        auto result = interpolator.get(-1.5, &mapping);
         REQUIRE(result.size() == 1);
         REQUIRE(result[0] == 5 - 12 * 2);
     }
 
     SECTION("Test get with empty mapping") {
         Mapping<int> empty_mapping{};
-        auto result = interpolator.get(2.25, empty_mapping);
+        auto result = interpolator.get(2.25, &empty_mapping);
         REQUIRE(result.empty());
+    }
+
+    SECTION("Immutability") {
+        auto result = interpolator.get(0, &mapping);
+        REQUIRE(result.size() == 2);
+        result.at(0) = -1;
+        result.push_back(-2);
+        REQUIRE(mapping.at(0) == std::vector<int>{0, 2});
     }
 }
 
@@ -64,41 +71,49 @@ TEST_CASE("Test ModuloInterpolator with MapElement<int>") {
     ModuloInterpolator<int> interpolator;
 
     SECTION("Test get with position 0.0") {
-        auto result = interpolator.get(0.0, mapping);
+        auto result = interpolator.get(0.0, &mapping);
         REQUIRE(result.size() == 2);
         REQUIRE(result[0] == 0);
         REQUIRE(result[1] == 2);
     }
 
     SECTION("Test get with position 1.0") {
-        auto result = interpolator.get(1.0, mapping);
+        auto result = interpolator.get(1.0, &mapping);
         REQUIRE(result.size() == 2);
         REQUIRE(result[0] == 0);
         REQUIRE(result[1] == 2);
     }
 
     SECTION("Test get with position 0.5") {
-        auto result = interpolator.get(0.5, mapping);
+        auto result = interpolator.get(0.5, &mapping);
         REQUIRE(result.size() == 1);
         REQUIRE(result[0] == 5);
     }
 
     SECTION("Test get with position 2.5") {
-        auto result = interpolator.get(2.5, mapping);
+        auto result = interpolator.get(2.5, &mapping);
         REQUIRE(result.size() == 1);
         REQUIRE(result[0] == 5);
     }
 
     SECTION("Test get with position -1.5") {
-        auto result = interpolator.get(-1.5, mapping);
+        auto result = interpolator.get(-1.5, &mapping);
         REQUIRE(result.size() == 1);
         REQUIRE(result[0] == 5);
     }
 
     SECTION("Test get with empty mapping") {
         Mapping<int> empty_mapping{};
-        auto result = interpolator.get(2.25, empty_mapping);
+        auto result = interpolator.get(2.25, &empty_mapping);
         REQUIRE(result.empty());
+    }
+
+    SECTION("Immutability") {
+        auto result = interpolator.get(0, &mapping);
+        REQUIRE(result.size() == 2);
+        result.at(0) = -1;
+        result.push_back(-2);
+        REQUIRE(mapping.at(0) == std::vector<int>{0, 2});
     }
 }
 
@@ -113,14 +128,14 @@ TEST_CASE("Test ClipInterpolator with MapElement<int>") {
     ClipInterpolator<int> interpolator;
 
     SECTION("Test get with position 0.0") {
-        auto result = interpolator.get(0.0, mapping);
+        auto result = interpolator.get(0.0, &mapping);
         REQUIRE(result.size() == 2);
         REQUIRE(result[0] == 0);
         REQUIRE(result[1] == 2);
     }
 
     SECTION("Test get with position 1.0") {
-        auto result = interpolator.get(1.0, mapping);
+        auto result = interpolator.get(1.0, &mapping);
         REQUIRE(result.size() == 3);
         REQUIRE(result[0] == 7);
         REQUIRE(result[1] == 9);
@@ -128,13 +143,13 @@ TEST_CASE("Test ClipInterpolator with MapElement<int>") {
     }
 
     SECTION("Test get with position 0.5") {
-        auto result = interpolator.get(0.5, mapping);
+        auto result = interpolator.get(0.5, &mapping);
         REQUIRE(result.size() == 1);
         REQUIRE(result[0] == 5);
     }
 
     SECTION("Test get with position 2.5") {
-        auto result = interpolator.get(2.5, mapping);
+        auto result = interpolator.get(2.5, &mapping);
         REQUIRE(result.size() == 3);
         REQUIRE(result[0] == 7);
         REQUIRE(result[1] == 9);
@@ -142,7 +157,7 @@ TEST_CASE("Test ClipInterpolator with MapElement<int>") {
     }
 
     SECTION("Test get with position -1.5") {
-        auto result = interpolator.get(-1.5, mapping);
+        auto result = interpolator.get(-1.5, &mapping);
         REQUIRE(result.size() == 2);
         REQUIRE(result[0] == 0);
         REQUIRE(result[1] == 2);
@@ -150,8 +165,16 @@ TEST_CASE("Test ClipInterpolator with MapElement<int>") {
 
     SECTION("Test get with empty mapping") {
         Mapping<int> empty_mapping{};
-        auto result = interpolator.get(2.25, empty_mapping);
+        auto result = interpolator.get(2.25, &empty_mapping);
         REQUIRE(result.empty());
+    }
+
+    SECTION("Immutability") {
+        auto result = interpolator.get(0, &mapping);
+        REQUIRE(result.size() == 2);
+        result.at(0) = -1;
+        result.push_back(-2);
+        REQUIRE(mapping.at(0) == std::vector<int>{0, 2});
     }
 }
 
@@ -166,37 +189,45 @@ TEST_CASE("Test PassInterpolator with MapElement<int>") {
     PassInterpolator<int> interpolator;
 
     SECTION("Test get with position 0.0") {
-        auto result = interpolator.get(0.0, mapping);
+        auto result = interpolator.get(0.0, &mapping);
         REQUIRE(result.size() == 2);
         REQUIRE(result[0] == 0);
         REQUIRE(result[1] == 2);
     }
 
     SECTION("Test get with position 1.0") {
-        auto result = interpolator.get(1.0, mapping);
+        auto result = interpolator.get(1.0, &mapping);
         REQUIRE(result.empty());
     }
 
     SECTION("Test get with position 0.5") {
-        auto result = interpolator.get(0.5, mapping);
+        auto result = interpolator.get(0.5, &mapping);
         REQUIRE(result.size() == 1);
         REQUIRE(result[0] == 5);
     }
 
     SECTION("Test get with position 2.5") {
-        auto result = interpolator.get(2.5, mapping);
+        auto result = interpolator.get(2.5, &mapping);
         REQUIRE(result.empty());
     }
 
     SECTION("Test get with position -1.5") {
-        auto result = interpolator.get(-1.5, mapping);
+        auto result = interpolator.get(-1.5, &mapping);
         REQUIRE(result.empty());
     }
 
     SECTION("Test get with empty mapping") {
         Mapping<int> empty_mapping{};
-        auto result = interpolator.get(2.25, empty_mapping);
+        auto result = interpolator.get(2.25, &empty_mapping);
         REQUIRE(result.empty());
+    }
+
+    SECTION("Immutability") {
+        auto result = interpolator.get(0, &mapping);
+        REQUIRE(result.size() == 2);
+        result.at(0) = -1;
+        result.push_back(-2);
+        REQUIRE(mapping.at(0) == std::vector<int>{0, 2});
     }
 }
 
@@ -217,7 +248,7 @@ TEST_CASE("Interpolation using ContinueInterpolator with sizes between 1 and 100
         double increment = 1.0 / static_cast<double>(mapping_size);
         for (std::size_t i = 0; i < mapping_size; ++i) {
 
-            REQUIRE(interpolator.get(position, mapping) == mapping.at(i));
+            REQUIRE(interpolator.get(position, &mapping) == mapping.at(i));
             position += increment;
         }
     }
@@ -237,7 +268,7 @@ TEST_CASE("Interpolation using ModuloInterpolator with sizes between 1 and 1000 
         double increment = 1.0 / static_cast<double>(mapping_size);
         for (std::size_t i = 0; i < mapping_size; ++i) {
 
-            REQUIRE(interpolator.get(position, mapping) == mapping.at(i));
+            REQUIRE(interpolator.get(position, &mapping) == mapping.at(i));
             position += increment;
         }
     }
@@ -257,7 +288,7 @@ TEST_CASE("Interpolation using CLipInterpolator with sizes between 1 and 1000 ")
         double increment = 1.0 / static_cast<double>(mapping_size);
         for (std::size_t i = 0; i < mapping_size; ++i) {
 
-            REQUIRE(interpolator.get(position, mapping) == mapping.at(i));
+            REQUIRE(interpolator.get(position, &mapping) == mapping.at(i));
             position += increment;
         }
     }
@@ -277,7 +308,7 @@ TEST_CASE("Interpolation using ClipInterpolator with sizes between 1 and 1000 ")
         double increment = 1.0 / static_cast<double>(mapping_size);
         for (std::size_t i = 0; i < mapping_size; ++i) {
 
-            REQUIRE(interpolator.get(position, mapping) == mapping.at(i));
+            REQUIRE(interpolator.get(position, &mapping) == mapping.at(i));
             position += increment;
         }
     }

@@ -38,6 +38,7 @@ public:
 
 
     std::vector<T> process(const TimePoint& time) override {
+        (void) time;
         return {m_value};
     }
 

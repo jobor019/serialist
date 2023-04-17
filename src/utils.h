@@ -50,6 +50,10 @@ namespace utils {
         return std::fmod(std::fmod(n, d) + d, d);
     }
 
+    inline long modulo(long n, long d) {
+        return ((n % d) + d) % d;
+    }
+
 }
 
 #endif //SERIALIST_LOOPER_UTILS_H
