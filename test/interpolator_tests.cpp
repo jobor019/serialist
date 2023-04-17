@@ -3,7 +3,8 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "../src/mapping.h"
-#include "../src/accessor.h"
+#include "../src/interpolator.h"
+#include "../src/selector.h"
 
 
 TEST_CASE("Test ContinueInterpolator with MapElement<int>") {
@@ -199,179 +200,89 @@ TEST_CASE("Test PassInterpolator with MapElement<int>") {
     }
 }
 
-// ==============================================================================================
-
-TEST_CASE("Test IdentityAccessor with MapElement<int>") {
-    Mapping<int> mapping{{  0, 2}
-                         , {4}
-                         , {5}
-                         , {7, 9, 11}};
-    IdentityAccessor<int> accessor;
-
-    SECTION("Test get with position 0") {
-        auto result = accessor.get(0, mapping);
-        REQUIRE(result.size() == 2);
-        REQUIRE(result[0] == 0);
-        REQUIRE(result[1] == 2);
-    }
-
-    SECTION("Test get with position 1") {
-        auto result = accessor.get(1, mapping);
-        REQUIRE(result.size() == 1);
-        REQUIRE(result[0] == 4);
-    }
-
-    SECTION("Test get with position 2") {
-        auto result = accessor.get(2, mapping);
-        REQUIRE(result.size() == 1);
-        REQUIRE(result[0] == 5);
-    }
-
-    SECTION("Test get with position 3") {
-        auto result = accessor.get(3, mapping);
-        REQUIRE(result.size() == 3);
-        REQUIRE(result[0] == 7);
-        REQUIRE(result[1] == 9);
-        REQUIRE(result[2] == 11);
-    }
-
-    SECTION("Test get with position out of bounds") {
-        auto result = accessor.get(10, mapping);
-        REQUIRE(result.empty());
-    }
-
-    SECTION("Test get with position -1") {
-        auto result = accessor.get(-1, mapping);
-        REQUIRE(result.size() == 3);
-        REQUIRE(result[0] == 7);
-        REQUIRE(result[1] == 9);
-        REQUIRE(result[2] == 11);
-    }
-
-    SECTION("Test get with empty mapping") {
-        Mapping<int> empty_mapping{};
-        auto result = accessor.get(2, empty_mapping);
-        REQUIRE(result.empty());
-    }
-}
 
 // ==============================================================================================
 
-TEST_CASE("Test NthAccessor with MapElement<int>") {
-    Mapping<int> mapping{{  0, 2}
-                         , {4}
-                         , {5}
-                         , {7, 9, 11}};
 
+TEST_CASE("Interpolation using ContinueInterpolator with sizes between 1 and 1000 ") {
+    for (std::size_t mapping_size = 1; mapping_size <= 1000; ++mapping_size) {
+        Mapping<int> mapping;
+        for (std::size_t i = 0; i < mapping_size; ++i) {
+            mapping.add(MapElement<int>{static_cast<int>(i)});
+        }
 
-    SECTION("Test get nth=2 with position 0") {
-        NthAccessor<int> accessor(2);
-        auto result = accessor.get(0, mapping);
-        REQUIRE(result.empty());
-    }
+        ContinueInterpolator<int> interpolator(static_cast<int>(mapping_size));
 
-    SECTION("Test get nth=2 with position 1") {
-        NthAccessor<int> accessor(2);
-        auto result = accessor.get(1, mapping);
-        REQUIRE(result.empty());
-    }
+        double position = 0;
+        double increment = 1.0 / static_cast<double>(mapping_size);
+        for (std::size_t i = 0; i < mapping_size; ++i) {
 
-    SECTION("Test get nth=2 with position 2") {
-        NthAccessor<int> accessor(2);
-        auto result = accessor.get(2, mapping);
-        REQUIRE(result.empty());
-    }
-
-    SECTION("Test get nth=2 with position 3") {
-        NthAccessor<int> accessor(2);
-        auto result = accessor.get(3, mapping);
-        REQUIRE(result.size() == 1);
-        REQUIRE(result[0] == 11);
-    }
-
-    SECTION("Test get nth=-1 with position 0") {
-        NthAccessor<int> accessor(-1);
-        auto result = accessor.get(0, mapping);
-        REQUIRE(result.size() == 1);
-        REQUIRE(result[0] == 2);
-    }
-
-    SECTION("Test get nth=-1 with position 1") {
-        NthAccessor<int> accessor(-1);
-        auto result = accessor.get(1, mapping);
-        REQUIRE(result.size() == 1);
-        REQUIRE(result[0] == 4);
-    }
-
-    SECTION("Test get nth=-1 with position 2") {
-        NthAccessor<int> accessor(-1);
-        auto result = accessor.get(2, mapping);
-        REQUIRE(result.size() == 1);
-        REQUIRE(result[0] == 5);
-    }
-
-    SECTION("Test get nth=-1 with position 3") {
-        NthAccessor<int> accessor(-1);
-        auto result = accessor.get(3, mapping);
-        REQUIRE(result.size() == 1);
-        REQUIRE(result[0] == 11);
-    }
-
-    SECTION("Test get with position out of bounds") {
-        NthAccessor<int> accessor(2);
-        auto result = accessor.get(10, mapping);
-        REQUIRE(result.empty());
-    }
-
-    SECTION("Test get with position -1") {
-        NthAccessor<int> accessor(2);
-        auto result = accessor.get(-1, mapping);
-        REQUIRE(result.size() == 1);
-        REQUIRE(result[0] == 11);
-    }
-
-    SECTION("Test get with empty mapping") {
-        NthAccessor<int> accessor(2);
-        Mapping<int> empty_mapping{};
-        auto result = accessor.get(2, empty_mapping);
-        REQUIRE(result.empty());
+            REQUIRE(interpolator.get(position, mapping) == mapping.at(i));
+            position += increment;
+        }
     }
 }
 
 
-// ==============================================================================================
+TEST_CASE("Interpolation using ModuloInterpolator with sizes between 1 and 1000 ") {
+    for (std::size_t mapping_size = 1; mapping_size <= 1000; ++mapping_size) {
+        Mapping<int> mapping;
+        for (std::size_t i = 0; i < mapping_size; ++i) {
+            mapping.add(MapElement<int>{static_cast<int>(i)});
+        }
 
-TEST_CASE("Test FirstAccessor with MapElement<int>") {
-    Mapping<int> mapping{{  0, 2}
-                         , {4}
-                         , {5}
-                         , {7, 9, 11}};
-    FirstAccessor<int> accessor;
+        ModuloInterpolator<int> interpolator;
 
-    SECTION("Test get with position 0") {
-        auto result = accessor.get(0, mapping);
-        REQUIRE(result.size() == 1);
-        REQUIRE(result[0] == 0);
-    }
+        double position = 0;
+        double increment = 1.0 / static_cast<double>(mapping_size);
+        for (std::size_t i = 0; i < mapping_size; ++i) {
 
-    SECTION("Test get with position 1") {
-        auto result = accessor.get(1, mapping);
-        REQUIRE(result.size() == 1);
-        REQUIRE(result[0] == 4);
-    }
-
-    SECTION("Test get with position 2") {
-        auto result = accessor.get(2, mapping);
-        REQUIRE(result.size() == 1);
-        REQUIRE(result[0] == 5);
-    }
-
-    SECTION("Test get with position 3") {
-        auto result = accessor.get(3, mapping);
-        REQUIRE(result.size() == 1);
-        REQUIRE(result[0] == 7);
+            REQUIRE(interpolator.get(position, mapping) == mapping.at(i));
+            position += increment;
+        }
     }
 }
+
+
+TEST_CASE("Interpolation using CLipInterpolator with sizes between 1 and 1000 ") {
+    for (std::size_t mapping_size = 1; mapping_size <= 1000; ++mapping_size) {
+        Mapping<int> mapping;
+        for (std::size_t i = 0; i < mapping_size; ++i) {
+            mapping.add(MapElement<int>{static_cast<int>(i)});
+        }
+
+        ClipInterpolator<int> interpolator;
+
+        double position = 0;
+        double increment = 1.0 / static_cast<double>(mapping_size);
+        for (std::size_t i = 0; i < mapping_size; ++i) {
+
+            REQUIRE(interpolator.get(position, mapping) == mapping.at(i));
+            position += increment;
+        }
+    }
+}
+
+
+TEST_CASE("Interpolation using ClipInterpolator with sizes between 1 and 1000 ") {
+    for (std::size_t mapping_size = 1; mapping_size <= 1000; ++mapping_size) {
+        Mapping<int> mapping;
+        for (std::size_t i = 0; i < mapping_size; ++i) {
+            mapping.add(MapElement<int>{static_cast<int>(i)});
+        }
+
+        PassInterpolator<int> interpolator;
+
+        double position = 0;
+        double increment = 1.0 / static_cast<double>(mapping_size);
+        for (std::size_t i = 0; i < mapping_size; ++i) {
+
+            REQUIRE(interpolator.get(position, mapping) == mapping.at(i));
+            position += increment;
+        }
+    }
+}
+
 
 
 

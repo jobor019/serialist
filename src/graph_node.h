@@ -25,7 +25,38 @@ public:
     GraphNode& operator=(GraphNode&&) noexcept = default;
 
 
-    virtual std::optional<T> process(const TimePoint& time) = 0;
+    virtual std::vector<T> process(const TimePoint& time) = 0;
 };
+
+
+// ==============================================================================================
+
+template<typename T>
+class Parameter : public GraphNode<T> {
+public:
+    explicit Parameter(T value) : m_value(value) {}
+
+
+    std::vector<T> process(const TimePoint& time) override {
+        return {m_value};
+    }
+
+
+    [[nodiscard]]
+    T get_value() const {
+        return m_value;
+    }
+
+
+    void set_value(T value) {
+        m_value = value;
+    }
+
+
+private:
+    T m_value;
+
+};
+
 
 #endif //SERIALIST_LOOPER_GRAPH_NODE_H
