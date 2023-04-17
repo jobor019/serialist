@@ -5,6 +5,20 @@
 
 #include <iostream>
 
+TEST_CASE("Generator Constructor") {
+
+    auto generator = std::make_unique<Generator<double>>(
+            std::make_unique<Mapping<double>>(std::vector<double>{1.0, 2.0}));
+
+    for (int i = 0; i < 10; ++i) {
+        for (auto& e: generator->process(TimePoint())) {
+            std::cout << e << "\n";
+        }
+    }
+
+}
+
+
 TEST_CASE("Trivial Generator") {
     auto step_size = 0.1;
     Generator<double> generator{step_size};

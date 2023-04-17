@@ -145,7 +145,6 @@ TEST_CASE("oscillators", "[generation]") {
 }
 
 
-
 TEST_CASE("BrownNoise generates random output") {
     BrownNoise noise;
     for (int i = 0; i < 1000; i++) {
@@ -475,3 +474,11 @@ TEST_CASE("BrownNoise max difference constraint can be changed") {
 //}
 
 
+TEST_CASE("generation_graph") {
+    std::unique_ptr<GraphNode<double>> onset = std::make_unique<Generator<double>>();
+    SimplisticMidiGraphV1 midi_graph{std::make_unique<Generator<double>>()
+                                     , std::make_unique<Generator<double>>()
+                                     , std::make_unique<Generator<int>>()
+                                     , std::make_unique<Generator<int>>()
+                                     , std::make_unique<Generator<int>>()};
+}

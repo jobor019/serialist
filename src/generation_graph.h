@@ -40,11 +40,11 @@ public:
     };
 
 
-    SimplisticMidiGraphV1(std::shared_ptr<GraphNode<double>>&& onset
-                          , std::shared_ptr<GraphNode<double>>&& duration
-                          , std::shared_ptr<GraphNode<int>>&& pitch
-                          , std::shared_ptr<GraphNode<int>>&& velocity
-                          , std::shared_ptr<GraphNode<int>>&& channel)
+    SimplisticMidiGraphV1(std::unique_ptr<GraphNode<double>> onset
+                          , std::unique_ptr<GraphNode<double>> duration
+                          , std::unique_ptr<GraphNode<int>> pitch
+                          , std::unique_ptr<GraphNode<int>> velocity
+                          , std::unique_ptr<GraphNode<int>> channel)
             : m_onset(std::move(onset))
               , m_duration(std::move(duration))
               , m_pitch(std::move(pitch))
@@ -52,52 +52,49 @@ public:
               , m_channel(std::move(channel)) {}
 
     std::vector<std::unique_ptr<Event>> process(const TimePoint& t) override {
-//        auto note_pitch = get_first_if_applicable(m_pitch->process(t));
-//        auto note_velocity = get_first_if_applicable(m_velocity->process(t));
-//        auto note_duration = get_first_if_applicable(m_duration->process(t));
-//        auto note_channel = get_first_if_applicable(m_channel->process(t));
-//        auto next_onset = get_first_if_applicable(m_onset->process(t));
-//
-//        std::vector<std::unique_ptr<Event>> events;
-//
-//        if (!(note_pitch && note_velocity && note_duration && note_channel && next_onset)) {
-//            // if any is nullopt: ignore all and requeue trigger
-//            events.emplace_back(std::make_unique<TriggerEvent>(t.get_tick() + 1));
-//            return events;
-//        }
-//
-//        auto note = MidiEvent::note(t.get_tick()
-//                                    , note_pitch.value()
-//                                    , note_velocity.value()
-//                                    , note_channel.value()
-//                                    , next_onset.value() * note_duration.value());
-//        events.emplace_back(std::make_unique<MidiEvent>(note.first));
-//        events.emplace_back(std::make_unique<MidiEvent>(note.second));
-//        events.emplace_back(std::make_unique<TriggerEvent>(next_onset.value() + t.get_tick()));
-//
-//        return events;
-        // TODO: TEMP
-        (void) t;
-        return {};
+        auto note_pitch = m_pitch->process(t);
+        auto note_velocity = m_velocity->process(t);
+        auto note_duration = m_duration->process(t);
+        auto note_channel = m_channel->process(t);
+        auto next_onset = m_onset->process(t);
+
+        std::vector<std::unique_ptr<Event>> events;
+
+        if (note_pitch.empty() || note_velocity.empty() || note_duration.empty() ||
+              note_channel.empty() || next_onset.empty()) {
+            // if any is missing: ignore all and requeue trigger
+            events.emplace_back(std::make_unique<TriggerEvent>(t.get_tick() + 1));
+            return events;
+        }
+
+        auto note = MidiEvent::note(t.get_tick()
+                                    , note_pitch.at(0)
+                                    , note_velocity.at(0)
+                                    , note_channel.at(0)
+                                    , next_onset.at(0) * note_duration.at(0));
+        events.emplace_back(std::make_unique<MidiEvent>(note.first));
+        events.emplace_back(std::make_unique<MidiEvent>(note.second));
+        events.emplace_back(std::make_unique<TriggerEvent>(next_onset.at(0) + t.get_tick()));
+
+        return events;
     }
 
-    // TODO: Find proper solution for templated type
     template<typename T>
-    void set_node(int id, std::shared_ptr<GraphNode<T> > new_node) {
-        switch (id) {
-            case static_cast<int>(Node::onset):
+    void set_node(Node node, std::unique_ptr<GraphNode<T> > new_node) {
+        switch (node) {
+            case Node::onset:
                 m_onset = std::move(new_node);
                 break;
-            case static_cast<int>(Node::duration):
+            case Node::duration:
                 m_duration = std::move(new_node);
                 break;
-            case static_cast<int>(Node::pitch):
+            case Node::pitch:
                 m_pitch = std::move(new_node);
                 break;
-            case static_cast<int>(Node::velocity):
+            case Node::velocity:
                 m_velocity = std::move(new_node);
                 break;
-            case static_cast<int>(Node::channel):
+            case Node::channel:
                 m_channel = std::move(new_node);
                 break;
             default:
@@ -105,47 +102,57 @@ public:
         }
     }
 
-    template<typename T>
-    void set_node(Node node_position, std::shared_ptr<GraphNode<T> > new_node) {
-        set_node(static_cast<int>(node_position), std::move(new_node));
-    }
+    [[nodiscard]] GraphNode<double>* get_onset() const { return m_onset.get();}
 
-    void set_onset(std::shared_ptr<GraphNode<double>> new_node) {
-        m_onset = std::move(new_node);
-    }
+    [[nodiscard]] GraphNode<double>* get_duration() const { return m_duration.get();}
 
-    void set_duration(std::shared_ptr<GraphNode<double>> new_node) {
-        m_duration = std::move(new_node);
-    }
+    [[nodiscard]] GraphNode<int>* get_pitch() const { return m_pitch.get();}
 
-    void set_pitch(std::shared_ptr<GraphNode<int>> new_node) {
-        m_pitch = std::move(new_node);
-    }
+    [[nodiscard]] GraphNode<int>* get_velocity() const { return m_velocity.get();}
 
-    void set_velocity(std::shared_ptr<GraphNode<int>> new_node) {
-        m_velocity = std::move(new_node);
-    }
+    [[nodiscard]] GraphNode<int>* get_channel() const { return m_channel.get();}
 
-    void set_channel(std::shared_ptr<GraphNode<int>> new_node) {
-        m_channel = std::move(new_node);
-    }
+
+//    void set_onset(std::unique_ptr<GraphNode<double>> new_node) {
+//        m_onset = std::move(new_node);
+//    }
+//
+//
+//    void set_duration(std::unique_ptr<GraphNode<double>> new_node) {
+//        m_duration = std::move(new_node);
+//    }
+//
+//
+//    void set_pitch(std::unique_ptr<GraphNode<int>> new_node) {
+//        m_pitch = std::move(new_node);
+//    }
+//
+//
+//    void set_velocity(std::unique_ptr<GraphNode<int>> new_node) {
+//        m_velocity = std::move(new_node);
+//    }
+//
+//
+//    void set_channel(std::unique_ptr<GraphNode<int>> new_node) {
+//        m_channel = std::move(new_node);
+//    }
 
 
 private:
-    template<typename T>
-    std::optional<T> get_first_if_applicable(std::vector<T> values) {
-        if (values.empty()) {
-            return std::nullopt;
-        }
-        return values[0];
-    }
+//    template<typename T>
+//    std::optional<T> get_first_if_applicable(std::vector<T> values) {
+//        if (values.empty()) {
+//            return std::nullopt;
+//        }
+//        return values[0];
+//    }
 
 
-    std::shared_ptr<GraphNode<double> > m_onset;
-    std::shared_ptr<GraphNode<double> > m_duration;
-    std::shared_ptr<GraphNode<int> > m_pitch;
-    std::shared_ptr<GraphNode<int> > m_velocity;
-    std::shared_ptr<GraphNode<int> > m_channel;
+    std::unique_ptr<GraphNode<double> > m_onset;
+    std::unique_ptr<GraphNode<double> > m_duration;
+    std::unique_ptr<GraphNode<int> > m_pitch;
+    std::unique_ptr<GraphNode<int> > m_velocity;
+    std::unique_ptr<GraphNode<int> > m_channel;
 
 };
 

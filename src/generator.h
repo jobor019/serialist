@@ -54,12 +54,19 @@ public:
         }
     }
 
+    explicit Generator(std::unique_ptr<Mapping<T>> mapping)
+            : Generator(0.0
+                        , 0.0
+                        , Phasor::Mode::stepped
+                        , std::make_unique<Identity>()
+                        , std::move(mapping)) {
+        set_step_size(1 / static_cast<double>(m_mapping->size()));
+    }
+
 
     std::vector<T> process(const TimePoint& time) override {
         auto x = calculate_phasor_position(time);
         auto y = m_oscillator->process(x);
-
-        std::cout << y << "\n";
 
         if (!m_mapping) {               // may only occur if T is arithmetic
             return {static_cast<T>(y)};
@@ -133,6 +140,7 @@ public:
 
     void set_phasor_mul(std::unique_ptr<GraphNode<double>> phasor_mul) { m_oscillator_mul = std::move(phasor_mul); }
 
+    [[nodiscard]] double get_step_size() const { return m_phasor.get_step_size(); }
 
     [[nodiscard]] Oscillator* get_oscillator() const { return m_oscillator.get(); }
 
@@ -200,7 +208,7 @@ private:
     }
 
     std::vector<T> apply_output_add_mul(std::vector<T> elements, const TimePoint& time) {
-        if constexpr(!std::is_arithmetic_v<T>) {
+        if constexpr (!std::is_arithmetic_v<T>) {
             return elements;
         }
 

@@ -73,6 +73,11 @@ public:
         m_mapping.insert(m_mapping.begin() + position, elements.begin(), elements.end());
     }
 
+
+    const std::vector<MapElement<T>>& get_values() const {
+        return m_mapping;
+    }
+
     // TODO: Convenience functions for insert, replace, swap, etc. Currently just a dummy
     //  copy of std::vector, but will be relevant later
 
