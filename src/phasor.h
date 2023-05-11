@@ -80,9 +80,12 @@ public:
 
     [[nodiscard]] double get_step_size() const { return m_step_size; }
 
+
     [[nodiscard]] double get_max() const { return m_max; }
 
+
     [[nodiscard]] Mode get_mode() const { return m_mode; }
+
 
     [[nodiscard]] double get_current_value() const { return m_current_value; }
 

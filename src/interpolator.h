@@ -17,17 +17,13 @@ public:
 
     virtual ~Interpolator() = default;
 
-    virtual std::vector<T> get(double position, Mapping<T>* mapping) = 0;
-
     Interpolator() = default;
-
     Interpolator(const Interpolator&) = default;
-
     Interpolator& operator=(const Interpolator&) = default;
-
     Interpolator(Interpolator&&) noexcept = default;
-
     Interpolator& operator=(Interpolator&&) noexcept = default;
+
+    virtual std::vector<T> get(double position, Mapping<T>* mapping) = 0;
 
 protected:
     std::size_t get_index(double position, std::size_t map_size) {
@@ -48,6 +44,7 @@ public:
     explicit ContinueInterpolator(T focal_point) : m_focal_point(focal_point) {
         static_assert(std::is_arithmetic_v<T>, "T is not a number");
     }
+
 
     std::vector<T> get(double position, Mapping<T>* mapping) override {
         if (mapping->empty()) {
@@ -71,6 +68,7 @@ public:
     T get_focal_point() const {
         return m_focal_point;
     }
+
 
 private:
     T m_focal_point;

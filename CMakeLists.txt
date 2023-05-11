@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 
 SET(CMAKE_CXX_STANDARD 17)
 
-project(serialist_looper VERSION 0.0.1)
+project(SerialistLooper VERSION 0.0.1)
 
 list(APPEND CMAKE_PREFIX_PATH "/Applications/JUCE/install")
 find_package(JUCE CONFIG REQUIRED)        # If you've installed JUCE to your system
@@ -12,26 +12,29 @@ find_package(Catch2 3 REQUIRED)
 
 set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/events.h
+        ${CMAKE_SOURCE_DIR}/src/exceptions.h
         ${CMAKE_SOURCE_DIR}/src/generation_graph.h
         ${CMAKE_SOURCE_DIR}/src/generation_layer.h
+        ${CMAKE_SOURCE_DIR}/src/generative.h
         ${CMAKE_SOURCE_DIR}/src/generator.h
-        ${CMAKE_SOURCE_DIR}/src/graph_node.h
-        ${CMAKE_SOURCE_DIR}/src/looper.h
+        ${CMAKE_SOURCE_DIR}/src/interpolator.h
         ${CMAKE_SOURCE_DIR}/src/mapping.h
         ${CMAKE_SOURCE_DIR}/src/oscillator.h
-        ${CMAKE_SOURCE_DIR}/src/renderers.h
+        ${CMAKE_SOURCE_DIR}/src/nop_parameter.h
+        ${CMAKE_SOURCE_DIR}/src/parameter_policy.h
         ${CMAKE_SOURCE_DIR}/src/phasor.h
+        ${CMAKE_SOURCE_DIR}/src/renderers.h
         ${CMAKE_SOURCE_DIR}/src/scheduler.h
         ${CMAKE_SOURCE_DIR}/src/transport.h
-        ${CMAKE_SOURCE_DIR}/src/exceptions.h
         ${CMAKE_SOURCE_DIR}/src/selector.h
-        ${CMAKE_SOURCE_DIR}/src/interpolator.h
         ${CMAKE_SOURCE_DIR}/src/utils.h
+        ${CMAKE_SOURCE_DIR}/src/variable.h
+        ${CMAKE_SOURCE_DIR}/src/vt_parameter.h
         ${CMAKE_SOURCE_DIR}/src/gui/looper_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/main_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/mapping_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/generator_component.h
-
+        ${CMAKE_SOURCE_DIR}/src/gui/oscillator_component.h
         )
 
 set(MODULE_DEPENDENCIES_JUCE

@@ -6,7 +6,6 @@
 #include "../src/events.h"
 #include "../src/scheduler.h"
 #include "../src/generation_graph.h"
-#include "../src/looper.h"
 
 TEST_CASE("rendering", "[midi, renderer]") {
 

@@ -5,7 +5,6 @@
 #include "../src/renderers.h"
 #include "../src/transport.h"
 #include "../src/generation_graph.h"
-#include "../src/looper.h"
 #include "../src/generator.h"
 #include "../src/gui/looper_component.h"
 #include "../src/gui/mapping_component.h"
@@ -117,7 +116,7 @@ public:
         (void) combo_box;
 //        bool to_generator = combo_box->getSelectedId() == GENERATOR_ID;
 //        if (combo_box == &m_onset_type) {
-//            std::shared_ptr<GraphNode<double>> new_node;
+//            std::shared_ptr<Generative<double>> new_node;
 //            std::unique_ptr<Component> new_component;
 //            if (to_generator) {
 //                new_node = std::make_shared<Generator<double>>();
@@ -131,7 +130,7 @@ public:
 //
 //
 //        } else if (combo_box == &m_duration_type) {
-//            std::shared_ptr<GraphNode<double>> new_node;
+//            std::shared_ptr<Generative<double>> new_node;
 //            if (to_generator) {
 //                new_node = std::make_shared<Generator<double>>();
 //                m_duration = std::make_unique<GeneratorComponent<double>>(std::dynamic_pointer_cast<Generator<double>>(new_node), "duration");
@@ -143,7 +142,7 @@ public:
 //            addAndMakeVisible(*m_duration);
 //
 //        } else if (combo_box == &m_pitch_type) {
-//            std::shared_ptr<GraphNode<int>> new_node;
+//            std::shared_ptr<Generative<int>> new_node;
 //            if (to_generator) {
 //                new_node = std::make_shared<Generator<int>>();
 //                auto a = std::dynamic_pointer_cast<Generator<int>>(new_node);
@@ -157,7 +156,7 @@ public:
 //            addAndMakeVisible(*m_pitch);
 //
 //        } else if (combo_box == &m_velocity_type) {
-//            std::shared_ptr<GraphNode<int>> new_node;
+//            std::shared_ptr<Generative<int>> new_node;
 //            if (to_generator) {
 //                new_node = std::make_shared<Generator<int>>();
 //                m_velocity = std::make_unique<GeneratorComponent<int>>(std::dynamic_pointer_cast<Generator<int>>(new_node), "velocity");
@@ -169,7 +168,7 @@ public:
 //            addAndMakeVisible(*m_velocity);
 //
 //        } else if (combo_box == &m_channel_type) {
-//            std::shared_ptr<GraphNode<int>> new_node;
+//            std::shared_ptr<Generative<int>> new_node;
 //            if (to_generator) {
 //                new_node = std::make_shared<Generator<int>>();
 //                m_channel = std::make_unique<GeneratorComponent<int>>(std::dynamic_pointer_cast<Generator<int>>(new_node), "channel");

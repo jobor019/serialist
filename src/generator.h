@@ -7,14 +7,15 @@
 
 #include "phasor.h"
 #include "mapping.h"
-#include "graph_node.h"
+#include "generative.h"
 #include "oscillator.h"
 #include "interpolator.h"
 #include "selector.h"
+#include "parameter_policy.h"
 
 
 template<typename T>
-class Generator : public GraphNode<T> {
+class Generator : public Generative<T> {
 public:
 
     explicit Generator(double step_size = 0.1
@@ -24,10 +25,10 @@ public:
                        , std::unique_ptr<Mapping<T>> mapping = nullptr
                        , std::unique_ptr<Interpolator<T>> interpolator = std::make_unique<ClipInterpolator<T>>()
                        , std::unique_ptr<Selector<T>> selector = std::make_unique<IdentitySelector<T>>()
-                       , std::unique_ptr<GraphNode<T>> output_add = nullptr
-                       , std::unique_ptr<GraphNode<T>> output_mul = nullptr
-                       , std::unique_ptr<GraphNode<double>> oscillator_add = nullptr
-                       , std::unique_ptr<GraphNode<double>> oscillator_mul = nullptr)
+                       , std::unique_ptr<Generative<T>> output_add = nullptr
+                       , std::unique_ptr<Generative<T>> output_mul = nullptr
+                       , std::unique_ptr<Generative<double>> oscillator_add = nullptr
+                       , std::unique_ptr<Generative<double>> oscillator_mul = nullptr)
             : m_phasor{step_size, 1.0, phase, mode}
               , m_oscillator(std::move(oscillator))
               , m_mapping(std::move(mapping))
@@ -38,11 +39,11 @@ public:
               , m_oscillator_add(std::move(oscillator_add))
               , m_oscillator_mul(std::move(oscillator_mul)) {
         if (!m_oscillator)
-            throw std::runtime_error("An oscillator must always be provided");
+            throw std::runtime_error("An oscillator must be provided");
         if (!m_interpolator)
-            throw std::runtime_error("An interpolator must always be provided");
+            throw std::runtime_error("An interpolator must be provided");
         if (!m_selector)
-            throw std::runtime_error("A selector must always be provided");
+            throw std::runtime_error("A selector must be provided");
 
         if constexpr (!std::is_arithmetic_v<T>) {
             if (m_output_add)
@@ -53,6 +54,7 @@ public:
                 throw std::runtime_error("A mapping must be provided for any non-arithmetic type T");
         }
     }
+
 
     explicit Generator(std::unique_ptr<Mapping<T>> mapping)
             : Generator(0.0
@@ -115,14 +117,14 @@ public:
     }
 
 
-    void set_output_add(std::unique_ptr<GraphNode<T>> output_add) {
+    void set_output_add(std::unique_ptr<Generative<T>> output_add) {
         if constexpr (!std::is_arithmetic_v<T>)
             throw std::runtime_error("output_mul can only be provided for arithmetic types T");
         m_output_add = std::move(output_add);
     }
 
 
-    void set_output_mul(std::unique_ptr<GraphNode<T>> output_mul) {
+    void set_output_mul(std::unique_ptr<Generative<T>> output_mul) {
         if constexpr (!std::is_arithmetic_v<T>)
             throw std::runtime_error("output_mul can only be provided for arithmetic types T");
 
@@ -132,33 +134,47 @@ public:
 
     void set_step_size(double step_size) { m_phasor.set_step_size(step_size); }
 
+
     void set_phase(double phase) { m_phasor.set_phase(phase, true); }
+
 
     void set_mode(Phasor::Mode mode) { m_phasor.set_mode(mode); }
 
-    void set_phasor_add(std::unique_ptr<GraphNode<double>> phasor_add) { m_oscillator_add = std::move(phasor_add); }
 
-    void set_phasor_mul(std::unique_ptr<GraphNode<double>> phasor_mul) { m_oscillator_mul = std::move(phasor_mul); }
+    void set_phasor_add(std::unique_ptr<Generative<double>> phasor_add) { m_oscillator_add = std::move(phasor_add); }
+
+
+    void set_phasor_mul(std::unique_ptr<Generative<double>> phasor_mul) { m_oscillator_mul = std::move(phasor_mul); }
+
 
     [[nodiscard]] double get_step_size() const { return m_phasor.get_step_size(); }
 
+
     [[nodiscard]] Oscillator* get_oscillator() const { return m_oscillator.get(); }
+
 
     [[nodiscard]] Mapping<T>* get_mapping() const { return m_mapping.get(); }
 
+
     [[nodiscard]] Interpolator<T>* get_interpolator() const { return m_interpolator.get(); }
+
 
     [[nodiscard]] Selector<T>* get_a_selector() const { return m_selector.get(); }
 
-    [[nodiscard]] GraphNode<T>* get_output_add() const { return m_output_add.get(); }
 
-    [[nodiscard]] GraphNode<T>* get_output_mul() const { return m_output_mul.get(); }
-
-    [[nodiscard]] GraphNode<double>* get_phasor_add() const { return m_oscillator_add.get(); }
-
-    [[nodiscard]] GraphNode<double>* get_phasor_mul() const { return m_oscillator_mul.get(); }
+    [[nodiscard]] Generative<T>* get_output_add() const { return m_output_add.get(); }
 
 
+    [[nodiscard]] Generative<T>* get_output_mul() const { return m_output_mul.get(); }
+
+
+    [[nodiscard]] Generative<double>* get_phasor_add() const { return m_oscillator_add.get(); }
+
+
+    [[nodiscard]] Generative<double>* get_phasor_mul() const { return m_oscillator_mul.get(); }
+
+
+    [[nodiscard]] double get_phasor_position() const { return m_x; }
 
 // TODO: Update. Taken from Looper
 //    void add_element(T element, long index = -1) {
@@ -203,9 +219,13 @@ private:
                 phasor_mul = mul[0];
         }
 
-        return x * phasor_mul + phasor_add;
+        x = x * phasor_mul + phasor_add;
+        m_x = x;
+
+        return x;
 
     }
+
 
     std::vector<T> apply_output_add_mul(std::vector<T> elements, const TimePoint& time) {
         if constexpr (!std::is_arithmetic_v<T>) {
@@ -242,11 +262,13 @@ private:
     std::unique_ptr<Interpolator<T>> m_interpolator;
     std::unique_ptr<Selector<T>> m_selector;
 
-    std::unique_ptr<GraphNode<T>> m_output_add;
-    std::unique_ptr<GraphNode<T>> m_output_mul;
+    std::unique_ptr<Generative<T>> m_output_add;
+    std::unique_ptr<Generative<T>> m_output_mul;
 
-    std::unique_ptr<GraphNode<double>> m_oscillator_add;
-    std::unique_ptr<GraphNode<double>> m_oscillator_mul;
+    std::unique_ptr<Generative<double>> m_oscillator_add;
+    std::unique_ptr<Generative<double>> m_oscillator_mul;
+
+    double m_x = 0.0;
 
 };
 

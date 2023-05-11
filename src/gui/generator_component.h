@@ -6,6 +6,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "../generator.h"
 #include "mapping_component.h"
+#include "oscillator_component.h"
 
 template<typename T>
 class GeneratorComponent : public juce::Component
@@ -14,7 +15,8 @@ public:
     explicit GeneratorComponent(Generator<T>* generator, const std::string& name)
             : m_generator(generator)
               , m_name("name", name)
-              , m_mapping(generator) {
+              , m_mapping(generator)
+              , m_oscillator(generator) {
         addAndMakeVisible(m_name);
 
         m_step_size.setRange(-8, 8, 0.1);
@@ -30,6 +32,7 @@ public:
 //        addAndMakeVisible(m_mul);
 
         addAndMakeVisible(m_mapping);
+        addAndMakeVisible(m_oscillator);
     }
 
 
@@ -59,7 +62,8 @@ private:
         auto bounds = getLocalBounds();
         m_name.setBounds(bounds.removeFromLeft(100));
         m_step_size.setBounds(bounds.removeFromLeft(100));
-        m_mul.setBounds(bounds.removeFromLeft(100));
+//        m_mul.setBounds(bounds.removeFromLeft(100));
+        m_oscillator.setBounds(bounds.removeFromRight(100));
         m_mapping.setBounds(bounds);
     }
 
@@ -71,6 +75,8 @@ private:
     juce::Label m_name;
 
     SingleMappingComponent<T> m_mapping;
+    OscillatorComponent<T> m_oscillator;
+
 
 };
 

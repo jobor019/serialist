@@ -4,8 +4,6 @@
 #define SERIALIST_LOOPER_MAPPING_COMPONENT_H
 
 #include <juce_gui_basics/juce_gui_basics.h>
-#include "../looper.h"
-#include "../mapping.h"
 
 
 template<typename T>
