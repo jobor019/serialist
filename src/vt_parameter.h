@@ -7,6 +7,12 @@
 #include <juce_data_structures/juce_data_structures.h>
 #include "exceptions.h"
 
+template<typename T>
+class VTParameter;
+
+
+// ==============================================================================================
+
 class VTParameterHandler {
 public:
 
@@ -29,6 +35,10 @@ public:
     static VTParameterHandler create_root(juce::Identifier id, juce::ValueTree& vt, juce::UndoManager& um) {
         return {std::move(id), vt, um, nullptr};
     }
+
+
+    template<typename T>
+    VTParameter<T>& get_parameter(const std::string& id) {}
 
 
     juce::ValueTree& get_value_tree() {
@@ -66,6 +76,21 @@ private:
 
 // ==============================================================================================
 
+class VTParameterListener {
+public:
+    VTParameterListener() = default;
+    virtual ~VTParameterListener() = default;
+    VTParameterListener(const VTParameterListener&) = default;
+    VTParameterListener& operator=(const VTParameterListener&) = default;
+    VTParameterListener(VTParameterListener&&) noexcept = default;
+    VTParameterListener& operator=(VTParameterListener&&) noexcept = default;
+
+    virtual void on_parameter_changed(VTParameterHandler& handler, const std::string& id) = 0;
+};
+
+
+// ==============================================================================================
+
 template<typename T>
 class VTParameter : private juce::ValueTree::Listener {
 public:
@@ -92,11 +117,33 @@ public:
     VTParameter& operator=(VTParameter&&) noexcept = default;
 
 
-    virtual T get() const = 0;
-    virtual void set(const T& new_value) = 0;
+    void add_listener(VTParameterListener* listener) {
+        m_listeners.push_back(listener);
+    }
 
-    void valueTreePropertyChanged(juce::ValueTree &treeWhosePropertyHasChanged
-                                  , const juce::Identifier &property) override {
+
+    void remove_listener(VTParameterListener* listener) {
+        m_listeners.erase(std::remove(m_listeners.begin(), m_listeners.end(), listener), m_listeners.end());
+    }
+
+
+    T get() const {
+        return get_internal_value();
+    }
+
+
+    void set(const T& new_value) {
+        set_internal_value(new_value);
+        update_value_tree(new_value);
+
+        for (auto* listener: m_listeners) {
+            listener->on_parameter_changed(m_parent, m_identifier.toString().toStdString());
+        }
+    }
+
+
+    void valueTreePropertyChanged(juce::ValueTree& treeWhosePropertyHasChanged
+                                  , const juce::Identifier& property) override {
         if (treeWhosePropertyHasChanged == m_parent.get_value_tree() && property == m_identifier) {
             set_internal_value(treeWhosePropertyHasChanged.getProperty(property));
         }
@@ -108,14 +155,16 @@ protected:
     virtual void set_internal_value(T new_value) = 0;
 
 
+private:
     void update_value_tree(T new_value) {
         m_parent.get_value_tree().setProperty(m_identifier, new_value, &m_parent.get_undo_manager());
     }
 
 
-private:
     juce::Identifier m_identifier;
     VTParameterHandler& m_parent;
+
+    std::vector<VTParameterListener*> m_listeners;
 
 };
 
@@ -131,20 +180,9 @@ public:
     }
 
 
-    T get() const override {
-        return m_value;
-    }
-
-
-    void set(const T& new_value) override {
-        m_value = new_value;                            // atomic
-        VTParameter<T>::update_value_tree(new_value);   // not atomic
-    }
-
-
 private:
     T get_internal_value() override {
-        return get();
+        return m_value;
     }
 
 
@@ -161,5 +199,12 @@ private:
 template<typename T>
 class LockingVTParameter {
 };// TODO
+
+
+// ==============================================================================================
+
+template<typename T>
+class CollectionVTParameter {
+}; // TODO
 
 #endif //SERIALISTPLAYGROUND_VT_PARAMETER_H

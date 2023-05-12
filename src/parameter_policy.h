@@ -9,6 +9,8 @@
 
 using ParameterHandler = VTParameterHandler;
 
+using ParameterListener = VTParameterListener;
+
 template<typename T>
 using AtomicParameter = AtomicVTParameter<T>;
 
@@ -21,11 +23,16 @@ using ComplexParameter = LockingVTParameter<T>;
 
 using ParameterHandler = NopParameterHandler;
 
+using ParameterListener = NopParameterListener; // TODO
+
 template<typename T>
 using AtomicParameter = NopParameter<T>;
 
 template<typename T>
 using ComplexParameter = NopParameter<T>;
+
+
+
 
 #endif
 
