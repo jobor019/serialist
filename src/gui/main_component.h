@@ -24,7 +24,13 @@ public:
         addAndMakeVisible(m_generation_layer);
 
         m_generation_layer.add_component(std::make_unique<MidiNoteSourceComponent>("midi1", m_generation_layer)
-                                         , {100, 100, 200, 50});
+                                         , {50, 50, 220, 75});
+
+        m_generation_layer.add_component(std::make_unique<MidiNoteSourceComponent>("midi2", m_generation_layer)
+                                         , {330, 50, 220, 75});
+
+
+        std::cout << m_value_tree.toXmlString() << std::endl;
 
         m_transport.start();
         startTimer(1);

@@ -25,7 +25,8 @@ public:
                    , Node<float>* duration = nullptr
                    , Node<int>* pitch = nullptr
                    , Node<int>* velocity = nullptr
-                   , Node<int>* channel = nullptr)
+                   , Node<int>* channel = nullptr
+                   , Node<bool>* enabled = nullptr)
             : ParameterHandler(id, parent)
               , m_played_notes(HISTORY_LENGTH) {
         set_onset(onset);
@@ -33,6 +34,7 @@ public:
         set_pitch(pitch);
         set_velocity(velocity);
         set_channel(channel);
+        set_enabled(enabled);
     }
 
 
@@ -41,6 +43,9 @@ public:
             queue_trigger_at_next_tick(time);
             return;
         }
+
+        if (!is_enabled(time))
+            return;
 
 
         auto events = m_scheduler.get_events(time);
@@ -54,7 +59,6 @@ public:
             } else if (auto note_event = dynamic_cast<MidiEvent*>(event.get())) {
                 m_midi_renderer.render(note_event);
                 m_played_notes.push(*note_event);
-
 
                 std::cout << "note:    @" << note_event->get_time()
                           << " (" << note_event->get_note_number()
@@ -105,6 +109,9 @@ public:
     void set_channel(Node<int>* channel) { m_channel = channel; }
 
 
+    void set_enabled(Node<bool>* enabled) { m_enabled = enabled; }
+
+
     void set_midi_device(const std::string& device_name, bool override = true) {
         m_midi_renderer.initialize(device_name, override);
     }
@@ -146,6 +153,12 @@ private:
     }
 
 
+    bool is_enabled(const TimePoint& t) {
+        auto enabled = m_enabled->process(t);
+        return !enabled.empty() && enabled.at(0);
+    }
+
+
     bool is_valid() {
         return m_onset && m_duration && m_pitch && m_velocity && m_channel;
     }
@@ -172,6 +185,8 @@ private:
     Node<int>* m_pitch = nullptr;
     Node<int>* m_velocity = nullptr;
     Node<int>* m_channel = nullptr;
+
+    Node<bool>* m_enabled = nullptr;
 
     utils::LockingQueue<MidiEvent> m_played_notes;
 

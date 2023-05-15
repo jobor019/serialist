@@ -14,7 +14,6 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/events.h
         ${CMAKE_SOURCE_DIR}/src/exceptions.h
         ${CMAKE_SOURCE_DIR}/src/generation_graph.h
-        ${CMAKE_SOURCE_DIR}/src/generation_layer.h
         ${CMAKE_SOURCE_DIR}/src/generative.h
         ${CMAKE_SOURCE_DIR}/src/generator.h
         ${CMAKE_SOURCE_DIR}/src/interpolator.h
@@ -30,15 +29,17 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/utils.h
         ${CMAKE_SOURCE_DIR}/src/variable.h
         ${CMAKE_SOURCE_DIR}/src/vt_parameter.h
-        ${CMAKE_SOURCE_DIR}/src/gui/configuration_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/connector_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/generation_layer.h
         ${CMAKE_SOURCE_DIR}/src/gui/generator_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/look_and_feel.h
         ${CMAKE_SOURCE_DIR}/src/gui/main_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/mapping_component.h
-        ${CMAKE_SOURCE_DIR}/src/gui/midi_source_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/midi_note_source_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/node_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/oscillator_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/slider_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/toggle_button_component.h
         ${CMAKE_SOURCE_DIR}/src/io/renderers.h
         )
 
