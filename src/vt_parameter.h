@@ -7,38 +7,28 @@
 #include <juce_data_structures/juce_data_structures.h>
 #include "exceptions.h"
 
-template<typename T>
-class VTParameter;
-
-
-// ==============================================================================================
 
 class VTParameterHandler {
 public:
 
     // Public ctor, same template as NopParameterHandler
-    explicit VTParameterHandler(const std::string& identifier, VTParameterHandler& parent)
-            : m_identifier(identifier)
-              , m_value_tree(m_identifier)
+    VTParameterHandler(const std::string& identifier, VTParameterHandler& parent)
+            : m_value_tree({identifier})
               , m_undo_manager(parent.get_undo_manager())
               , m_parent(&parent) {
         m_parent->add_child(*this);
     }
 
 
+    // create root
+    VTParameterHandler(juce::ValueTree& vt, juce::UndoManager& um)
+            : m_value_tree(vt), m_undo_manager(um), m_parent(nullptr) {}
+
+
     ~VTParameterHandler() {
         if (m_parent)
             m_parent->m_value_tree.removeChild(m_value_tree, &m_undo_manager);
     }
-
-
-    static VTParameterHandler create_root(juce::Identifier id, juce::ValueTree& vt, juce::UndoManager& um) {
-        return {std::move(id), vt, um, nullptr};
-    }
-
-
-    template<typename T>
-    VTParameter<T>& get_parameter(const std::string& id) {}
 
 
     juce::ValueTree& get_value_tree() {
@@ -55,10 +45,6 @@ public:
 
 
 private:
-    VTParameterHandler(juce::Identifier id, juce::ValueTree& vt, juce::UndoManager& um, VTParameterHandler* parent)
-            : m_identifier(std::move(id)), m_value_tree(vt), m_undo_manager(um), m_parent(parent) {}
-
-
     void add_child(VTParameterHandler& child) {
         if (!m_value_tree.isValid())
             throw ParameterError("VTParameterHandler needs to have a valid root");
@@ -67,7 +53,6 @@ private:
     }
 
 
-    juce::Identifier m_identifier;
     juce::ValueTree m_value_tree;
     juce::UndoManager& m_undo_manager;
     VTParameterHandler* m_parent;
@@ -107,6 +92,7 @@ public:
 
 
     ~VTParameter() override {
+        m_parent.get_value_tree().removeListener(this);
         m_parent.get_value_tree().removeProperty(m_identifier, &m_parent.get_undo_manager());
     }
 
@@ -117,17 +103,31 @@ public:
     VTParameter& operator=(VTParameter&&) noexcept = default;
 
 
-    void add_listener(VTParameterListener* listener) {
-        m_listeners.push_back(listener);
+    void add_parameter_listener(VTParameterListener& listener) {
+        m_listeners.push_back(&listener);
     }
 
 
-    void remove_listener(VTParameterListener* listener) {
-        m_listeners.erase(std::remove(m_listeners.begin(), m_listeners.end(), listener), m_listeners.end());
+    void remove_parameter_listener(VTParameterListener& listener) {
+        m_listeners.erase(std::remove(m_listeners.begin(), m_listeners.end(), &listener), m_listeners.end());
     }
 
 
-    T get() const {
+    void add_value_tree_listener(juce::ValueTree::Listener& listener) {
+        m_parent.get_value_tree().addListener(&listener);
+    }
+
+    void remove_value_tree_listener(juce::ValueTree::Listener& listener) {
+        m_parent.get_value_tree().removeListener(&listener);
+    }
+
+
+    bool equals_property(juce::ValueTree& treeWhosePropertyHasChanged, const juce::Identifier& property) {
+        return treeWhosePropertyHasChanged == m_parent.get_value_tree() && property == m_identifier;
+    }
+
+
+    T get() {
         return get_internal_value();
     }
 
@@ -144,7 +144,7 @@ public:
 
     void valueTreePropertyChanged(juce::ValueTree& treeWhosePropertyHasChanged
                                   , const juce::Identifier& property) override {
-        if (treeWhosePropertyHasChanged == m_parent.get_value_tree() && property == m_identifier) {
+        if (equals_property(treeWhosePropertyHasChanged, property)) {
             set_internal_value(treeWhosePropertyHasChanged.getProperty(property));
         }
     }

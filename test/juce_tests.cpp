@@ -2,7 +2,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <juce_audio_devices/juce_audio_devices.h>
-#include "../src/renderers.h"
+#include "../src/io/renderers.h"
 #include "../src/events.h"
 #include "../src/scheduler.h"
 #include "../src/generation_graph.h"

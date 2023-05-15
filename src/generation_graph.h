@@ -40,11 +40,11 @@ public:
     };
 
 
-    SimplisticMidiGraphV1(std::unique_ptr<Generative<double>> onset
-                          , std::unique_ptr<Generative<double>> duration
-                          , std::unique_ptr<Generative<int>> pitch
-                          , std::unique_ptr<Generative<int>> velocity
-                          , std::unique_ptr<Generative<int>> channel)
+    SimplisticMidiGraphV1(std::unique_ptr<Node<double>> onset
+                          , std::unique_ptr<Node<double>> duration
+                          , std::unique_ptr<Node<int>> pitch
+                          , std::unique_ptr<Node<int>> velocity
+                          , std::unique_ptr<Node<int>> channel)
             : m_onset(std::move(onset))
               , m_duration(std::move(duration))
               , m_pitch(std::move(pitch))
@@ -80,7 +80,7 @@ public:
     }
 
     template<typename T>
-    void set_node(Node node, std::unique_ptr<Generative<T> > new_node) {
+    void set_node(Node node, std::unique_ptr<Node<T> > new_node) {
         switch (node) {
             case Node::onset:
                 m_onset = std::move(new_node);
@@ -102,38 +102,38 @@ public:
         }
     }
 
-    [[nodiscard]] Generative<double>* get_onset() const { return m_onset.get();}
+    [[nodiscard]] Node<double>* get_onset() const { return m_onset.get();}
 
-    [[nodiscard]] Generative<double>* get_duration() const { return m_duration.get();}
+    [[nodiscard]] Node<double>* get_duration() const { return m_duration.get();}
 
-    [[nodiscard]] Generative<int>* get_pitch() const { return m_pitch.get();}
+    [[nodiscard]] Node<int>* get_pitch() const { return m_pitch.get();}
 
-    [[nodiscard]] Generative<int>* get_velocity() const { return m_velocity.get();}
+    [[nodiscard]] Node<int>* get_velocity() const { return m_velocity.get();}
 
-    [[nodiscard]] Generative<int>* get_channel() const { return m_channel.get();}
+    [[nodiscard]] Node<int>* get_channel() const { return m_channel.get();}
 
 
-//    void set_onset(std::unique_ptr<Generative<double>> new_node) {
+//    void set_onset(std::unique_ptr<Node<double>> new_node) {
 //        m_onset = std::move(new_node);
 //    }
 //
 //
-//    void set_duration(std::unique_ptr<Generative<double>> new_node) {
+//    void set_duration(std::unique_ptr<Node<double>> new_node) {
 //        m_duration = std::move(new_node);
 //    }
 //
 //
-//    void set_pitch(std::unique_ptr<Generative<int>> new_node) {
+//    void set_pitch(std::unique_ptr<Node<int>> new_node) {
 //        m_pitch = std::move(new_node);
 //    }
 //
 //
-//    void set_velocity(std::unique_ptr<Generative<int>> new_node) {
+//    void set_velocity(std::unique_ptr<Node<int>> new_node) {
 //        m_velocity = std::move(new_node);
 //    }
 //
 //
-//    void set_channel(std::unique_ptr<Generative<int>> new_node) {
+//    void set_channel(std::unique_ptr<Node<int>> new_node) {
 //        m_channel = std::move(new_node);
 //    }
 
@@ -148,11 +148,11 @@ private:
 //    }
 
 
-    std::unique_ptr<Generative<double> > m_onset;
-    std::unique_ptr<Generative<double> > m_duration;
-    std::unique_ptr<Generative<int> > m_pitch;
-    std::unique_ptr<Generative<int> > m_velocity;
-    std::unique_ptr<Generative<int> > m_channel;
+    std::unique_ptr<Node<double> > m_onset;
+    std::unique_ptr<Node<double> > m_duration;
+    std::unique_ptr<Node<int> > m_pitch;
+    std::unique_ptr<Node<int> > m_velocity;
+    std::unique_ptr<Node<int> > m_channel;
 
 };
 

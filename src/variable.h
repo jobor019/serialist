@@ -5,27 +5,39 @@
 
 
 #include "generative.h"
+#include "parameter_policy.h"
 
 template<typename T>
-class Variable : public Generative<T> {
+class Variable : public Node<T>
+                 , public ParameterHandler {
 public:
-    explicit Variable(T value) : m_value(value) {}
+    explicit Variable(T value, const std::string& id, VTParameterHandler& parent)
+            : ParameterHandler(id, parent), m_value(value, m_parameter_address, *this) {}
 
 
-    std::vector<T> process(const TimePoint& time) override {
-        (void) time;
-        return {m_value};
+    std::vector<T> process(const TimePoint&) override { return {m_value.get()}; }
+
+
+    T get_value() const { return m_value.get(); }
+
+
+    void set_value(T value) { m_value.set(value); }
+
+
+    AtomicParameter<T>& get_parameter_obj() {
+        return m_value;
     }
 
 
-    T get_value() const { return m_value; }
-
-
-    void set_value(T value) { m_value = value; }
+    std::vector<Generative*> get_connected() override {
+        return {};
+    }
 
 
 private:
-    T m_value;
+    std::string m_parameter_address = "value";
+
+    AtomicParameter<T> m_value;
 
 };
 

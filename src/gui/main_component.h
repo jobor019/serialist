@@ -2,15 +2,36 @@
 #define SERIALIST_LOOPER_MAIN_COMPONENT_H
 
 #include <juce_gui_extra/juce_gui_extra.h>
+#include "node_component.h"
+#include "source.h"
+#include "connector_component.h"
+#include "transport.h"
+#include "scheduler.h"
+#include "io/renderers.h"
+#include "parameter_policy.h"
+#include "generation_layer.h"
+#include "midi_note_source_component.h"
 
 
 class MainComponent : public juce::Component
                       , private juce::HighResolutionTimer {
+
 public:
-    MainComponent() {
+    MainComponent()
+            : m_value_tree(m_vt_identifier)
+              , m_generation_layer(m_value_tree, m_undo_manager) {
+
+        addAndMakeVisible(m_generation_layer);
+
+        m_generation_layer.add_component(std::make_unique<MidiNoteSourceComponent>("midi1", m_generation_layer)
+                                         , {100, 100, 200, 50});
+
+        m_transport.start();
+        startTimer(1);
         setSize(600, 400);
-        startTimer(1000);
+
     }
+
 
     void paint(juce::Graphics& g) override {
         g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
@@ -20,21 +41,39 @@ public:
         g.drawText("Hello World!", getLocalBounds(), juce::Justification::centred, true);
     }
 
-    void resized() override {
 
+    void resized() override {
+        m_generation_layer.setBounds(getLocalBounds());
     }
 
+
+private:
 
     void hiResTimerCallback() override {
-        std::cout << "hehe\n";
+        auto& time = m_transport.update_time();
+        m_generation_layer.process(time);
     }
 
-private:
-    
+
+    void start() {
+        throw std::runtime_error("not implemented"); // TODO
+    }
 
 
+    void stop() {
+        throw std::runtime_error("not implemented"); // TODO
+    }
 
-private:
+
+    const juce::Identifier m_vt_identifier = "root";
+
+    juce::ValueTree m_value_tree;
+    juce::UndoManager m_undo_manager;
+
+    Transport m_transport;
+    GenerationLayer m_generation_layer;
+
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
 

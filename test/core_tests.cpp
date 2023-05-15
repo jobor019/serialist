@@ -474,7 +474,7 @@ TEST_CASE("BrownNoise max difference constraint can be changed") {
 
 
 TEST_CASE("generation_graph") {
-    std::unique_ptr<Generative<double>> onset = std::make_unique<Generator<double>>();
+    std::unique_ptr<Node<double>> onset = std::make_unique<Generator<double>>();
     SimplisticMidiGraphV1 midi_graph{std::make_unique<Generator<double>>()
                                      , std::make_unique<Generator<double>>()
                                      , std::make_unique<Generator<int>>()

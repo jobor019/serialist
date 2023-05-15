@@ -60,7 +60,7 @@ private:
 
 private:
     Generator<T>* m_generator;
-    utils::Queue m_queue;
+    utils::LockingQueue m_queue;
 
 
 };

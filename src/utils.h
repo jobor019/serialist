@@ -62,28 +62,54 @@ inline long modulo(long n, long d) {
 
 // ==============================================================================================
 
-class Queue {
+
+template<typename T = double>
+class LockingQueue {
 public:
-    explicit Queue(std::size_t size) : m_size(size) {}
+    explicit LockingQueue(std::size_t size) : m_size(size) {}
 
 
-    void push(const double& value) {
+    void push(T value) {
         std::lock_guard<std::mutex> lock(m_mutex);
-        m_queue.push_back(value);
+        m_queue.emplace_back(value);
         if (m_queue.size() > m_size) {
             m_queue.pop_front();
         }
     }
 
 
-    std::vector<double> get_snapshot() {
+    std::optional<T> pop() {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        if (m_queue.empty())
+            return std::nullopt;
+
+        auto elem = m_queue.front();
+        m_queue.pop_front();
+        return elem;
+    }
+
+
+    std::vector<T> pop_all() {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        std::vector<T> result;
+        while (!m_queue.empty()) {
+            result.push_back(std::move(m_queue.front()));
+            m_queue.pop_front();
+        }
+        return result;
+    }
+
+
+    std::vector<T> get_snapshot() {
         std::lock_guard<std::mutex> lock(m_mutex);
         return {m_queue.cbegin(), m_queue.cend()};
     }
 
 
     [[nodiscard]]
-    const double& back() {
+    const T& back() {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_queue.back();
     }
@@ -101,7 +127,7 @@ public:
 
 private:
     std::size_t m_size;
-    std::deque<double> m_queue;
+    std::deque<T> m_queue;
     std::mutex m_mutex;
 };
 

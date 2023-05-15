@@ -23,18 +23,23 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/nop_parameter.h
         ${CMAKE_SOURCE_DIR}/src/parameter_policy.h
         ${CMAKE_SOURCE_DIR}/src/phasor.h
-        ${CMAKE_SOURCE_DIR}/src/renderers.h
         ${CMAKE_SOURCE_DIR}/src/scheduler.h
         ${CMAKE_SOURCE_DIR}/src/transport.h
         ${CMAKE_SOURCE_DIR}/src/selector.h
+        ${CMAKE_SOURCE_DIR}/src/source.h
         ${CMAKE_SOURCE_DIR}/src/utils.h
         ${CMAKE_SOURCE_DIR}/src/variable.h
         ${CMAKE_SOURCE_DIR}/src/vt_parameter.h
-        ${CMAKE_SOURCE_DIR}/src/gui/looper_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/configuration_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/connector_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/generator_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/main_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/mapping_component.h
-        ${CMAKE_SOURCE_DIR}/src/gui/generator_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/midi_source_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/node_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/oscillator_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/slider_component.h
+        ${CMAKE_SOURCE_DIR}/src/io/renderers.h
         )
 
 set(MODULE_DEPENDENCIES_JUCE
@@ -65,6 +70,12 @@ target_sources(serialistLooper
         ${CMAKE_SOURCE_DIR}/app/serialist_looper.cpp
         ${SOURCES})
 
+target_include_directories(serialistLooper PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/gui
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/src/io
+        )
+
 target_compile_definitions(serialistLooper
         PRIVATE
         USE_JUCE=1 # Parameter class
@@ -85,7 +96,6 @@ target_link_libraries(serialistLooper
 #####################################################################################
 ## TARGET: MIDI GENERATOR V1
 #####################################################################################
-
 
 
 juce_add_gui_app(midiGeneratorV1
