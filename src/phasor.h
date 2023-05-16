@@ -29,16 +29,16 @@ public:
               , m_is_first_value(true) {}
 
 
-    double process(double time) {
+    double process(double time, double step_size) {
         double increment;
         if (m_mode == Mode::stepped) {
             if (m_is_first_value) {
                 m_is_first_value = false;
                 return m_current_value;
             }
-            increment = m_step_size;
+            increment = step_size;
         } else {
-            increment = m_step_size * (time - m_previous_update_time);
+            increment = step_size * (time - m_previous_update_time);
         }
         m_previous_update_time = time;
 
@@ -54,6 +54,11 @@ public:
 
         m_is_first_value = false;
         return m_current_value;
+    }
+
+
+    double process(double time) {
+        return process(time, m_step_size);
     }
 
 

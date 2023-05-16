@@ -6,15 +6,22 @@
 #include <cmath>
 #include <stdexcept>
 #include <random>
+#include "parameter_policy.h"
+#include "generative.h"
 
-class Oscillator {
+class Oscillator : public Node<double>
+        ,  public ParameterHandler {
 public:
     /**
      * @throws: std::range_error if invalid parameter ranges are provided
      */
-    Oscillator() = default;
+    Oscillator(const std::string& identifier, VTParameterHandler& parent): ParameterHandler(identifier, parent) {}
 
     virtual ~Oscillator() = default;
+    Oscillator(const Oscillator&) = delete;
+    Oscillator& operator=(const Oscillator&) = delete;
+    Oscillator(Oscillator&&)  noexcept = default;
+    Oscillator& operator=(Oscillator&&)  noexcept = default;
 
     virtual double process(double x) = 0;
 };

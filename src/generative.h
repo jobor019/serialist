@@ -11,12 +11,19 @@ class Generative {
 public:
     Generative() = default;
     virtual ~Generative() = default;
-    Generative(const Generative&) = default;
-    Generative& operator=(const Generative&) = default;
+    Generative(const Generative&) = delete;
+    Generative& operator=(const Generative&) = delete;
     Generative(Generative&&) noexcept = default;
     Generative& operator=(Generative&&) noexcept = default;
 
     virtual std::vector<Generative*> get_connected() = 0;
+
+protected:
+    // TODO
+//    template<typename... Args>
+//    std::vector<Generative*> get_connected_if(Args*... args) {
+//
+//    }
 
 };
 
@@ -25,15 +32,7 @@ public:
 
 class Source : public Generative {
 public:
-    Source() = default;
-    virtual ~Source() = default;
-    Source(const Source&) = default;
-    Source& operator=(const Source&) = default;
-    Source(Source&&) noexcept = default;
-    Source& operator=(Source&&) noexcept = default;
-
-
-    virtual void process(const TimePoint& time) = 0;
+    virtual void process(const TimePoint& t) = 0;
 };
 
 
@@ -42,20 +41,22 @@ public:
 template<typename T>
 class Node : public Generative {
 public:
+    virtual std::vector<T> process(const TimePoint& t) = 0;
 
-    Node() = default;
 
-    virtual ~Node() = default;
+    template<typename NodeType>
+    static NodeType value_or(Node<NodeType>* node, NodeType default_value, const TimePoint& t) {
+        if (!node)
+            return default_value;
 
-    Node(const Node&) = default;
+        auto values = node->process((t));
 
-    Node& operator=(const Node&) = default;
-
-    Node(Node&&) noexcept = default;
-
-    Node& operator=(Node&&) noexcept = default;
-
-    virtual std::vector<T> process(const TimePoint& time) = 0;
+        if (values.empty())
+            return default_value;
+        else
+            return values.at(0);
+    }
 };
+
 
 #endif //SERIALIST_LOOPER_GENERATIVE_H

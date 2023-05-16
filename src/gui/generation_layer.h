@@ -24,11 +24,12 @@ public:
         for (auto& source: m_sources) {
             source->process(time);
         }
+
     }
 
 
     void paint(juce::Graphics& g) override {
-        g.fillAll(juce::Colours::aquamarine.withAlpha(0.6f));
+        g.fillAll(juce::Colours::cadetblue);
     }
 
 

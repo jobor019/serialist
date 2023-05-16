@@ -11,6 +11,7 @@
 #include "parameter_policy.h"
 #include "generation_layer.h"
 #include "midi_note_source_component.h"
+#include "oscillator_component.h"
 
 
 class MainComponent : public juce::Component
@@ -28,6 +29,9 @@ public:
 
         m_generation_layer.add_component(std::make_unique<MidiNoteSourceComponent>("midi2", m_generation_layer)
                                          , {330, 50, 220, 75});
+
+        m_generation_layer.add_component(std::make_unique<OscillatorComponent>("osc1", m_generation_layer)
+                                         , {50, 150, 100, 100});
 
 
         std::cout << m_value_tree.toXmlString() << std::endl;

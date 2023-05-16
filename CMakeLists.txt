@@ -18,7 +18,7 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/generator.h
         ${CMAKE_SOURCE_DIR}/src/interpolator.h
         ${CMAKE_SOURCE_DIR}/src/mapping.h
-        ${CMAKE_SOURCE_DIR}/src/oscillator.h
+        ${CMAKE_SOURCE_DIR}/src/new_oscillator.h
         ${CMAKE_SOURCE_DIR}/src/nop_parameter.h
         ${CMAKE_SOURCE_DIR}/src/parameter_policy.h
         ${CMAKE_SOURCE_DIR}/src/phasor.h

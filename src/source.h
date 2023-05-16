@@ -52,6 +52,7 @@ public:
 
         for (auto& event: events) {
             if (dynamic_cast<TriggerEvent*>(event.get())) {
+                // TODO: Should use trigger's time to avoid drifting: how to handle time sig / tempo?
                 m_scheduler.add_events(new_event(time));
 
                 std::cout << "#################### Trigger: " << event->get_time() << "\n";
@@ -73,6 +74,7 @@ public:
 
 
     std::vector<Generative*> get_connected() override {
+        // TODO: Generalize
         std::vector<Generative*> connected;
         if (auto onset = dynamic_cast<Generative*>(m_onset))
             connected.emplace_back(onset);
