@@ -6,6 +6,7 @@
 #include <iostream>
 #include <juce_data_structures/juce_data_structures.h>
 #include "exceptions.h"
+#include "interpolator.h"
 
 
 class VTParameterHandler {
@@ -117,6 +118,7 @@ public:
         m_parent.get_value_tree().addListener(&listener);
     }
 
+
     void remove_value_tree_listener(juce::ValueTree::Listener& listener) {
         m_parent.get_value_tree().removeListener(&listener);
     }
@@ -206,5 +208,147 @@ class LockingVTParameter {
 template<typename T>
 class CollectionVTParameter {
 }; // TODO
+
+
+// ==============================================================================================
+
+template<typename T>
+class ParametrizedSequence {
+public:
+
+    ParametrizedSequence(std::vector<T> initial, const std::string& id, VTParameterHandler& parent)
+            : m_value_tree({id}), m_parent(parent) {
+        auto& parent_tree = m_parent.get_value_tree();
+        if (!parent_tree.isValid())
+            throw ParameterError("Cannot register VTParameter for invalid tree");
+
+        parent_tree.addChild(m_value_tree, -1, &m_parent.get_undo_manager());
+
+        for (auto& v: initial) {
+            insert(v, -1);
+        }
+
+        parent_tree.addListener(this);
+    }
+
+
+    ~ParametrizedSequence() {
+        m_parent.get_value_tree().removeListener(this);
+        m_parent.get_value_tree().removeChild(m_value_tree, &m_parent.get_undo_manager());
+    }
+
+
+    ParametrizedSequence(const ParametrizedSequence&) = delete;
+    ParametrizedSequence& operator=(const ParametrizedSequence&) = delete;
+    ParametrizedSequence(ParametrizedSequence&&) noexcept = default;
+    ParametrizedSequence& operator=(ParametrizedSequence&&) noexcept = default;
+
+
+    void add_parameter_listener(VTParameterListener& listener) {
+        m_listeners.push_back(&listener);
+    }
+
+
+    void remove_parameter_listener(VTParameterListener& listener) {
+        m_listeners.erase(std::remove(m_listeners.begin(), m_listeners.end(), &listener), m_listeners.end());
+    }
+
+
+    void add_value_tree_listener(juce::ValueTree::Listener& listener) {
+        m_parent.get_value_tree().addListener(&listener);
+    }
+
+
+    void remove_value_tree_listener(juce::ValueTree::Listener& listener) {
+        m_parent.get_value_tree().removeListener(&listener);
+    }
+
+
+    T at(int index) {
+        std::lock_guard<std::mutex> lock{m_values_mutex};
+
+        index = adjust_index_range(index, false);
+        return m_values.at(static_cast<std::size_t>(index));
+    }
+
+
+    std::optional<T> interpolate(double position, Interpolator<T>& interpolator) {
+        std::lock_guard<std::mutex> lock{m_values_mutex};
+        // TODO: Update interpolator to work with std::vector<T> rather than Mapping
+        return interpolator.get(position, m_values);
+    }
+
+
+    void insert(T value, int index) {
+        std::lock_guard<std::mutex> lock{m_values_mutex};
+
+        index = adjust_index_range(index, true);
+
+        m_values.insert(m_values.begin() + index, value);
+
+        juce::ValueTree child({std::to_string(used_vt_names++)});
+        child.setProperty(value, "v1", nullptr); // TODO: Generalize for trees with multiple properties
+        m_value_tree.addChild(child, index, &m_parent.get_undo_manager());
+    }
+
+
+    void move(int index_from, int index_to) {
+        std::lock_guard<std::mutex> lock{m_values_mutex};
+
+        index_from = adjust_index_range(index_from, false);
+        index_to = adjust_index_range(index_to, true);
+
+        std::rotate(m_values.begin() + index_from, m_values.begin() + index_from + 1, m_values.begin() + index_to);
+
+        m_value_tree.moveChild(index_from, index_to, &m_parent.get_undo_manager());
+    }
+
+
+    void remove(int index) {
+        std::lock_guard<std::mutex> lock{m_values_mutex};
+
+        index = adjust_index_range(index, false);
+
+        m_values.erase(m_values.begin() + index);
+
+        m_value_tree.removeChild(index, &m_parent.get_undo_manager());
+    }
+
+
+    const std::size_t& size() {
+        std::lock_guard<std::mutex> lock{m_values_mutex};
+        return m_values.size();
+    }
+
+
+    bool empty() {
+        std::lock_guard<std::mutex> lock{m_values_mutex};
+        return m_values.empty();
+    }
+
+
+private:
+
+    int adjust_index_range(int index, bool for_insertion) {
+
+        // negative indices: insert/access from back
+        if (index < 0)
+            index += static_cast<int>(m_values.size()) + static_cast<int>(for_insertion);
+
+        return std::clamp(index, 0, static_cast<int>(m_values.size()) - static_cast<int>(!for_insertion));
+    }
+
+
+    std::mutex m_values_mutex;
+    std::vector<T> m_values;
+
+    long used_vt_names = 0;
+
+    juce::ValueTree m_value_tree;
+    VTParameterHandler& m_parent;
+
+    std::vector<VTParameterListener*> m_listeners;
+
+}
 
 #endif //SERIALISTPLAYGROUND_VT_PARAMETER_H

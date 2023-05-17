@@ -58,23 +58,24 @@ public:
 
 
     std::vector<Generative*> get_connected() override { // TODO: Generalize
-        std::vector<Generative*> connected;
-        if (auto type = dynamic_cast<Generative*>(m_type))
-            connected.emplace_back(type);
-        if (auto freq = dynamic_cast<Generative*>(m_freq))
-            connected.emplace_back(freq);
-        if (auto add = dynamic_cast<Generative*>(m_add))
-            connected.emplace_back(add);
-        if (auto mul = dynamic_cast<Generative*>(m_mul))
-            connected.emplace_back(mul);
-        if (auto duty = dynamic_cast<Generative*>(m_duty))
-            connected.emplace_back(duty);
-        if (auto curve = dynamic_cast<Generative*>(m_curve))
-            connected.emplace_back(curve);
-        if (auto enabled = dynamic_cast<Generative*>(m_enabled))
-            connected.emplace_back(enabled);
-
-        return connected;
+        return collect_connected(m_type, m_freq, m_add, m_mul, m_duty, m_curve, m_enabled);
+//        std::vector<Generative*> connected;
+//        if (auto type = dynamic_cast<Generative*>(m_type))
+//            connected.emplace_back(type);
+//        if (auto freq = dynamic_cast<Generative*>(m_freq))
+//            connected.emplace_back(freq);
+//        if (auto add = dynamic_cast<Generative*>(m_add))
+//            connected.emplace_back(add);
+//        if (auto mul = dynamic_cast<Generative*>(m_mul))
+//            connected.emplace_back(mul);
+//        if (auto duty = dynamic_cast<Generative*>(m_duty))
+//            connected.emplace_back(duty);
+//        if (auto curve = dynamic_cast<Generative*>(m_curve))
+//            connected.emplace_back(curve);
+//        if (auto enabled = dynamic_cast<Generative*>(m_enabled))
+//            connected.emplace_back(enabled);
+//
+//        return connected;
     }
 
 

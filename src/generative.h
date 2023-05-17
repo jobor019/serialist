@@ -19,12 +19,17 @@ public:
     virtual std::vector<Generative*> get_connected() = 0;
 
 protected:
-    // TODO
-//    template<typename... Args>
-//    std::vector<Generative*> get_connected_if(Args*... args) {
-//
-//    }
+    template <typename... Args, std::enable_if_t<std::conjunction_v<std::is_base_of<Generative, Args>...>, int> = 0>
+    std::vector<Generative*> collect_connected(Args*... args) {
+        std::vector<Generative*> connected_generatives;
 
+        ([&] {
+            if (auto* elem = dynamic_cast<Generative*>(args)) {
+                connected_generatives.emplace_back(elem);
+            }
+        }(), ...);
+        return connected_generatives;
+    }
 };
 
 

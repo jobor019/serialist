@@ -24,6 +24,7 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/phasor.h
         ${CMAKE_SOURCE_DIR}/src/scheduler.h
         ${CMAKE_SOURCE_DIR}/src/transport.h
+        ${CMAKE_SOURCE_DIR}/src/sequence.h
         ${CMAKE_SOURCE_DIR}/src/selector.h
         ${CMAKE_SOURCE_DIR}/src/source.h
         ${CMAKE_SOURCE_DIR}/src/utils.h

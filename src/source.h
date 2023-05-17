@@ -74,20 +74,20 @@ public:
 
 
     std::vector<Generative*> get_connected() override {
-        // TODO: Generalize
-        std::vector<Generative*> connected;
-        if (auto onset = dynamic_cast<Generative*>(m_onset))
-            connected.emplace_back(onset);
-        if (auto duration = dynamic_cast<Generative*>(m_duration))
-            connected.emplace_back(duration);
-        if (auto pitch = dynamic_cast<Generative*>(m_pitch))
-            connected.emplace_back(pitch);
-        if (auto velocity = dynamic_cast<Generative*>(m_velocity))
-            connected.emplace_back(velocity);
-        if (auto channel = dynamic_cast<Generative*>(m_channel))
-            connected.emplace_back(channel);
-
-        return connected;
+        return collect_connected(m_onset, m_duration, m_pitch, m_velocity, m_channel);
+//        std::vector<Generative*> connected;
+//        if (auto onset = dynamic_cast<Generative*>(m_onset))
+//            connected.emplace_back(onset);
+//        if (auto duration = dynamic_cast<Generative*>(m_duration))
+//            connected.emplace_back(duration);
+//        if (auto pitch = dynamic_cast<Generative*>(m_pitch))
+//            connected.emplace_back(pitch);
+//        if (auto velocity = dynamic_cast<Generative*>(m_velocity))
+//            connected.emplace_back(velocity);
+//        if (auto channel = dynamic_cast<Generative*>(m_channel))
+//            connected.emplace_back(channel);
+//
+//        return connected;
     }
 
 
