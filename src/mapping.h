@@ -101,7 +101,7 @@ private:
 //
 //    explicit SingleMapping(
 //            const std::vector<T>& values
-//            , std::shared_ptr<Interpolator<T>> interpolator = std::make_shared<ClipInterpolator<T>>()
+//            , std::shared_ptr<OldInterpolator<T>> interpolator = std::make_shared<ClipInterpolation<T>>()
 //    )
 //            : m_mapping(values)
 //              , m_interpolator(interpolator) {}
@@ -130,14 +130,14 @@ private:
 //    }
 //
 //
-//    void set_interpolator(const std::shared_ptr<Interpolator<T>>& interpolator) {
+//    void set_interpolator(const std::shared_ptr<OldInterpolator<T>>& interpolator) {
 //        m_interpolator = interpolator;
 //    }
 //
 //
 //private:
 //    std::vector<T> m_mapping;
-//    std::shared_ptr<Interpolator<T>> m_interpolator; // TODO: std::optional rather than std::shared_ptr if possible
+//    std::shared_ptr<OldInterpolator<T>> m_interpolator; // TODO: std::optional rather than std::shared_ptr if possible
 //};
 
 

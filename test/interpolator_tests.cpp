@@ -6,12 +6,12 @@
 #include "../src/interpolator.h"
 
 
-TEST_CASE("Test ContinueInterpolator with MapElement<int>") {
+TEST_CASE("Test ContinueInterpolation with MapElement<int>") {
     Mapping<int> mapping{{  0, 2}
                          , {4}
                          , {5}
                          , {7, 9, 11}};
-    ContinueInterpolator<int> interpolator(12);
+    ContinueInterpolation<int> interpolator(12);
 
     SECTION("Test get with position 0.0") {
         auto result = interpolator.get(0.0, &mapping);
@@ -63,12 +63,12 @@ TEST_CASE("Test ContinueInterpolator with MapElement<int>") {
 
 // ==============================================================================================
 
-TEST_CASE("Test ModuloInterpolator with MapElement<int>") {
+TEST_CASE("Test ModuloInterpolation with MapElement<int>") {
     Mapping<int> mapping{{  0, 2}
                          , {4}
                          , {5}
                          , {7, 9, 11}};
-    ModuloInterpolator<int> interpolator;
+    ModuloInterpolation<int> interpolator;
 
     SECTION("Test get with position 0.0") {
         auto result = interpolator.get(0.0, &mapping);
@@ -120,12 +120,12 @@ TEST_CASE("Test ModuloInterpolator with MapElement<int>") {
 
 // ==============================================================================================
 
-TEST_CASE("Test ClipInterpolator with MapElement<int>") {
+TEST_CASE("Test ClipInterpolation with MapElement<int>") {
     Mapping<int> mapping{{  0, 2}
                          , {4}
                          , {5}
                          , {7, 9, 11}};
-    ClipInterpolator<int> interpolator;
+    ClipInterpolation<int> interpolator;
 
     SECTION("Test get with position 0.0") {
         auto result = interpolator.get(0.0, &mapping);
@@ -181,12 +181,12 @@ TEST_CASE("Test ClipInterpolator with MapElement<int>") {
 
 // ==============================================================================================
 
-TEST_CASE("Test PassInterpolator with MapElement<int>") {
+TEST_CASE("Test PassInterpolation with MapElement<int>") {
     Mapping<int> mapping{{  0, 2}
                          , {4}
                          , {5}
                          , {7, 9, 11}};
-    PassInterpolator<int> interpolator;
+    PassInterpolation<int> interpolator;
 
     SECTION("Test get with position 0.0") {
         auto result = interpolator.get(0.0, &mapping);
@@ -235,14 +235,14 @@ TEST_CASE("Test PassInterpolator with MapElement<int>") {
 // ==============================================================================================
 
 
-TEST_CASE("Interpolation using ContinueInterpolator with sizes between 1 and 1000 ") {
+TEST_CASE("Interpolation using ContinueInterpolation with sizes between 1 and 1000 ") {
     for (std::size_t mapping_size = 1; mapping_size <= 1000; ++mapping_size) {
         Mapping<int> mapping;
         for (std::size_t i = 0; i < mapping_size; ++i) {
             mapping.add(MapElement<int>{static_cast<int>(i)});
         }
 
-        ContinueInterpolator<int> interpolator(static_cast<int>(mapping_size));
+        ContinueInterpolation<int> interpolator(static_cast<int>(mapping_size));
 
         double position = 0;
         double increment = 1.0 / static_cast<double>(mapping_size);
@@ -255,14 +255,14 @@ TEST_CASE("Interpolation using ContinueInterpolator with sizes between 1 and 100
 }
 
 
-TEST_CASE("Interpolation using ModuloInterpolator with sizes between 1 and 1000 ") {
+TEST_CASE("Interpolation using ModuloInterpolation with sizes between 1 and 1000 ") {
     for (std::size_t mapping_size = 1; mapping_size <= 1000; ++mapping_size) {
         Mapping<int> mapping;
         for (std::size_t i = 0; i < mapping_size; ++i) {
             mapping.add(MapElement<int>{static_cast<int>(i)});
         }
 
-        ModuloInterpolator<int> interpolator;
+        ModuloInterpolation<int> interpolator;
 
         double position = 0;
         double increment = 1.0 / static_cast<double>(mapping_size);
@@ -282,7 +282,7 @@ TEST_CASE("Interpolation using CLipInterpolator with sizes between 1 and 1000 ")
             mapping.add(MapElement<int>{static_cast<int>(i)});
         }
 
-        ClipInterpolator<int> interpolator;
+        ClipInterpolation<int> interpolator;
 
         double position = 0;
         double increment = 1.0 / static_cast<double>(mapping_size);
@@ -295,14 +295,14 @@ TEST_CASE("Interpolation using CLipInterpolator with sizes between 1 and 1000 ")
 }
 
 
-TEST_CASE("Interpolation using ClipInterpolator with sizes between 1 and 1000 ") {
+TEST_CASE("Interpolation using ClipInterpolation with sizes between 1 and 1000 ") {
     for (std::size_t mapping_size = 1; mapping_size <= 1000; ++mapping_size) {
         Mapping<int> mapping;
         for (std::size_t i = 0; i < mapping_size; ++i) {
             mapping.add(MapElement<int>{static_cast<int>(i)});
         }
 
-        PassInterpolator<int> interpolator;
+        PassInterpolation<int> interpolator;
 
         double position = 0;
         double increment = 1.0 / static_cast<double>(mapping_size);

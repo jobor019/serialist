@@ -199,8 +199,37 @@ private:
 // ==============================================================================================
 
 template<typename T>
-class LockingVTParameter {
-};// TODO
+class LockingVTParameter : VTParameter<T> {
+public:
+    LockingVTParameter(T initial_value, const std::string& id, VTParameterHandler& parent)
+            : VTParameter<T>(initial_value, id, parent), m_value(initial_value) {
+        static_assert(std::is_copy_constructible_v<T>, "T must be copyable");
+    }
+
+
+private:
+    T get_internal_value() override {
+        std::lock_guard<std::mutex> lock{m_mutex};
+        return m_value;
+
+    }
+
+
+    void set_internal_value(T new_value) override {
+        std::lock_guard<std::mutex> lock{m_mutex};
+
+        if constexpr (std::is_move_constructible_v<T> && !std::is_trivially_copyable_v<T>) {
+            m_value = std::move(new_value);
+        } else {
+            m_value = new_value;
+        }
+    }
+
+
+    std::mutex m_mutex;
+    T m_value;
+
+};
 
 
 // ==============================================================================================
@@ -213,10 +242,10 @@ class CollectionVTParameter {
 // ==============================================================================================
 
 template<typename T>
-class ParametrizedSequence {
+class VTParametrizedSequence {
 public:
 
-    ParametrizedSequence(std::vector<T> initial, const std::string& id, VTParameterHandler& parent)
+    VTParametrizedSequence(const std::vector<T>& initial, const std::string& id, VTParameterHandler& parent)
             : m_value_tree({id}), m_parent(parent) {
         auto& parent_tree = m_parent.get_value_tree();
         if (!parent_tree.isValid())
@@ -232,16 +261,16 @@ public:
     }
 
 
-    ~ParametrizedSequence() {
+    ~VTParametrizedSequence() {
         m_parent.get_value_tree().removeListener(this);
         m_parent.get_value_tree().removeChild(m_value_tree, &m_parent.get_undo_manager());
     }
 
 
-    ParametrizedSequence(const ParametrizedSequence&) = delete;
-    ParametrizedSequence& operator=(const ParametrizedSequence&) = delete;
-    ParametrizedSequence(ParametrizedSequence&&) noexcept = default;
-    ParametrizedSequence& operator=(ParametrizedSequence&&) noexcept = default;
+    VTParametrizedSequence(const VTParametrizedSequence&) = delete;
+    VTParametrizedSequence& operator=(const VTParametrizedSequence&) = delete;
+    VTParametrizedSequence(VTParametrizedSequence&&) noexcept = default;
+    VTParametrizedSequence& operator=(VTParametrizedSequence&&) noexcept = default;
 
 
     void add_parameter_listener(VTParameterListener& listener) {
@@ -272,10 +301,9 @@ public:
     }
 
 
-    std::optional<T> interpolate(double position, Interpolator<T>& interpolator) {
+    std::vector<T> interpolate(double position, const InterpolationStrategy<T>& strategy) {
         std::lock_guard<std::mutex> lock{m_values_mutex};
-        // TODO: Update interpolator to work with std::vector<T> rather than Mapping
-        return interpolator.get(position, m_values);
+        return Interpolator<T>::interpolate(position, strategy, m_values);
     }
 
 

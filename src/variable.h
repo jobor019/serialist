@@ -11,8 +11,12 @@ template<typename T>
 class Variable : public Node<T>
                  , public ParameterHandler {
 public:
+
+    inline static const std::string PARAMETER_ADDRESS = "value";
+
+
     explicit Variable(T value, const std::string& id, VTParameterHandler& parent)
-            : ParameterHandler(id, parent), m_value(value, m_parameter_address, *this) {}
+            : ParameterHandler(id, parent), m_value(value, PARAMETER_ADDRESS, *this) {}
 
 
     std::vector<T> process(const TimePoint&) override { return {m_value.get()}; }
@@ -35,7 +39,6 @@ public:
 
 
 private:
-    std::string m_parameter_address = "value";
 
     AtomicParameter<T> m_value;
 

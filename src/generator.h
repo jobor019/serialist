@@ -23,8 +23,8 @@ public:
                        , Phasor::Mode mode = Phasor::Mode::stepped
                        , std::unique_ptr<Oscillator> oscillator = std::make_unique<Identity>()
                        , std::unique_ptr<Mapping<T>> mapping = nullptr
-                       , std::unique_ptr<Interpolator<T>> interpolator = std::make_unique<ClipInterpolator<T>>()
-                       , std::unique_ptr<Selector<T>> selector = std::make_unique<IdentitySelector<T>>()
+                       , std::unique_ptr<OldInterpolator<T>> interpolator = std::make_unique<ClipInterpolation<T>>()
+                       , std::unique_ptr<SelectionPattern<T>> selector = std::make_unique<IdentitySelection<T>>()
                        , std::unique_ptr<Node<T>> output_add = nullptr
                        , std::unique_ptr<Node<T>> output_mul = nullptr
                        , std::unique_ptr<Node<double>> oscillator_add = nullptr
@@ -101,7 +101,7 @@ public:
     }
 
 
-    void set_interpolator(std::unique_ptr<Interpolator<T>> interpolator) {
+    void set_interpolator(std::unique_ptr<OldInterpolator<T>> interpolator) {
         if (!interpolator)
             throw std::runtime_error("An interpolator must always be provided");
 
@@ -109,7 +109,7 @@ public:
     }
 
 
-    void set_selector(std::unique_ptr<Selector<T>> selector) {
+    void set_selector(std::unique_ptr<SelectionPattern<T>> selector) {
         if (!selector)
             throw std::runtime_error("A selector must always be provided");
 
@@ -156,10 +156,10 @@ public:
     [[nodiscard]] Mapping<T>* get_mapping() const { return m_mapping.get(); }
 
 
-    [[nodiscard]] Interpolator<T>* get_interpolator() const { return m_interpolator.get(); }
+    [[nodiscard]] OldInterpolator<T>* get_interpolator() const { return m_interpolator.get(); }
 
 
-    [[nodiscard]] Selector<T>* get_a_selector() const { return m_selector.get(); }
+    [[nodiscard]] SelectionPattern<T>* get_a_selector() const { return m_selector.get(); }
 
 
     [[nodiscard]] Node<T>* get_output_add() const { return m_output_add.get(); }
@@ -259,8 +259,8 @@ private:
     std::unique_ptr<Oscillator> m_oscillator;
     std::unique_ptr<Mapping<T>> m_mapping;
 
-    std::unique_ptr<Interpolator<T>> m_interpolator;
-    std::unique_ptr<Selector<T>> m_selector;
+    std::unique_ptr<OldInterpolator<T>> m_interpolator;
+    std::unique_ptr<SelectionPattern<T>> m_selector;
 
     std::unique_ptr<Node<T>> m_output_add;
     std::unique_ptr<Node<T>> m_output_mul;

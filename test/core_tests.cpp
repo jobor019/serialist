@@ -197,7 +197,7 @@ TEST_CASE("BrownNoise max difference constraint can be changed") {
 //    SECTION("continue") {
 //        auto mapping = std::vector<int>{0, 2, 4, 5, 7, 9, 11};
 //
-//        ContinueInterpolator<int> m{12};
+//        ContinueInterpolation<int> m{12};
 //
 //        REQUIRE(m.interpolate(0, mapping).value() == 0);
 //        REQUIRE(m.interpolate(1, mapping).value() == 12);
@@ -229,7 +229,7 @@ TEST_CASE("BrownNoise max difference constraint can be changed") {
 //    SECTION("modulo") {
 //        auto v = std::vector<int>{0, 2, 4, 5, 7, 9, 11};
 //
-//        ModuloInterpolator<int> m;
+//        ModuloInterpolation<int> m;
 //
 //        REQUIRE(m.interpolate(0, v) == 0);
 //        REQUIRE(m.interpolate(0.5, v) == 5);
@@ -256,7 +256,7 @@ TEST_CASE("BrownNoise max difference constraint can be changed") {
 //    SECTION("clip") {
 //        auto v = std::vector<int>{0, 2, 4, 5, 7, 9, 11};
 //
-//        ClipInterpolator<int> m;
+//        ClipInterpolation<int> m;
 //
 //        REQUIRE(m.interpolate(0, v) == 0);
 //        REQUIRE(m.interpolate(0.5, v) == 5);
@@ -283,7 +283,7 @@ TEST_CASE("BrownNoise max difference constraint can be changed") {
 //    SECTION("pass") {
 //        auto v = std::vector<int>{0, 2, 4, 5, 7, 9, 11};
 //
-//        PassInterpolator<int> m;
+//        PassInterpolation<int> m;
 //
 //        REQUIRE(m.interpolate(0, v) == 0);
 //        REQUIRE(m.interpolate(0.5, v) == 5);
@@ -449,7 +449,7 @@ TEST_CASE("BrownNoise max difference constraint can be changed") {
 //        Generator<double> generator{std::make_unique<Identity>(), 1.0/3.0 + 1e-8, 0.0, 1.0, Phasor::Mode::stepped, std::nullopt};
 //
 //        generator.set_mapping(std::make_optional(SingleMapping<double>{
-//                {10.0, 30.0, 105.0}, std::make_shared<ClipInterpolator<double>>()}));
+//                {10.0, 30.0, 105.0}, std::make_shared<ClipInterpolation<double>>()}));
 //
 //        REQUIRE_THAT(generator.process(TimePoint(0.0)).at(0), Catch::Matchers::WithinAbs(10, 1e-8));
 //        REQUIRE_THAT(generator.process(TimePoint(0.0)).at(0), Catch::Matchers::WithinAbs(30, 1e-8));
@@ -460,7 +460,7 @@ TEST_CASE("BrownNoise max difference constraint can be changed") {
 //        Generator<double> generator{std::make_unique<Identity>(), 1.0/12.0 + 1e-8, 0.0, 4.0, Phasor::Mode::stepped, std::nullopt};
 //
 //        generator.set_mapping(std::make_optional(SingleMapping<double>{
-//                {0, 2, 5}, std::make_shared<ContinueInterpolator<double>>(10)}));
+//                {0, 2, 5}, std::make_shared<ContinueInterpolation<double>>(10)}));
 //
 //        REQUIRE_THAT(generator.process(TimePoint(0.0)).at(0), Catch::Matchers::WithinAbs(0, 1e-8));
 //        REQUIRE_THAT(generator.process(TimePoint(0.0)).at(0), Catch::Matchers::WithinAbs(2, 1e-8));

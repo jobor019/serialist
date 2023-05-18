@@ -25,6 +25,7 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/scheduler.h
         ${CMAKE_SOURCE_DIR}/src/transport.h
         ${CMAKE_SOURCE_DIR}/src/sequence.h
+        ${CMAKE_SOURCE_DIR}/src/serializable.h
         ${CMAKE_SOURCE_DIR}/src/selector.h
         ${CMAKE_SOURCE_DIR}/src/source.h
         ${CMAKE_SOURCE_DIR}/src/utils.h
@@ -119,6 +120,37 @@ target_compile_definitions(midiGeneratorV1
         )
 
 target_link_libraries(midiGeneratorV1
+        PRIVATE
+        # GuiAppData            # If we'd created a binary data target, we'd link to it here
+        ${MODULE_DEPENDENCIES_JUCE}
+        PUBLIC
+        ${FLAGS_JUCE})
+
+
+#####################################################################################
+## TARGET: PLAYGROUND
+#####################################################################################
+
+juce_add_gui_app(playground
+        PRODUCT_NAME "Playground")
+
+
+target_sources(playground
+        PRIVATE
+        ${CMAKE_SOURCE_DIR}/app/playground.cpp
+        ${SOURCES})
+
+target_compile_definitions(playground
+        PRIVATE
+        USE_JUCE=1
+        # JUCE_WEB_BROWSER and JUCE_USE_CURL would be on by default, but you might not need them.
+        JUCE_WEB_BROWSER=0  # If you remove this, add `NEEDS_WEB_BROWSER TRUE` to the `juce_add_gui_app` call
+        JUCE_USE_CURL=0     # If you remove this, add `NEEDS_CURL TRUE` to the `juce_add_gui_app` call
+        JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:serialistLooper,JUCE_PRODUCT_NAME>"
+        JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:serialistLooper,JUCE_VERSION>"
+        )
+
+target_link_libraries(playground
         PRIVATE
         # GuiAppData            # If we'd created a binary data target, we'd link to it here
         ${MODULE_DEPENDENCIES_JUCE}

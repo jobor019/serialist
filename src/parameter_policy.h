@@ -17,6 +17,9 @@ using AtomicParameter = AtomicVTParameter<T>;
 template<typename T>
 using ComplexParameter = LockingVTParameter<T>;
 
+template<typename T>
+using ParametrizedSequence = VTParametrizedSequence<T>;
+
 #else
 
 #include "nop_parameter.h"

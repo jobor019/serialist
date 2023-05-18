@@ -7,9 +7,9 @@
 #include <cmath>
 
 template<typename T>
-class Selector {
+class SelectionPattern {
 public:
-    virtual ~Selector() = default;
+    virtual ~SelectionPattern() = default;
 
     virtual std::vector<T> get(std::vector<T> elements) = 0;
 };
@@ -18,7 +18,7 @@ public:
 // ==============================================================================================
 
 template<typename T>
-class IdentitySelector : public Selector<T> {
+class IdentitySelection : public SelectionPattern<T> {
 public:
 
     std::vector<T> get(std::vector<T> elements) override {
@@ -30,10 +30,10 @@ public:
 // ==============================================================================================
 
 template<typename T>
-class NthSelector : public Selector<T> {
+class NthSelection : public SelectionPattern<T> {
 public:
 
-    explicit NthSelector(int nth) : m_nth(nth) {}
+    explicit NthSelection(int nth) : m_nth(nth) {}
 
 
     std::vector<T> get(std::vector<T> elements) override {
@@ -58,16 +58,7 @@ private:
 // ==============================================================================================
 
 template<typename T>
-class FirstSelector : public NthSelector<T> {
-public:
-    FirstSelector() : NthSelector<T>(0) {}
-};
-
-
-// ==============================================================================================
-
-template<typename T>
-class NthsSelector : public Selector<T> {
+class NthsSelector : public SelectionPattern<T> {
 public:
     explicit NthsSelector(std::vector<int> nths) : m_nths(std::move(nths)) {
         throw std::runtime_error("not implemented yet");
@@ -81,7 +72,7 @@ private:
 // ==============================================================================================
 
 template<typename T>
-class RandomSelector : public Selector<T> {
+class RandomSelector : public SelectionPattern<T> {
 public:
     explicit RandomSelector() {
         // TODO: Initialize seed

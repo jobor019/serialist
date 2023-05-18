@@ -9,29 +9,58 @@
 #include "mapping.h"
 #include "utils.h"
 
+
+
+
+// ==============================================================================================
+
 template<typename T>
-class Interpolator {
-
+class InterpolationStrategy {
 public:
-    static constexpr double epsilon = 1e-8;
 
-    virtual ~Interpolator() = default;
+    const char SEPARATOR = ':';
 
-    Interpolator() = default;
-    Interpolator(const Interpolator&) = default;
-    Interpolator& operator=(const Interpolator&) = default;
-    Interpolator(Interpolator&&) noexcept = default;
-    Interpolator& operator=(Interpolator&&) noexcept = default;
+    enum class Type {
+        continuation = 0
+        , modulo = 1
+        , clip = 2
+        , pass = 3
+    };
 
-    virtual std::vector<T> get(double position, Mapping<T>* mapping) = 0;
 
-protected:
-    std::size_t get_index(double position, std::size_t map_size) {
-        // This should work correctly up to Mappings of size 67_108_864,
-        //   assuming doubles of 8 bytes (tested up to 10_000)
-        return static_cast<std::size_t>(
-                std::floor(position * static_cast<double>(map_size) + std::copysign(epsilon, position)));
+    InterpolationStrategy(Type type, T pivot) : m_type(type), m_pivot(pivot) {
+        static_assert(std::is_arithmetic_v<T>, "T must be arithmetic");
     }
+
+
+    std::string to_string() {
+        std::ostringstream oss;
+        oss << static_cast<int>(m_type) << SEPARATOR << m_pivot;
+    }
+
+
+    static InterpolationStrategy<T> from_string(const std::string& s) {
+        std::istringstream iss(s);
+
+        int type;
+        T pivot;
+        char dump;
+
+        iss >> type >> dump >> pivot;
+
+        return InterpolationStrategy<T>(static_cast<Type>(type), pivot);
+    }
+
+
+    Type get_type() const { return m_type; }
+
+
+    T get_pivot() const { return m_pivot; }
+
+
+private:
+    Type m_type;
+    T m_pivot;
 
 };
 
@@ -39,100 +68,103 @@ protected:
 // ==============================================================================================
 
 template<typename T>
-class ContinueInterpolator : public Interpolator<T> {
+class Interpolator {
 public:
-    explicit ContinueInterpolator(T focal_point) : m_focal_point(focal_point) {
-        static_assert(std::is_arithmetic_v<T>, "T is not a number");
+
+    static constexpr double epsilon = 1e-8;
+
+
+    static std::vector<T> interpolate(double position
+                                      , const InterpolationStrategy<T>& strategy
+                                      , const std::vector<T>& sequence) {
+        switch (strategy.get_type()) {
+            case InterpolationStrategy<T>::Type::continuation:
+                return continuation(position, strategy, sequence);
+            case InterpolationStrategy<T>::Type::modulo:
+                return modulo(position, strategy, sequence);
+            case InterpolationStrategy<T>::Type::clip:
+                return clip(position, strategy, sequence);
+            case InterpolationStrategy<T>::Type::pass:
+                return pass(position, strategy, sequence);
+            default:
+                throw std::runtime_error("Invalid interpolation type detected");
+        }
     }
 
 
-    std::vector<T> get(double position, Mapping<T>* mapping) override {
-        if (mapping->empty()) {
+private:
+    static std::vector<T> continuation(double position
+                                       , const InterpolationStrategy<T>& strategy
+                                       , const std::vector<T>& sequence) {
+        if (sequence->empty())
             return {};
-        }
 
-        auto index = Interpolator<T>::get_index(utils::modulo(position, 1.0), mapping->size());
+        auto index = get_index(utils::modulo(position, 1.0), sequence->size());
 
-        auto element = mapping->at(index);
+        auto element = sequence->at(index);
 
         std::vector<T> output(element.size());
-        std::transform(element.begin(), element.end(), output.begin()
-                       , [&focal_point = m_focal_point, position](T value) {
-                    return std::floor(position) * focal_point + value;
-                });
+        std::transform(element.begin()
+                       , element.end()
+                       , output.begin()
+                       , [&](T value) { return std::floor(position) * strategy.get_pivot() + value; });
 
         return output;
     }
 
 
-    T get_focal_point() const {
-        return m_focal_point;
+    static std::vector<T> modulo(double position
+                                 , const InterpolationStrategy<T>&
+                                 , const std::vector<T>& sequence) {
+        if (sequence->empty())
+            return {};
+
+        auto index = get_index(utils::modulo(position, 1.0), sequence->size());
+
+        return sequence->at(index);
     }
 
 
-private:
-    T m_focal_point;
-
-};
-
-
-// ==============================================================================================
-
-template<typename T>
-class ModuloInterpolator : public Interpolator<T> {
-public:
-
-    std::vector<T> get(double position, Mapping<T>* mapping) override {
-        if (mapping->empty()) {
+    static std::vector<T> clip(double position
+                               , const InterpolationStrategy<T>&
+                               , const std::vector<T>& sequence) {
+        if (sequence->empty())
             return {};
-        }
-
-        auto index = Interpolator<T>::get_index(utils::modulo(position, 1.0), mapping->size());
-
-        return mapping->at(index);
-    }
-};
-
-
-// ==============================================================================================
-
-template<typename T>
-class ClipInterpolator : public Interpolator<T> {
-public:
-    std::vector<T> get(double position, Mapping<T>* mapping) override {
-        if (mapping->empty()) {
-            return {};
-        }
 
         auto index = static_cast<std::size_t>(
                 std::max(0l
-                         , std::min(static_cast<long>(mapping->size()) - 1
-                                    , static_cast<long>(Interpolator<T>::get_index(position, mapping->size())))));
+                         , std::min(static_cast<long>(sequence->size()) - 1
+                                    , static_cast<long>(get_index(position, sequence->size()))))
+        );
 
-        return mapping->at(index);
+        return sequence->at(index);
+
+    }
+
+
+    static std::vector<T> pass(double position
+                               , const InterpolationStrategy<T>&
+                               , const std::vector<T>& sequence) {
+        if (sequence->empty() || position < 0)
+            return {};
+
+        auto i = get_index(position, sequence->size());
+
+        if (i >= sequence->size())
+            return {};
+
+        return sequence->at(i);
+
+    }
+
+
+    static std::size_t get_index(double position, std::size_t map_size) {
+        // This should work correctly up to Mappings of size 67_108_864,
+        //   assuming doubles of 8 bytes (tested up to 10_000)
+        return static_cast<std::size_t>(
+                std::floor(position * static_cast<double>(map_size) + std::copysign(epsilon, position)));
     }
 };
 
-
-// ==============================================================================================
-
-template<typename T>
-class PassInterpolator : public Interpolator<T> {
-public:
-    std::vector<T> get(double position, Mapping<T>* mapping) override {
-        if (mapping->empty() || position < 0) {
-            return {};
-        }
-
-        auto i = Interpolator<T>::get_index(position, mapping->size());
-
-        if (i >= mapping->size()) {
-            return {};
-        }
-
-        return mapping->at(i);
-    }
-
-};
 
 #endif //SERIALIST_LOOPER_INTERPOLATOR_H
