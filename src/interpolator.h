@@ -18,7 +18,7 @@ template<typename T>
 class InterpolationStrategy {
 public:
 
-    const char SEPARATOR = ':';
+    static const char SEPARATOR = ':';
 
     enum class Type {
         continuation = 0

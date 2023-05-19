@@ -11,11 +11,13 @@ find_package(Catch2 3 REQUIRED)
 
 
 set(SOURCES
+        ${CMAKE_SOURCE_DIR}/src/collection.h
         ${CMAKE_SOURCE_DIR}/src/events.h
         ${CMAKE_SOURCE_DIR}/src/exceptions.h
         ${CMAKE_SOURCE_DIR}/src/generation_graph.h
         ${CMAKE_SOURCE_DIR}/src/generative.h
         ${CMAKE_SOURCE_DIR}/src/generator.h
+        ${CMAKE_SOURCE_DIR}/src/new_generator.h
         ${CMAKE_SOURCE_DIR}/src/interpolator.h
         ${CMAKE_SOURCE_DIR}/src/mapping.h
         ${CMAKE_SOURCE_DIR}/src/new_oscillator.h

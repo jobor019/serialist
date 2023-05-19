@@ -18,7 +18,11 @@ template<typename T>
 using ComplexParameter = LockingVTParameter<T>;
 
 template<typename T>
+using ParametrizedCollection = VTParametrizedSequence<T>; // TODO: Temp, until VTParametrizedSequence is handling lists of lists
+
+template<typename T>
 using ParametrizedSequence = VTParametrizedSequence<T>;
+
 
 #else
 

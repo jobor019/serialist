@@ -236,7 +236,8 @@ private:
 
 template<typename T>
 class CollectionVTParameter {
-}; // TODO
+}; // TODO: Current VTParametrizedSequence should rather be ParametrizedCollection
+//       and VTParametrizedSequence should be std::vector<std::vector<T>>
 
 
 // ==============================================================================================
@@ -298,6 +299,13 @@ public:
 
         index = adjust_index_range(index, false);
         return m_values.at(static_cast<std::size_t>(index));
+    }
+
+
+    std::vector<T> clone() {
+        std::lock_guard<std::mutex> lock{m_values_mutex};
+
+        return std::vector<T>(m_values);
     }
 
 
