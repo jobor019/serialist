@@ -11,6 +11,10 @@ template<typename T>
 class Variable : public Node<T>
                  , public ParameterHandler {
 public:
+    template <typename U>
+    using ParameterType = typename std::conditional<std::atomic<T>::is_always_lock_free
+                                                    , AtomicParameter<U>
+                                                    , ComplexParameter<U>>::type;
 
     inline static const std::string PARAMETER_ADDRESS = "value";
 
@@ -22,13 +26,13 @@ public:
     std::vector<T> process(const TimePoint&) override { return {m_value.get()}; }
 
 
-    T get_value() const { return m_value.get(); }
+    T get_value() { return m_value.get(); }
 
 
     void set_value(T value) { m_value.set(value); }
 
 
-    AtomicParameter<T>& get_parameter_obj() {
+    ParameterType<T>& get_parameter_obj() {
         return m_value;
     }
 
@@ -40,7 +44,7 @@ public:
 
 private:
 
-    AtomicParameter<T> m_value;
+    ParameterType<T> m_value;
 
 };
 

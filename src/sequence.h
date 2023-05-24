@@ -5,6 +5,7 @@
 
 #include "parameter_policy.h"
 #include "generative.h"
+#include "interpolator.h"
 
 template<typename T>
 class Sequence : public Generative
@@ -14,7 +15,7 @@ public:
     inline static const std::string PARAMETER_ADDRESS = "sequence";
 
 
-    explicit Sequence(const std::string& id, VTParameterHandler& parent, const std::vector<T>& initial_values = {})
+    explicit Sequence(const std::string& id, ParameterHandler& parent, const std::vector<T>& initial_values = {})
             : ParameterHandler(id, parent), m_sequence(initial_values, PARAMETER_ADDRESS, *this) {}
 
 

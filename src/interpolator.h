@@ -21,21 +21,23 @@ public:
     static const char SEPARATOR = ':';
 
     enum class Type {
-        continuation = 0
-        , modulo = 1
-        , clip = 2
-        , pass = 3
+        continuation = 1
+        , modulo = 2
+        , clip = 3
+        , pass = 4
     };
 
 
-    InterpolationStrategy(Type type, T pivot) : m_type(type), m_pivot(pivot) {
+    explicit InterpolationStrategy(Type type = Type::clip, T pivot = static_cast<T>(0)) // TODO: Bad default pivot
+            : m_type(type), m_pivot(pivot) {
         static_assert(std::is_arithmetic_v<T>, "T must be arithmetic");
     }
 
 
-    std::string to_string() {
+    std::string to_string() const {
         std::ostringstream oss;
         oss << static_cast<int>(m_type) << SEPARATOR << m_pivot;
+        return oss.str();
     }
 
 

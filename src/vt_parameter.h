@@ -7,6 +7,7 @@
 #include <juce_data_structures/juce_data_structures.h>
 #include "exceptions.h"
 #include "interpolator.h"
+#include "serializable.h"
 
 
 class VTParameterHandler {
@@ -147,7 +148,7 @@ public:
     void valueTreePropertyChanged(juce::ValueTree& treeWhosePropertyHasChanged
                                   , const juce::Identifier& property) override {
         if (equals_property(treeWhosePropertyHasChanged, property)) {
-            set_internal_value(treeWhosePropertyHasChanged.getProperty(property));
+            set_internal_value(deserialize(treeWhosePropertyHasChanged.getProperty(property)));
         }
     }
 
@@ -159,7 +160,31 @@ protected:
 
 private:
     void update_value_tree(T new_value) {
-        m_parent.get_value_tree().setProperty(m_identifier, new_value, &m_parent.get_undo_manager());
+        m_parent.get_value_tree().setProperty(m_identifier, serialize(new_value), &m_parent.get_undo_manager());
+    }
+
+
+    template<typename U =T, std::enable_if_t<is_serializable<U>::value, int> = 0>
+    juce::var serialize(const T& value) {
+        return {value.to_string()};
+    }
+
+
+    template<typename U = T, std::enable_if_t<!is_serializable<U>::value, int> = 0>
+    juce::var serialize(const T& value) {
+        return value;
+    }
+
+
+    template<typename U = T, std::enable_if_t<is_serializable<U>::value, int> = 0>
+    T deserialize(const juce::var& obj) {
+        return T::from_string(obj.toString().toStdString());
+    }
+
+
+    template<typename U = T, std::enable_if_t<!is_serializable<U>::value, int> = 0>
+    T deserialize(const juce::var& obj) {
+        return obj;
     }
 
 
@@ -243,7 +268,7 @@ class CollectionVTParameter {
 // ==============================================================================================
 
 template<typename T>
-class VTParametrizedSequence {
+class VTParametrizedSequence : private juce::ValueTree::Listener {
 public:
 
     VTParametrizedSequence(const std::vector<T>& initial, const std::string& id, VTParameterHandler& parent)
@@ -302,10 +327,19 @@ public:
     }
 
 
-    std::vector<T> clone() {
+    std::vector<T> clone_values() {
         std::lock_guard<std::mutex> lock{m_values_mutex};
 
         return std::vector<T>(m_values);
+    }
+
+
+    void reset_values(std::vector<T> new_values) {
+        std::lock_guard<std::mutex> lock{m_values_mutex};
+        m_value_tree.removeAllChildren(&m_parent.get_undo_manager());
+        for (auto& value: new_values) {
+            internal_insert(value, -1);
+        }
     }
 
 
@@ -317,14 +351,8 @@ public:
 
     void insert(T value, int index) {
         std::lock_guard<std::mutex> lock{m_values_mutex};
+        internal_insert(value, index);
 
-        index = adjust_index_range(index, true);
-
-        m_values.insert(m_values.begin() + index, value);
-
-        juce::ValueTree child({std::to_string(used_vt_names++)});
-        child.setProperty(value, "v1", nullptr); // TODO: Generalize for trees with multiple properties
-        m_value_tree.addChild(child, index, &m_parent.get_undo_manager());
     }
 
 
@@ -375,6 +403,17 @@ private:
     }
 
 
+    void internal_insert(const T& value, int index) {
+        index = adjust_index_range(index, true);
+
+        m_values.insert(m_values.begin() + index, value);
+
+        juce::ValueTree child({"c" + std::to_string(used_vt_names++)});
+        child.setProperty("v1", value, nullptr); // TODO: Generalize for trees with multiple properties
+        m_value_tree.addChild(child, index, &m_parent.get_undo_manager());
+    }
+
+
     std::mutex m_values_mutex;
     std::vector<T> m_values;
 
@@ -385,6 +424,6 @@ private:
 
     std::vector<VTParameterListener*> m_listeners;
 
-}
+};
 
 #endif //SERIALISTPLAYGROUND_VT_PARAMETER_H

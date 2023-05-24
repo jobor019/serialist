@@ -1,83 +1,60 @@
 
 
-#ifndef SERIALIST_LOOPER_GENERATOR_COMPONENT_H
-#define SERIALIST_LOOPER_GENERATOR_COMPONENT_H
+#ifndef SERIALISTLOOPER_NEW_GENERATOR_COMPONENT_H
+#define SERIALISTLOOPER_NEW_GENERATOR_COMPONENT_H
 
-#include <juce_gui_basics/juce_gui_basics.h>
-#include "../generator.h"
-#include "mapping_component.h"
-#include "oscillator_component.h"
+#include "node_component.h"
+#include "parameter_policy.h"
+#include "generator.h"
 
 template<typename T>
-class GeneratorComponent : public juce::Component
-                        , private juce::Slider::Listener {
+class GeneratorComponent : NodeComponent {
 public:
-    explicit GeneratorComponent(Generator<T>* generator, const std::string& name)
-            : m_generator(generator)
-              , m_name("name", name)
-              , m_mapping(generator)
-              , m_oscillator(generator) {
-        addAndMakeVisible(m_name);
+    enum class Layout {
+        full
+        , compact
+        , internal
+    };
 
-        m_step_size.setRange(-8, 8, 0.1);
-        m_step_size.setValue(m_generator->get_step_size(), juce::dontSendNotification);
-        m_step_size.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag);
-        m_step_size.addListener(this);
-        addAndMakeVisible(m_step_size);
 
-//        m_mul.setRange(0, 10, 0.1);
-//        m_mul.setValue(1.0);
-//        m_mul.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag);
-//        m_mul.addListener(this);
-//        addAndMakeVisible(m_mul);
+    GeneratorComponent(const std::string& id, ParameterHandler& parent)
+    : m_generator(id, parent)
+    , m_internal_oscillator(id + "::oscillator", parent)
+    , m_internal_sequence(id + "::sequence", parent) {
+        m_generator.set_cursor(m_internal_oscillator);
+        m_generator.set
 
-        addAndMakeVisible(m_mapping);
-        addAndMakeVisible(m_oscillator);
+        addAndMakeVisible(m_generator);
+        addAndMakeVisible(m_internal_oscillator);
+        addAndMakeVisible(m_internal_sequence);
     }
 
 
-private:
-    void sliderValueChanged(juce::Slider* slider) override {
-        if (slider == &m_step_size) {
-            m_generator->set_step_size(slider->getValue());
-            std::cout << "changed step size to " << slider->getValue() << "\n";
-        } else if (slider == &m_mul) {
-//            std::cout << "changed mul to " << slider->getValue() << "\n";
-            std::cout << "Mul not implemented yet\n";
-//            m_generator->get(slider->getValue());
-        }
+    Generative& get_generative() override {
+        return m_generator;
     }
 
 
     void paint(juce::Graphics& g) override {
-        g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
-
-//        g.setFont(juce::Font(16.0f));
-//        g.setColour(juce::Colours::white);
-//        g.drawText(m_name, getLocalBounds(), juce::Justification::centred, true);
+        g.fillAll(getLookAndFeel().findColour(juce::DocumentWindow::backgroundColourId));
+        g.setColour(juce::Colours::grey);
+        g.drawRect(getLocalBounds(), 2);
     }
-
 
     void resized() override {
-        auto bounds = getLocalBounds();
-        m_name.setBounds(bounds.removeFromLeft(100));
-        m_step_size.setBounds(bounds.removeFromLeft(100));
-//        m_mul.setBounds(bounds.removeFromLeft(100));
-        m_oscillator.setBounds(bounds.removeFromRight(100));
-        m_mapping.setBounds(bounds);
+        if (m_layout == Layout::full) {
+            full_layout();
+        }
     }
 
-    Generator<T>* m_generator;
-
-    juce::Slider m_step_size;
-    juce::Slider m_mul;
-    juce::Slider m_add;
-    juce::Label m_name;
-
-    SingleMappingComponent<T> m_mapping;
-    OscillatorComponent<T> m_oscillator;
 
 
+private:
+    Generator<T> m_generator;
+    OscillatorComponent m_internal_oscillator;
+    TextSequenceComponent<T> m_internal_sequence; // TODO: Replace with generic SequenceComponent
+
+    Layout m_layout = Layout::full;
 };
 
-#endif //SERIALIST_LOOPER_GENERATOR_COMPONENT_H
+#endif //SERIALISTLOOPER_NEW_GENERATOR_COMPONENT_H

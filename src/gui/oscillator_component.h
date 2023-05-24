@@ -3,7 +3,11 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 
-#include "../new_oscillator.h" // TODO: Why can't this be relative?
+#include "../oscillator.h" // TODO: Why can't this be relative?
+#include "node_component.h"
+#include "slider_component.h"
+#include "toggle_button_component.h"
+
 
 class OscillatorComponent : public NodeComponent
                             , public juce::Timer {
@@ -45,6 +49,12 @@ public:
 
         addAndMakeVisible(m_enable_button);
 
+        addAndMakeVisible(m_oscillator_view);
+        m_oscillator_view.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
+        m_oscillator_view.setInterceptsMouseClicks(false, false);
+        m_oscillator_view.setRange(0, 10.0);
+        m_oscillator_view.setNumDecimalPlacesToDisplay(2);
+
         startTimerHz(33);
     }
 
@@ -52,11 +62,7 @@ public:
     void timerCallback() override {
         auto queue = m_oscillator.get_output_history();
         if (!queue.empty()) {
-            std::cout << "output: ";
-            for (auto& e: queue) {
-                std::cout << e << " ";
-            }
-            std::cout << "\n";
+            m_oscillator_view.setValue(queue.back(), juce::dontSendNotification);
         }
     }
 
@@ -93,6 +99,10 @@ private:
 
         bounds.removeFromTop(5);
 
+        m_oscillator_view.setBounds(bounds.removeFromTop(22));
+
+        bounds.removeFromTop(5);
+
         auto component_width = bounds.getWidth() / 5;
         auto spacing = component_width * 0.075;
         m_internal_freq.setBounds(bounds.removeFromLeft(component_width).reduced(static_cast<int>(spacing), 0));
@@ -102,7 +112,7 @@ private:
         m_internal_curve.setBounds(bounds.removeFromLeft(component_width).reduced(static_cast<int>(spacing), 0));
     }
 
-    NewOscillator m_oscillator;
+    Oscillator m_oscillator;
 
     // TODO: InternalType
     SliderComponent<float> m_internal_freq;
@@ -113,6 +123,8 @@ private:
 
     ToggleButtonComponent m_enable_button;
     juce::Label m_label;
+
+    juce::Slider m_oscillator_view;
 
     Layout m_layout = Layout::full;
 

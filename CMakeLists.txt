@@ -17,11 +17,10 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/generation_graph.h
         ${CMAKE_SOURCE_DIR}/src/generative.h
         ${CMAKE_SOURCE_DIR}/src/generator.h
-        ${CMAKE_SOURCE_DIR}/src/new_generator.h
         ${CMAKE_SOURCE_DIR}/src/interpolator.h
         ${CMAKE_SOURCE_DIR}/src/mapping.h
-        ${CMAKE_SOURCE_DIR}/src/new_oscillator.h
         ${CMAKE_SOURCE_DIR}/src/nop_parameter.h
+        ${CMAKE_SOURCE_DIR}/src/oscillator.h
         ${CMAKE_SOURCE_DIR}/src/parameter_policy.h
         ${CMAKE_SOURCE_DIR}/src/phasor.h
         ${CMAKE_SOURCE_DIR}/src/scheduler.h
@@ -36,13 +35,14 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/gui/connector_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/generation_layer.h
         ${CMAKE_SOURCE_DIR}/src/gui/generator_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/interpolation_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/look_and_feel.h
         ${CMAKE_SOURCE_DIR}/src/gui/main_component.h
-        ${CMAKE_SOURCE_DIR}/src/gui/mapping_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/midi_note_source_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/node_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/oscillator_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/slider_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/text_sequence_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/toggle_button_component.h
         ${CMAKE_SOURCE_DIR}/src/io/renderers.h
         )
@@ -141,6 +141,12 @@ target_sources(playground
         PRIVATE
         ${CMAKE_SOURCE_DIR}/app/playground.cpp
         ${SOURCES})
+
+target_include_directories(playground PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/gui
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/src/io
+        )
 
 target_compile_definitions(playground
         PRIVATE

@@ -1,202 +1,153 @@
 
 
-#ifndef SERIALIST_LOOPER_OSCILLATOR_H
-#define SERIALIST_LOOPER_OSCILLATOR_H
+#ifndef SERIALISTLOOPER_OSCILLATOR_H
+#define SERIALISTLOOPER_OSCILLATOR_H
 
-#include <cmath>
-#include <stdexcept>
-#include <random>
 #include "parameter_policy.h"
 #include "generative.h"
+#include "phasor.h"
+#include "utils.h"
 
-class Oscillator : public Node<double>
-        ,  public ParameterHandler {
+class Oscillator : public Node<double>, public ParameterHandler {
 public:
-    /**
-     * @throws: std::range_error if invalid parameter ranges are provided
-     */
-    Oscillator(const std::string& identifier, VTParameterHandler& parent): ParameterHandler(identifier, parent) {}
-
-    virtual ~Oscillator() = default;
-    Oscillator(const Oscillator&) = delete;
-    Oscillator& operator=(const Oscillator&) = delete;
-    Oscillator(Oscillator&&)  noexcept = default;
-    Oscillator& operator=(Oscillator&&)  noexcept = default;
-
-    virtual double process(double x) = 0;
-};
+    enum class Type {
+        phasor
+        , sin
+        , square
+        , tri
+        , white_noise
+        , brown_noise
+        , random_walk
+    };
 
 
-// ==============================================================================================
-
-class Identity : public Oscillator {
-public:
-    double process(double x) override {
-        return x;
-    }
-};
-
-
-// ==============================================================================================
-
-class Cosine : public Oscillator {
-public:
-    double process(double x) override {
-        return 0.5 * std::cos(2 * M_PI * x) + 0.5;
-    }
-};
-
-
-// ==============================================================================================
-
-class Square : public Oscillator {
-public:
-    explicit Square(double duty = 0.5) : m_duty(duty) {}
+    Oscillator(const std::string& identifier
+               , ParameterHandler& parent
+               , Node<Type>* type = nullptr
+               , Node<float>* freq = nullptr
+               , Node<float>* add = nullptr
+               , Node<float>* mul = nullptr
+               , Node<float>* duty = nullptr
+               , Node<float>* curve = nullptr
+               , Node<bool>* enabled = nullptr)
+            : ParameterHandler(identifier, parent)
+              , m_type(type)
+              , m_freq(freq)
+              , m_add(add)
+              , m_mul(mul)
+              , m_duty(duty)
+              , m_curve(curve)
+              , m_enabled(enabled)
+              , m_previous_values(100) {}
 
 
-    double process(double x) override {
-        return static_cast<double>(x <= m_duty);
+    std::vector<double> process(const TimePoint& t) override {
+        auto value = step_oscillator(t);
+        m_previous_values.push(value);
+        return {value};
     }
 
 
-    [[nodiscard]]
-    double get_duty() const { return m_duty; }
-
-    void set_duty(double value) { Square::m_duty = value; }
-
-private:
-    double m_duty;
-};
-
-
-// ==============================================================================================
-
-class Triangle : public Oscillator {
-public:
-    explicit Triangle(double duty = 0.5, double curve = 1.0) : m_duty(duty), m_curve(curve) {
-        if (curve <= 0) {
-            throw std::range_error("m_curve parameter must be greater than 0");
-        }
+    std::vector<Generative*> get_connected() override { // TODO: Generalize
+        return collect_connected(m_type, m_freq, m_add, m_mul, m_duty, m_curve, m_enabled);
+//        std::vector<Generative*> connected;
+//        if (auto type = dynamic_cast<Generative*>(m_type))
+//            connected.emplace_back(type);
+//        if (auto freq = dynamic_cast<Generative*>(m_freq))
+//            connected.emplace_back(freq);
+//        if (auto add = dynamic_cast<Generative*>(m_add))
+//            connected.emplace_back(add);
+//        if (auto mul = dynamic_cast<Generative*>(m_mul))
+//            connected.emplace_back(mul);
+//        if (auto duty = dynamic_cast<Generative*>(m_duty))
+//            connected.emplace_back(duty);
+//        if (auto curve = dynamic_cast<Generative*>(m_curve))
+//            connected.emplace_back(curve);
+//        if (auto enabled = dynamic_cast<Generative*>(m_enabled))
+//            connected.emplace_back(enabled);
+//
+//        return connected;
     }
 
-    double process(double x) override {
-        if (m_duty < 1e-8) {                  // m_duty = 0 => negative phase only (avoid div0)
-            return std::pow(1 - x, m_curve);
-        } else if (x <= m_duty) {             // positive phase
-            return std::pow(x / m_duty, m_curve);
-        } else {                            // negative phase
-            return std::pow(1 - (x - m_duty) / (1 - m_duty), m_curve);
-        }
-    }
 
-    [[nodiscard]]
-    double get_duty() const { return m_duty; }
-
-    void set_duty(double value) { Triangle::m_duty = value; }
-
-    [[nodiscard]]
-    double get_curve() const { return m_curve; }
-
-    void set_curve(double value) { Triangle::m_curve = value; }
-
-private:
-    double m_duty;
-    double m_curve;
-};
+    void set_type(Node<Type>* type) { m_type = type; }
 
 
-// ==============================================================================================
+    void set_freq(Node<float>* freq) { m_freq = freq; }
 
-class WhiteNoise : public Oscillator {
-public:
-    double process(double x) override {
-        (void) x;
-        throw std::runtime_error("this is not implemented yet");
+
+    void set_add(Node<float>* add) { m_add = add; }
+
+
+    void set_mul(Node<float>* mul) { m_mul = mul; }
+
+
+    void set_duty(Node<float>* duty) { m_duty = duty; }
+
+
+    void set_curve(Node<float>* curve) { m_curve = curve; }
+
+
+    void set_enabled(Node<bool>* enabled) { m_enabled = enabled; }
+
+    std::vector<double> get_output_history() {
+        return m_previous_values.pop_all();
     }
 
 
 private:
-    std::mt19937 m_rng; // TODO: Initialize (and seed) in ctor
-};
 
-
-// ==============================================================================================
-
-class BrownNoise : public Oscillator {
-public:
-    BrownNoise() : last_output_(0.0), distribution_(-0.5, 0.5), max_difference_(0.01) {
-        generator_ = std::mt19937(rd_());
-    }
-
-    double process(double x) override {
-        (void) x;
-        double white_noise = distribution_(generator_);
-        double new_output = last_output_ + (white_noise - last_output_) / 16.0;
-        double difference = std::abs(new_output - last_output_);
-        if (difference > max_difference_) {
-            new_output = last_output_ + max_difference_ * std::copysign(1.0, new_output - last_output_);
+    double step_oscillator(const TimePoint& t) {
+        switch (value_or(m_type, Type::phasor, t)) {
+            case Type::phasor:
+                return phasor(t);
+            case Type::sin:
+                return sin(t);
+            case Type::square:
+            case Type::tri:
+            case Type::white_noise:
+            case Type::brown_noise:
+            case Type::random_walk:
+                throw std::runtime_error("oscillator types not implemented"); // TODO
         }
-        last_output_ = new_output;
-        return last_output_ + 0.5;
     }
 
-    void set_max_difference(double max_difference) {
-        max_difference_ = max_difference;
+    double phasor_position(const TimePoint& t) {
+        auto freq = static_cast<float>(value_or(m_freq, 1.0f, t));
+        auto step_size = std::abs(freq) > 1e-8 ? 1 / freq : 0.0;
+
+        return m_phasor.process(t.get_tick(), step_size);
     }
 
-private:
-    double last_output_;
-    std::mt19937 generator_;
-    std::uniform_real_distribution<double> distribution_;
-    std::random_device rd_;
-    double max_difference_;
+
+
+
+    double phasor(const TimePoint& t) {
+        return value_or(m_mul, 1.0f, t) * phasor_position(t) + value_or(m_add, 0.0f, t);
+    }
+
+
+    double sin(const TimePoint& t) {
+        auto y = 0.5 * std::sin(2 * M_PI * phasor_position(t)) + 0.5;
+        return value_or(m_mul, 1.0f, t) * y + value_or(m_add, 0.0f, t);
+    }
+
+
+    Node<Type>* m_type;
+    Node<float>* m_freq;
+    Node<float>* m_add;
+    Node<float>* m_mul;
+    Node<float>* m_duty;
+    Node<float>* m_curve;
+
+    Node<bool>* m_enabled;
+
+    Phasor m_phasor;
+
+
+    utils::LockingQueue<double> m_previous_values;
+
+
 };
 
-
-// ==============================================================================================
-
-class RandomWalkOscillator : public Oscillator {
-public:
-    RandomWalkOscillator() : Oscillator(), rng_(std::random_device{}()) {}
-
-    double process(double x) override {
-        (void) x;
-        double next = current_ + distribution_(rng_);
-        if (next > 1.0) {
-            current_ = 2.0 - next;
-        } else if (next < 0.0) {
-            current_ = -next;
-        } else {
-            current_ = next;
-        }
-        return current_;
-    }
-
-    void setStepSize(double stepSize) {
-        if (stepSize <= 0.0 || stepSize >= 1.0) {
-            throw std::range_error("Step size must be between 0 and 1.");
-        }
-        distribution_ = std::uniform_real_distribution<double>(-stepSize, stepSize);
-    }
-
-private:
-    std::mt19937 rng_;
-    std::uniform_real_distribution<double> distribution_{-0.05, 0.05};  // default step size
-    double current_ = 0.5;  // starting value
-};
-
-
-// ==============================================================================================
-
-class BalancedRandom : public Oscillator {
-    // TODO Implement something that behaves nicer than true random
-    //  (avoiding duplicates, biasing based on what's been generated)
-
-    double process(double x) override {
-        (void) x;
-        throw std::runtime_error("this is not implemented yet");
-    }
-};
-
-
-#endif //SERIALIST_LOOPER_OSCILLATOR_H
+#endif //SERIALISTLOOPER_OSCILLATOR_H

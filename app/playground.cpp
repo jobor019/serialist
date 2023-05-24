@@ -1,35 +1,78 @@
-#include <juce_gui_basics/juce_gui_basics.h>
+#include <juce_gui_extra/juce_gui_extra.h>
 
 #include <memory>
+#include "oscillator_component.h"
+#include "text_sequence_component.h"
+#include "interpolation_component.h"
 
 
-class PlaygroundComponent : public juce::Component {
+class PlaygroundComponent : public juce::Component
+, private juce::Timer {
 public:
 
 
-    PlaygroundComponent() {
+    PlaygroundComponent()
+            : m_value_tree(m_vt_identifier), m_some_handler(m_value_tree, m_undo_manager)
+              , m_oscillator("osc1", m_some_handler)
+              , m_sequence("seq1", m_some_handler)
+              , m_interpolator("interp1", m_some_handler)
+              {
+        addAndMakeVisible(m_oscillator);
+        addAndMakeVisible(m_sequence);
+        addAndMakeVisible(m_interpolator);
+
+        std::cout << m_value_tree.toXmlString() << std::endl;
+
+        startTimer(50);
         setSize(600, 400);
     }
 
 
     void paint(juce::Graphics& g) override {
-        g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
+        g.fillAll(juce::Colours::mediumaquamarine);
 
         g.setFont(juce::Font(16.0f));
         g.setColour(juce::Colours::white);
-        g.drawText("Hello Pkayground!", getLocalBounds(), juce::Justification::centred, true);
+        g.drawText("Hello Playground!", getLocalBounds(), juce::Justification::centred, true);
     }
 
 
     void resized() override {
-
+        m_oscillator.setBounds(50, 30, 200, 100);
+        m_sequence.setBounds(300, 30, 100, 40);
+        m_interpolator.setBounds(50, 200, 180, 40);
     }
 
+
+    void timerCallback() override {
+        auto ee = dynamic_cast<Oscillator*>(&m_oscillator.get_generative())->process(TimePoint());
+        m_oscillator.repaint();
+        ++callback_count;
+
+        if (callback_count % 50 == 0) {
+            std::cout << m_value_tree.toXmlString() << "\n";
+        }
+
+    }
 
 
 
 
 private:
+
+    const juce::Identifier m_vt_identifier = "root";
+
+    juce::ValueTree m_value_tree;
+    juce::UndoManager m_undo_manager;
+
+    ParameterHandler m_some_handler;
+
+    OscillatorComponent m_oscillator;
+    TextSequenceComponent<int> m_sequence;
+    InterpolationStrategyComponent<int> m_interpolator;
+
+    int callback_count = 0;
+
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PlaygroundComponent)
 };
@@ -42,11 +85,15 @@ public:
 
     Playground() = default;
 
+
     const juce::String getApplicationName() override { return JUCE_APPLICATION_NAME_STRING; }
+
 
     const juce::String getApplicationVersion() override { return JUCE_APPLICATION_VERSION_STRING; }
 
+
     bool moreThanOneInstanceAllowed() override { return true; }
+
 
     void initialise(const juce::String& commandLine) override {
         juce::ignoreUnused(commandLine);
@@ -54,15 +101,18 @@ public:
         mainWindow = std::make_unique<MainWindow>(getApplicationName());
     }
 
+
     void shutdown() override {
         mainWindow = nullptr;
     }
+
 
     void systemRequestedQuit() override {
         // This is called when the app is being asked to quit: you can ignore this
         // request and let the app carry on running, or call quit() to allow the app to close.
         quit();
     }
+
 
     void anotherInstanceStarted(const juce::String& commandLine) override {
         // When another instance of the app is launched while this one is running,
@@ -90,12 +140,14 @@ public:
             setVisible(true);
         }
 
+
         void closeButtonPressed() override {
             // This is called when the user tries to close this window. Here, we'll just
             // ask the app to quit when this happens, but you can change this to do
             // whatever you need.
             JUCEApplication::getInstance()->systemRequestedQuit();
         }
+
 
     private:
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainWindow)

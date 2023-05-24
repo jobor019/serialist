@@ -46,7 +46,7 @@ private:
     void valueTreePropertyChanged(juce::ValueTree& treeWhosePropertyHasChanged
                                   , const juce::Identifier& property) override {
         if (m_variable.get_parameter_obj().equals_property(treeWhosePropertyHasChanged, property)) {
-            m_button.setToggleState(treeWhosePropertyHasChanged.getProperty(property), juce::dontSendNotification);
+            m_button.setToggleState(m_variable.get_value(), juce::dontSendNotification);
         }
     }
 

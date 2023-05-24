@@ -8,7 +8,7 @@
 #include "../src/generator.h"
 #include "../src/gui/looper_component.h"
 #include "../src/gui/mapping_component.h"
-#include "../src/gui/generator_component.h"
+#include "../src/gui/old_generator_component.h"
 
 class MidiGeneratorV1Component : public juce::Component
                                  , public juce::ComboBox::Listener
@@ -30,11 +30,11 @@ public:
         auto channel = std::make_unique<Generator<int>>(
                 std::make_unique<Mapping<int>>(std::vector<int>{1}));
 
-        m_onset = std::make_unique<GeneratorComponent<double>>(onset.get(), "onset");
-        m_duration = std::make_unique<GeneratorComponent<double>>(duration.get(), "duration");
-        m_pitch = std::make_unique<GeneratorComponent<int>>(pitch.get(), "pitch");
-        m_velocity = std::make_unique<GeneratorComponent<int>>(velocity.get(), "velocity");
-        m_channel = std::make_unique<GeneratorComponent<int>>(channel.get(), "channel");
+        m_onset = std::make_unique<OldGeneratorComponent<double>>(onset.get(), "onset");
+        m_duration = std::make_unique<OldGeneratorComponent<double>>(duration.get(), "duration");
+        m_pitch = std::make_unique<OldGeneratorComponent<int>>(pitch.get(), "pitch");
+        m_velocity = std::make_unique<OldGeneratorComponent<int>>(velocity.get(), "velocity");
+        m_channel = std::make_unique<OldGeneratorComponent<int>>(channel.get(), "channel");
 
         addAndMakeVisible(*m_onset);
         addAndMakeVisible(*m_duration);
@@ -120,7 +120,7 @@ public:
 //            std::unique_ptr<Component> new_component;
 //            if (to_generator) {
 //                new_node = std::make_shared<Generator<double>>();
-//                m_onset = std::make_unique<GeneratorComponent<double>>(std::dynamic_pointer_cast<Generator<double>>(new_node), "onset");
+//                m_onset = std::make_unique<OldGeneratorComponent<double>>(std::dynamic_pointer_cast<Generator<double>>(new_node), "onset");
 //            } else {
 //                new_node = std::make_shared<Looper<double>>();
 //                m_onset = std::make_unique<LooperComponent<double>>(std::dynamic_pointer_cast<Looper<double>>(new_node), "onset");
@@ -133,7 +133,7 @@ public:
 //            std::shared_ptr<Node<double>> new_node;
 //            if (to_generator) {
 //                new_node = std::make_shared<Generator<double>>();
-//                m_duration = std::make_unique<GeneratorComponent<double>>(std::dynamic_pointer_cast<Generator<double>>(new_node), "duration");
+//                m_duration = std::make_unique<OldGeneratorComponent<double>>(std::dynamic_pointer_cast<Generator<double>>(new_node), "duration");
 //            } else {
 //                new_node = std::make_shared<Looper<double>>();
 //                m_duration = std::make_unique<LooperComponent<double>>(std::dynamic_pointer_cast<Looper<double>>(new_node), "duration");
@@ -146,7 +146,7 @@ public:
 //            if (to_generator) {
 //                new_node = std::make_shared<Generator<int>>();
 //                auto a = std::dynamic_pointer_cast<Generator<int>>(new_node);
-//                m_pitch = std::make_unique<GeneratorComponent<int>>(a, "pitch");
+//                m_pitch = std::make_unique<OldGeneratorComponent<int>>(a, "pitch");
 //            } else {
 //                new_node = std::make_shared<Looper<int>>();
 //                auto e =std::dynamic_pointer_cast<Looper<int>>(new_node);
@@ -159,7 +159,7 @@ public:
 //            std::shared_ptr<Node<int>> new_node;
 //            if (to_generator) {
 //                new_node = std::make_shared<Generator<int>>();
-//                m_velocity = std::make_unique<GeneratorComponent<int>>(std::dynamic_pointer_cast<Generator<int>>(new_node), "velocity");
+//                m_velocity = std::make_unique<OldGeneratorComponent<int>>(std::dynamic_pointer_cast<Generator<int>>(new_node), "velocity");
 //            } else {
 //                new_node = std::make_shared<Looper<int>>();
 //                m_velocity = std::make_unique<LooperComponent<int>>(std::dynamic_pointer_cast<Looper<int>>(new_node), "velocity");
@@ -171,7 +171,7 @@ public:
 //            std::shared_ptr<Node<int>> new_node;
 //            if (to_generator) {
 //                new_node = std::make_shared<Generator<int>>();
-//                m_channel = std::make_unique<GeneratorComponent<int>>(std::dynamic_pointer_cast<Generator<int>>(new_node), "channel");
+//                m_channel = std::make_unique<OldGeneratorComponent<int>>(std::dynamic_pointer_cast<Generator<int>>(new_node), "channel");
 //            } else {
 //                new_node = std::make_shared<Looper<int>>();
 //                m_channel = std::make_unique<LooperComponent<int>>(std::dynamic_pointer_cast<Looper<int>>(new_node), "channel");

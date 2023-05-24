@@ -7,22 +7,14 @@
 #include <memory>
 
 
-
-
-class PolymorphicSerializable {
-public:
-    PolymorphicSerializable() = default;
-    virtual ~PolymorphicSerializable() = default;
-    PolymorphicSerializable(const PolymorphicSerializable&) = default;
-    PolymorphicSerializable& operator=(const PolymorphicSerializable&) = default;
-    PolymorphicSerializable(PolymorphicSerializable&&)  noexcept = default;
-    PolymorphicSerializable& operator=(PolymorphicSerializable&&)  noexcept = default;
-
-    virtual std::string to_string() = 0;
-
-    static std::unique_ptr<PolymorphicSerializable> from_string(const std::string& s);
-
-
+template<typename T, typename = void>
+struct is_serializable : std::false_type {
 };
+
+template<typename T>
+struct is_serializable<T, std::void_t<decltype(std::declval<T>().from_string(std::declval<const std::string&>())
+        , std::declval<T>().to_string())>> : std::true_type {
+};
+
 
 #endif //SERIALISTLOOPER_SERIALIZABLE_H
