@@ -7,6 +7,7 @@
 #include "node_component.h"
 #include "slider_component.h"
 #include "toggle_button_component.h"
+#include "header_component.h"
 
 
 class OscillatorComponent : public NodeComponent
@@ -26,14 +27,19 @@ public:
               , m_internal_add(id + "::add", parent, 0.0f, 10.0f, 0.125f, 0.0f)
               , m_internal_duty(id + "::duty", parent, 0.0f, 1.0f, 0.01f, 0.5f)
               , m_internal_curve(id + "::curve", parent, 0.0f, 0.0f, 0.0f, 0.0f)
-              , m_enable_button(id + "::enabled", parent, true) {
+              , m_header(id, parent)
+//              , m_enable_button(id + "::enabled", parent, true)
+              {
 
         m_oscillator.set_freq(dynamic_cast<Node<float>*>(&m_internal_freq.get_generative()));
         m_oscillator.set_mul(dynamic_cast<Node<float>*>(&m_internal_mul.get_generative()));
         m_oscillator.set_add(dynamic_cast<Node<float>*>(&m_internal_add.get_generative()));
         m_oscillator.set_duty(dynamic_cast<Node<float>*>(&m_internal_duty.get_generative()));
         m_oscillator.set_curve(dynamic_cast<Node<float>*>(&m_internal_curve.get_generative()));
-        m_oscillator.set_enabled(dynamic_cast<Node<bool>*>(&m_enable_button.get_generative()));
+
+
+//        m_oscillator.set_enabled(dynamic_cast<Node<bool>*>(&m_enable_button.get_generative()));
+        m_oscillator.set_enabled(dynamic_cast<Node<bool>*>(&m_header.get_enabled().get_generative()));
 
 
         addAndMakeVisible(m_internal_freq);
@@ -42,12 +48,14 @@ public:
         addAndMakeVisible(m_internal_duty);
         addAndMakeVisible(m_internal_curve);
 
-        m_label.setText(id, juce::dontSendNotification);
-        m_label.setEditable(false);
-        m_label.setJustificationType(juce::Justification::centredLeft);
-        addAndMakeVisible(m_label);
+//        m_label.setText(id, juce::dontSendNotification);
+//        m_label.setEditable(false);
+//        m_label.setJustificationType(juce::Justification::centredLeft);
+//        addAndMakeVisible(m_label);
+//
+//        addAndMakeVisible(m_enable_button);
 
-        addAndMakeVisible(m_enable_button);
+        addAndMakeVisible(m_header);
 
         addAndMakeVisible(m_oscillator_view);
         m_oscillator_view.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
@@ -90,14 +98,17 @@ private:
 private:
 
     void full_layout() {
-        auto bounds = getLocalBounds().reduced(8);
+        auto bounds = getLocalBounds();
 
-        auto header_bounds = bounds.removeFromTop(20);
-        m_enable_button.setBounds(header_bounds.removeFromLeft(22));
-        header_bounds.removeFromLeft(10);
-        m_label.setBounds(header_bounds);
+        m_header.setBounds(bounds.removeFromTop(20));
+//        auto header_bounds = bounds.removeFromTop(20);
+//        m_enable_button.setBounds(header_bounds.removeFromLeft(22));
+//        header_bounds.removeFromLeft(10);
+//        m_label.setBounds(header_bounds);
 
-        bounds.removeFromTop(5);
+        bounds.reduce(5, 8);
+
+
 
         m_oscillator_view.setBounds(bounds.removeFromTop(22));
 
@@ -121,8 +132,10 @@ private:
     SliderComponent<float> m_internal_duty;
     SliderComponent<float> m_internal_curve;
 
-    ToggleButtonComponent m_enable_button;
-    juce::Label m_label;
+    HeaderComponent m_header;
+
+//    ToggleButtonComponent m_enable_button;
+//    juce::Label m_label;
 
     juce::Slider m_oscillator_view;
 

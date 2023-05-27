@@ -10,8 +10,8 @@
 
 template<typename T>
 class InterpolationStrategyComponent : public NodeComponent
-        , juce::Slider::Listener
-        , juce::ComboBox::Listener {
+                                       , juce::Slider::Listener
+                                       , juce::ComboBox::Listener {
 public:
 
     InterpolationStrategyComponent(const std::string& id, ParameterHandler& parent)
@@ -28,6 +28,7 @@ public:
         m_pivot.setSliderStyle(juce::Slider::SliderStyle::LinearBarVertical);
         m_pivot.setValue(m_strategy.get_value().get_pivot(), juce::dontSendNotification);
         m_pivot.setNumDecimalPlacesToDisplay(std::is_integral_v<T> ? 0 : 2);
+        m_pivot.setTextBoxIsEditable(false);
         m_pivot.addListener(this);
         addAndMakeVisible(m_pivot);
 
@@ -42,9 +43,9 @@ public:
 
 
     void resized() override {
-        auto bounds = getLocalBounds();
+        auto bounds = getLocalBounds().reduced(8);
         bounds.removeFromLeft(5);
-        m_pivot.setBounds(bounds.removeFromLeft(60));
+        m_pivot.setBounds(bounds.removeFromLeft(40));
         bounds.removeFromLeft(5);
         bounds.removeFromRight(5);
         m_type.setBounds(bounds);
@@ -61,6 +62,7 @@ private:
     void sliderValueChanged(juce::Slider*) override {
         value_changed();
     }
+
 
     void comboBoxChanged(juce::ComboBox*) override {
         value_changed();

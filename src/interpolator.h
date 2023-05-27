@@ -6,7 +6,6 @@
 #include <vector>
 #include <optional>
 #include <cmath>
-#include "mapping.h"
 #include "utils.h"
 
 
@@ -98,48 +97,62 @@ private:
     static std::vector<T> continuation(double position
                                        , const InterpolationStrategy<T>& strategy
                                        , const std::vector<T>& sequence) {
-        if (sequence->empty())
+        if (sequence.empty())
             return {};
 
-        auto index = get_index(utils::modulo(position, 1.0), sequence->size());
+        auto index = get_index(utils::modulo(position, 1.0), sequence.size());
 
-        auto element = sequence->at(index);
+        auto element = sequence.at(index);
 
-        std::vector<T> output(element.size());
-        std::transform(element.begin()
-                       , element.end()
-                       , output.begin()
-                       , [&](T value) { return std::floor(position) * strategy.get_pivot() + value; });
+        if constexpr(utils::is_container<T>::value) {
+            std::vector<T> output;
+            output.reserve(element.size());
+            std::transform(element.begin()
+                           , element.end()
+                           , output.begin()
+                           , [&](T value) { return std::floor(position) * strategy.get_pivot() + value; });
+            return output;
+        } else {
+            return {element};
+        }
 
-        return output;
+
     }
 
 
     static std::vector<T> modulo(double position
                                  , const InterpolationStrategy<T>&
                                  , const std::vector<T>& sequence) {
-        if (sequence->empty())
+        if (sequence.empty())
             return {};
 
-        auto index = get_index(utils::modulo(position, 1.0), sequence->size());
+        auto index = get_index(utils::modulo(position, 1.0), sequence.size());
 
-        return sequence->at(index);
+        if constexpr(utils::is_container<T>::value) {
+            return sequence.at(index);
+        } else {
+            return {sequence.at(index)};
+        }
     }
 
 
     static std::vector<T> clip(double position
                                , const InterpolationStrategy<T>&
                                , const std::vector<T>& sequence) {
-        if (sequence->empty())
+        if (sequence.empty())
             return {};
 
         auto index = static_cast<std::size_t>(
                 std::max(0l
-                         , std::min(static_cast<long>(sequence->size()) - 1
-                                    , static_cast<long>(get_index(position, sequence->size()))))
+                         , std::min(static_cast<long>(sequence.size()) - 1
+                                    , static_cast<long>(get_index(position, sequence.size()))))
         );
 
-        return sequence->at(index);
+        if constexpr(utils::is_container<T>::value) {
+            return sequence.at(index);
+        } else {
+            return {sequence.at(index)};
+        }
 
     }
 
@@ -147,15 +160,19 @@ private:
     static std::vector<T> pass(double position
                                , const InterpolationStrategy<T>&
                                , const std::vector<T>& sequence) {
-        if (sequence->empty() || position < 0)
+        if (sequence.empty() || position < 0)
             return {};
 
-        auto i = get_index(position, sequence->size());
+        auto index = get_index(position, sequence.size());
 
-        if (i >= sequence->size())
+        if (index >= sequence.size())
             return {};
 
-        return sequence->at(i);
+        if constexpr(utils::is_container<T>::value) {
+            return sequence.at(index);
+        } else {
+            return {sequence.at(index)};
+        }
 
     }
 

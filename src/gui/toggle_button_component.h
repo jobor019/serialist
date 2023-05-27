@@ -12,11 +12,17 @@ class ToggleButtonComponent : public NodeComponent
 public:
     ToggleButtonComponent(const std::string& identifier
                           , ParameterHandler& parent
-                          , bool initial = false)
-            : m_variable(initial, identifier, parent) {
+                          , bool initial = false
+                          , const std::string& on_text = ""
+                          , const std::string& off_text = "")
+            : m_variable(initial, identifier, parent)
+              , m_on_text(on_text)
+              , m_off_text(off_text) {
 
         m_button.onStateChange = [this]() { on_value_change(); };
+
         m_button.setToggleState(initial, juce::dontSendNotification);
+        m_button.setButtonText(m_button.getToggleState() ? m_on_text : m_off_text);
 
         addAndMakeVisible(m_button);
 
@@ -30,7 +36,6 @@ public:
     }
 
 
-
     Generative& get_generative() override { return m_variable; }
 
 
@@ -39,6 +44,11 @@ public:
 
     void resized() override {
         m_button.setBounds(getLocalBounds());
+    }
+
+
+    const juce::String& get_text() const {
+        return m_button.getButtonText();
     }
 
 
@@ -52,14 +62,17 @@ private:
 
 
     void on_value_change() {
-        std::cout << "NEW VALUE::: " << m_button.getToggleState() << "\n";
         m_variable.set_value(m_button.getToggleState());
+        m_button.setButtonText(m_button.getToggleState() ? m_on_text : m_off_text);
     }
 
 
     Variable<bool> m_variable;
 
     juce::ToggleButton m_button;
+
+    const juce::String m_on_text;
+    const juce::String m_off_text;
 
 
 };

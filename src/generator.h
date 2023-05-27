@@ -23,7 +23,7 @@ public:
         if (!m_cursor)
             return {};
 
-        auto y = m_cursor->process(t);
+        auto y = Node<T>::value_or(m_cursor, 0.0, t);
 
         if (!m_interpolation_strategy || !m_map) {
             if constexpr (std::is_arithmetic_v<T>) {
@@ -33,20 +33,25 @@ public:
             }
         }
 
-        auto strategy = m_interpolation_strategy.process();
-        return m_map->process(t, y, strategy);
+        auto strategy = m_interpolation_strategy->process(t);
+
+        if (strategy.empty())
+            return {};
+
+
+        return m_map->process(t, y, strategy.at(0));
     }
 
 
     std::vector<Generative*> get_connected() override {
-        Generative::collect_connected(m_cursor, m_interpolation_strategy, m_map);
+        return Generative::collect_connected(m_cursor, m_interpolation_strategy, m_map);
     }
 
 
     void set_cursor(Node<double>* cursor) { m_cursor = cursor; }
 
 
-    void set_interpolation_strategy(const Node<InterpolationStrategy<T>*>& interpolation_strategy) {
+    void set_interpolation_strategy(Node<InterpolationStrategy<T>>* interpolation_strategy) {
         m_interpolation_strategy = interpolation_strategy;
     }
 
@@ -56,10 +61,10 @@ public:
 
 private:
     Node<double>* m_cursor;
-    Node<InterpolationStrategy<T>*> m_interpolation_strategy;
+    Node<InterpolationStrategy<T>>* m_interpolation_strategy;
     Sequence<T>* m_map;
 
-}
+};
 
 
 #endif //SERIALISTLOOPER_GENERATOR_H

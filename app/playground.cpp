@@ -1,13 +1,20 @@
 #include <juce_gui_extra/juce_gui_extra.h>
+#include <scalable_slider.h>
 
 #include <memory>
 #include "oscillator_component.h"
 #include "text_sequence_component.h"
 #include "interpolation_component.h"
+#include "generator_component.h"
+#include "look_and_feel.h"
+#include "header_component.h"
+
+
+
 
 
 class PlaygroundComponent : public juce::Component
-, private juce::Timer {
+                            , private juce::Timer {
 public:
 
 
@@ -16,10 +23,24 @@ public:
               , m_oscillator("osc1", m_some_handler)
               , m_sequence("seq1", m_some_handler)
               , m_interpolator("interp1", m_some_handler)
-              {
+              , m_pitch("pitch", m_some_handler)
+              , s(ScalableSlider::Orientation::vertical)
+              , hc("header", m_some_handler) {
+
+        m_lnf = std::make_unique<SerialistLookAndFeel>();
+        SerialistLookAndFeel::setup_look_and_feel_colors(*m_lnf);
+        juce::Desktop::getInstance().setDefaultLookAndFeel(m_lnf.get());
+
         addAndMakeVisible(m_oscillator);
         addAndMakeVisible(m_sequence);
         addAndMakeVisible(m_interpolator);
+        addAndMakeVisible(m_pitch);
+        addAndMakeVisible(s);
+
+        tb.setButtonText("HH");
+        addAndMakeVisible(tb);
+
+        addAndMakeVisible(hc);
 
         std::cout << m_value_tree.toXmlString() << std::endl;
 
@@ -41,6 +62,10 @@ public:
         m_oscillator.setBounds(50, 30, 200, 100);
         m_sequence.setBounds(300, 30, 100, 40);
         m_interpolator.setBounds(50, 200, 180, 40);
+        m_pitch.setBounds(300, 200, 180, 210);
+        s.setBounds(300, 100, 12, 40);
+        tb.setBounds(350, 100, 40, 40);
+        hc.setBounds(400, 100, 200, 20);
     }
 
 
@@ -56,11 +81,11 @@ public:
     }
 
 
-
-
 private:
 
     const juce::Identifier m_vt_identifier = "root";
+
+    std::unique_ptr<juce::LookAndFeel> m_lnf;
 
     juce::ValueTree m_value_tree;
     juce::UndoManager m_undo_manager;
@@ -70,6 +95,13 @@ private:
     OscillatorComponent m_oscillator;
     TextSequenceComponent<int> m_sequence;
     InterpolationStrategyComponent<int> m_interpolator;
+    GeneratorComponent<int> m_pitch;
+
+    juce::ToggleButton tb;
+
+    ScalableSlider s;
+
+    HeaderComponent hc;
 
     int callback_count = 0;
 

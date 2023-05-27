@@ -9,6 +9,7 @@ find_package(JUCE CONFIG REQUIRED)        # If you've installed JUCE to your sys
 find_package(Catch2 3 REQUIRED)
 # add_subdirectory(JUCE)                    # If you've put JUCE in a subdirectory called JUCE
 
+add_subdirectory(GuiUtils/src)
 
 set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/collection.h
@@ -35,6 +36,7 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/gui/connector_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/generation_layer.h
         ${CMAKE_SOURCE_DIR}/src/gui/generator_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/header_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/interpolation_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/look_and_feel.h
         ${CMAKE_SOURCE_DIR}/src/gui/main_component.h
@@ -146,6 +148,7 @@ target_include_directories(playground PRIVATE
         ${CMAKE_SOURCE_DIR}/src/gui
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/src/io
+        ${CMAKE_SOURCE_DIR}/GuiUtils/src
         )
 
 target_compile_definitions(playground
@@ -162,6 +165,7 @@ target_link_libraries(playground
         PRIVATE
         # GuiAppData            # If we'd created a binary data target, we'd link to it here
         ${MODULE_DEPENDENCIES_JUCE}
+        guiUtils
         PUBLIC
         ${FLAGS_JUCE})
 
