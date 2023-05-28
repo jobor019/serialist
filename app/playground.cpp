@@ -8,9 +8,7 @@
 #include "generator_component.h"
 #include "look_and_feel.h"
 #include "header_component.h"
-
-
-
+#include "combobox_component.h"
 
 
 class PlaygroundComponent : public juce::Component
@@ -25,7 +23,13 @@ public:
               , m_interpolator("interp1", m_some_handler)
               , m_pitch("pitch", m_some_handler)
               , s(ScalableSlider::Orientation::vertical)
-              , hc("header", m_some_handler) {
+              , hc("header", m_some_handler)
+              , my_cb("osctype"
+                      , m_some_handler
+                      , {{  "sin", Oscillator::Type::sin}
+                         , {"sqr", Oscillator::Type::square}}
+                      , Oscillator::Type::sin
+                      , "helo") {
 
         m_lnf = std::make_unique<SerialistLookAndFeel>();
         SerialistLookAndFeel::setup_look_and_feel_colors(*m_lnf);
@@ -41,6 +45,8 @@ public:
         addAndMakeVisible(tb);
 
         addAndMakeVisible(hc);
+
+        addAndMakeVisible(my_cb);
 
         std::cout << m_value_tree.toXmlString() << std::endl;
 
@@ -59,13 +65,14 @@ public:
 
 
     void resized() override {
-        m_oscillator.setBounds(50, 30, 200, 100);
+        m_oscillator.setBounds(50, 30, 120, 170);
         m_sequence.setBounds(300, 30, 100, 40);
         m_interpolator.setBounds(50, 200, 180, 40);
         m_pitch.setBounds(300, 200, 180, 210);
         s.setBounds(300, 100, 12, 40);
         tb.setBounds(350, 100, 40, 40);
         hc.setBounds(400, 100, 200, 20);
+        my_cb.setBounds(500, 40, 80, 50);
     }
 
 
@@ -102,6 +109,8 @@ private:
     ScalableSlider s;
 
     HeaderComponent hc;
+
+    ComboBoxComponent<Oscillator::Type> my_cb;
 
     int callback_count = 0;
 

@@ -22,11 +22,11 @@ public:
 
     OscillatorComponent(const std::string& id, ParameterHandler& parent)
             : m_oscillator(id, parent)
-              , m_internal_freq(id + "::freq", parent, 0.0f, 10.0f, 0.125f, 0.5f)
-              , m_internal_mul(id + "::mul", parent, 0.0f, 10.0f, 0.125f, 1.0)
-              , m_internal_add(id + "::add", parent, 0.0f, 10.0f, 0.125f, 0.0f)
-              , m_internal_duty(id + "::duty", parent, 0.0f, 1.0f, 0.01f, 0.5f)
-              , m_internal_curve(id + "::curve", parent, 0.0f, 0.0f, 0.0f, 0.0f)
+              , m_internal_freq(id + "::freq", parent, 0.0f, 10.0f, 0.125f, 0.5f, "freq")
+              , m_internal_mul(id + "::mul", parent, 0.0f, 10.0f, 0.125f, 1.0, "mul")
+              , m_internal_add(id + "::add", parent, 0.0f, 10.0f, 0.125f, 0.0f, "add")
+              , m_internal_duty(id + "::duty", parent, 0.0f, 1.0f, 0.01f, 0.5f, "duty")
+              , m_internal_curve(id + "::curve", parent, 0.0f, 0.0f, 0.0f, 0.0f, "curve")
               , m_header(id, parent)
 //              , m_enable_button(id + "::enabled", parent, true)
               {
@@ -82,9 +82,10 @@ public:
 
 private:
     void paint(juce::Graphics& g) override {
-        g.fillAll(getLookAndFeel().findColour(juce::DocumentWindow::backgroundColourId));
-        g.setColour(juce::Colours::grey);
-        g.drawRect(getLocalBounds(), 2);
+        g.setColour(getLookAndFeel().findColour(Colors::component_background_color));
+        g.fillRoundedRectangle(getLocalBounds().toFloat(), 4.0f);
+        getLookAndFeel().findColour(Colors::component_border_color);
+        g.drawRoundedRectangle(getLocalBounds().toFloat(), 4.0f, 2.0f);
     }
 
 
@@ -95,37 +96,47 @@ private:
     }
 
 
-private:
-
     void full_layout() {
         auto bounds = getLocalBounds();
 
-        m_header.setBounds(bounds.removeFromTop(20));
-//        auto header_bounds = bounds.removeFromTop(20);
-//        m_enable_button.setBounds(header_bounds.removeFromLeft(22));
-//        header_bounds.removeFromLeft(10);
-//        m_label.setBounds(header_bounds);
-
+        m_header.setBounds(bounds.removeFromTop(m_header.default_height()));
         bounds.reduce(5, 8);
 
+        m_oscillator_view.setBounds(bounds.removeFromTop(20));
 
+        auto spacing = 4;
 
-        m_oscillator_view.setBounds(bounds.removeFromTop(22));
+        m_internal_freq.set_label_position(SliderComponent<float>::LabelPosition::left);
+        m_internal_freq.setBounds(bounds.removeFromTop(m_internal_freq.default_height()));
+        bounds.removeFromTop(spacing);
 
-        bounds.removeFromTop(5);
+        m_internal_mul.set_label_position(SliderComponent<float>::LabelPosition::left);
+        m_internal_mul.setBounds(bounds.removeFromTop(m_internal_mul.default_height()));
+        bounds.removeFromTop(spacing);
 
-        auto component_width = bounds.getWidth() / 5;
-        auto spacing = component_width * 0.075;
-        m_internal_freq.setBounds(bounds.removeFromLeft(component_width).reduced(static_cast<int>(spacing), 0));
-        m_internal_mul.setBounds(bounds.removeFromLeft(component_width).reduced(static_cast<int>(spacing), 0));
-        m_internal_add.setBounds(bounds.removeFromLeft(component_width).reduced(static_cast<int>(spacing), 0));
-        m_internal_duty.setBounds(bounds.removeFromLeft(component_width).reduced(static_cast<int>(spacing), 0));
-        m_internal_curve.setBounds(bounds.removeFromLeft(component_width).reduced(static_cast<int>(spacing), 0));
+        m_internal_add.set_label_position(SliderComponent<float>::LabelPosition::left);
+        m_internal_add.setBounds(bounds.removeFromTop(m_internal_add.default_height()));
+        bounds.removeFromTop(spacing);
+
+        m_internal_duty.set_label_position(SliderComponent<float>::LabelPosition::left);
+        m_internal_duty.setBounds(bounds.removeFromTop(m_internal_duty.default_height()));
+        bounds.removeFromTop(spacing);
+
+        m_internal_curve.set_label_position(SliderComponent<float>::LabelPosition::left);
+        m_internal_curve.setBounds(bounds.removeFromTop(m_internal_curve.default_height()));
+        bounds.removeFromTop(spacing);
+//        auto component_width = bounds.getWidth() / 5;
+//        auto spacing = component_width * 0.075;
+//        m_internal_freq.setBounds(bounds.removeFromLeft(component_width).reduced(static_cast<int>(spacing), 0));
+//        m_internal_mul.setBounds(bounds.removeFromLeft(component_width).reduced(static_cast<int>(spacing), 0));
+//        m_internal_add.setBounds(bounds.removeFromLeft(component_width).reduced(static_cast<int>(spacing), 0));
+//        m_internal_duty.setBounds(bounds.removeFromLeft(component_width).reduced(static_cast<int>(spacing), 0));
+//        m_internal_curve.setBounds(bounds.removeFromLeft(component_width).reduced(static_cast<int>(spacing), 0));
     }
 
     Oscillator m_oscillator;
 
-    // TODO: InternalType
+    // TODO: typename InternalType rather than float
     SliderComponent<float> m_internal_freq;
     SliderComponent<float> m_internal_mul;
     SliderComponent<float> m_internal_add;

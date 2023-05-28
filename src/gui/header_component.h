@@ -11,6 +11,7 @@
 class HeaderComponent : public juce::Component
                         , private juce::Button::Listener {
 public:
+
     explicit HeaderComponent(const std::string& id, ParameterHandler& parent)
             : m_enabled(id + "::enabled", parent, true)
               , m_label({}, id)
@@ -24,6 +25,10 @@ public:
         addAndMakeVisible(m_minimized);
 
         m_minimized.addListener(this);
+    }
+
+     int default_height() {
+        return 20;
     }
 
 
@@ -43,7 +48,7 @@ public:
         auto font = m_label.getFont();
 
         bounds.removeFromRight(2);
-        m_stepped.setBounds(bounds.removeFromRight(font.getStringWidth(m_stepped.get_text())));
+        m_stepped.setBounds(bounds.removeFromRight(4 + font.getStringWidth(m_stepped.get_text())));
 
         m_label.setBounds(bounds);
     }
@@ -56,12 +61,10 @@ public:
 
 
 private:
-    void buttonClicked(juce::Button*) override {}
-
-
-    void buttonStateChanged(juce::Button*) override {
-        std::cout << "minimize button not active\n";
+    void buttonClicked(juce::Button*) override {
+        std::cout << "minimize button not implemented\n";
     }
+
 
 
     ToggleButtonComponent m_enabled;

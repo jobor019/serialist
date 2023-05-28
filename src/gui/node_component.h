@@ -12,6 +12,7 @@ public:
     virtual Generative& get_generative() = 0;
 
     NodeComponent() = default;
+    ~NodeComponent() override = default;
     NodeComponent(const NodeComponent&) = delete;
     NodeComponent& operator=(const NodeComponent&) = delete;
     NodeComponent(NodeComponent&&)  noexcept = delete;

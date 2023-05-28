@@ -169,8 +169,12 @@ private:
         return {value.to_string()};
     }
 
+    template<typename U = T, std::enable_if_t<std::is_enum_v<U>, int> = 0>
+    juce::var serialize(const T& value) {
+        return static_cast<int>(value);
+    }
 
-    template<typename U = T, std::enable_if_t<!is_serializable<U>::value, int> = 0>
+    template<typename U = T, std::enable_if_t<!is_serializable<U>::value && !std::is_enum_v<U>, int> = 0>
     juce::var serialize(const T& value) {
         return value;
     }
@@ -181,8 +185,13 @@ private:
         return T::from_string(obj.toString().toStdString());
     }
 
+    template<typename U = T, std::enable_if_t<std::is_enum_v<U>, int> = 0>
+    T deserialize(const juce::var& obj) {
+        return T(static_cast<int>(obj));
+    }
 
-    template<typename U = T, std::enable_if_t<!is_serializable<U>::value, int> = 0>
+
+    template<typename U = T, std::enable_if_t<!is_serializable<U>::value && !std::is_enum_v<U>, int> = 0>
     T deserialize(const juce::var& obj) {
         return obj;
     }

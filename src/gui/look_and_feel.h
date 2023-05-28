@@ -10,11 +10,12 @@ enum Colors {
     , object_off = 0xf000002
     , outline_mouseover = 0xf000003
     , object_border_color = 0xf000004
-    , text_color = 0xf000004
+    , text_color = 0xf000005
 
     , component_border_color = 0xf000006
+    , component_background_color = 0xf000007
 
-    , header_color = 0xf000005
+    , header_color = 0xf000008
 
 };
 
@@ -23,19 +24,38 @@ public:
 
     static inline const juce::Font default_font = juce::Font("Arial", 12.0f, juce::Font::FontStyleFlags::plain);
 
+    static inline const juce::Colour object_on = juce::Colour(0xffffb532);
+    static inline const juce::Colour object_off = juce::Colour(0xffa5a5a5);
+    static inline const juce::Colour text = juce::Colour(0xff000000);
+    static inline const juce::Colour outline_mouseover = juce::Colour(0xfff5deb3);
+    static inline const juce::Colour object_border = juce::Colour(0xff212121);
+    static inline const juce::Colour component_border = juce::Colour(0xffcee5e8);
+    static inline const juce::Colour component_background = juce::Colour(0xff595959);
+
 
     static void setup_look_and_feel_colors(juce::LookAndFeel& lnf) {
-        lnf.setColour(Colors::object_on, juce::Colour(0xffffb532));
-        lnf.setColour(Colors::object_off, juce::Colour(0xff5a5a5a));
-        lnf.setColour(Colors::outline_mouseover, juce::Colour(0xfff5deb3));
-        lnf.setColour(Colors::object_border_color, juce::Colour(0xff212121));
-        lnf.setColour(Colors::text_color, juce::Colour(0xff000000));
 
-        lnf.setColour(Colors::component_border_color, juce::Colour(0xffcee5e8));
+        // Global custom colors
+        lnf.setColour(Colors::object_on, object_on);
+        lnf.setColour(Colors::object_off, object_off);
+        lnf.setColour(Colors::outline_mouseover, outline_mouseover);
+        lnf.setColour(Colors::object_border_color, object_border);
+        lnf.setColour(Colors::text_color, text);
+        lnf.setColour(Colors::component_border_color, component_border);
+        lnf.setColour(Colors::component_background_color, component_background);
 
+        // Custom objects
         lnf.setColour(Colors::header_color, juce::Colour(0xff68b74d));
 
-        lnf.setColour(juce::Label::ColourIds::textColourId, juce::Colour(0xff000000));
+        // JUCE objects
+        lnf.setColour(juce::Label::ColourIds::textColourId, text);
+
+        lnf.setColour(juce::Slider::ColourIds::trackColourId, object_on);
+        lnf.setColour(juce::Slider::ColourIds::backgroundColourId, object_off);
+        lnf.setColour(juce::Slider::ColourIds::backgroundColourId, object_border);
+        lnf.setColour(juce::Slider::ColourIds::textBoxTextColourId, text);
+        lnf.setColour(juce::Slider::ColourIds::rotarySliderOutlineColourId, object_border);
+
 
     }
 

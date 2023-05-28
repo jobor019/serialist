@@ -33,6 +33,7 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/utils.h
         ${CMAKE_SOURCE_DIR}/src/variable.h
         ${CMAKE_SOURCE_DIR}/src/vt_parameter.h
+        ${CMAKE_SOURCE_DIR}/src/gui/combobox_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/connector_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/generation_layer.h
         ${CMAKE_SOURCE_DIR}/src/gui/generator_component.h
