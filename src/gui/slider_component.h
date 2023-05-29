@@ -7,6 +7,7 @@
 
 #include "node_component.h"
 #include "variable.h"
+#include "look_and_feel.h"
 
 
 template<typename T>
@@ -29,11 +30,15 @@ public:
                     , T step = static_cast<T>(1)
                     , T initial = static_cast<T>(0)
                     , const juce::String& label = ""
-                    , LabelPosition label_position = LabelPosition::bottom)
+                    , const float label_ratio = 0.5f
+                    , const LabelPosition position = LabelPosition::bottom)
             : m_variable(static_cast<T>(initial), identifier, parent)
               , m_label({}, label)
-              , m_label_position(label_position) {
+              , m_label_ratio(label_ratio)
+              , m_label_position(position) {
         static_assert(std::is_arithmetic_v<T>, "T must be arithmetic");
+
+        m_label.setColour(juce::Label::textColourId, getLookAndFeel().findColour(Colors::bright_text_color));
 
         m_slider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
         m_slider.onValueChange = [this]() { on_slider_value_change(); };
@@ -74,7 +79,7 @@ public:
 
         if (m_label_position == LabelPosition::bottom) {
             return static_cast<int>(DEFAULT_SLIDER_HEIGHT_PX
-                                    + getLookAndFeel().getLabelFont(m_label).getHeight() + 2.0);
+                                    + getLookAndFeel().getLabelFont(m_label).getHeight() + 2.0f);
         } else {
             return DEFAULT_SLIDER_HEIGHT_PX;
         }
@@ -104,14 +109,17 @@ public:
         if (m_label.getText().isNotEmpty()) {
 
             if (m_label_position == LabelPosition::bottom) {
+                m_label.setJustificationType(juce::Justification::centred);
                 m_label.setBounds(bounds.removeFromBottom(static_cast<int>(getLookAndFeel()
                                                                                    .getLabelFont(m_label)
                                                                                    .getHeight() + 2.0f)));
             } else {
-                m_label.setBounds(bounds.removeFromLeft(
-                        static_cast<int>(getLookAndFeel()
-                                                 .getLabelFont(m_label)
-                                                 .getStringWidth(m_label.getText()) + 2.0f)));
+                m_label.setJustificationType(juce::Justification::left);
+                m_label.setBounds(bounds.removeFromLeft(bounds.proportionOfWidth(m_label_ratio)));
+//                m_label.setBounds(bounds.removeFromLeft(
+//                        static_cast<int>(getLookAndFeel()
+//                                                 .getLabelFont(m_label)
+//                                                 .getStringWidth(m_label.getText()) + 2)));
             }
         }
         m_slider.setBounds(bounds);
@@ -142,6 +150,7 @@ private:
     Variable<T> m_variable;
 
     juce::Label m_label;
+    float m_label_ratio;
     LabelPosition m_label_position;
 
     juce::Slider m_slider;

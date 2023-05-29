@@ -43,6 +43,7 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/gui/main_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/midi_note_source_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/node_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/note_visualizer_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/oscillator_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/slider_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/text_sequence_component.h

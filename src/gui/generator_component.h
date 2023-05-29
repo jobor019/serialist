@@ -22,14 +22,17 @@ public:
 
     GeneratorComponent(const std::string& id, ParameterHandler& parent)
     : m_generator(id, parent)
-    , m_internal_oscillator(id + "::oscillator", parent)
+    , m_header(id, parent)
+    , m_internal_oscillator(id + "::oscillator", parent, OscillatorComponent::Layout::generator_internal)
     , m_interpolator(id + "::interpolator", parent)
     , m_internal_sequence(id + "::sequence", parent) {
 
+        // TODO: Set enabled, step
         m_generator.set_cursor(dynamic_cast<Node<double>*>(&m_internal_oscillator.get_generative()));
         m_generator.set_interpolation_strategy(dynamic_cast<Node<InterpolationStrategy<T>>*>(&m_interpolator.get_generative()));
         m_generator.set_map(dynamic_cast<Sequence<T>*>(&m_internal_sequence.get_generative()));
 
+        addAndMakeVisible(m_header);
         addAndMakeVisible(m_internal_oscillator);
         addAndMakeVisible(m_interpolator);
         addAndMakeVisible(m_internal_sequence);
@@ -57,16 +60,21 @@ public:
 
 private:
     void full_layout() {
-        auto bounds = getLocalBounds().reduced(8);
-        m_internal_oscillator.setBounds(bounds.removeFromTop(100));
+        auto bounds = getLocalBounds();
+
+        m_header.setBounds(bounds.removeFromTop(m_header.default_height()));
+        bounds.reduce(5, 8);
+
+        m_internal_oscillator.setBounds(bounds.removeFromTop(70));
         bounds.removeFromTop(5);
         m_internal_sequence.setBounds(bounds.removeFromTop(40));
         bounds.removeFromTop(5);
         m_interpolator.setBounds(bounds.removeFromTop(40));
     }
 
-
     Generator<T> m_generator;
+
+    HeaderComponent m_header;
 
     OscillatorComponent m_internal_oscillator;
     InterpolationStrategyComponent<T> m_interpolator;

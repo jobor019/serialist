@@ -9,6 +9,7 @@
 #include "look_and_feel.h"
 #include "header_component.h"
 #include "combobox_component.h"
+#include "midi_note_source_component.h"
 
 
 class PlaygroundComponent : public juce::Component
@@ -22,6 +23,7 @@ public:
               , m_sequence("seq1", m_some_handler)
               , m_interpolator("interp1", m_some_handler)
               , m_pitch("pitch", m_some_handler)
+              , m_source("source", m_some_handler)
               , s(ScalableSlider::Orientation::vertical)
               , hc("header", m_some_handler)
               , my_cb("osctype"
@@ -40,6 +42,7 @@ public:
         addAndMakeVisible(m_interpolator);
         addAndMakeVisible(m_pitch);
         addAndMakeVisible(s);
+        addAndMakeVisible(m_source);
 
         tb.setButtonText("HH");
         addAndMakeVisible(tb);
@@ -73,6 +76,7 @@ public:
         tb.setBounds(350, 100, 40, 40);
         hc.setBounds(400, 100, 200, 20);
         my_cb.setBounds(500, 40, 80, 50);
+        m_source.setBounds(50, 270, 200, 115);
     }
 
 
@@ -103,6 +107,8 @@ private:
     TextSequenceComponent<int> m_sequence;
     InterpolationStrategyComponent<int> m_interpolator;
     GeneratorComponent<int> m_pitch;
+
+    MidiNoteSourceComponent m_source;
 
     juce::ToggleButton tb;
 

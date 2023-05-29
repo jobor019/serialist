@@ -8,14 +8,16 @@
 enum Colors {
     object_on = 0xf000001
     , object_off = 0xf000002
-    , outline_mouseover = 0xf000003
-    , object_border_color = 0xf000004
-    , text_color = 0xf000005
+    , object_background = 0xf000003
+    , outline_mouseover = 0xf000004
+    , object_border_color = 0xf000005
+    , text_color = 0xf000006
+    , bright_text_color = 0xf000007
 
-    , component_border_color = 0xf000006
-    , component_background_color = 0xf000007
+    , component_border_color = 0xf000008
+    , component_background_color = 0xf000009
 
-    , header_color = 0xf000008
+    , header_color = 0xf00000a
 
 };
 
@@ -26,7 +28,9 @@ public:
 
     static inline const juce::Colour object_on = juce::Colour(0xffffb532);
     static inline const juce::Colour object_off = juce::Colour(0xffa5a5a5);
+    static inline const juce::Colour object_background = juce::Colour(0xffc3c3c3);
     static inline const juce::Colour text = juce::Colour(0xff000000);
+    static inline const juce::Colour bright_text = juce::Colour(0xffeeeeee);
     static inline const juce::Colour outline_mouseover = juce::Colour(0xfff5deb3);
     static inline const juce::Colour object_border = juce::Colour(0xff212121);
     static inline const juce::Colour component_border = juce::Colour(0xffcee5e8);
@@ -38,23 +42,31 @@ public:
         // Global custom colors
         lnf.setColour(Colors::object_on, object_on);
         lnf.setColour(Colors::object_off, object_off);
+        lnf.setColour(Colors::object_background, object_background);
         lnf.setColour(Colors::outline_mouseover, outline_mouseover);
         lnf.setColour(Colors::object_border_color, object_border);
         lnf.setColour(Colors::text_color, text);
+        lnf.setColour(Colors::bright_text_color, bright_text);
         lnf.setColour(Colors::component_border_color, component_border);
         lnf.setColour(Colors::component_background_color, component_background);
 
         // Custom objects
         lnf.setColour(Colors::header_color, juce::Colour(0xff68b74d));
 
-        // JUCE objects
+        // juce::Label
         lnf.setColour(juce::Label::ColourIds::textColourId, text);
 
+        // juce::Slider
         lnf.setColour(juce::Slider::ColourIds::trackColourId, object_on);
         lnf.setColour(juce::Slider::ColourIds::backgroundColourId, object_off);
-        lnf.setColour(juce::Slider::ColourIds::backgroundColourId, object_border);
         lnf.setColour(juce::Slider::ColourIds::textBoxTextColourId, text);
         lnf.setColour(juce::Slider::ColourIds::rotarySliderOutlineColourId, object_border);
+
+        // juce::ComboBox
+        lnf.setColour(juce::ComboBox::ColourIds::backgroundColourId, object_on);
+        lnf.setColour(juce::ComboBox::ColourIds::arrowColourId, text);
+        lnf.setColour(juce::ComboBox::ColourIds::textColourId, text);
+        lnf.setColour(juce::ComboBox::ColourIds::outlineColourId, object_border);
 
 
     }

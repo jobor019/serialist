@@ -10,7 +10,7 @@
 template<typename T>
 class ComboBoxComponent : public NodeComponent
                           , private juce::ValueTree::Listener
-                          , private juce::ComboBox::Listener{
+                          , private juce::ComboBox::Listener {
 public:
 
     static const int DEFAULT_BOX_HEIGHT_PX = 14;
@@ -31,16 +31,16 @@ public:
                       , std::vector<Entry> values
                       , T initial
                       , const juce::String& label = ""
-                      , LabelPosition label_position = LabelPosition::bottom)
+                      , float label_ratio = 0.5f)
             : m_variable(initial, identifier, parent)
               , m_label({}, label)
-              , m_label_position(label_position) {
+              , m_label_ratio(label_ratio) {
 
         for (auto& item: values) {
             add_entry(item);
         }
 
-        m_combo_box.setSelectedId(find_index_by_value(initial), juce::dontSendNotification);
+        m_combo_box.setSelectedId(id_from_value(initial), juce::dontSendNotification);
         m_combo_box.addListener(this);
         addAndMakeVisible(m_combo_box);
 
@@ -88,7 +88,8 @@ public:
 
     Generative& get_generative() override { return m_variable; }
 
-    void paint(juce::Graphics &) override {}
+
+    void paint(juce::Graphics&) override {}
 
 
     void resized() override {
@@ -97,14 +98,13 @@ public:
         if (m_label.getText().isNotEmpty()) {
 
             if (m_label_position == LabelPosition::bottom) {
+                m_label.setJustificationType(juce::Justification::centred);
                 m_label.setBounds(bounds.removeFromBottom(static_cast<int>(getLookAndFeel()
                                                                                    .getLabelFont(m_label)
                                                                                    .getHeight() + 2.0f)));
             } else {
-                m_label.setBounds(bounds.removeFromLeft(
-                        static_cast<int>(getLookAndFeel()
-                                                 .getLabelFont(m_label)
-                                                 .getStringWidth(m_label.getText()) + 2)));
+                m_label.setJustificationType(juce::Justification::left);
+                m_label.setBounds(bounds.removeFromLeft(bounds.proportionOfWidth(m_label_ratio)));
             }
         }
         m_combo_box.setBounds(bounds);
@@ -121,18 +121,19 @@ public:
 private:
 
     void comboBoxChanged(juce::ComboBox*) override {
-        std::cout << "combo box changed\n";
+        m_variable.set_value(value_from_id(m_combo_box.getSelectedId()));
     }
+
 
     void valueTreePropertyChanged(juce::ValueTree& treeWhosePropertyHasChanged
                                   , const juce::Identifier& property) override {
         if (m_variable.get_parameter_obj().equals_property(treeWhosePropertyHasChanged, property)) {
-            m_combo_box.setSelectedId(find_index_by_value(m_variable.get_value()), juce::dontSendNotification);
+            m_combo_box.setSelectedId(id_from_value(m_variable.get_value()), juce::dontSendNotification);
         }
     }
 
 
-    int find_index_by_value(const T& value) {
+    int id_from_value(const T& value) const {
         for (const auto& entry: m_item_map) {
             if (entry.second.value == value)
                 return entry.first;
@@ -142,10 +143,16 @@ private:
     }
 
 
+    const T& value_from_id(int id) const {
+        return m_item_map.at(id).value;
+    }
+
+
     Variable<T> m_variable;
 
     juce::Label m_label;
-    LabelPosition m_label_position;
+    LabelPosition m_label_position = LabelPosition::bottom;
+    float m_label_ratio;
 
     juce::ComboBox m_combo_box;
 
