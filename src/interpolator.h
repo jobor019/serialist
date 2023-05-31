@@ -29,7 +29,7 @@ public:
 
     explicit InterpolationStrategy(Type type = Type::clip, T pivot = static_cast<T>(0)) // TODO: Bad default pivot
             : m_type(type), m_pivot(pivot) {
-        static_assert(std::is_arithmetic_v<T>, "T must be arithmetic");
+        static_assert(std::is_arithmetic_v<T>, "DataType must be arithmetic");
     }
 
 

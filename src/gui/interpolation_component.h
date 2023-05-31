@@ -9,13 +9,22 @@
 #include "node_component.h"
 
 template<typename T>
-class InterpolationStrategyComponent : public NodeComponent
+class InterpolationStrategyComponent : public GenerativeComponent
                                        , juce::Slider::Listener
                                        , juce::ComboBox::Listener {
 public:
+    enum class Layout {
+        full = 0
+        , generator_internal = 1
+    };
 
-    InterpolationStrategyComponent(const std::string& id, ParameterHandler& parent)
-            : m_strategy(InterpolationStrategy<T>(), id, parent) {
+
+    InterpolationStrategyComponent(const std::string& id, ParameterHandler& parent, Layout layout = Layout::full)
+            : m_header(id, parent)
+              , m_strategy(InterpolationStrategy<T>(), id, parent)
+              , m_layout(layout) {
+
+        addAndMakeVisible(m_header);
 
         m_type.addItem("continuation", static_cast<int>(InterpolationStrategy<T>::Type::continuation));
         m_type.addItem("modulo", static_cast<int>(InterpolationStrategy<T>::Type::modulo));
@@ -35,6 +44,25 @@ public:
     }
 
 
+    std::pair<int, int> dimensions() override {
+        return {default_width(), default_height()};
+    }
+
+
+    int default_height() const {
+//        if (m_layout == Layout::full) {
+        return m_header.default_height()
+               + DimensionConstants::COMPONENT_UD_MARGINS * 2
+               + DimensionConstants::SLIDER_DEFAULT_HEIGHT;
+//        }
+    }
+
+
+    int default_width() const {
+        return DimensionConstants::COMPONENT_LR_MARGINS * 2 + DimensionConstants::SLIDER_DEFAULT_WIDTH * 2;
+    }
+
+
     void paint(juce::Graphics& g) override {
         g.fillAll(getLookAndFeel().findColour(juce::DocumentWindow::backgroundColourId));
         g.setColour(juce::Colours::grey);
@@ -43,12 +71,18 @@ public:
 
 
     void resized() override {
-        auto bounds = getLocalBounds().reduced(8);
-        bounds.removeFromLeft(5);
-        m_pivot.setBounds(bounds.removeFromLeft(40));
-        bounds.removeFromLeft(5);
-        bounds.removeFromRight(5);
-        m_type.setBounds(bounds);
+        if (m_layout == Layout::full) {
+            auto bounds = getLocalBounds();
+
+            m_header.setBounds(bounds.removeFromTop(m_header.default_height()));
+            bounds.reduce(DimensionConstants::COMPONENT_LR_MARGINS, DimensionConstants::COMPONENT_UD_MARGINS);
+
+            m_pivot.setBounds(bounds.removeFromLeft(DimensionConstants::SLIDER_DEFAULT_WIDTH));
+            bounds.removeFromLeft(DimensionConstants::OBJECT_X_MARGINS_ROW);
+            m_type.setBounds(bounds);
+        } else {
+            std::cout << "internal layout not implemented for interpolationstrategy\n";
+        }
     }
 
 
@@ -76,11 +110,14 @@ private:
     }
 
 
+    HeaderComponent m_header;
+
     Variable<InterpolationStrategy<T>> m_strategy;
+
+    Layout m_layout;
 
     juce::ComboBox m_type;
     juce::Slider m_pivot;
-
 
 };
 

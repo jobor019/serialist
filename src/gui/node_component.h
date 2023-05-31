@@ -4,19 +4,79 @@
 #define SERIALISTLOOPER_NODE_COMPONENT_H
 
 #include "generative.h"
+#include "look_and_feel.h"
 #include <juce_gui_extra/juce_gui_extra.h>
 
 
-class NodeComponent : public juce::Component {
+class DimensionConstants {
+public:
+    static inline const int SLIDER_DEFAULT_HEIGHT = 14;
+    static inline const int SLIDER_DEFAULT_WIDTH = 50;
+    static inline const int FONT_HEIGHT = SerialistLookAndFeel::FONT_SIZE;
+    static inline const int DEFAULT_LABEL_WIDTH = 40;
+
+    static inline const int SEQUENCE_HEIGHT = 46;
+
+    static inline const int COMPONENT_LR_MARGINS = 5;
+    static inline const int COMPONENT_UD_MARGINS = 8;
+
+    static inline const int COMPONENT_HEADER_HEIGHT = 20;
+    static inline const int HEADER_INTERNAL_MARGINS = 2;
+
+    static inline const int OBJECT_X_MARGINS_COLUMN = 5;
+    static inline const int OBJECT_Y_MARGINS_COLUMN = 4;
+    static inline const int OBJECT_X_MARGINS_ROW = 5;
+    static inline const int OBJECT_Y_MARGINS_ROW = 5;
+
+    static inline const int LABEL_BELOW_MARGINS = 2;
+
+    DimensionConstants() = delete;
+};
+
+
+// ==============================================================================================
+
+class WithDefaultHeight {
+public:
+    virtual int get_height() = 0;
+
+    WithDefaultHeight() = default;
+    virtual ~WithDefaultHeight() = default;
+    WithDefaultHeight(const WithDefaultHeight&) = delete;
+    WithDefaultHeight& operator=(const WithDefaultHeight&) = delete;
+    WithDefaultHeight(WithDefaultHeight&&)  noexcept = default;
+    WithDefaultHeight& operator=(WithDefaultHeight&&)  noexcept = default;
+};
+
+
+// ==============================================================================================
+
+class Dimensioned {
+public:
+    Dimensioned() = default;
+    virtual ~Dimensioned() = default;
+    Dimensioned(const Dimensioned&) = delete;
+    Dimensioned& operator=(const Dimensioned&) = delete;
+    Dimensioned(Dimensioned&&) noexcept = default;
+    Dimensioned& operator=(Dimensioned&&) noexcept = default;
+
+    virtual std::pair<int, int> dimensions() = 0;
+};
+
+
+// ==============================================================================================
+
+class GenerativeComponent : public juce::Component
+                            , public Dimensioned {
 public:
     virtual Generative& get_generative() = 0;
 
-    NodeComponent() = default;
-    ~NodeComponent() override = default;
-    NodeComponent(const NodeComponent&) = delete;
-    NodeComponent& operator=(const NodeComponent&) = delete;
-    NodeComponent(NodeComponent&&)  noexcept = delete;
-    NodeComponent& operator=(NodeComponent&&)  noexcept = delete;
+    GenerativeComponent() = default;
+    ~GenerativeComponent() override = default;
+    GenerativeComponent(const GenerativeComponent&) = delete;
+    GenerativeComponent& operator=(const GenerativeComponent&) = delete;
+    GenerativeComponent(GenerativeComponent&&) noexcept = delete;
+    GenerativeComponent& operator=(GenerativeComponent&&) noexcept = delete;
 
 
 };

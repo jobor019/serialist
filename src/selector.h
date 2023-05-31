@@ -7,6 +7,8 @@
 #include <cmath>
 
 #include "parameter_policy.h"
+#include "generative.h"
+#include "transport.h"
 
 
 template<typename T>

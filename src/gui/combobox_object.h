@@ -1,19 +1,17 @@
 
 
-#ifndef SERIALISTLOOPER_COMBOBOX_COMPONENT_H
-#define SERIALISTLOOPER_COMBOBOX_COMPONENT_H
+#ifndef SERIALISTLOOPER_COMBOBOX_OBJECT_H
+#define SERIALISTLOOPER_COMBOBOX_OBJECT_H
 
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "variable.h"
 #include "node_component.h"
 
 template<typename T>
-class ComboBoxComponent : public NodeComponent
-                          , private juce::ValueTree::Listener
-                          , private juce::ComboBox::Listener {
+class ComboBoxObject : public GenerativeComponent
+                       , private juce::ValueTree::Listener
+                       , private juce::ComboBox::Listener {
 public:
-
-    static const int DEFAULT_BOX_HEIGHT_PX = 14;
 
     struct Entry {
         juce::String display_name;
@@ -26,15 +24,15 @@ public:
     };
 
 
-    ComboBoxComponent(const std::string& identifier
-                      , ParameterHandler& parent
-                      , std::vector<Entry> values
-                      , T initial
-                      , const juce::String& label = ""
-                      , float label_ratio = 0.5f)
+    ComboBoxObject(const std::string& identifier
+                   , ParameterHandler& parent
+                   , std::vector<Entry> values
+                   , T initial
+                   , const juce::String& label = ""
+                   , int label_width = DimensionConstants::DEFAULT_LABEL_WIDTH)
             : m_variable(initial, identifier, parent)
               , m_label({}, label)
-              , m_label_ratio(label_ratio) {
+              , m_label_width(label_width) {
 
         for (auto& item: values) {
             add_entry(item);
@@ -56,28 +54,46 @@ public:
     }
 
 
-    ~ComboBoxComponent() override {
+    ~ComboBoxObject() override {
         m_variable.get_parameter_obj().remove_value_tree_listener(*this);
     }
 
 
-    ComboBoxComponent(const ComboBoxComponent&) = delete;
-    ComboBoxComponent& operator=(const ComboBoxComponent&) = delete;
-    ComboBoxComponent(ComboBoxComponent&&) noexcept = default;
-    ComboBoxComponent& operator=(ComboBoxComponent&&) noexcept = default;
+    ComboBoxObject(const ComboBoxObject&) = delete;
+    ComboBoxObject& operator=(const ComboBoxObject&) = delete;
+    ComboBoxObject(ComboBoxObject&&) noexcept = default;
+    ComboBoxObject& operator=(ComboBoxObject&&) noexcept = default;
 
 
-    int default_height() {
+    std::pair<int, int> dimensions() override {
+        return {default_width(), default_height()};
+    }
+
+    int default_width() {
         if (m_label.getText().isEmpty())
-            return DEFAULT_BOX_HEIGHT_PX;
+            return DimensionConstants::SLIDER_DEFAULT_WIDTH;
 
         if (m_label_position == LabelPosition::bottom) {
-            return static_cast<int>(DEFAULT_BOX_HEIGHT_PX
-                                    + getLookAndFeel().getLabelFont(m_label).getHeight() + 2.0);
+            return DimensionConstants::SLIDER_DEFAULT_WIDTH;
         } else {
-            return DEFAULT_BOX_HEIGHT_PX;
+            return DimensionConstants::SLIDER_DEFAULT_WIDTH + m_label_width;
         }
     }
+
+
+    int default_height() const {
+        if (m_label.getText().isEmpty())
+            return DimensionConstants::SLIDER_DEFAULT_HEIGHT;
+
+        if (m_label_position == LabelPosition::bottom) {
+            return DimensionConstants::SLIDER_DEFAULT_HEIGHT
+                   + DimensionConstants::FONT_HEIGHT
+                   + DimensionConstants::LABEL_BELOW_MARGINS;
+        } else {
+            return DimensionConstants::SLIDER_DEFAULT_HEIGHT;
+        }
+    }
+
 
 
     void set_label_position(LabelPosition label_position) {
@@ -99,12 +115,12 @@ public:
 
             if (m_label_position == LabelPosition::bottom) {
                 m_label.setJustificationType(juce::Justification::centred);
-                m_label.setBounds(bounds.removeFromBottom(static_cast<int>(getLookAndFeel()
-                                                                                   .getLabelFont(m_label)
-                                                                                   .getHeight() + 2.0f)));
+                m_label.setBounds(bounds.removeFromBottom(DimensionConstants::FONT_HEIGHT));
+                bounds.removeFromBottom(DimensionConstants::LABEL_BELOW_MARGINS);
+
             } else {
                 m_label.setJustificationType(juce::Justification::left);
-                m_label.setBounds(bounds.removeFromLeft(bounds.proportionOfWidth(m_label_ratio)));
+                m_label.setBounds(bounds.removeFromLeft(m_label_width));
             }
         }
         m_combo_box.setBounds(bounds);
@@ -152,7 +168,7 @@ private:
 
     juce::Label m_label;
     LabelPosition m_label_position = LabelPosition::bottom;
-    float m_label_ratio;
+    int m_label_width;
 
     juce::ComboBox m_combo_box;
 
@@ -160,4 +176,4 @@ private:
     int last_id = 0;
 };
 
-#endif //SERIALISTLOOPER_COMBOBOX_COMPONENT_H
+#endif //SERIALISTLOOPER_COMBOBOX_OBJECT_H

@@ -10,7 +10,7 @@
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ 34.0, 87.0, 999.0, 715.0 ],
+		"rect" : [ 34.0, 627.0, 999.0, 715.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -3713,6 +3713,7 @@
 			}
 , 			{
 				"box" : 				{
+					"activebgcolor" : [ 0.764705882352941, 0.764705882352941, 0.764705882352941, 1.0 ],
 					"appearance" : 2,
 					"fontsize" : 10.0,
 					"id" : "obj-70",
@@ -3723,6 +3724,10 @@
 					"parameter_enable" : 1,
 					"patching_rect" : [ 620.335968379446626, 442.0, 45.0, 15.0 ],
 					"saved_attribute_attributes" : 					{
+						"activebgcolor" : 						{
+							"expression" : ""
+						}
+,
 						"valueof" : 						{
 							"parameter_longname" : "live.numbox[10]",
 							"parameter_shortname" : "live.numbox",

@@ -2,13 +2,14 @@
 #include <scalable_slider.h>
 
 #include <memory>
-#include "oscillator_component.h"
-#include "text_sequence_component.h"
-#include "interpolation_component.h"
-#include "generator_component.h"
 #include "look_and_feel.h"
-#include "header_component.h"
-#include "combobox_component.h"
+#include "oscillator_component.h"
+#include "generator_component.h"
+//#include "text_sequence_component.h"
+//#include "interpolation_component.h"
+
+//#include "header_component.h"
+//#include "combobox_object.h"
 #include "midi_note_source_component.h"
 
 
@@ -20,36 +21,37 @@ public:
     PlaygroundComponent()
             : m_value_tree(m_vt_identifier), m_some_handler(m_value_tree, m_undo_manager)
               , m_oscillator("osc1", m_some_handler)
-              , m_sequence("seq1", m_some_handler)
-              , m_interpolator("interp1", m_some_handler)
+//              , m_sequence("seq1", m_some_handler)
+//              , m_interpolator("interp1", m_some_handler)
               , m_pitch("pitch", m_some_handler)
               , m_source("source", m_some_handler)
-              , s(ScalableSlider::Orientation::vertical)
-              , hc("header", m_some_handler)
-              , my_cb("osctype"
-                      , m_some_handler
-                      , {{  "sin", Oscillator::Type::sin}
-                         , {"sqr", Oscillator::Type::square}}
-                      , Oscillator::Type::sin
-                      , "helo") {
+//              , s(ScalableSlider::Orientation::vertical)
+//              , hc("header", m_some_handler)
+//              , my_cb("osctype"
+//                      , m_some_handler
+//                      , {{  "sin", Oscillator::Type::sin}
+//                         , {"sqr", Oscillator::Type::square}}
+//                      , Oscillator::Type::sin
+//                      , "helo") {
+    {
 
         m_lnf = std::make_unique<SerialistLookAndFeel>();
         SerialistLookAndFeel::setup_look_and_feel_colors(*m_lnf);
         juce::Desktop::getInstance().setDefaultLookAndFeel(m_lnf.get());
 
         addAndMakeVisible(m_oscillator);
-        addAndMakeVisible(m_sequence);
-        addAndMakeVisible(m_interpolator);
+//        addAndMakeVisible(m_sequence);
+//        addAndMakeVisible(m_interpolator);
         addAndMakeVisible(m_pitch);
-        addAndMakeVisible(s);
+//        addAndMakeVisible(s);
         addAndMakeVisible(m_source);
 
-        tb.setButtonText("HH");
-        addAndMakeVisible(tb);
-
-        addAndMakeVisible(hc);
-
-        addAndMakeVisible(my_cb);
+//        tb.setButtonText("HH");
+//        addAndMakeVisible(tb);
+//
+//        addAndMakeVisible(hc);
+//
+//        addAndMakeVisible(my_cb);
 
         std::cout << m_value_tree.toXmlString() << std::endl;
 
@@ -69,13 +71,13 @@ public:
 
     void resized() override {
         m_oscillator.setBounds(50, 30, 120, 170);
-        m_sequence.setBounds(300, 30, 100, 40);
-        m_interpolator.setBounds(50, 200, 180, 40);
+//        m_sequence.setBounds(300, 30, 100, 40);
+//        m_interpolator.setBounds(50, 200, 180, 40);
         m_pitch.setBounds(300, 200, 180, 210);
-        s.setBounds(300, 100, 12, 40);
-        tb.setBounds(350, 100, 40, 40);
-        hc.setBounds(400, 100, 200, 20);
-        my_cb.setBounds(500, 40, 80, 50);
+//        s.setBounds(300, 100, 12, 40);
+//        tb.setBounds(350, 100, 40, 40);
+//        hc.setBounds(400, 100, 200, 20);
+//        my_cb.setBounds(500, 40, 80, 50);
         m_source.setBounds(50, 270, 200, 115);
     }
 
@@ -104,19 +106,19 @@ private:
     ParameterHandler m_some_handler;
 
     OscillatorComponent m_oscillator;
-    TextSequenceComponent<int> m_sequence;
-    InterpolationStrategyComponent<int> m_interpolator;
+//    TextSequenceComponent<int> m_sequence;
+//    InterpolationStrategyComponent<int> m_interpolator;
     GeneratorComponent<int> m_pitch;
-
+//
     MidiNoteSourceComponent m_source;
-
-    juce::ToggleButton tb;
-
-    ScalableSlider s;
-
-    HeaderComponent hc;
-
-    ComboBoxComponent<Oscillator::Type> my_cb;
+//
+//    juce::ToggleButton tb;
+//
+//    ScalableSlider s;
+//
+//    HeaderComponent hc;
+//
+//    ComboBoxObject<Oscillator::Type> my_cb;
 
     int callback_count = 0;
 

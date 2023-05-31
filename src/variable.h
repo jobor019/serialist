@@ -8,10 +8,9 @@
 #include "parameter_policy.h"
 
 template<typename T>
-class Variable : public Node<T>
-                 , public ParameterHandler {
+class Variable : public Node<T> {
 public:
-    template <typename U>
+    template<typename U>
     using ParameterType = typename std::conditional<std::atomic<T>::is_always_lock_free
                                                     , AtomicParameter<U>
                                                     , ComplexParameter<U>>::type;
@@ -20,7 +19,8 @@ public:
 
 
     explicit Variable(T value, const std::string& id, VTParameterHandler& parent)
-            : ParameterHandler(id, parent), m_value(value, PARAMETER_ADDRESS, *this) {}
+            : Node<T>(id, parent)
+              , m_value(value, PARAMETER_ADDRESS, *this) {}
 
 
     std::vector<T> process(const TimePoint&) override { return {m_value.get()}; }

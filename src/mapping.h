@@ -89,25 +89,25 @@ private:
 
 // ==============================================================================================
 
-//template<typename T>
+//template<typename DataType>
 //class SingleMapping {
 //public:
 //
 //    SingleMapping() = default;
 //
 //
-//    SingleMapping(std::initializer_list<T> values) : SingleMapping(std::vector(values)) {}
+//    SingleMapping(std::initializer_list<DataType> values) : SingleMapping(std::vector(values)) {}
 //
 //
 //    explicit SingleMapping(
-//            const std::vector<T>& values
-//            , std::shared_ptr<OldInterpolator<T>> interpolator = std::make_shared<ClipInterpolation<T>>()
+//            const std::vector<DataType>& values
+//            , std::shared_ptr<OldInterpolator<DataType>> interpolator = std::make_shared<ClipInterpolation<DataType>>()
 //    )
 //            : m_mapping(values)
 //              , m_interpolator(interpolator) {}
 //
 //
-//    std::optional<T> interpolate(double x) {
+//    std::optional<DataType> interpolate(double x) {
 //        if (!m_mapping.empty() && m_interpolator) {
 //            return m_interpolator->interpolate(x, m_mapping);
 //        }
@@ -125,19 +125,19 @@ private:
 //    }
 //
 //
-//    void set_mapping(const std::vector<T>& mapping) {
+//    void set_mapping(const std::vector<DataType>& mapping) {
 //        m_mapping = mapping;
 //    }
 //
 //
-//    void set_interpolator(const std::shared_ptr<OldInterpolator<T>>& interpolator) {
+//    void set_interpolator(const std::shared_ptr<OldInterpolator<DataType>>& interpolator) {
 //        m_interpolator = interpolator;
 //    }
 //
 //
 //private:
-//    std::vector<T> m_mapping;
-//    std::shared_ptr<OldInterpolator<T>> m_interpolator; // TODO: std::optional rather than std::shared_ptr if possible
+//    std::vector<DataType> m_mapping;
+//    std::shared_ptr<OldInterpolator<DataType>> m_interpolator; // TODO: std::optional rather than std::shared_ptr if possible
 //};
 
 

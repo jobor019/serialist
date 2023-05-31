@@ -7,8 +7,9 @@
 #include "generative.h"
 #include "phasor.h"
 #include "utils.h"
+#include "socket_policy.h"
 
-class Oscillator : public Node<double>, public ParameterHandler {
+class Oscillator : public Node<double> {
 public:
     enum class Type {
         phasor
@@ -30,15 +31,16 @@ public:
                , Node<float>* duty = nullptr
                , Node<float>* curve = nullptr
                , Node<bool>* enabled = nullptr)
-            : ParameterHandler(identifier, parent)
-              , m_type(type)
-              , m_freq(freq)
-              , m_add(add)
-              , m_mul(mul)
-              , m_duty(duty)
-              , m_curve(curve)
-              , m_enabled(enabled)
-              , m_previous_values(100) {}
+            : Node<double>(identifier, parent)
+              , m_type("type", *this, type)
+              , m_freq("freq", *this, freq)
+              , m_add("add", *this, add)
+              , m_mul("mul", *this, mul)
+              , m_duty("duty", *this, duty)
+              , m_curve("curve", *this, curve)
+              , m_enabled("enabled", *this, enabled)
+              , m_previous_values(100) {
+    }
 
 
     std::vector<double> process(const TimePoint& t) override {
@@ -49,24 +51,13 @@ public:
 
 
     std::vector<Generative*> get_connected() override { // TODO: Generalize
-        return collect_connected(m_type, m_freq, m_add, m_mul, m_duty, m_curve, m_enabled);
-//        std::vector<Generative*> connected;
-//        if (auto type = dynamic_cast<Generative*>(m_type))
-//            connected.emplace_back(type);
-//        if (auto freq = dynamic_cast<Generative*>(m_freq))
-//            connected.emplace_back(freq);
-//        if (auto add = dynamic_cast<Generative*>(m_add))
-//            connected.emplace_back(add);
-//        if (auto mul = dynamic_cast<Generative*>(m_mul))
-//            connected.emplace_back(mul);
-//        if (auto duty = dynamic_cast<Generative*>(m_duty))
-//            connected.emplace_back(duty);
-//        if (auto curve = dynamic_cast<Generative*>(m_curve))
-//            connected.emplace_back(curve);
-//        if (auto enabled = dynamic_cast<Generative*>(m_enabled))
-//            connected.emplace_back(enabled);
-//
-//        return connected;
+        return collect_connected(m_type.get_connected()
+                                 , m_freq.get_connected()
+                                 , m_add.get_connected()
+                                 , m_mul.get_connected()
+                                 , m_duty.get_connected()
+                                 , m_curve.get_connected()
+                                 , m_enabled.get_connected());
     }
 
 
@@ -90,6 +81,7 @@ public:
 
     void set_enabled(Node<bool>* enabled) { m_enabled = enabled; }
 
+
     std::vector<double> get_output_history() {
         return m_previous_values.pop_all();
     }
@@ -98,7 +90,7 @@ public:
 private:
 
     double step_oscillator(const TimePoint& t) {
-        switch (value_or(m_type, Type::phasor, t)) {
+        switch (m_type.process_or(t, Type::phasor)) {
             case Type::phasor:
                 return phasor(t);
             case Type::sin:
@@ -112,35 +104,34 @@ private:
         }
     }
 
+
     double phasor_position(const TimePoint& t) {
-        auto freq = static_cast<float>(value_or(m_freq, 1.0f, t));
+        auto freq = m_freq.process_or(t, 1.0f);
         auto step_size = std::abs(freq) > 1e-8 ? 1 / freq : 0.0;
 
         return m_phasor.process(t.get_tick(), step_size);
     }
 
 
-
-
     double phasor(const TimePoint& t) {
-        return value_or(m_mul, 1.0f, t) * phasor_position(t) + value_or(m_add, 0.0f, t);
+        return m_mul.process_or(t, 1.0f) * phasor_position(t) + m_add.process_or(t, 0.0f);
     }
 
 
     double sin(const TimePoint& t) {
         auto y = 0.5 * std::sin(2 * M_PI * phasor_position(t)) + 0.5;
-        return value_or(m_mul, 1.0f, t) * y + value_or(m_add, 0.0f, t);
+        return m_mul.process_or(t, 1.0f) * y + m_add.process_or(t, 0.0f);
     }
 
 
-    Node<Type>* m_type;
-    Node<float>* m_freq;
-    Node<float>* m_add;
-    Node<float>* m_mul;
-    Node<float>* m_duty;
-    Node<float>* m_curve;
+    Socket<Type> m_type;
+    Socket<float> m_freq;
+    Socket<float> m_add;
+    Socket<float> m_mul;
+    Socket<float> m_duty;
+    Socket<float> m_curve;
 
-    Node<bool>* m_enabled;
+    Socket<bool> m_enabled;
 
     Phasor m_phasor;
 

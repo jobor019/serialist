@@ -10,10 +10,10 @@
 #include "generative.h"
 #include "utils.h"
 #include "parameter_policy.h"
+#include "socket_policy.h"
 
 
-class MidiNoteSource : public Source
-                       , public ParameterHandler {
+class MidiNoteSource : public Source {
 public:
 
     static const int HISTORY_LENGTH = 50;
@@ -27,14 +27,14 @@ public:
                    , Node<int>* velocity = nullptr
                    , Node<int>* channel = nullptr
                    , Node<bool>* enabled = nullptr)
-            : ParameterHandler(id, parent)
+            : Source(id, parent)
+              , m_onset("onset", *this, onset)
+              , m_duration("duration", *this, duration)
+              , m_pitch("pitch", *this, pitch)
+              , m_velocity("velocity", *this, velocity)
+              , m_channel("channel", *this, channel)
+              , m_enabled("enabled", *this, enabled)
               , m_played_notes(HISTORY_LENGTH) {
-        set_onset(onset);
-        set_duration(duration);
-        set_pitch(pitch);
-        set_velocity(velocity);
-        set_channel(channel);
-        set_enabled(enabled);
     }
 
 
@@ -74,20 +74,11 @@ public:
 
 
     std::vector<Generative*> get_connected() override {
-        return collect_connected(m_onset, m_duration, m_pitch, m_velocity, m_channel);
-//        std::vector<Generative*> connected;
-//        if (auto onset = dynamic_cast<Generative*>(m_onset))
-//            connected.emplace_back(onset);
-//        if (auto duration = dynamic_cast<Generative*>(m_duration))
-//            connected.emplace_back(duration);
-//        if (auto pitch = dynamic_cast<Generative*>(m_pitch))
-//            connected.emplace_back(pitch);
-//        if (auto velocity = dynamic_cast<Generative*>(m_velocity))
-//            connected.emplace_back(velocity);
-//        if (auto channel = dynamic_cast<Generative*>(m_channel))
-//            connected.emplace_back(channel);
-//
-//        return connected;
+        return collect_connected(m_onset.get_connected()
+                                 , m_duration.get_connected()
+                                 , m_pitch.get_connected()
+                                 , m_velocity.get_connected()
+                                 , m_channel.get_connected());
     }
 
 
@@ -127,11 +118,11 @@ private:
             return default_retrigger(t);
         }
 
-        auto note_pitch = m_pitch->process(t);
-        auto note_velocity = m_velocity->process(t);
-        auto note_duration = m_duration->process(t);
-        auto note_channel = m_channel->process(t);
-        auto next_onset = m_onset->process(t);
+        auto note_pitch = m_pitch.process(t);
+        auto note_velocity = m_velocity.process(t);
+        auto note_duration = m_duration.process(t);
+        auto note_channel = m_channel.process(t);
+        auto next_onset = m_onset.process(t);
 
         std::vector<std::unique_ptr<Event>> events;
 
@@ -156,13 +147,16 @@ private:
 
 
     bool is_enabled(const TimePoint& t) {
-        auto enabled = m_enabled->process(t);
-        return !enabled.empty() && enabled.at(0);
+        return m_enabled.process_or(t, false);
     }
 
 
     bool is_valid() {
-        return m_onset && m_duration && m_pitch && m_velocity && m_channel;
+        return m_onset.is_connected()
+               && m_duration.is_connected()
+               && m_pitch.is_connected()
+               && m_velocity.is_connected()
+               && m_channel.is_connected();
     }
 
 
@@ -182,13 +176,13 @@ private:
     Scheduler m_scheduler;
     MidiRenderer m_midi_renderer;
 
-    Node<float>* m_onset = nullptr;
-    Node<float>* m_duration = nullptr;
-    Node<int>* m_pitch = nullptr;
-    Node<int>* m_velocity = nullptr;
-    Node<int>* m_channel = nullptr;
+    Socket<float> m_onset;
+    Socket<float> m_duration;
+    Socket<int> m_pitch;
+    Socket<int> m_velocity;
+    Socket<int> m_channel;
 
-    Node<bool>* m_enabled = nullptr;
+    Socket<bool> m_enabled;
 
     utils::LockingQueue<MidiEvent> m_played_notes;
 

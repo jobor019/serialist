@@ -29,12 +29,14 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/sequence.h
         ${CMAKE_SOURCE_DIR}/src/serializable.h
         ${CMAKE_SOURCE_DIR}/src/selector.h
+        ${CMAKE_SOURCE_DIR}/src/socket_policy.h
+        ${CMAKE_SOURCE_DIR}/src/vt_socket.h
         ${CMAKE_SOURCE_DIR}/src/source.h
         ${CMAKE_SOURCE_DIR}/src/utils.h
         ${CMAKE_SOURCE_DIR}/src/variable.h
         ${CMAKE_SOURCE_DIR}/src/vt_parameter.h
-        ${CMAKE_SOURCE_DIR}/src/gui/combobox_component.h
-        ${CMAKE_SOURCE_DIR}/src/gui/connector_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/combobox_object.h
+        ${CMAKE_SOURCE_DIR}/src/gui/connector_object.h
         ${CMAKE_SOURCE_DIR}/src/gui/generation_layer.h
         ${CMAKE_SOURCE_DIR}/src/gui/generator_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/header_component.h
@@ -43,11 +45,12 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/gui/main_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/midi_note_source_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/node_component.h
-        ${CMAKE_SOURCE_DIR}/src/gui/note_visualizer_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/note_view.h
         ${CMAKE_SOURCE_DIR}/src/gui/oscillator_component.h
-        ${CMAKE_SOURCE_DIR}/src/gui/slider_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/oscillator_view.h
+        ${CMAKE_SOURCE_DIR}/src/gui/slider_object.h
         ${CMAKE_SOURCE_DIR}/src/gui/text_sequence_component.h
-        ${CMAKE_SOURCE_DIR}/src/gui/toggle_button_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/toggle_button_object.h
         ${CMAKE_SOURCE_DIR}/src/io/renderers.h
         )
 

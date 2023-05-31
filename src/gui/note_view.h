@@ -1,14 +1,14 @@
 
 
-#ifndef SERIALISTLOOPER_NOTE_VISUALIZER_COMPONENT_H
-#define SERIALISTLOOPER_NOTE_VISUALIZER_COMPONENT_H
+#ifndef SERIALISTLOOPER_NOTE_VIEW_H
+#define SERIALISTLOOPER_NOTE_VIEW_H
 
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "look_and_feel.h"
 #include "source.h"
 
-class NoteVisualizerComponent : public juce::Component
-                                , private juce::Timer {
+class NoteView : public juce::Component
+                 , private juce::Timer {
 public:
 
     class SimpleBlink : public juce::Component {
@@ -21,10 +21,18 @@ public:
             g.fillEllipse(getLocalBounds().toFloat());
         }
 
+
+        void set_is_on(bool v) {
+            is_on = v;
+            repaint();
+        }
+
+    private:
         bool is_on = false;
     };
 
-    explicit NoteVisualizerComponent(MidiNoteSource& midi_source)
+
+    explicit NoteView(MidiNoteSource& midi_source)
             : m_midi_source(midi_source) {
         m_label.setText("0 0 0", juce::dontSendNotification);
         m_label.setJustificationType(juce::Justification::centred);
@@ -33,11 +41,13 @@ public:
         startTimer(25);
     }
 
-    void paint(juce::Graphics & g) override {
+
+    void paint(juce::Graphics& g) override {
         g.fillAll(getLookAndFeel().findColour(Colors::object_background));
         g.setColour(getLookAndFeel().findColour(Colors::object_border_color));
         g.drawRect(getLocalBounds());
     }
+
 
     void resized() override {
         auto bounds = getLocalBounds();
@@ -47,7 +57,7 @@ public:
 
 
     int default_height() const {
-        return 40;
+        return 36;
     }
 
 
@@ -57,19 +67,20 @@ private:
 
         if (notes.empty()) {
             if (juce::Time::currentTimeMillis() - last_found_note > 125) {
-                m_note_on.is_on = false;
+                m_note_on.set_is_on(false);
             }
             return;
         }
 
-        m_note_on.is_on= true;
+        m_note_on.set_is_on(true);
 
 
         last_found_note = juce::Time::currentTimeMillis();
 
         auto last_note = notes.back();
         std::ostringstream oss;
-        oss << (last_note.get_midi_cents() / 100) << " " << (last_note.get_velocity()) << " " << (last_note.get_channel());
+        oss << (last_note.get_midi_cents() / 100) << " " << (last_note.get_velocity()) << " "
+            << (last_note.get_channel());
 
         m_label.setText(oss.str(), juce::dontSendNotification);
         // TODO repaint?
@@ -85,4 +96,4 @@ private:
 
 };
 
-#endif //SERIALISTLOOPER_NOTE_VISUALIZER_COMPONENT_H
+#endif //SERIALISTLOOPER_NOTE_VIEW_H

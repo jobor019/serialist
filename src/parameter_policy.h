@@ -24,6 +24,8 @@ template<typename T>
 using ParametrizedSequence = VTParametrizedSequence<T>;
 
 
+
+
 #else
 
 #include "nop_parameter.h"
@@ -32,11 +34,11 @@ using ParameterHandler = NopParameterHandler;
 
 using ParameterListener = NopParameterListener; // TODO
 
-template<typename T>
-using AtomicParameter = NopParameter<T>;
+template<typename DataType>
+using AtomicParameter = NopParameter<DataType>;
 
-template<typename T>
-using ComplexParameter = NopParameter<T>;
+template<typename DataType>
+using ComplexParameter = NopParameter<DataType>;
 
 
 

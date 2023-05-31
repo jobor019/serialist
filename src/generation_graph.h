@@ -139,8 +139,8 @@ public:
 
 
 private:
-//    template<typename T>
-//    std::optional<T> get_first_if_applicable(std::vector<T> values) {
+//    template<typename DataType>
+//    std::optional<DataType> get_first_if_applicable(std::vector<DataType> values) {
 //        if (values.empty()) {
 //            return std::nullopt;
 //        }

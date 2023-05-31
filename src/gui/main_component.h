@@ -4,7 +4,7 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "node_component.h"
 #include "source.h"
-#include "connector_component.h"
+#include "connector_object.h"
 #include "transport.h"
 #include "scheduler.h"
 #include "io/renderers.h"
@@ -12,6 +12,7 @@
 #include "generation_layer.h"
 #include "midi_note_source_component.h"
 #include "oscillator_component.h"
+#include "generator_component.h"
 
 
 class MainComponent : public juce::Component
@@ -22,16 +23,22 @@ public:
             : m_value_tree(m_vt_identifier)
               , m_generation_layer(m_value_tree, m_undo_manager) {
 
+        SerialistLookAndFeel::setup_look_and_feel_colors(m_lnf);
+        juce::Desktop::getInstance().setDefaultLookAndFeel(&m_lnf);
+
         addAndMakeVisible(m_generation_layer);
 
         m_generation_layer.add_component(std::make_unique<MidiNoteSourceComponent>("midi1", m_generation_layer)
-                                         , {50, 50, 220, 75});
+                                         , {50, 50, 220, 105});
 
         m_generation_layer.add_component(std::make_unique<MidiNoteSourceComponent>("midi2", m_generation_layer)
-                                         , {330, 50, 220, 75});
+                                         , {330, 50, 220, 105});
 
         m_generation_layer.add_component(std::make_unique<OscillatorComponent>("osc1", m_generation_layer)
-                                         , {50, 150, 100, 100});
+                                         , {330, 200, 100, 200});
+
+        m_generation_layer.add_component(std::make_unique<GeneratorComponent<int>>("pitch", m_generation_layer)
+                                         , {50, 200, 180, 210});
 
 
         std::cout << m_value_tree.toXmlString() << std::endl;
@@ -74,6 +81,7 @@ private:
         throw std::runtime_error("not implemented"); // TODO
     }
 
+    SerialistLookAndFeel m_lnf;
 
     const juce::Identifier m_vt_identifier = "root";
 

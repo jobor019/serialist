@@ -8,19 +8,19 @@
 #include "interpolator.h"
 
 template<typename T>
-class Sequence : public Generative
-                 , public ParameterHandler {
+class Sequence : public DataNode<T> {
 public:
 
     inline static const std::string PARAMETER_ADDRESS = "sequence";
 
 
     explicit Sequence(const std::string& id, ParameterHandler& parent, const std::vector<T>& initial_values = {})
-            : ParameterHandler(id, parent), m_sequence(initial_values, PARAMETER_ADDRESS, *this) {}
+            : DataNode<T>(id, parent)
+              , m_sequence(PARAMETER_ADDRESS, *this, initial_values) {}
 
 
-    std::vector<T> process(const TimePoint&, double y, const InterpolationStrategy<T> strategy) {
-        return m_sequence.interpolate(y, strategy);
+    std::vector<T> process(const TimePoint&, double y, InterpolationStrategy<T> strategy) override {
+        return m_sequence.interpolate(y, std::move(strategy));
     }
 
 

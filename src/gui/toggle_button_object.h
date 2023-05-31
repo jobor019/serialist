@@ -1,20 +1,20 @@
 
 
-#ifndef SERIALISTLOOPER_TOGGLE_BUTTON_COMPONENT_H
-#define SERIALISTLOOPER_TOGGLE_BUTTON_COMPONENT_H
+#ifndef SERIALISTLOOPER_TOGGLE_BUTTON_OBJECT_H
+#define SERIALISTLOOPER_TOGGLE_BUTTON_OBJECT_H
 
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "node_component.h"
 #include "variable.h"
 
-class ToggleButtonComponent : public NodeComponent
-                              , private juce::ValueTree::Listener {
+class ToggleButtonObject : public GenerativeComponent
+                           , private juce::ValueTree::Listener {
 public:
-    ToggleButtonComponent(const std::string& identifier
-                          , ParameterHandler& parent
-                          , bool initial = false
-                          , const std::string& on_text = ""
-                          , const std::string& off_text = "")
+    ToggleButtonObject(const std::string& identifier
+                       , ParameterHandler& parent
+                       , bool initial = false
+                       , const std::string& on_text = ""
+                       , const std::string& off_text = "")
             : m_variable(initial, identifier, parent)
               , m_on_text(on_text)
               , m_off_text(off_text) {
@@ -31,12 +31,20 @@ public:
     }
 
 
-    ~ToggleButtonComponent() override {
+    ~ToggleButtonObject() override {
         m_variable.get_parameter_obj().remove_value_tree_listener(*this);
     }
 
 
     Generative& get_generative() override { return m_variable; }
+
+
+    std::pair<int, int> dimensions() override {
+        if (m_on_text.isEmpty() && m_off_text.isEmpty()) {
+            return {DimensionConstants::SLIDER_DEFAULT_HEIGHT, DimensionConstants::SLIDER_DEFAULT_HEIGHT};
+        }
+        return {DimensionConstants::DEFAULT_LABEL_WIDTH, DimensionConstants::SLIDER_DEFAULT_HEIGHT};
+    }
 
 
     void paint(juce::Graphics&) override {}
@@ -77,4 +85,4 @@ private:
 
 };
 
-#endif //SERIALISTLOOPER_TOGGLE_BUTTON_COMPONENT_H
+#endif //SERIALISTLOOPER_TOGGLE_BUTTON_OBJECT_H

@@ -7,12 +7,23 @@
 #include "sequence.h"
 
 template<typename T>
-class TextSequenceComponent : public NodeComponent
+class TextSequenceComponent : public GenerativeComponent
                               , private juce::Label::Listener {
 public:
 
-    TextSequenceComponent(const std::string& id, ParameterHandler& parent)
-            : m_sequence(id, parent) {
+    enum class Layout {
+        full = 0
+        , generator_internal = 1
+    };
+
+
+    TextSequenceComponent(const std::string& id, ParameterHandler& parent, Layout layout = Layout::full)
+            : m_header(id, parent)
+              , m_sequence(id, parent)
+              , m_layout(layout) {
+
+        addAndMakeVisible(m_header);
+
         value_input.setText(format_values(), juce::dontSendNotification);
         value_input.setEditable(true);
         value_input.addListener(this);
@@ -22,6 +33,11 @@ public:
         value_input_success.setToggleState(false, juce::dontSendNotification);
         addAndMakeVisible(value_input_success);
 
+    }
+
+
+    std::pair<int, int> dimensions() override {
+        return {DimensionConstants::SLIDER_DEFAULT_WIDTH, DimensionConstants::SEQUENCE_HEIGHT};
     }
 
 
@@ -56,11 +72,15 @@ private:
 
 
     void resized() override {
-        auto bounds = getLocalBounds().reduced(8);
-        value_input_success.setBounds(bounds.removeFromRight(20));
-        bounds.removeFromRight(4);
-        value_input.setBounds(bounds);
+        if (m_layout == Layout::full) {
+            auto bounds = getLocalBounds();
+            m_header.setBounds(bounds.removeFromTop(m_header.default_height()));
+            bounds.reduce(DimensionConstants::COMPONENT_LR_MARGINS, DimensionConstants::COMPONENT_UD_MARGINS);
+            value_input_success.setBounds(bounds.removeFromRight(DimensionConstants::SLIDER_DEFAULT_HEIGHT));
+            bounds.removeFromRight(DimensionConstants::OBJECT_X_MARGINS_ROW);
+            value_input.setBounds(bounds);
 
+        }
     }
 
 
@@ -88,7 +108,11 @@ private:
     }
 
 
+    HeaderComponent m_header;
+
     Sequence<T> m_sequence;
+
+    Layout m_layout;
 
     juce::Label value_input;
     juce::ToggleButton value_input_success;

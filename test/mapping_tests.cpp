@@ -51,7 +51,7 @@ TEST_CASE("Test Mapping class") {
         REQUIRE_THROWS_AS(mapping.at(3), std::out_of_range);
     }
 
-    SECTION("Test initializer list constructor with T") {
+    SECTION("Test initializer list constructor with DataType") {
         Mapping<int> mapping{1, 2, 3};
         REQUIRE(mapping.size() == 3);
         REQUIRE(mapping.at(0).size() == 1);

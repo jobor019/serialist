@@ -11,7 +11,7 @@
 #include "interpolation_component.h"
 
 template<typename T>
-class GeneratorComponent : public NodeComponent {
+class GeneratorComponent : public GenerativeComponent {
 public:
     enum class Layout {
         full
@@ -21,21 +21,27 @@ public:
 
 
     GeneratorComponent(const std::string& id, ParameterHandler& parent)
-    : m_generator(id, parent)
-    , m_header(id, parent)
-    , m_internal_oscillator(id + "::oscillator", parent, OscillatorComponent::Layout::generator_internal)
-    , m_interpolator(id + "::interpolator", parent)
-    , m_internal_sequence(id + "::sequence", parent) {
+            : m_generator(id, parent)
+              , m_header(id, parent)
+              , m_internal_oscillator(id + "::oscillator", parent, OscillatorComponent::Layout::generator_internal)
+              , m_interpolator(id + "::interpolator", parent)
+              , m_internal_sequence(id + "::sequence", parent) {
 
         // TODO: Set enabled, step
         m_generator.set_cursor(dynamic_cast<Node<double>*>(&m_internal_oscillator.get_generative()));
-        m_generator.set_interpolation_strategy(dynamic_cast<Node<InterpolationStrategy<T>>*>(&m_interpolator.get_generative()));
+        m_generator.set_interpolation_strategy(
+                dynamic_cast<Node<InterpolationStrategy<T>>*>(&m_interpolator.get_generative()));
         m_generator.set_map(dynamic_cast<Sequence<T>*>(&m_internal_sequence.get_generative()));
 
         addAndMakeVisible(m_header);
         addAndMakeVisible(m_internal_oscillator);
         addAndMakeVisible(m_interpolator);
         addAndMakeVisible(m_internal_sequence);
+    }
+
+
+    std::pair<int, int> dimensions() override {
+        return {0, 0};
     }
 
 
@@ -50,12 +56,12 @@ public:
         g.drawRect(getLocalBounds(), 2);
     }
 
+
     void resized() override {
         if (m_layout == Layout::full) {
             full_layout();
         }
     }
-
 
 
 private:
@@ -71,6 +77,7 @@ private:
         bounds.removeFromTop(5);
         m_interpolator.setBounds(bounds.removeFromTop(40));
     }
+
 
     Generator<T> m_generator;
 

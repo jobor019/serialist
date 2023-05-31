@@ -23,62 +23,64 @@ enum Colors {
 
 class SerialistLookAndFeel : public juce::LookAndFeel_V4 {
 public:
+    static inline const int FONT_SIZE = 12;
+    static inline const juce::Font DEFAULT_FONT = juce::Font("Arial", FONT_SIZE, juce::Font::FontStyleFlags::plain);
 
-    static inline const juce::Font default_font = juce::Font("Arial", 12.0f, juce::Font::FontStyleFlags::plain);
+    static inline const juce::Colour OBJECT_ON_C = juce::Colour(0xffffb532);
+    static inline const juce::Colour OBJECT_OFF_C = juce::Colour(0xffa5a5a5);
+    static inline const juce::Colour OBJECT_BACKGROUND_C = juce::Colour(0xffc3c3c3);
+    static inline const juce::Colour OBJECT_MOUSEOVER_C = juce::Colour(0xfff5deb3);
+    static inline const juce::Colour OBJECT_BORDER_C = juce::Colour(0xff212121);
 
-    static inline const juce::Colour object_on = juce::Colour(0xffffb532);
-    static inline const juce::Colour object_off = juce::Colour(0xffa5a5a5);
-    static inline const juce::Colour object_background = juce::Colour(0xffc3c3c3);
-    static inline const juce::Colour text = juce::Colour(0xff000000);
-    static inline const juce::Colour bright_text = juce::Colour(0xffeeeeee);
-    static inline const juce::Colour outline_mouseover = juce::Colour(0xfff5deb3);
-    static inline const juce::Colour object_border = juce::Colour(0xff212121);
-    static inline const juce::Colour component_border = juce::Colour(0xffcee5e8);
-    static inline const juce::Colour component_background = juce::Colour(0xff595959);
+    static inline const juce::Colour TEXT_C = juce::Colour(0xff000000);
+    static inline const juce::Colour BRIGHT_TEXT_C = juce::Colour(0xffeeeeee);
+
+    static inline const juce::Colour COMPONENT_BORDER_C = juce::Colour(0xffcee5e8);
+    static inline const juce::Colour COMPONENT_BACKGROUND_C = juce::Colour(0xff595959);
 
 
     static void setup_look_and_feel_colors(juce::LookAndFeel& lnf) {
 
         // Global custom colors
-        lnf.setColour(Colors::object_on, object_on);
-        lnf.setColour(Colors::object_off, object_off);
-        lnf.setColour(Colors::object_background, object_background);
-        lnf.setColour(Colors::outline_mouseover, outline_mouseover);
-        lnf.setColour(Colors::object_border_color, object_border);
-        lnf.setColour(Colors::text_color, text);
-        lnf.setColour(Colors::bright_text_color, bright_text);
-        lnf.setColour(Colors::component_border_color, component_border);
-        lnf.setColour(Colors::component_background_color, component_background);
+        lnf.setColour(Colors::object_on, OBJECT_ON_C);
+        lnf.setColour(Colors::object_off, OBJECT_OFF_C);
+        lnf.setColour(Colors::object_background, OBJECT_BACKGROUND_C);
+        lnf.setColour(Colors::outline_mouseover, OBJECT_MOUSEOVER_C);
+        lnf.setColour(Colors::object_border_color, OBJECT_BORDER_C);
+        lnf.setColour(Colors::text_color, TEXT_C);
+        lnf.setColour(Colors::bright_text_color, BRIGHT_TEXT_C);
+        lnf.setColour(Colors::component_border_color, COMPONENT_BORDER_C);
+        lnf.setColour(Colors::component_background_color, COMPONENT_BACKGROUND_C);
 
         // Custom objects
         lnf.setColour(Colors::header_color, juce::Colour(0xff68b74d));
 
         // juce::Label
-        lnf.setColour(juce::Label::ColourIds::textColourId, text);
+        lnf.setColour(juce::Label::ColourIds::textColourId, TEXT_C);
 
         // juce::Slider
-        lnf.setColour(juce::Slider::ColourIds::trackColourId, object_on);
-        lnf.setColour(juce::Slider::ColourIds::backgroundColourId, object_off);
-        lnf.setColour(juce::Slider::ColourIds::textBoxTextColourId, text);
-        lnf.setColour(juce::Slider::ColourIds::rotarySliderOutlineColourId, object_border);
+        lnf.setColour(juce::Slider::ColourIds::trackColourId, OBJECT_ON_C);
+        lnf.setColour(juce::Slider::ColourIds::backgroundColourId, OBJECT_OFF_C);
+        lnf.setColour(juce::Slider::ColourIds::textBoxTextColourId, TEXT_C);
+        lnf.setColour(juce::Slider::ColourIds::rotarySliderOutlineColourId, OBJECT_BORDER_C);
 
         // juce::ComboBox
-        lnf.setColour(juce::ComboBox::ColourIds::backgroundColourId, object_on);
-        lnf.setColour(juce::ComboBox::ColourIds::arrowColourId, text);
-        lnf.setColour(juce::ComboBox::ColourIds::textColourId, text);
-        lnf.setColour(juce::ComboBox::ColourIds::outlineColourId, object_border);
+        lnf.setColour(juce::ComboBox::ColourIds::backgroundColourId, OBJECT_ON_C);
+        lnf.setColour(juce::ComboBox::ColourIds::arrowColourId, TEXT_C);
+        lnf.setColour(juce::ComboBox::ColourIds::textColourId, TEXT_C);
+        lnf.setColour(juce::ComboBox::ColourIds::outlineColourId, OBJECT_BORDER_C);
 
 
     }
 
 
     juce::Font getLabelFont(juce::Label&) override {
-        return default_font;
+        return DEFAULT_FONT;
     }
 
 
     juce::Font getTextButtonFont(juce::TextButton&, int) override {
-        return default_font;
+        return DEFAULT_FONT;
     }
 
 
@@ -112,7 +114,7 @@ public:
             g.drawEllipse(button.getLocalBounds().reduced(2).toFloat(), 1.0f);
 
         g.setColour(findColour(Colors::text_color));
-        g.setFont(default_font);
+        g.setFont(DEFAULT_FONT);
 
         if (!button.isEnabled())
             g.setOpacity(0.5f);

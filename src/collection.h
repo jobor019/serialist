@@ -8,15 +8,15 @@
 #include "generative.h"
 
 template<typename T>
-class Collection : public Node<T>
-                   , public ParameterHandler {
+class Collection : public Node<T> {
 public:
 
     inline static const std::string PARAMETER_ADDRESS = "collection";
 
 
     explicit Collection(const std::string& id, VTParameterHandler& parent, const std::vector<T>& initial_values = {})
-            : ParameterHandler(id, parent), m_collection(initial_values, PARAMETER_ADDRESS, *this) {}
+            : Node<T>(id, parent)
+              , m_collection(PARAMETER_ADDRESS, *this, initial_values) {}
 
 
     std::vector<T> process(const TimePoint&, double y, const InterpolationStrategy<T> strategy) {

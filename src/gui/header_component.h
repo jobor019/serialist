@@ -5,17 +5,20 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "variable.h"
-#include "toggle_button_component.h"
+#include "toggle_button_object.h"
 #include "look_and_feel.h"
 
 class HeaderComponent : public juce::Component
                         , private juce::Button::Listener {
 public:
 
-    explicit HeaderComponent(const std::string& id, ParameterHandler& parent)
-            : m_enabled(id + "::enabled", parent, true)
+    explicit HeaderComponent(const std::string& id
+                             , ParameterHandler& parent
+                             , bool initial = true
+                             , bool stepped = true)
+            : m_enabled(id + "::enabled", parent, initial)
               , m_label({}, id)
-              , m_stepped(id + "::stepped", parent, true, "step", "time")
+              , m_stepped(id + "::stepped", parent, stepped, "step", "time")
               , m_minimized("-") {
         m_label.setText(id, juce::dontSendNotification);
         m_label.setJustificationType(juce::Justification::centredLeft);
@@ -27,8 +30,9 @@ public:
         m_minimized.addListener(this);
     }
 
-     int default_height() {
-        return 20;
+
+    int default_height() const {
+        return DimensionConstants::COMPONENT_HEADER_HEIGHT;
     }
 
 
@@ -41,23 +45,23 @@ public:
 
 
     void resized() override {
-        auto bounds = getLocalBounds().reduced(2);
+        auto bounds = getLocalBounds().reduced(DimensionConstants::HEADER_INTERNAL_MARGINS);
         m_enabled.setBounds(bounds.removeFromLeft(bounds.getHeight()));
         m_minimized.setBounds(bounds.removeFromRight(bounds.getHeight()));
 
         auto font = m_label.getFont();
 
-        bounds.removeFromRight(2);
+        bounds.removeFromRight(DimensionConstants::HEADER_INTERNAL_MARGINS);
         m_stepped.setBounds(bounds.removeFromRight(4 + font.getStringWidth(m_stepped.get_text())));
 
         m_label.setBounds(bounds);
     }
 
 
-    ToggleButtonComponent& get_enabled() { return m_enabled; }
+    ToggleButtonObject& get_enabled() { return m_enabled; }
 
 
-    ToggleButtonComponent& get_stepped() { return m_stepped; }
+    ToggleButtonObject& get_stepped() { return m_stepped; }
 
 
 private:
@@ -66,11 +70,10 @@ private:
     }
 
 
-
-    ToggleButtonComponent m_enabled;
+    ToggleButtonObject m_enabled;
     juce::Label m_label;
 
-    ToggleButtonComponent m_stepped;
+    ToggleButtonObject m_stepped;
 
     juce::ToggleButton m_minimized;
 

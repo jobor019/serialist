@@ -1,7 +1,7 @@
 
 
-#ifndef SERIALISTLOOPER_SLIDER_COMPONENT_H
-#define SERIALISTLOOPER_SLIDER_COMPONENT_H
+#ifndef SERIALISTLOOPER_SLIDER_OBJECT_H
+#define SERIALISTLOOPER_SLIDER_OBJECT_H
 
 #include <juce_gui_extra/juce_gui_extra.h>
 
@@ -11,11 +11,10 @@
 
 
 template<typename T>
-class SliderComponent : public NodeComponent
-                        , private juce::ValueTree::Listener {
+class SliderObject : public GenerativeComponent
+                     , private juce::ValueTree::Listener {
 public:
 
-    static const int DEFAULT_SLIDER_HEIGHT_PX = 14;
 
     enum LabelPosition {
         left = 0
@@ -23,20 +22,20 @@ public:
     };
 
 
-    SliderComponent(const std::string& identifier
-                    , ParameterHandler& parent
-                    , T min = static_cast<T>(0)
-                    , T max = static_cast<T>(127)
-                    , T step = static_cast<T>(1)
-                    , T initial = static_cast<T>(0)
-                    , const juce::String& label = ""
-                    , const float label_ratio = 0.5f
-                    , const LabelPosition position = LabelPosition::bottom)
+    SliderObject(const std::string& identifier
+                 , ParameterHandler& parent
+                 , T min = static_cast<T>(0)
+                 , T max = static_cast<T>(127)
+                 , T step = static_cast<T>(1)
+                 , T initial = static_cast<T>(0)
+                 , const juce::String& label = ""
+                 , const int label_width = DimensionConstants::DEFAULT_LABEL_WIDTH
+                 , const LabelPosition position = LabelPosition::bottom)
             : m_variable(static_cast<T>(initial), identifier, parent)
               , m_label({}, label)
-              , m_label_ratio(label_ratio)
+              , m_label_width(label_width)
               , m_label_position(position) {
-        static_assert(std::is_arithmetic_v<T>, "T must be arithmetic");
+        static_assert(std::is_arithmetic_v<T>, "DataType must be arithmetic");
 
         m_label.setColour(juce::Label::textColourId, getLookAndFeel().findColour(Colors::bright_text_color));
 
@@ -62,26 +61,44 @@ public:
     }
 
 
-    ~SliderComponent() override {
+    ~SliderObject() override {
         m_variable.get_parameter_obj().remove_value_tree_listener(*this);
     }
 
 
-    SliderComponent(const SliderComponent&) = delete;
-    SliderComponent& operator=(const SliderComponent&) = delete;
-    SliderComponent(SliderComponent&&) noexcept = default;
-    SliderComponent& operator=(SliderComponent&&) noexcept = default;
+    SliderObject(const SliderObject&) = delete;
+    SliderObject& operator=(const SliderObject&) = delete;
+    SliderObject(SliderObject&&) noexcept = default;
+    SliderObject& operator=(SliderObject&&) noexcept = default;
 
 
-    int default_height() {
+    std::pair<int, int> dimensions() override {
+        return {default_width(), default_height()};
+    }
+
+
+    int default_width() const {
         if (m_label.getText().isEmpty())
-            return DEFAULT_SLIDER_HEIGHT_PX;
+            return DimensionConstants::SLIDER_DEFAULT_WIDTH;
 
         if (m_label_position == LabelPosition::bottom) {
-            return static_cast<int>(DEFAULT_SLIDER_HEIGHT_PX
-                                    + getLookAndFeel().getLabelFont(m_label).getHeight() + 2.0f);
+            return DimensionConstants::SLIDER_DEFAULT_WIDTH;
         } else {
-            return DEFAULT_SLIDER_HEIGHT_PX;
+            return DimensionConstants::SLIDER_DEFAULT_WIDTH + m_label_width;
+        }
+    }
+
+
+    int default_height() const {
+        if (m_label.getText().isEmpty())
+            return DimensionConstants::SLIDER_DEFAULT_HEIGHT;
+
+        if (m_label_position == LabelPosition::bottom) {
+            return DimensionConstants::SLIDER_DEFAULT_HEIGHT
+                   + DimensionConstants::FONT_HEIGHT
+                   + DimensionConstants::LABEL_BELOW_MARGINS;
+        } else {
+            return DimensionConstants::SLIDER_DEFAULT_HEIGHT;
         }
     }
 
@@ -110,16 +127,12 @@ public:
 
             if (m_label_position == LabelPosition::bottom) {
                 m_label.setJustificationType(juce::Justification::centred);
-                m_label.setBounds(bounds.removeFromBottom(static_cast<int>(getLookAndFeel()
-                                                                                   .getLabelFont(m_label)
-                                                                                   .getHeight() + 2.0f)));
+                m_label.setBounds(bounds.removeFromBottom(DimensionConstants::FONT_HEIGHT));
+                bounds.removeFromBottom(DimensionConstants::LABEL_BELOW_MARGINS);
+
             } else {
                 m_label.setJustificationType(juce::Justification::left);
-                m_label.setBounds(bounds.removeFromLeft(bounds.proportionOfWidth(m_label_ratio)));
-//                m_label.setBounds(bounds.removeFromLeft(
-//                        static_cast<int>(getLookAndFeel()
-//                                                 .getLabelFont(m_label)
-//                                                 .getStringWidth(m_label.getText()) + 2)));
+                m_label.setBounds(bounds.removeFromLeft(m_label_width));
             }
         }
         m_slider.setBounds(bounds);
@@ -150,7 +163,7 @@ private:
     Variable<T> m_variable;
 
     juce::Label m_label;
-    float m_label_ratio;
+    int m_label_width;
     LabelPosition m_label_position;
 
     juce::Slider m_slider;
@@ -158,4 +171,4 @@ private:
 
 };
 
-#endif //SERIALISTLOOPER_SLIDER_COMPONENT_H
+#endif //SERIALISTLOOPER_SLIDER_OBJECT_H

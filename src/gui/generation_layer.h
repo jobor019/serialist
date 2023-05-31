@@ -6,7 +6,7 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "parameter_policy.h"
 #include "node_component.h"
-#include "connector_component.h"
+#include "connector_object.h"
 #include "source.h"
 
 class GenerationLayer : public juce::Component
@@ -38,7 +38,7 @@ public:
     }
 
 
-    void add_component(std::unique_ptr<NodeComponent> component, juce::Rectangle<int> location) {
+    void add_component(std::unique_ptr<GenerativeComponent> component, juce::Rectangle<int> location) {
         std::lock_guard<std::mutex> lock(process_mutex);
 
         if (std::find(m_nodes.begin(), m_nodes.end(), component) != m_nodes.end())
@@ -55,7 +55,7 @@ public:
     }
 
 
-    void remove(NodeComponent* component) {
+    void remove(GenerativeComponent* component) {
         (void) component;
         std::lock_guard<std::mutex> lock(process_mutex);
         throw std::runtime_error("remove is not implemented"); // TODO
@@ -79,7 +79,7 @@ public:
 
 private:
     template<typename T>
-    NodeComponent* get_associated_component(Generative* connectable) {
+    GenerativeComponent* get_associated_component(Generative* connectable) {
         (void) connectable;
         throw std::runtime_error("not implemented"); // TODO
     }
@@ -90,9 +90,9 @@ private:
     }
 
 
-    std::vector<std::unique_ptr<NodeComponent>> m_nodes;
+    std::vector<std::unique_ptr<GenerativeComponent>> m_nodes;
     std::vector<Source*> m_sources;
-    std::vector<ConnectorComponent> m_connectors;
+    std::vector<ConnectorObject> m_connectors;
 
     std::mutex process_mutex;
 

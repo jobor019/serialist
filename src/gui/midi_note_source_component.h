@@ -6,12 +6,12 @@
 #include "source.h"
 #include "node_component.h"
 #include "midi_config.h"
-#include "slider_component.h"
-#include "toggle_button_component.h"
+#include "slider_object.h"
+#include "toggle_button_object.h"
 #include "header_component.h"
-#include "note_visualizer_component.h"
+#include "note_view.h"
 
-class MidiNoteSourceComponent : public NodeComponent
+class MidiNoteSourceComponent : public GenerativeComponent
                                 , private juce::Timer {
 public:
     MidiNoteSourceComponent(const std::string& id
@@ -45,6 +45,10 @@ public:
 
     }
 
+    std::pair<int, int> dimensions() override {
+        return {0, 0};
+    }
+
 
     Generative& get_generative() override {
         return m_midi_source;
@@ -67,13 +71,6 @@ public:
 
         m_visualizer.setBounds(bounds.removeFromTop(m_visualizer.default_height()));
 
-//        auto bounds = getLocalBounds().reduced(8);
-//
-//        auto header_bounds = bounds.removeFromTop(20);
-//        m_enable_button.setBounds(header_bounds.removeFromLeft(22));
-//        header_bounds.removeFromLeft(10);
-//        m_label.setBounds(header_bounds);
-//
         bounds.removeFromTop(5);
 
         auto component_width = bounds.getWidth() / 5;
@@ -97,15 +94,15 @@ private:
 
     HeaderComponent m_header;
 
-    NoteVisualizerComponent m_visualizer;
+    NoteView m_visualizer;
 
-    SliderComponent<float> m_internal_onset;
-    SliderComponent<float> m_internal_duration;
-    SliderComponent<int> m_internal_pitch;
-    SliderComponent<int> m_internal_velocity;
-    SliderComponent<int> m_internal_channel;
+    SliderObject<float> m_internal_onset;
+    SliderObject<float> m_internal_duration;
+    SliderObject<int> m_internal_pitch;
+    SliderObject<int> m_internal_velocity;
+    SliderObject<int> m_internal_channel;
 
-//    ToggleButtonComponent m_enable_button;
+//    ToggleButtonObject m_enable_button;
 //    juce::Label m_label;
 };
 

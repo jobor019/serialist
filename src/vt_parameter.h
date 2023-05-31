@@ -24,7 +24,10 @@ public:
 
     // create root
     VTParameterHandler(juce::ValueTree& vt, juce::UndoManager& um)
-            : m_value_tree(vt), m_undo_manager(um), m_parent(nullptr) {}
+            : m_value_tree(vt), m_undo_manager(um), m_parent(nullptr) {
+        if (!m_value_tree.isValid())
+            throw ParameterError("VTParameterHandler is not registered");
+    }
 
 
     ~VTParameterHandler() {
@@ -33,11 +36,18 @@ public:
     }
 
 
-    juce::ValueTree& get_value_tree() {
-        if (!m_value_tree.isValid())
-            throw ParameterError("VTParameterHandler is not registered");
+    VTParameterHandler(const VTParameterHandler&) = delete;
+    VTParameterHandler& operator=(const VTParameterHandler&) = delete;
+    VTParameterHandler(VTParameterHandler&&) noexcept = delete;
+    VTParameterHandler& operator=(VTParameterHandler&&) noexcept = delete;
 
+
+    juce::ValueTree& get_value_tree() {
         return m_value_tree;
+    }
+
+    juce::Identifier get_identifier() const {
+        return m_value_tree.getType();
     }
 
 
@@ -169,10 +179,12 @@ private:
         return {value.to_string()};
     }
 
+
     template<typename U = T, std::enable_if_t<std::is_enum_v<U>, int> = 0>
     juce::var serialize(const T& value) {
         return static_cast<int>(value);
     }
+
 
     template<typename U = T, std::enable_if_t<!is_serializable<U>::value && !std::is_enum_v<U>, int> = 0>
     juce::var serialize(const T& value) {
@@ -184,6 +196,7 @@ private:
     T deserialize(const juce::var& obj) {
         return T::from_string(obj.toString().toStdString());
     }
+
 
     template<typename U = T, std::enable_if_t<std::is_enum_v<U>, int> = 0>
     T deserialize(const juce::var& obj) {
@@ -212,7 +225,7 @@ class AtomicVTParameter : public VTParameter<T> {
 public:
     AtomicVTParameter(T initial_value, const std::string& id, VTParameterHandler& parent)
             : VTParameter<T>(initial_value, id, parent), m_value(initial_value) {
-        static_assert(std::atomic<T>::is_always_lock_free, "T must be lock-free");
+        static_assert(std::atomic<T>::is_always_lock_free, "DataType must be lock-free");
     }
 
 
@@ -237,7 +250,7 @@ class LockingVTParameter : VTParameter<T> {
 public:
     LockingVTParameter(T initial_value, const std::string& id, VTParameterHandler& parent)
             : VTParameter<T>(initial_value, id, parent), m_value(initial_value) {
-        static_assert(std::is_copy_constructible_v<T>, "T must be copyable");
+        static_assert(std::is_copy_constructible_v<T>, "DataType must be copyable");
     }
 
 
@@ -271,7 +284,7 @@ private:
 template<typename T>
 class CollectionVTParameter {
 }; // TODO: Current VTParametrizedSequence should rather be ParametrizedCollection
-//       and VTParametrizedSequence should be std::vector<std::vector<T>>
+//       and VTParametrizedSequence should be std::vector<std::vector<DataType>>
 
 
 // ==============================================================================================
@@ -280,7 +293,7 @@ template<typename T>
 class VTParametrizedSequence : private juce::ValueTree::Listener {
 public:
 
-    VTParametrizedSequence(const std::vector<T>& initial, const std::string& id, VTParameterHandler& parent)
+    VTParametrizedSequence(const std::string& id, VTParameterHandler& parent, const std::vector<T>& initial)
             : m_value_tree({id}), m_parent(parent) {
         auto& parent_tree = m_parent.get_value_tree();
         if (!parent_tree.isValid())

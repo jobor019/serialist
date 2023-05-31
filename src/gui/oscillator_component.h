@@ -5,14 +5,14 @@
 
 #include "../oscillator.h" // TODO: Why can't this be relative?
 #include "node_component.h"
-#include "slider_component.h"
-#include "toggle_button_component.h"
+#include "slider_object.h"
+#include "toggle_button_object.h"
 #include "header_component.h"
-#include "combobox_component.h"
+#include "combobox_object.h"
+#include "oscillator_view.h"
 
 
-class OscillatorComponent : public NodeComponent
-                            , public juce::Timer {
+class OscillatorComponent : public GenerativeComponent {
 public:
 
     static const int FULL_LAYOUT_SPACING = 4;
@@ -34,16 +34,17 @@ public:
 
     OscillatorComponent(const std::string& id, ParameterHandler& parent, Layout layout = Layout::full)
             : m_oscillator(id, parent)
+              , m_oscillator_view(m_oscillator)
               , m_oscillator_type(id + "::type", parent, {
                     {  "sin", Oscillator::Type::sin}
                     , {"sqr", Oscillator::Type::square}
                     , {"tri", Oscillator::Type::tri}
-            }, Oscillator::Type::sin, "mode", 0.35f)
-              , m_internal_freq(id + "::freq", parent, 0.0f, 10.0f, 0.125f, 0.5f, "freq", 0.35f)
-              , m_internal_mul(id + "::mul", parent, 0.0f, 10.0f, 0.125f, 1.0, "mul", 0.35f)
-              , m_internal_add(id + "::add", parent, 0.0f, 10.0f, 0.125f, 0.0f, "add", 0.35f)
-              , m_internal_duty(id + "::duty", parent, 0.0f, 1.0f, 0.01f, 0.5f, "duty", 0.35f)
-              , m_internal_curve(id + "::curve", parent, 0.0f, 0.0f, 0.0f, 0.0f, "curve", 0.35f)
+            }, Oscillator::Type::sin, "mode")
+              , m_internal_freq(id + "::freq", parent, 0.0f, 10.0f, 0.125f, 0.5f, "freq")
+              , m_internal_mul(id + "::mul", parent, 0.0f, 10.0f, 0.125f, 1.0, "mul")
+              , m_internal_add(id + "::add", parent, 0.0f, 10.0f, 0.125f, 0.0f, "add")
+              , m_internal_duty(id + "::duty", parent, 0.0f, 1.0f, 0.01f, 0.5f, "duty")
+              , m_internal_curve(id + "::curve", parent, 0.0f, 0.0f, 0.0f, 0.0f, "curve")
               , m_header(id, parent)
               , m_layout(layout) {
 
@@ -56,6 +57,7 @@ public:
 
         m_oscillator.set_enabled(dynamic_cast<Node<bool>*>(&m_header.get_enabled().get_generative()));
 
+        addAndMakeVisible(m_oscillator_view);
 
         addAndMakeVisible(m_oscillator_type);
         addAndMakeVisible(m_internal_freq);
@@ -65,22 +67,32 @@ public:
         addAndMakeVisible(m_internal_curve);
 
         addAndMakeVisible(m_header);
-
-        addAndMakeVisible(m_oscillator_view);
-        m_oscillator_view.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
-        m_oscillator_view.setInterceptsMouseClicks(false, false);
-        m_oscillator_view.setRange(0, 10.0);
-        m_oscillator_view.setNumDecimalPlacesToDisplay(2);
-
-        startTimerHz(33);
     }
 
 
-    void timerCallback() override {
-        auto queue = m_oscillator.get_output_history();
-        if (!queue.empty()) {
-            m_oscillator_view.setValue(queue.back(), juce::dontSendNotification);
-        }
+    std::pair<int, int> dimensions() override {
+        return {default_width(), default_height()};
+    }
+
+
+    int default_height() const {
+//        if (m_layout == Layout::full) {
+            return m_header.default_height()
+                   + 2 * DimensionConstants::COMPONENT_UD_MARGINS
+                   + m_oscillator_view.default_height()
+                   + m_oscillator_type.default_height()
+                   + 5 * m_internal_freq.default_height()
+                   + 7 * DimensionConstants::OBJECT_Y_MARGINS_COLUMN;
+//        } else if (m_layout == Layout::generator_internal) {
+//            return 0;
+//        }
+    }
+
+
+    int default_width() const {
+//        if (m_layout == Layout::full) {
+            return 2 * DimensionConstants::COMPONENT_LR_MARGINS + m_internal_freq.default_width();
+//        }
     }
 
 
@@ -111,34 +123,35 @@ private:
         auto bounds = getLocalBounds();
 
         m_header.setBounds(bounds.removeFromTop(m_header.default_height()));
-        bounds.reduce(5, 8);
+        bounds.reduce(DimensionConstants::COMPONENT_LR_MARGINS, DimensionConstants::COMPONENT_UD_MARGINS);
 
-        m_oscillator_view.setBounds(bounds.removeFromTop(20));
-        bounds.removeFromTop(FULL_LAYOUT_SPACING);
+        m_oscillator_view.set_layout(OscillatorView::Layout::full);
+        m_oscillator_view.setBounds(bounds.removeFromTop(m_oscillator_view.default_height()));
+        bounds.removeFromTop(DimensionConstants::OBJECT_Y_MARGINS_COLUMN);
 
-        m_oscillator_type.set_label_position(ComboBoxComponent<Oscillator::Type>::LabelPosition::left);
+        m_oscillator_type.set_label_position(ComboBoxObject<Oscillator::Type>::LabelPosition::left);
         m_oscillator_type.setBounds(bounds.removeFromTop(m_oscillator_type.default_height()));
-        bounds.removeFromTop(FULL_LAYOUT_SPACING);
+        bounds.removeFromTop(DimensionConstants::OBJECT_Y_MARGINS_COLUMN);
 
-        m_internal_freq.set_label_position(SliderComponent<float>::LabelPosition::left);
+        m_internal_freq.set_label_position(SliderObject<float>::LabelPosition::left);
         m_internal_freq.setBounds(bounds.removeFromTop(m_internal_freq.default_height()));
-        bounds.removeFromTop(FULL_LAYOUT_SPACING);
+        bounds.removeFromTop(DimensionConstants::OBJECT_Y_MARGINS_COLUMN);
 
-        m_internal_mul.set_label_position(SliderComponent<float>::LabelPosition::left);
+        m_internal_mul.set_label_position(SliderObject<float>::LabelPosition::left);
         m_internal_mul.setBounds(bounds.removeFromTop(m_internal_mul.default_height()));
-        bounds.removeFromTop(FULL_LAYOUT_SPACING);
+        bounds.removeFromTop(DimensionConstants::OBJECT_Y_MARGINS_COLUMN);
 
-        m_internal_add.set_label_position(SliderComponent<float>::LabelPosition::left);
+        m_internal_add.set_label_position(SliderObject<float>::LabelPosition::left);
         m_internal_add.setBounds(bounds.removeFromTop(m_internal_add.default_height()));
-        bounds.removeFromTop(FULL_LAYOUT_SPACING);
+        bounds.removeFromTop(DimensionConstants::OBJECT_Y_MARGINS_COLUMN);
 
-        m_internal_duty.set_label_position(SliderComponent<float>::LabelPosition::left);
+        m_internal_duty.set_label_position(SliderObject<float>::LabelPosition::left);
         m_internal_duty.setBounds(bounds.removeFromTop(m_internal_duty.default_height()));
-        bounds.removeFromTop(FULL_LAYOUT_SPACING);
+        bounds.removeFromTop(DimensionConstants::OBJECT_Y_MARGINS_COLUMN);
 
-        m_internal_curve.set_label_position(SliderComponent<float>::LabelPosition::left);
+        m_internal_curve.set_label_position(SliderObject<float>::LabelPosition::left);
         m_internal_curve.setBounds(bounds.removeFromTop(m_internal_curve.default_height()));
-        bounds.removeFromTop(FULL_LAYOUT_SPACING);
+        bounds.removeFromTop(DimensionConstants::OBJECT_Y_MARGINS_COLUMN);
     }
 
 
@@ -149,32 +162,33 @@ private:
 //        m_header.setBounds(bounds.removeFromTop(m_header.default_height()));
 //        bounds.reduce(5, 8);
 
-        auto col1 = bounds.removeFromLeft(getWidth() / 2);
+        auto col1 = bounds.removeFromLeft(bounds.proportionOfWidth(0.45f));
 
-        m_oscillator_view.setBounds(col1.removeFromTop(20));
+        m_oscillator_view.set_layout(OscillatorView::Layout::compact);
+        m_oscillator_view.setBounds(col1.removeFromTop(m_oscillator_view.default_height()));
         col1.removeFromTop(FULL_LAYOUT_SPACING);
 
-        m_oscillator_type.set_label_position(ComboBoxComponent<Oscillator::Type>::LabelPosition::bottom);
+        m_oscillator_type.set_label_position(ComboBoxObject<Oscillator::Type>::LabelPosition::bottom);
         m_oscillator_type.setBounds(col1.removeFromLeft(col1.getWidth() / 2));
         col1.removeFromLeft(FULL_LAYOUT_SPACING);
 
-        m_internal_freq.set_label_position(SliderComponent<float>::LabelPosition::bottom);
+        m_internal_freq.set_label_position(SliderObject<float>::LabelPosition::bottom);
         m_internal_freq.setBounds(col1);
 
         auto col2 = bounds.removeFromLeft(bounds.getWidth() / 2);
-        m_internal_mul.set_label_position(SliderComponent<float>::LabelPosition::bottom);
+        m_internal_mul.set_label_position(SliderObject<float>::LabelPosition::bottom);
         m_internal_mul.setBounds(col2.removeFromTop(m_internal_mul.default_height()));
         col2.removeFromTop(FULL_LAYOUT_SPACING);
 
-        m_internal_add.set_label_position(SliderComponent<float>::LabelPosition::bottom);
+        m_internal_add.set_label_position(SliderObject<float>::LabelPosition::bottom);
         m_internal_add.setBounds(col2.removeFromTop(m_internal_add.default_height()));
         col2.removeFromTop(FULL_LAYOUT_SPACING);
 
-        m_internal_duty.set_label_position(SliderComponent<float>::LabelPosition::bottom);
+        m_internal_duty.set_label_position(SliderObject<float>::LabelPosition::bottom);
         m_internal_duty.setBounds(bounds.removeFromTop(m_internal_duty.default_height()));
         bounds.removeFromTop(FULL_LAYOUT_SPACING);
 
-        m_internal_curve.set_label_position(SliderComponent<float>::LabelPosition::bottom);
+        m_internal_curve.set_label_position(SliderObject<float>::LabelPosition::bottom);
         m_internal_curve.setBounds(bounds.removeFromTop(m_internal_curve.default_height()));
         bounds.removeFromTop(FULL_LAYOUT_SPACING);
     }
@@ -182,17 +196,17 @@ private:
 
     Oscillator m_oscillator;
 
+    OscillatorView m_oscillator_view;
+
     // TODO: typename InternalType rather than float
-    ComboBoxComponent<Oscillator::Type> m_oscillator_type;
-    SliderComponent<float> m_internal_freq;
-    SliderComponent<float> m_internal_mul;
-    SliderComponent<float> m_internal_add;
-    SliderComponent<float> m_internal_duty;
-    SliderComponent<float> m_internal_curve;
+    ComboBoxObject<Oscillator::Type> m_oscillator_type;
+    SliderObject<float> m_internal_freq;
+    SliderObject<float> m_internal_mul;
+    SliderObject<float> m_internal_add;
+    SliderObject<float> m_internal_duty;
+    SliderObject<float> m_internal_curve;
 
     HeaderComponent m_header;
-
-    juce::Slider m_oscillator_view;
 
     Layout m_layout = Layout::full;
 
