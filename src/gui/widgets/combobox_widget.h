@@ -27,12 +27,12 @@ public:
     ComboBoxWidget(Variable<T>& variable
                    , std::vector<Entry>&& values
                    , const juce::String& label = ""
-                   , int label_width = DimensionConstants::DEFAULT_LABEL_WIDTH
-                   , const Layout layout = Layout::label_left)
+                   , const Layout layout = Layout::label_left
+                   , int label_width = DimensionConstants::DEFAULT_LABEL_WIDTH)
             : m_variable(variable)
               , m_label({}, label)
-              , m_label_width(label_width)
-              , m_layout(layout) {
+              , m_layout(layout)
+              , m_label_width(label_width){
 
         initialize_combo_box(std::move(values));
         initialize_label();
@@ -155,8 +155,8 @@ private:
     Variable<T>& m_variable;
 
     juce::Label m_label;
-    int m_label_width;
     Layout m_layout;
+    int m_label_width;
 
     juce::ComboBox m_combo_box;
 

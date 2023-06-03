@@ -8,6 +8,7 @@
 #include "oscillator.h"
 #include "variable.h"
 #include "modules/oscillator_module.h"
+#include "text_sequence_module.h"
 
 template<typename Module>
 using ModuleAndGeneratives = std::pair<std::unique_ptr<Module>, std::vector<std::unique_ptr<Generative>>>;
@@ -28,7 +29,7 @@ public:
         auto add = std::make_unique<Variable<float>>(id + "::add", parent, 0.0f);
         auto duty = std::make_unique<Variable<float>>(id + "::duty", parent, 0.5f);
         auto curve = std::make_unique<Variable<float>>(id + "::curve", parent, 1.0f);
-        auto enabled = std::make_unique<Variable<bool>>(id + "::enabled", parent, 0.5f);
+        auto enabled = std::make_unique<Variable<bool>>(id + "::enabled", parent, true);
 
         oscillator->set_type(type.get());
         oscillator->set_freq(freq.get());
@@ -38,15 +39,8 @@ public:
         oscillator->set_curve(curve.get());
         oscillator->set_enabled(enabled.get());
 
-        auto oscillator_module = std::make_unique<OscillatorModule>(*oscillator
-                                                                    , *type
-                                                                    , *freq
-                                                                    , *mul
-                                                                    , *add
-                                                                    , *duty
-                                                                    , *curve
-                                                                    , *enabled
-                                                                    , layout);
+        auto oscillator_module = std::make_unique<OscillatorModule>(
+                *oscillator, *type, *freq, *mul, *add, *duty, *curve, *enabled, layout);
 
         std::vector<std::unique_ptr<Generative>> generatives;
         generatives.push_back(std::move(oscillator));
@@ -59,6 +53,26 @@ public:
         generatives.push_back(std::move(enabled));
 
         return {std::move(oscillator_module), std::move(generatives)};
+    }
+
+
+    template<typename T>
+    static ModuleAndGeneratives<TextSequenceModule<T>>
+    new_text_sequence(const std::string& id
+                      , ParameterHandler& parent
+                      , typename TextSequenceModule<T>::Layout layout = TextSequenceModule<T>::Layout::full) {
+        auto sequence = std::make_unique<Sequence<T>>(id, parent);
+
+        auto enabled = std::make_unique<Variable<bool>>(id + "::enabled", parent, true);
+        sequence->set_enabled(enabled.get());
+
+        auto sequence_module = std::make_unique<TextSequenceModule<T>>(*sequence, *enabled, layout);
+        std::vector<std::unique_ptr<Generative>> generatives;
+
+        generatives.push_back(std::move(sequence));
+        generatives.push_back(std::move(enabled));
+
+        return {std::move(sequence_module), std::move(generatives)};
     }
 
 

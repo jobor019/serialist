@@ -50,6 +50,10 @@ public:
         return m_value_tree.getType();
     }
 
+    std::string get_identifier_as_string() const {
+        return get_identifier().toString().toStdString();
+    }
+
 
     juce::UndoManager& get_undo_manager() {
         return m_undo_manager;

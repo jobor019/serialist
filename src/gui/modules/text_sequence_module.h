@@ -11,17 +11,52 @@ class TextSequenceModule : public GenerativeComponent
                            , private juce::Label::Listener {
 public:
 
+    static const int INPUT_BOX_HEIGHT = static_cast<const int>(DimensionConstants::SLIDER_DEFAULT_HEIGHT * 1.6);
+
+
     enum class Layout {
         full = 0
         , generator_internal = 1
     };
 
 
-    TextSequenceModule(const std::string& id, ParameterHandler& parent, Layout layout = Layout::full)
-            : m_header(id, parent)
-              , m_sequence(id, parent)
+    explicit TextSequenceModule(Sequence<T>& sequence, Variable<bool>& enabled, Layout layout = Layout::full)
+            : m_sequence(sequence)
+              , m_header(sequence.get_identifier_as_string(), enabled)
               , m_layout(layout) {
+        initialize_components();
+    }
 
+
+    static int width_of(Layout layout = Layout::full) {
+        (void) layout;
+        return 100;
+    }
+
+
+    static int height_of(Layout layout = Layout::full) {
+        if (layout == Layout::full) {
+            return HeaderWidget::height_of()
+                   + 2 * DimensionConstants::COMPONENT_UD_MARGINS
+                   + INPUT_BOX_HEIGHT;
+        }
+        std::cout << "TextSequenceModule not updated for this layout\n";
+        return 0;
+    }
+
+
+    Generative& get_generative() override { return m_sequence; }
+
+
+    void set_layout(int layout_id) override {
+        m_layout = static_cast<Layout>(layout_id);
+        resized();
+    }
+
+
+private:
+
+    void initialize_components() {
         addAndMakeVisible(m_header);
 
         value_input.setText(format_values(), juce::dontSendNotification);
@@ -32,27 +67,9 @@ public:
         value_input_success.setClickingTogglesState(false);
         value_input_success.setToggleState(false, juce::dontSendNotification);
         addAndMakeVisible(value_input_success);
-
     }
 
 
-    static int width_of(Layout layout) {
-        (void) layout;
-        return 100;
-    }
-
-    static int height_of(Layout layout) {
-        (void) layout;
-        return 100;
-    }
-
-
-    Generative& get_generative() override {
-        return m_sequence;
-    }
-
-
-private:
     void labelTextChanged(juce::Label* labelThatHasChanged) override {
         auto [rc, values] = parse_input(labelThatHasChanged->getText().toStdString());
         value_input_success.setToggleState(rc, juce::dontSendNotification);
@@ -80,12 +97,11 @@ private:
     void resized() override {
         if (m_layout == Layout::full) {
             auto bounds = getLocalBounds();
-            m_header.setBounds(bounds.removeFromTop(m_header.default_height()));
+            m_header.setBounds(bounds.removeFromTop(HeaderWidget::height_of()));
             bounds.reduce(DimensionConstants::COMPONENT_LR_MARGINS, DimensionConstants::COMPONENT_UD_MARGINS);
             value_input_success.setBounds(bounds.removeFromRight(DimensionConstants::SLIDER_DEFAULT_HEIGHT));
             bounds.removeFromRight(DimensionConstants::OBJECT_X_MARGINS_ROW);
             value_input.setBounds(bounds);
-
         }
     }
 
@@ -114,15 +130,14 @@ private:
     }
 
 
+    Sequence<T>& m_sequence;
+
     HeaderWidget m_header;
-
-    Sequence<T> m_sequence;
-
-    Layout m_layout;
 
     juce::Label value_input;
     juce::ToggleButton value_input_success;
 
+    Layout m_layout;
 
 };
 

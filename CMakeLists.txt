@@ -40,6 +40,8 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/gui/modules/note_source_module.h
         ${CMAKE_SOURCE_DIR}/src/gui/modules/oscillator_module.h
         ${CMAKE_SOURCE_DIR}/src/gui/modules/text_sequence_module.h
+        ${CMAKE_SOURCE_DIR}/src/gui/views/note_view.h
+        ${CMAKE_SOURCE_DIR}/src/gui/views/oscillator_view.h
         ${CMAKE_SOURCE_DIR}/src/gui/widgets/combobox_widget.h
         ${CMAKE_SOURCE_DIR}/src/gui/widgets/header_widget.h
         ${CMAKE_SOURCE_DIR}/src/gui/widgets/slider_widget.h
@@ -50,8 +52,6 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/gui/look_and_feel.h
         ${CMAKE_SOURCE_DIR}/src/gui/main_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/module_factory.h
-        ${CMAKE_SOURCE_DIR}/src/gui/note_view.h
-        ${CMAKE_SOURCE_DIR}/src/gui/oscillator_view.h
         ${CMAKE_SOURCE_DIR}/src/gui/socket_component.h
         ${CMAKE_SOURCE_DIR}/src/io/renderers.h
         )
@@ -59,6 +59,7 @@ set(SOURCES
 set(INCLUDES
         ${CMAKE_SOURCE_DIR}/src/gui
         ${CMAKE_SOURCE_DIR}/src/gui/modules
+        ${CMAKE_SOURCE_DIR}/src/gui/views
         ${CMAKE_SOURCE_DIR}/src/gui/widgets
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/src/io

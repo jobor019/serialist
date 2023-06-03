@@ -56,19 +56,24 @@ public:
         juce::Desktop::getInstance().setDefaultLookAndFeel(m_lnf.get());
 
 
-        auto [the_module, generatives] = ModuleFactory::new_oscillator("osc1"
-                                                                       , m_modular_generator
-                                                                       , OscillatorModule::Layout::full);
-
-        m_oscillator = std::move(the_module);
-        m_modular_generator.add(std::move(generatives));
-
+        auto [oscillator, g1] = ModuleFactory::new_oscillator("osc1", m_modular_generator);
+        m_oscillator = std::move(oscillator);
+        m_modular_generator.add(std::move(g1));
         addAndMakeVisible(*m_oscillator);
+
+        auto [sequence, g2] = ModuleFactory::new_text_sequence<int>("seq1", m_modular_generator);
+        m_sequence = std::move(sequence);
+        m_modular_generator.add(std::move(g2));
+        addAndMakeVisible(*m_sequence);
+
+
+
+
 
 //        m_model.add(std::move(generatives));
 
 
-//        m_oscillator = std::move(the_module);
+//        m_oscillator = std::move(oscillator);
 //
 //                          addAndMakeVisible(*m_oscillator);
 
@@ -112,9 +117,9 @@ public:
 
 
     void resized() override {
-        m_oscillator->setBounds(50, 30, 120, 170);
+        m_oscillator->setBounds(50, 30, OscillatorModule::width_of(), OscillatorModule::height_of());
 
-//        m_sequence.setBounds(300, 30, 100, 40);
+        m_sequence->setBounds(300, 30, TextSequenceModule<int>::width_of(), TextSequenceModule<int>::height_of());
 //        m_interpolator.setBounds(50, 200, 180, 40);
 //        m_pitch.setBounds(300, 200, 180, 210);
 //        s.setBounds(300, 100, 12, 40);
@@ -147,7 +152,7 @@ private:
     ModularGenerator m_modular_generator;
 
     std::unique_ptr<OscillatorModule> m_oscillator;
-//    TextSequenceModule<int> m_sequence;
+    std::unique_ptr<TextSequenceModule<int>> m_sequence;
 //    InterpolationModule<int> m_interpolator;
 //    GeneratorModule<int> m_pitch;
 //

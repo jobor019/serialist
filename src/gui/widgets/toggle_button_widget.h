@@ -52,9 +52,13 @@ public:
 
 private:
     void initialize_button() {
-        m_button.onStateChange = [this]() { on_value_change(); };
-        m_button.setButtonText(m_variable.get_value() ? m_on_text : m_off_text);
+        bool is_on = m_variable.get_value();
+
+        m_button.setToggleState(is_on, juce::dontSendNotification);
+        m_button.setButtonText(is_on ? m_on_text : m_off_text);
         addAndMakeVisible(m_button);
+
+        m_button.onStateChange = [this]() { on_value_change(); };
     }
 
 

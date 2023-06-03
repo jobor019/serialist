@@ -27,12 +27,12 @@ public:
                           , T max = static_cast<T>(127)
                           , T step = static_cast<T>(1)
                           , const juce::String& label = ""
-                          , const int label_width = DimensionConstants::DEFAULT_LABEL_WIDTH
-                          , const Layout layout = Layout::label_below)
+                          , const Layout layout = Layout::label_below
+                          , const int label_width = DimensionConstants::DEFAULT_LABEL_WIDTH)
             : m_variable(variable)
               , m_label({}, label)
-              , m_label_width(label_width)
-              , m_layout(layout) {
+              , m_layout(layout)
+              , m_label_width(label_width){
 
         static_assert(std::is_arithmetic_v<T>, "DataType must be arithmetic");
         initialize_slider(min, max, step);
@@ -62,6 +62,7 @@ public:
             return DimensionConstants::SLIDER_DEFAULT_HEIGHT;
         }
     }
+
 
     static int default_width(Layout layout, bool has_label) {
         if (!has_label)
@@ -120,7 +121,7 @@ private:
     }
 
 
-    void initialize_slider(T min, T max , T step) {
+    void initialize_slider(T min, T max, T step) {
         m_slider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
         m_slider.onValueChange = [this]() { on_slider_value_change(); };
         m_slider.setRange(min, max, step);
@@ -157,8 +158,8 @@ private:
     Variable<T>& m_variable;
 
     juce::Label m_label;
-    int m_label_width;
     Layout m_layout;
+    int m_label_width;
 
     juce::Slider m_slider;
 

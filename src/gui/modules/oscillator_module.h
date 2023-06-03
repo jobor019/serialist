@@ -32,21 +32,26 @@ public:
                      , Variable<bool>& internal_enabled
                      , Layout layout = Layout::full)
             : m_oscillator(oscillator)
-              , m_type_socket(oscillator.get_type()
-                              , std::make_unique<ComboBoxWidget<Oscillator::Type>>(
-                            internal_type
-                            , std::vector<ComboBoxWidget<Oscillator::Type>::Entry>{
-                                    {  "phasor", Oscillator::Type::phasor}
-                                    , {"sin"   , Oscillator::Type::sin}
-                                    , {"sqr"   , Oscillator::Type::square}
-                                    , {"tri"   , Oscillator::Type::tri}
-                            }))
-              , m_freq_socket(oscillator.get_freq(), std::make_unique<SliderWidget<float>>(internal_freq))
-              , m_mul_socket(oscillator.get_mul(), std::make_unique<SliderWidget<float>>(internal_mul))
-              , m_add_socket(oscillator.get_add(), std::make_unique<SliderWidget<float>>(internal_add))
-              , m_duty_socket(oscillator.get_duty(), std::make_unique<SliderWidget<float>>(internal_duty))
-              , m_curve_socket(oscillator.get_curve(), std::make_unique<SliderWidget<float>>(internal_curve))
-              , m_header(oscillator.get_identifier().toString().toStdString(), internal_enabled)
+              , m_type_socket(oscillator.get_type(), std::make_unique<ComboBoxWidget<Oscillator::Type>>(
+                    internal_type
+                    , std::vector<ComboBoxWidget<Oscillator::Type>::Entry>{
+                            {  "phasor", Oscillator::Type::phasor}
+                            , {"sin"   , Oscillator::Type::sin}
+                            , {"sqr"   , Oscillator::Type::square}
+                            , {"tri"   , Oscillator::Type::tri}}
+                    , "type"
+                    , ComboBoxWidget<Oscillator::Type>::Layout::label_left))
+              , m_freq_socket(oscillator.get_freq(), std::make_unique<SliderWidget<float>>(
+                    internal_freq, 0.0f, 20.0f, 0.01f, "freq", SliderWidget<float>::Layout::label_left))
+              , m_mul_socket(oscillator.get_mul(), std::make_unique<SliderWidget<float>>(
+                    internal_mul, 0.0f, 20.0f, 0.01f, "mul", SliderWidget<float>::Layout::label_left))
+              , m_add_socket(oscillator.get_add(), std::make_unique<SliderWidget<float>>(
+                    internal_add, 0.0f, 20.0f, 0.01f, "add", SliderWidget<float>::Layout::label_left))
+              , m_duty_socket(oscillator.get_duty(), std::make_unique<SliderWidget<float>>(
+                    internal_duty, 0.0f, 1.0f, 0.01f, "duty", SliderWidget<float>::Layout::label_left))
+              , m_curve_socket(oscillator.get_curve(), std::make_unique<SliderWidget<float>>(
+                    internal_curve, 0.0f, 1.0f, 0.01f, "curve", SliderWidget<float>::Layout::label_left))
+              , m_header(oscillator.get_identifier_as_string(), internal_enabled)
               , m_layout(layout)
               , m_oscillator_view(oscillator) {
 
@@ -63,7 +68,7 @@ public:
     }
 
 
-    static int width_of(Layout layout) {
+    static int width_of(Layout layout = Layout::full) {
         if (layout == Layout::full) {
             return 2 * DimensionConstants::COMPONENT_LR_MARGINS
                    + SliderWidget<float>::default_width(SliderWidget<float>::Layout::label_left, true);
@@ -73,7 +78,7 @@ public:
     }
 
 
-    static int height_of(Layout layout) {
+    static int height_of(Layout layout = Layout::full) {
         if (layout == Layout::full) {
             return HeaderWidget::height_of()
                    + 2 * DimensionConstants::COMPONENT_UD_MARGINS

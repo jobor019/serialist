@@ -14,9 +14,13 @@ public:
     inline static const std::string PARAMETER_ADDRESS = "sequence";
 
 
-    explicit Sequence(const std::string& id, ParameterHandler& parent, const std::vector<T>& initial_values = {})
+    explicit Sequence(const std::string& id
+                      , ParameterHandler& parent
+                      , const std::vector<T>& initial_values = {}
+                      , Node<bool>* enabled = nullptr)
             : DataNode<T>(id, parent)
-              , m_sequence(PARAMETER_ADDRESS, *this, initial_values) {}
+              , m_sequence(PARAMETER_ADDRESS, *this, initial_values)
+              , m_enabled("enabled", *this, enabled) {}
 
 
     std::vector<T> process(const TimePoint&, double y, InterpolationStrategy<T> strategy) override {
@@ -30,12 +34,20 @@ public:
 
 
     std::vector<Generative*> get_connected() override {
-        return {};
+        return {m_enabled.get_connected()};
     }
+
+
+    void set_enabled(Node<bool>* enabled) { m_enabled = enabled; }
+
+
+    Socket<bool>& get_enabled() { return m_enabled; }
 
 
 private:
     ParametrizedSequence<T> m_sequence;
+
+    Socket<bool> m_enabled;
 
 };
 
