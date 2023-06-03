@@ -20,12 +20,12 @@ public:
     }
 
 
-    std::vector<std::unique_ptr<Event>> get_events(const TimePoint& time_point) {
-        return get_events(time_point.get_tick());
+    std::vector<std::unique_ptr<Event>> poll(const TimePoint& time_point) {
+        return poll(time_point.get_tick());
     }
 
 
-    std::vector<std::unique_ptr<Event>> get_events(double current_time) {
+    std::vector<std::unique_ptr<Event>> poll(double current_time) {
         auto not_passed = [&](const std::unique_ptr<Event>& event) {
             return event->get_time() > current_time;
         };

@@ -27,6 +27,7 @@ public:
             repaint();
         }
 
+
     private:
         bool is_on = false;
     };
@@ -42,6 +43,11 @@ public:
     }
 
 
+    static int height_of() {
+        return 36;
+    }
+
+
     void paint(juce::Graphics& g) override {
         g.fillAll(getLookAndFeel().findColour(Colors::object_background));
         g.setColour(getLookAndFeel().findColour(Colors::object_border_color));
@@ -53,11 +59,6 @@ public:
         auto bounds = getLocalBounds();
         m_label.setBounds(bounds.removeFromLeft(proportionOfWidth(0.8f)));
         m_note_on.setBounds(bounds.reduced(8));
-    }
-
-
-    int default_height() const {
-        return 36;
     }
 
 

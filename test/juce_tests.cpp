@@ -75,7 +75,7 @@ TEST_CASE("rendering", "[midi, renderer]") {
 //    while (!scheduler.is_empty()) {
 //        std::this_thread::sleep_for(std::chrono::milliseconds(1));
 //
-//        auto events = scheduler.get_events(time);
+//        auto events = scheduler.poll(time);
 //
 //        for (auto& event: events) {
 //            if (auto note_event = dynamic_cast<MidiEvent*>(event.get())) {

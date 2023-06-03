@@ -6,12 +6,12 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "interpolator.h"
 #include "variable.h"
-#include "node_component.h"
+#include "generative_component.h"
 
 template<typename T>
-class InterpolationStrategyComponent : public GenerativeComponent
-                                       , juce::Slider::Listener
-                                       , juce::ComboBox::Listener {
+class InterpolationModule : public GenerativeComponent
+                            , juce::Slider::Listener
+                            , juce::ComboBox::Listener {
 public:
     enum class Layout {
         full = 0
@@ -19,7 +19,7 @@ public:
     };
 
 
-    InterpolationStrategyComponent(const std::string& id, ParameterHandler& parent, Layout layout = Layout::full)
+    InterpolationModule(const std::string& id, ParameterHandler& parent, Layout layout = Layout::full)
             : m_header(id, parent)
               , m_strategy(InterpolationStrategy<T>(), id, parent)
               , m_layout(layout) {
@@ -40,6 +40,14 @@ public:
         m_pivot.setTextBoxIsEditable(false);
         m_pivot.addListener(this);
         addAndMakeVisible(m_pivot);
+
+    }
+
+    static int width_of(Layout layout) {
+
+    }
+
+    static int height_of(Layout layout) {
 
     }
 
@@ -110,7 +118,7 @@ private:
     }
 
 
-    HeaderComponent m_header;
+    HeaderWidget m_header;
 
     Variable<InterpolationStrategy<T>> m_strategy;
 

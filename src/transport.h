@@ -38,6 +38,7 @@ public:
 
 
     void increment(int64_t delta_ms) {
+        std::cout << "problematic truncation due to int64_t (change to ns or float_ms)\n";
         double tick_increment = static_cast<double>(delta_ms) * 0.001 * m_tempo / 60.0;
         m_tick += tick_increment;
         m_beat = fmod(m_beat + tick_increment, m_meter.duration());

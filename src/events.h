@@ -10,17 +10,16 @@ class Event {
 public:
     explicit Event(double time) : m_time(time) {}
 
-    Event(const Event&) = default;
-
-    Event& operator=(const Event&) = default;
-
-    Event(Event&&) = default;
-
-    Event& operator=(Event&&) = default;
 
     virtual ~Event() = default;
+    Event(const Event&) = default;
+    Event& operator=(const Event&) = default;
+    Event(Event&&) = default;
+    Event& operator=(Event&&) = default;
+
 
     [[nodiscard]] double get_time() const { return m_time; }
+
 
 private:
     double m_time;
@@ -33,6 +32,7 @@ class TriggerEvent : public Event {
 public:
     // TODO: TRIGGER TIME VS TARGET TIME
     explicit TriggerEvent(double time) : Event(time) {}
+
 
     explicit TriggerEvent(const TimePoint& time_point) : Event(time_point.get_tick()) {}
 
@@ -57,6 +57,7 @@ public:
         return {time, midi_cents, 0, channel};
     }
 
+
     static std::pair<MidiEvent, MidiEvent> note(double onset
                                                 , int midi_cents
                                                 , int velocity
@@ -69,9 +70,12 @@ public:
 
     [[nodiscard]] int get_midi_cents() const { return m_midi_cents; }
 
+
     [[nodiscard]] int get_note_number() const { return m_midi_cents / 100; }
 
+
     [[nodiscard]] int get_velocity() const { return m_velocity; }
+
 
     [[nodiscard]] int get_channel() const { return m_channel; }
 

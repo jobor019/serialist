@@ -1,14 +1,14 @@
 
 
-#ifndef SERIALISTLOOPER_TEXT_SEQUENCE_COMPONENT_H
-#define SERIALISTLOOPER_TEXT_SEQUENCE_COMPONENT_H
+#ifndef SERIALISTLOOPER_TEXT_SEQUENCE_MODULE_H
+#define SERIALISTLOOPER_TEXT_SEQUENCE_MODULE_H
 
-#include "node_component.h"
+#include "generative_component.h"
 #include "sequence.h"
 
 template<typename T>
-class TextSequenceComponent : public GenerativeComponent
-                              , private juce::Label::Listener {
+class TextSequenceModule : public GenerativeComponent
+                           , private juce::Label::Listener {
 public:
 
     enum class Layout {
@@ -17,7 +17,7 @@ public:
     };
 
 
-    TextSequenceComponent(const std::string& id, ParameterHandler& parent, Layout layout = Layout::full)
+    TextSequenceModule(const std::string& id, ParameterHandler& parent, Layout layout = Layout::full)
             : m_header(id, parent)
               , m_sequence(id, parent)
               , m_layout(layout) {
@@ -36,8 +36,14 @@ public:
     }
 
 
-    std::pair<int, int> dimensions() override {
-        return {DimensionConstants::SLIDER_DEFAULT_WIDTH, DimensionConstants::SEQUENCE_HEIGHT};
+    static int width_of(Layout layout) {
+        (void) layout;
+        return 100;
+    }
+
+    static int height_of(Layout layout) {
+        (void) layout;
+        return 100;
     }
 
 
@@ -108,7 +114,7 @@ private:
     }
 
 
-    HeaderComponent m_header;
+    HeaderWidget m_header;
 
     Sequence<T> m_sequence;
 
@@ -120,4 +126,4 @@ private:
 
 };
 
-#endif //SERIALISTLOOPER_TEXT_SEQUENCE_COMPONENT_H
+#endif //SERIALISTLOOPER_TEXT_SEQUENCE_MODULE_H

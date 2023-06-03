@@ -1,0 +1,69 @@
+
+
+#ifndef SERIALISTLOOPER_MODULAR_GENERATOR_H
+#define SERIALISTLOOPER_MODULAR_GENERATOR_H
+
+#include <mutex>
+#include "source.h"
+
+class ModularGenerator : public ParameterHandler {
+public:
+    explicit ModularGenerator(ParameterHandler&& handler)
+            : ParameterHandler(std::move(handler)) {}
+
+
+    void process(const TimePoint& time) {
+        std::lock_guard<std::mutex> lock(process_mutex);
+        for (auto& source: m_sources) {
+            source->process(time);
+        }
+    }
+
+
+    void add(std::unique_ptr<Generative> generative) {
+        std::lock_guard<std::mutex> lock(process_mutex);
+
+        if (std::find(m_generatives.begin(), m_generatives.end(), generative) != m_generatives.end())
+            throw std::runtime_error("Cannot add a generative twice");
+
+        if (auto* source = dynamic_cast<Source*>(generative.get())) {
+            m_sources.emplace_back(source);
+        }
+
+        m_generatives.emplace_back(std::move(generative));
+    }
+
+    void add(std::vector<std::unique_ptr<Generative>> generatives) {
+        for (auto& generative : generatives) {
+            add(std::move(generative));
+        }
+    }
+
+
+    void remove(Generative* generative) {
+        (void) generative;
+        std::lock_guard<std::mutex> lock(process_mutex);
+        throw std::runtime_error("remove is not implemented"); // TODO
+    }
+
+
+    void connect() { throw std::runtime_error("not implemented"); /* TODO */ }
+
+
+    void disconnect() { throw std::runtime_error("not implemented"); /* TODO */ }
+
+
+    void reposition() { throw std::runtime_error("not implemented"); /* TODO */ }
+
+
+private:
+
+    std::mutex process_mutex;
+
+    std::vector<std::unique_ptr<Generative>> m_generatives;
+    std::vector<Source*> m_sources;
+
+
+};
+
+#endif //SERIALISTLOOPER_MODULAR_GENERATOR_H

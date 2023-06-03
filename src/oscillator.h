@@ -8,6 +8,7 @@
 #include "phasor.h"
 #include "utils.h"
 #include "socket_policy.h"
+#include "variable.h"
 
 class Oscillator : public Node<double> {
 public:
@@ -82,9 +83,28 @@ public:
     void set_enabled(Node<bool>* enabled) { m_enabled = enabled; }
 
 
-    std::vector<double> get_output_history() {
-        return m_previous_values.pop_all();
-    }
+    Socket<Type>& get_type() { return m_type; }
+
+
+    Socket<float>& get_freq() { return m_freq; }
+
+
+    Socket<float>& get_add() { return m_add; }
+
+
+    Socket<float>& get_mul() { return m_mul; }
+
+
+    Socket<float>& get_duty() { return m_duty; }
+
+
+    Socket<float>& get_curve() { return m_curve; }
+
+
+    Socket<bool>& get_enabled() { return m_enabled; }
+
+
+    std::vector<double> get_output_history() { return m_previous_values.pop_all(); }
 
 
 private:

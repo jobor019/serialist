@@ -1,37 +1,29 @@
 
 
-#ifndef SERIALISTLOOPER_TOGGLE_BUTTON_OBJECT_H
-#define SERIALISTLOOPER_TOGGLE_BUTTON_OBJECT_H
+#ifndef SERIALISTLOOPER_TOGGLE_BUTTON_WIDGET_H
+#define SERIALISTLOOPER_TOGGLE_BUTTON_WIDGET_H
 
 #include <juce_gui_extra/juce_gui_extra.h>
-#include "node_component.h"
+#include "generative_component.h"
 #include "variable.h"
 
-class ToggleButtonObject : public GenerativeComponent
+class ToggleButtonWidget : public GenerativeComponent
                            , private juce::ValueTree::Listener {
 public:
-    ToggleButtonObject(const std::string& identifier
-                       , ParameterHandler& parent
-                       , bool initial = false
-                       , const std::string& on_text = ""
-                       , const std::string& off_text = "")
-            : m_variable(initial, identifier, parent)
+    explicit ToggleButtonWidget(Variable<bool>& variable
+                                , const std::string& on_text = ""
+                                , const std::string& off_text = "")
+            : m_variable(variable)
               , m_on_text(on_text)
               , m_off_text(off_text) {
 
-        m_button.onStateChange = [this]() { on_value_change(); };
-
-        m_button.setToggleState(initial, juce::dontSendNotification);
-        m_button.setButtonText(m_button.getToggleState() ? m_on_text : m_off_text);
-
-        addAndMakeVisible(m_button);
-
+        initialize_button();
 
         m_variable.get_parameter_obj().add_value_tree_listener(*this);
     }
 
 
-    ~ToggleButtonObject() override {
+    ~ToggleButtonWidget() override {
         m_variable.get_parameter_obj().remove_value_tree_listener(*this);
     }
 
@@ -39,12 +31,10 @@ public:
     Generative& get_generative() override { return m_variable; }
 
 
-    std::pair<int, int> dimensions() override {
-        if (m_on_text.isEmpty() && m_off_text.isEmpty()) {
-            return {DimensionConstants::SLIDER_DEFAULT_HEIGHT, DimensionConstants::SLIDER_DEFAULT_HEIGHT};
-        }
-        return {DimensionConstants::DEFAULT_LABEL_WIDTH, DimensionConstants::SLIDER_DEFAULT_HEIGHT};
-    }
+    void set_layout(int) override { /* no layouts defined */ }
+
+
+    static int height_of() { return DimensionConstants::SLIDER_DEFAULT_HEIGHT; }
 
 
     void paint(juce::Graphics&) override {}
@@ -61,6 +51,13 @@ public:
 
 
 private:
+    void initialize_button() {
+        m_button.onStateChange = [this]() { on_value_change(); };
+        m_button.setButtonText(m_variable.get_value() ? m_on_text : m_off_text);
+        addAndMakeVisible(m_button);
+    }
+
+
     void valueTreePropertyChanged(juce::ValueTree& treeWhosePropertyHasChanged
                                   , const juce::Identifier& property) override {
         if (m_variable.get_parameter_obj().equals_property(treeWhosePropertyHasChanged, property)) {
@@ -75,7 +72,7 @@ private:
     }
 
 
-    Variable<bool> m_variable;
+    Variable<bool>& m_variable;
 
     juce::ToggleButton m_button;
 
@@ -85,4 +82,4 @@ private:
 
 };
 
-#endif //SERIALISTLOOPER_TOGGLE_BUTTON_OBJECT_H
+#endif //SERIALISTLOOPER_TOGGLE_BUTTON_WIDGET_H

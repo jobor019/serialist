@@ -46,6 +46,22 @@ public:
     }
 
 
+    void add_value_tree_listener(juce::ValueTree::Listener& listener) {
+        m_parent.get_value_tree().addListener(&listener);
+    }
+
+
+    void remove_value_tree_listener(juce::ValueTree::Listener& listener) {
+        m_parent.get_value_tree().removeListener(&listener);
+    }
+
+    bool equals_property(juce::ValueTree& treeWhosePropertyHasChanged, const juce::Identifier& property) {
+        return treeWhosePropertyHasChanged == m_parent.get_value_tree() && property == m_identifier;
+    }
+
+
+
+
 protected:
     void set_connection_internal(SocketType* node) {
         if (node) {

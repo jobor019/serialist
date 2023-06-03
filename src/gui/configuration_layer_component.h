@@ -1,31 +1,18 @@
 
 
-#ifndef SERIALISTLOOPER_GENERATION_LAYER_H
-#define SERIALISTLOOPER_GENERATION_LAYER_H
+#ifndef SERIALISTLOOPER_CONFIGURATION_LAYER_COMPONENT_H
+#define SERIALISTLOOPER_CONFIGURATION_LAYER_COMPONENT_H
 
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "parameter_policy.h"
-#include "node_component.h"
-#include "connector_object.h"
+#include "generative_component.h"
+#include "connector_component.h"
 #include "source.h"
 
-class GenerationLayer : public juce::Component
-                        , public ParameterHandler {
+class ConfigurationLayerComponent : public juce::Component {
 public:
 
-    GenerationLayer(juce::ValueTree& vt, juce::UndoManager& um)
-            : ParameterHandler(vt, um) {
-
-    }
-
-
-    void process(const TimePoint& time) {
-        std::lock_guard<std::mutex> lock(process_mutex);
-        for (auto& source: m_sources) {
-            source->process(time);
-        }
-
-    }
+    ConfigurationLayerComponent(ModularGenerator& modular_generator) : m_modular_generator(modular_generator) {}
 
 
     void paint(juce::Graphics& g) override {
@@ -34,7 +21,7 @@ public:
 
 
     void resized() override {
-        std::cout << "GenerationLayer.resized() not implemented" << std::endl;
+        std::cout << "ConfigurationLayerComponent.resized() not implemented" << std::endl;
     }
 
 
@@ -90,12 +77,11 @@ private:
     }
 
 
-    std::vector<std::unique_ptr<GenerativeComponent>> m_nodes;
-    std::vector<Source*> m_sources;
+
     std::vector<ConnectorObject> m_connectors;
 
-    std::mutex process_mutex;
+
 
 };
 
-#endif //SERIALISTLOOPER_GENERATION_LAYER_H
+#endif //SERIALISTLOOPER_CONFIGURATION_LAYER_COMPONENT_H

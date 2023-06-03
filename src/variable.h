@@ -18,7 +18,7 @@ public:
     inline static const std::string PARAMETER_ADDRESS = "value";
 
 
-    explicit Variable(T value, const std::string& id, VTParameterHandler& parent)
+    explicit Variable(const std::string& id, VTParameterHandler& parent, T value)
             : Node<T>(id, parent)
               , m_value(value, PARAMETER_ADDRESS, *this) {}
 

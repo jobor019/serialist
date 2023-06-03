@@ -7,7 +7,6 @@
 #include "oscillator.h"
 
 class OscillatorView : public juce::Component
-//                       , public Dimensioned
                        , private juce::Timer {
 public:
 
@@ -29,29 +28,20 @@ public:
         startTimer(25);
     }
 
-//    std::pair<int, int> dimensions() override {
-//        int height;
-//        if (m_layout == Layout::compact) {
-//            height = DimensionConstants::SLIDER_DEFAULT_HEIGHT;
-//        } else {
-//            height =
-//        }
-//    }
 
+    static int height_of(Layout layout) {
+        if (layout == Layout::compact) {
+            return DimensionConstants::SLIDER_DEFAULT_HEIGHT;
+        } else {
+            return 2 * DimensionConstants::SLIDER_DEFAULT_HEIGHT;
+        }
+    }
 
     void paint(juce::Graphics&) override {}
 
 
     void resized() override {
         m_view.setBounds(getLocalBounds());
-    }
-
-
-    int default_height() const {
-        if (m_layout == Layout::full)
-            return 22;
-        else
-            return 14;
     }
 
 

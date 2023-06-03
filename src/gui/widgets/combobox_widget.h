@@ -1,14 +1,14 @@
 
 
-#ifndef SERIALISTLOOPER_COMBOBOX_OBJECT_H
-#define SERIALISTLOOPER_COMBOBOX_OBJECT_H
+#ifndef SERIALISTLOOPER_COMBOBOX_WIDGET_H
+#define SERIALISTLOOPER_COMBOBOX_WIDGET_H
 
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "variable.h"
-#include "node_component.h"
+#include "generative_component.h"
 
 template<typename T>
-class ComboBoxObject : public GenerativeComponent
+class ComboBoxWidget : public GenerativeComponent
                        , private juce::ValueTree::Listener
                        , private juce::ComboBox::Listener {
 public:
@@ -18,74 +18,42 @@ public:
         T value;
     };
 
-    enum LabelPosition {
-        left = 0
-        , bottom = 1
+    enum class Layout : int {
+        label_left = 0
+        , label_below = 1
     };
 
 
-    ComboBoxObject(const std::string& identifier
-                   , ParameterHandler& parent
-                   , std::vector<Entry> values
-                   , T initial
+    ComboBoxWidget(Variable<T>& variable
+                   , std::vector<Entry>&& values
                    , const juce::String& label = ""
-                   , int label_width = DimensionConstants::DEFAULT_LABEL_WIDTH)
-            : m_variable(initial, identifier, parent)
+                   , int label_width = DimensionConstants::DEFAULT_LABEL_WIDTH
+                   , const Layout layout = Layout::label_left)
+            : m_variable(variable)
               , m_label({}, label)
-              , m_label_width(label_width) {
+              , m_label_width(label_width)
+              , m_layout(layout) {
 
-        for (auto& item: values) {
-            add_entry(item);
-        }
-
-        m_combo_box.setSelectedId(id_from_value(initial), juce::dontSendNotification);
-        m_combo_box.addListener(this);
-        addAndMakeVisible(m_combo_box);
-
-
-        if (m_label_position == LabelPosition::bottom)
-            m_label.setJustificationType(juce::Justification::centred);
-        else
-            m_label.setJustificationType(juce::Justification::left);
-
-        addAndMakeVisible(m_label);
+        initialize_combo_box(std::move(values));
+        initialize_label();
 
         m_variable.get_parameter_obj().add_value_tree_listener(*this);
     }
 
 
-    ~ComboBoxObject() override {
+    ~ComboBoxWidget() override {
         m_variable.get_parameter_obj().remove_value_tree_listener(*this);
     }
 
 
-    ComboBoxObject(const ComboBoxObject&) = delete;
-    ComboBoxObject& operator=(const ComboBoxObject&) = delete;
-    ComboBoxObject(ComboBoxObject&&) noexcept = default;
-    ComboBoxObject& operator=(ComboBoxObject&&) noexcept = default;
+    ComboBoxWidget(const ComboBoxWidget&) = delete;
+    ComboBoxWidget& operator=(const ComboBoxWidget&) = delete;
+    ComboBoxWidget(ComboBoxWidget&&) noexcept = default;
+    ComboBoxWidget& operator=(ComboBoxWidget&&) noexcept = default;
 
 
-    std::pair<int, int> dimensions() override {
-        return {default_width(), default_height()};
-    }
-
-    int default_width() {
-        if (m_label.getText().isEmpty())
-            return DimensionConstants::SLIDER_DEFAULT_WIDTH;
-
-        if (m_label_position == LabelPosition::bottom) {
-            return DimensionConstants::SLIDER_DEFAULT_WIDTH;
-        } else {
-            return DimensionConstants::SLIDER_DEFAULT_WIDTH + m_label_width;
-        }
-    }
-
-
-    int default_height() const {
-        if (m_label.getText().isEmpty())
-            return DimensionConstants::SLIDER_DEFAULT_HEIGHT;
-
-        if (m_label_position == LabelPosition::bottom) {
+    static int height_of(Layout layout) {
+        if (layout == Layout::label_below) {
             return DimensionConstants::SLIDER_DEFAULT_HEIGHT
                    + DimensionConstants::FONT_HEIGHT
                    + DimensionConstants::LABEL_BELOW_MARGINS;
@@ -95,14 +63,13 @@ public:
     }
 
 
+    Generative& get_generative() override { return m_variable; }
 
-    void set_label_position(LabelPosition label_position) {
-        m_label_position = label_position;
+
+    void set_layout(int layout_id) override {
+        m_layout = static_cast<Layout>(layout_id);
         resized();
     }
-
-
-    Generative& get_generative() override { return m_variable; }
 
 
     void paint(juce::Graphics&) override {}
@@ -113,7 +80,7 @@ public:
 
         if (m_label.getText().isNotEmpty()) {
 
-            if (m_label_position == LabelPosition::bottom) {
+            if (m_layout == Layout::label_below) {
                 m_label.setJustificationType(juce::Justification::centred);
                 m_label.setBounds(bounds.removeFromBottom(DimensionConstants::FONT_HEIGHT));
                 bounds.removeFromBottom(DimensionConstants::LABEL_BELOW_MARGINS);
@@ -135,6 +102,27 @@ public:
 
 
 private:
+
+    void initialize_combo_box(std::vector<Entry> values) {
+        for (auto& item: values) {
+            add_entry(item);
+        }
+
+        m_combo_box.addListener(this);
+        m_combo_box.setSelectedId(id_from_value(m_variable.get_value()));
+        addAndMakeVisible(m_combo_box);
+    }
+
+
+    void initialize_label() {
+        if (m_layout == Layout::label_left)
+            m_label.setJustificationType(juce::Justification::left);
+        else
+            m_label.setJustificationType(juce::Justification::centred);
+
+        addAndMakeVisible(m_label);
+    }
+
 
     void comboBoxChanged(juce::ComboBox*) override {
         m_variable.set_value(value_from_id(m_combo_box.getSelectedId()));
@@ -164,11 +152,11 @@ private:
     }
 
 
-    Variable<T> m_variable;
+    Variable<T>& m_variable;
 
     juce::Label m_label;
-    LabelPosition m_label_position = LabelPosition::bottom;
     int m_label_width;
+    Layout m_layout;
 
     juce::ComboBox m_combo_box;
 
@@ -176,4 +164,4 @@ private:
     int last_id = 0;
 };
 
-#endif //SERIALISTLOOPER_COMBOBOX_OBJECT_H
+#endif //SERIALISTLOOPER_COMBOBOX_WIDGET_H

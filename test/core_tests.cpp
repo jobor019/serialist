@@ -418,7 +418,7 @@ TEST_CASE("BrownNoise max difference constraint can be changed") {
 //    s.add_event(std::make_unique<TriggerEvent>(3.0));
 //    s.add_event(std::make_unique<TriggerEvent>(2.0));
 //
-//    auto v = s.get_events(2.4);
+//    auto v = s.poll(2.4);
 //
 //    REQUIRE(s.size() == 1);
 //

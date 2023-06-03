@@ -15,11 +15,11 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/collection.h
         ${CMAKE_SOURCE_DIR}/src/events.h
         ${CMAKE_SOURCE_DIR}/src/exceptions.h
-        ${CMAKE_SOURCE_DIR}/src/generation_graph.h
         ${CMAKE_SOURCE_DIR}/src/generative.h
         ${CMAKE_SOURCE_DIR}/src/generator.h
         ${CMAKE_SOURCE_DIR}/src/interpolator.h
         ${CMAKE_SOURCE_DIR}/src/mapping.h
+        ${CMAKE_SOURCE_DIR}/src/modular_generator.h
         ${CMAKE_SOURCE_DIR}/src/nop_parameter.h
         ${CMAKE_SOURCE_DIR}/src/oscillator.h
         ${CMAKE_SOURCE_DIR}/src/parameter_policy.h
@@ -35,24 +35,34 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/utils.h
         ${CMAKE_SOURCE_DIR}/src/variable.h
         ${CMAKE_SOURCE_DIR}/src/vt_parameter.h
-        ${CMAKE_SOURCE_DIR}/src/gui/combobox_object.h
-        ${CMAKE_SOURCE_DIR}/src/gui/connector_object.h
-        ${CMAKE_SOURCE_DIR}/src/gui/generation_layer.h
-        ${CMAKE_SOURCE_DIR}/src/gui/generator_component.h
-        ${CMAKE_SOURCE_DIR}/src/gui/header_component.h
-        ${CMAKE_SOURCE_DIR}/src/gui/interpolation_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/modules/generator_module.h
+        ${CMAKE_SOURCE_DIR}/src/gui/modules/interpolation_module.h
+        ${CMAKE_SOURCE_DIR}/src/gui/modules/note_source_module.h
+        ${CMAKE_SOURCE_DIR}/src/gui/modules/oscillator_module.h
+        ${CMAKE_SOURCE_DIR}/src/gui/modules/text_sequence_module.h
+        ${CMAKE_SOURCE_DIR}/src/gui/widgets/combobox_widget.h
+        ${CMAKE_SOURCE_DIR}/src/gui/widgets/header_widget.h
+        ${CMAKE_SOURCE_DIR}/src/gui/widgets/slider_widget.h
+        ${CMAKE_SOURCE_DIR}/src/gui/widgets/toggle_button_widget.h
+        ${CMAKE_SOURCE_DIR}/src/gui/configuration_layer_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/connector_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/generative_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/look_and_feel.h
         ${CMAKE_SOURCE_DIR}/src/gui/main_component.h
-        ${CMAKE_SOURCE_DIR}/src/gui/midi_note_source_component.h
-        ${CMAKE_SOURCE_DIR}/src/gui/node_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/module_factory.h
         ${CMAKE_SOURCE_DIR}/src/gui/note_view.h
-        ${CMAKE_SOURCE_DIR}/src/gui/oscillator_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/oscillator_view.h
-        ${CMAKE_SOURCE_DIR}/src/gui/slider_object.h
-        ${CMAKE_SOURCE_DIR}/src/gui/text_sequence_component.h
-        ${CMAKE_SOURCE_DIR}/src/gui/toggle_button_object.h
+        ${CMAKE_SOURCE_DIR}/src/gui/socket_component.h
         ${CMAKE_SOURCE_DIR}/src/io/renderers.h
         )
+
+set(INCLUDES
+        ${CMAKE_SOURCE_DIR}/src/gui
+        ${CMAKE_SOURCE_DIR}/src/gui/modules
+        ${CMAKE_SOURCE_DIR}/src/gui/widgets
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/src/io
+        ${CMAKE_SOURCE_DIR}/GuiUtils/src)
 
 set(MODULE_DEPENDENCIES_JUCE
         juce::juce_gui_basics
@@ -83,10 +93,7 @@ target_sources(serialistLooper
         ${SOURCES})
 
 target_include_directories(serialistLooper PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/gui
-        ${CMAKE_SOURCE_DIR}/src
-        ${CMAKE_SOURCE_DIR}/src/io
-        )
+        ${INCLUDES})
 
 target_compile_definitions(serialistLooper
         PRIVATE
@@ -150,10 +157,7 @@ target_sources(playground
         ${SOURCES})
 
 target_include_directories(playground PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/gui
-        ${CMAKE_SOURCE_DIR}/src
-        ${CMAKE_SOURCE_DIR}/src/io
-        ${CMAKE_SOURCE_DIR}/GuiUtils/src
+        ${INCLUDES}
         )
 
 target_compile_definitions(playground

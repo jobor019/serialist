@@ -2,17 +2,17 @@
 #define SERIALIST_LOOPER_MAIN_COMPONENT_H
 
 #include <juce_gui_extra/juce_gui_extra.h>
-#include "node_component.h"
+#include "generative_component.h"
 #include "source.h"
-#include "connector_object.h"
+#include "connector_component.h"
 #include "transport.h"
 #include "scheduler.h"
 #include "io/renderers.h"
 #include "parameter_policy.h"
-#include "generation_layer.h"
-#include "midi_note_source_component.h"
-#include "oscillator_component.h"
-#include "generator_component.h"
+#include "configuration_layer_component.h"
+#include "modules/note_source_module.h"
+#include "modules/oscillator_module.h"
+#include "modules/generator_module.h"
 
 
 class MainComponent : public juce::Component
@@ -28,16 +28,16 @@ public:
 
         addAndMakeVisible(m_generation_layer);
 
-        m_generation_layer.add_component(std::make_unique<MidiNoteSourceComponent>("midi1", m_generation_layer)
+        m_generation_layer.add_component(std::make_unique<NoteSourceModule>("midi1", m_generation_layer)
                                          , {50, 50, 220, 105});
 
-        m_generation_layer.add_component(std::make_unique<MidiNoteSourceComponent>("midi2", m_generation_layer)
+        m_generation_layer.add_component(std::make_unique<NoteSourceModule>("midi2", m_generation_layer)
                                          , {330, 50, 220, 105});
 
-        m_generation_layer.add_component(std::make_unique<OscillatorComponent>("osc1", m_generation_layer)
+        m_generation_layer.add_component(std::make_unique<OscillatorModule>("osc1", m_generation_layer)
                                          , {330, 200, 100, 200});
 
-        m_generation_layer.add_component(std::make_unique<GeneratorComponent<int>>("pitch", m_generation_layer)
+        m_generation_layer.add_component(std::make_unique<GeneratorModule<int>>("pitch", m_generation_layer)
                                          , {50, 200, 180, 210});
 
 
@@ -89,7 +89,7 @@ private:
     juce::UndoManager m_undo_manager;
 
     Transport m_transport;
-    GenerationLayer m_generation_layer;
+    ConfigurationLayerComponent m_generation_layer;
 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)

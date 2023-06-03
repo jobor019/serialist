@@ -12,6 +12,8 @@
 
 class VTParameterHandler {
 public:
+    static const inline juce::Identifier ROOT = "root";
+
 
     // Public ctor, same template as NopParameterHandler
     VTParameterHandler(const std::string& identifier, VTParameterHandler& parent)
@@ -23,11 +25,8 @@ public:
 
 
     // create root
-    VTParameterHandler(juce::ValueTree& vt, juce::UndoManager& um)
-            : m_value_tree(vt), m_undo_manager(um), m_parent(nullptr) {
-        if (!m_value_tree.isValid())
-            throw ParameterError("VTParameterHandler is not registered");
-    }
+    explicit VTParameterHandler(juce::UndoManager& um)
+            : m_value_tree(ROOT), m_undo_manager(um), m_parent(nullptr) {}
 
 
     ~VTParameterHandler() {
@@ -38,13 +37,14 @@ public:
 
     VTParameterHandler(const VTParameterHandler&) = delete;
     VTParameterHandler& operator=(const VTParameterHandler&) = delete;
-    VTParameterHandler(VTParameterHandler&&) noexcept = delete;
+    VTParameterHandler(VTParameterHandler&&) noexcept = default;
     VTParameterHandler& operator=(VTParameterHandler&&) noexcept = delete;
 
 
     juce::ValueTree& get_value_tree() {
         return m_value_tree;
     }
+
 
     juce::Identifier get_identifier() const {
         return m_value_tree.getType();

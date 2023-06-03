@@ -1,21 +1,21 @@
 
 
-#ifndef SERIALISTLOOPER_MIDI_NOTE_SOURCE_COMPONENT_H
-#define SERIALISTLOOPER_MIDI_NOTE_SOURCE_COMPONENT_H
+#ifndef SERIALISTLOOPER_NOTE_SOURCE_MODULE_H
+#define SERIALISTLOOPER_NOTE_SOURCE_MODULE_H
 
 #include "source.h"
-#include "node_component.h"
+#include "generative_component.h"
 #include "midi_config.h"
-#include "slider_object.h"
-#include "toggle_button_object.h"
-#include "header_component.h"
-#include "note_view.h"
+#include "widgets/slider_widget.h"
+#include "widgets/toggle_button_widget.h"
+#include "widgets/header_widget.h"
+#include "views/note_view.h"
 
-class MidiNoteSourceComponent : public GenerativeComponent
-                                , private juce::Timer {
+class NoteSourceModule : public GenerativeComponent
+                         , private juce::Timer {
 public:
-    MidiNoteSourceComponent(const std::string& id
-                            , ParameterHandler& parent)
+    NoteSourceModule(const std::string& id
+                     , ParameterHandler& parent)
             : m_midi_source(id, parent)
               , m_header(id, parent)
               , m_visualizer(m_midi_source)
@@ -42,6 +42,14 @@ public:
 
         m_midi_source.set_midi_device(MidiConfig::get_instance().get_default_device_name());
         startTimer(25);
+
+    }
+
+    static int width_of(Layout layout) {
+
+    }
+
+    static int height_of(Layout layout) {
 
     }
 
@@ -86,25 +94,25 @@ public:
 private:
     void timerCallback() override {
         if (!m_midi_source.get_played_notes().empty())
-            std::cout << "MidiNoteSourceComponent: played note\n";
+            std::cout << "NoteSourceModule: played note\n";
     }
 
 
     MidiNoteSource m_midi_source;
 
-    HeaderComponent m_header;
+    HeaderWidget m_header;
 
     NoteView m_visualizer;
 
-    SliderObject<float> m_internal_onset;
-    SliderObject<float> m_internal_duration;
-    SliderObject<int> m_internal_pitch;
-    SliderObject<int> m_internal_velocity;
-    SliderObject<int> m_internal_channel;
+    SliderWidget<float> m_internal_onset;
+    SliderWidget<float> m_internal_duration;
+    SliderWidget<int> m_internal_pitch;
+    SliderWidget<int> m_internal_velocity;
+    SliderWidget<int> m_internal_channel;
 
-//    ToggleButtonObject m_enable_button;
+//    ToggleButtonWidget m_enable_button;
 //    juce::Label m_label;
 };
 
 
-#endif //SERIALISTLOOPER_MIDI_NOTE_SOURCE_COMPONENT_H
+#endif //SERIALISTLOOPER_NOTE_SOURCE_MODULE_H

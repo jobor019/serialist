@@ -97,7 +97,7 @@ public:
 
     void hiResTimerCallback() override {
         const auto& time = m_transport.update_time();
-        auto events = m_scheduler.get_events(time);
+        auto events = m_scheduler.poll(time);
 
         for (auto& event: events) {
             if (dynamic_cast<TriggerEvent*>(event.get())) {

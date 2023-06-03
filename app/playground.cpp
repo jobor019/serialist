@@ -3,15 +3,28 @@
 
 #include <memory>
 #include "look_and_feel.h"
-#include "oscillator_component.h"
-#include "generator_component.h"
-//#include "text_sequence_component.h"
-//#include "interpolation_component.h"
+#include "parameter_policy.h"
+#include "generative_component.h"
+#include "oscillator.h"
+#include "modular_generator.h"
+#include "slider_widget.h"
+//#include "modules/oscillator_module.h"
+//#include "modular_generator.h"
+//#include "module_factory.h"
+//#include "modules/generator_module.h"
+//#include "modules/text_sequence_module.h"
+//#include "modules/interpolation_module.h"
+//
+//#include "widgets/header_widget.h"
+#include "widgets/combobox_widget.h"
+#include "oscillator_module.h"
+#include "module_factory.h"
+//#include "modules/note_source_module.h"
 
-//#include "header_component.h"
-//#include "combobox_object.h"
-#include "midi_note_source_component.h"
-
+class SomeObject : public ParameterHandler {
+public:
+    SomeObject(ParameterHandler&& handler) : ParameterHandler(std::move(handler)) {}
+};
 
 class PlaygroundComponent : public juce::Component
                             , private juce::Timer {
@@ -19,12 +32,13 @@ public:
 
 
     PlaygroundComponent()
-            : m_value_tree(m_vt_identifier), m_some_handler(m_value_tree, m_undo_manager)
-              , m_oscillator("osc1", m_some_handler)
+//            : m_some_handler(m_undo_manager)
+            : m_modular_generator(ParameterHandler(m_undo_manager))
+//              , m_oscillator("osc1")
 //              , m_sequence("seq1", m_some_handler)
 //              , m_interpolator("interp1", m_some_handler)
-              , m_pitch("pitch", m_some_handler)
-              , m_source("source", m_some_handler)
+//              , m_pitch("pitch", m_some_handler)
+//              , m_source("source", m_some_handler)
 //              , s(ScalableSlider::Orientation::vertical)
 //              , hc("header", m_some_handler)
 //              , my_cb("osctype"
@@ -32,19 +46,47 @@ public:
 //                      , {{  "sin", Oscillator::Type::sin}
 //                         , {"sqr", Oscillator::Type::square}}
 //                      , Oscillator::Type::sin
-//                      , "helo") {
+//                      , "helo")
     {
+
+//        auto e = SomeObject(std::move(m_some_handler));
 
         m_lnf = std::make_unique<SerialistLookAndFeel>();
         SerialistLookAndFeel::setup_look_and_feel_colors(*m_lnf);
         juce::Desktop::getInstance().setDefaultLookAndFeel(m_lnf.get());
 
-        addAndMakeVisible(m_oscillator);
+
+        auto [the_module, generatives] = ModuleFactory::new_oscillator("osc1"
+                                                                       , m_modular_generator
+                                                                       , OscillatorModule::Layout::full);
+
+        m_oscillator = std::move(the_module);
+        m_modular_generator.add(std::move(generatives));
+
+        addAndMakeVisible(*m_oscillator);
+
+//        m_model.add(std::move(generatives));
+
+
+//        m_oscillator = std::move(the_module);
+//
+//                          addAndMakeVisible(*m_oscillator);
+
+
+
+//        auto oscillator_data = ModuleFactory::new_oscillator("osc1", m_model, OscillatorModule::Layout::full);
+
+//        m_model.add(std::move(oscillator_data.generatives));
+//        m_oscillator = std::move(oscillator_data.component);
+
+
+//        addAndMakeVisible(m_oscillator);
+
 //        addAndMakeVisible(m_sequence);
 //        addAndMakeVisible(m_interpolator);
-        addAndMakeVisible(m_pitch);
+//        addAndMakeVisible(m_pitch);
 //        addAndMakeVisible(s);
-        addAndMakeVisible(m_source);
+//        addAndMakeVisible(m_source);
 
 //        tb.setButtonText("HH");
 //        addAndMakeVisible(tb);
@@ -53,7 +95,7 @@ public:
 //
 //        addAndMakeVisible(my_cb);
 
-        std::cout << m_value_tree.toXmlString() << std::endl;
+//        std::cout << m_some_handler.get_value_tree().toXmlString() << std::endl;
 
         startTimer(50);
         setSize(600, 400);
@@ -70,55 +112,54 @@ public:
 
 
     void resized() override {
-        m_oscillator.setBounds(50, 30, 120, 170);
+        m_oscillator->setBounds(50, 30, 120, 170);
+
 //        m_sequence.setBounds(300, 30, 100, 40);
 //        m_interpolator.setBounds(50, 200, 180, 40);
-        m_pitch.setBounds(300, 200, 180, 210);
+//        m_pitch.setBounds(300, 200, 180, 210);
 //        s.setBounds(300, 100, 12, 40);
 //        tb.setBounds(350, 100, 40, 40);
 //        hc.setBounds(400, 100, 200, 20);
 //        my_cb.setBounds(500, 40, 80, 50);
-        m_source.setBounds(50, 270, 200, 115);
+//        m_source.setBounds(50, 270, 200, 115);
     }
 
 
     void timerCallback() override {
-        auto ee = dynamic_cast<Oscillator*>(&m_oscillator.get_generative())->process(TimePoint());
-        m_oscillator.repaint();
+//        auto ee = dynamic_cast<Oscillator*>(&m_oscillator.get_generative())->process(TimePoint());
+//        m_oscillator.repaint();
         ++callback_count;
 
         if (callback_count % 50 == 0) {
-            std::cout << m_value_tree.toXmlString() << "\n";
+            std::cout << m_modular_generator.get_value_tree().toXmlString() << "\n";
         }
 
     }
 
 
 private:
-
-    const juce::Identifier m_vt_identifier = "root";
-
     std::unique_ptr<juce::LookAndFeel> m_lnf;
 
-    juce::ValueTree m_value_tree;
     juce::UndoManager m_undo_manager;
 
-    ParameterHandler m_some_handler;
+//    ParameterHandler m_some_handler;
 
-    OscillatorComponent m_oscillator;
-//    TextSequenceComponent<int> m_sequence;
-//    InterpolationStrategyComponent<int> m_interpolator;
-    GeneratorComponent<int> m_pitch;
+    ModularGenerator m_modular_generator;
+
+    std::unique_ptr<OscillatorModule> m_oscillator;
+//    TextSequenceModule<int> m_sequence;
+//    InterpolationModule<int> m_interpolator;
+//    GeneratorModule<int> m_pitch;
 //
-    MidiNoteSourceComponent m_source;
-//
+//    NoteSourceModule m_source;
+
 //    juce::ToggleButton tb;
-//
+
 //    ScalableSlider s;
-//
-//    HeaderComponent hc;
-//
-//    ComboBoxObject<Oscillator::Type> my_cb;
+
+//    HeaderWidget hc;
+
+//    ComboBoxWidget<Oscillator::Type> my_cb;
 
     int callback_count = 0;
 

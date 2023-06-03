@@ -3,15 +3,15 @@
 #ifndef SERIALISTLOOPER_NEW_GENERATOR_COMPONENT_H
 #define SERIALISTLOOPER_NEW_GENERATOR_COMPONENT_H
 
-#include "node_component.h"
+#include "generative_component.h"
 #include "parameter_policy.h"
 #include "generator.h"
-#include "oscillator_component.h"
-#include "text_sequence_component.h"
-#include "interpolation_component.h"
+#include "oscillator_module.h"
+#include "text_sequence_module.h"
+#include "interpolation_module.h"
 
 template<typename T>
-class GeneratorComponent : public GenerativeComponent {
+class GeneratorModule : public GenerativeComponent {
 public:
     enum class Layout {
         full
@@ -20,10 +20,10 @@ public:
     };
 
 
-    GeneratorComponent(const std::string& id, ParameterHandler& parent)
+    GeneratorModule(const std::string& id, ParameterHandler& parent)
             : m_generator(id, parent)
               , m_header(id, parent)
-              , m_internal_oscillator(id + "::oscillator", parent, OscillatorComponent::Layout::generator_internal)
+              , m_internal_oscillator(id + "::oscillator", parent, OscillatorModule::Layout::generator_internal)
               , m_interpolator(id + "::interpolator", parent)
               , m_internal_sequence(id + "::sequence", parent) {
 
@@ -39,6 +39,13 @@ public:
         addAndMakeVisible(m_internal_sequence);
     }
 
+    static int width_of(Layout layout) {
+
+    }
+
+    static int height_of(Layout layout) {
+
+    }
 
     std::pair<int, int> dimensions() override {
         return {0, 0};
@@ -81,11 +88,11 @@ private:
 
     Generator<T> m_generator;
 
-    HeaderComponent m_header;
+    HeaderWidget m_header;
 
-    OscillatorComponent m_internal_oscillator;
-    InterpolationStrategyComponent<T> m_interpolator;
-    TextSequenceComponent<T> m_internal_sequence; // TODO: Replace with generic SequenceComponent
+    OscillatorModule m_internal_oscillator;
+    InterpolationModule<T> m_interpolator;
+    TextSequenceModule<T> m_internal_sequence; // TODO: Replace with generic SequenceComponent
 
     Layout m_layout = Layout::full;
 };

@@ -1,7 +1,7 @@
 
 
-#ifndef SERIALISTLOOPER_NODE_COMPONENT_H
-#define SERIALISTLOOPER_NODE_COMPONENT_H
+#ifndef SERIALISTLOOPER_GENERATIVE_COMPONENT_H
+#define SERIALISTLOOPER_GENERATIVE_COMPONENT_H
 
 #include "generative.h"
 #include "look_and_feel.h"
@@ -33,43 +33,13 @@ public:
     DimensionConstants() = delete;
 };
 
-
 // ==============================================================================================
 
-class WithDefaultHeight {
-public:
-    virtual int get_height() = 0;
-
-    WithDefaultHeight() = default;
-    virtual ~WithDefaultHeight() = default;
-    WithDefaultHeight(const WithDefaultHeight&) = delete;
-    WithDefaultHeight& operator=(const WithDefaultHeight&) = delete;
-    WithDefaultHeight(WithDefaultHeight&&)  noexcept = default;
-    WithDefaultHeight& operator=(WithDefaultHeight&&)  noexcept = default;
-};
-
-
-// ==============================================================================================
-
-class Dimensioned {
-public:
-    Dimensioned() = default;
-    virtual ~Dimensioned() = default;
-    Dimensioned(const Dimensioned&) = delete;
-    Dimensioned& operator=(const Dimensioned&) = delete;
-    Dimensioned(Dimensioned&&) noexcept = default;
-    Dimensioned& operator=(Dimensioned&&) noexcept = default;
-
-    virtual std::pair<int, int> dimensions() = 0;
-};
-
-
-// ==============================================================================================
-
-class GenerativeComponent : public juce::Component
-                            , public Dimensioned {
+class GenerativeComponent : public juce::Component {
 public:
     virtual Generative& get_generative() = 0;
+
+    virtual void set_layout(int layout_id) = 0;
 
     GenerativeComponent() = default;
     ~GenerativeComponent() override = default;
@@ -81,4 +51,4 @@ public:
 
 };
 
-#endif //SERIALISTLOOPER_NODE_COMPONENT_H
+#endif //SERIALISTLOOPER_GENERATIVE_COMPONENT_H
