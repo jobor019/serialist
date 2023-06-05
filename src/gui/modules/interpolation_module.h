@@ -19,11 +19,68 @@ public:
     };
 
 
-    InterpolationModule(const std::string& id, ParameterHandler& parent, Layout layout = Layout::full)
-            : m_header(id, parent)
-              , m_strategy(InterpolationStrategy<T>(), id, parent)
+    explicit InterpolationModule(Variable<InterpolationStrategy<T>>& strategy
+                                 , Layout layout = Layout::full)
+            : m_strategy(strategy)
+              , m_header(strategy.get_identifier_as_string())
               , m_layout(layout) {
 
+        initialize_components();
+
+    }
+
+
+    static int width_of(Layout layout = Layout::full) {
+        (void) layout;
+        return DimensionConstants::COMPONENT_LR_MARGINS * 2 + DimensionConstants::SLIDER_DEFAULT_WIDTH * 2;
+    }
+
+
+    static int height_of(Layout layout = Layout::full) {
+        if (layout == Layout::full) {
+            return HeaderWidget::height_of()
+                   + 2 * DimensionConstants::COMPONENT_UD_MARGINS * 2
+                   + DimensionConstants::SLIDER_DEFAULT_HEIGHT;
+        }
+        std::cout << "interpolation module: layout not implemented\n";
+        return 0;
+    }
+
+
+    void set_layout(int layout_id) override {
+        m_layout = static_cast<Layout>(layout_id);
+        resized();
+    }
+
+
+    void paint(juce::Graphics& g) override {
+        g.fillAll(getLookAndFeel().findColour(juce::DocumentWindow::backgroundColourId));
+        g.setColour(juce::Colours::grey);
+        g.drawRect(getLocalBounds(), 2);
+    }
+
+
+    void resized() override {
+        if (m_layout == Layout::full) {
+            auto bounds = getLocalBounds();
+
+            m_header.setBounds(bounds.removeFromTop(HeaderWidget::height_of()));
+            bounds.reduce(DimensionConstants::COMPONENT_LR_MARGINS, DimensionConstants::COMPONENT_UD_MARGINS);
+
+            m_pivot.setBounds(bounds.removeFromLeft(DimensionConstants::SLIDER_DEFAULT_WIDTH));
+            bounds.removeFromLeft(DimensionConstants::OBJECT_X_MARGINS_ROW);
+            m_type.setBounds(bounds);
+        } else {
+            std::cout << "internal layout not implemented for interpolationstrategy\n";
+        }
+    }
+
+
+    Generative& get_generative() override { return m_strategy; }
+
+
+private:
+    void initialize_components() {
         addAndMakeVisible(m_header);
 
         m_type.addItem("continuation", static_cast<int>(InterpolationStrategy<T>::Type::continuation));
@@ -40,66 +97,8 @@ public:
         m_pivot.setTextBoxIsEditable(false);
         m_pivot.addListener(this);
         addAndMakeVisible(m_pivot);
-
     }
 
-    static int width_of(Layout layout) {
-
-    }
-
-    static int height_of(Layout layout) {
-
-    }
-
-
-    std::pair<int, int> dimensions() override {
-        return {default_width(), default_height()};
-    }
-
-
-    int default_height() const {
-//        if (m_layout == Layout::full) {
-        return m_header.default_height()
-               + DimensionConstants::COMPONENT_UD_MARGINS * 2
-               + DimensionConstants::SLIDER_DEFAULT_HEIGHT;
-//        }
-    }
-
-
-    int default_width() const {
-        return DimensionConstants::COMPONENT_LR_MARGINS * 2 + DimensionConstants::SLIDER_DEFAULT_WIDTH * 2;
-    }
-
-
-    void paint(juce::Graphics& g) override {
-        g.fillAll(getLookAndFeel().findColour(juce::DocumentWindow::backgroundColourId));
-        g.setColour(juce::Colours::grey);
-        g.drawRect(getLocalBounds(), 2);
-    }
-
-
-    void resized() override {
-        if (m_layout == Layout::full) {
-            auto bounds = getLocalBounds();
-
-            m_header.setBounds(bounds.removeFromTop(m_header.default_height()));
-            bounds.reduce(DimensionConstants::COMPONENT_LR_MARGINS, DimensionConstants::COMPONENT_UD_MARGINS);
-
-            m_pivot.setBounds(bounds.removeFromLeft(DimensionConstants::SLIDER_DEFAULT_WIDTH));
-            bounds.removeFromLeft(DimensionConstants::OBJECT_X_MARGINS_ROW);
-            m_type.setBounds(bounds);
-        } else {
-            std::cout << "internal layout not implemented for interpolationstrategy\n";
-        }
-    }
-
-
-    Generative& get_generative() override {
-        return m_strategy;
-    }
-
-
-private:
 
     void sliderValueChanged(juce::Slider*) override {
         value_changed();
@@ -118,9 +117,9 @@ private:
     }
 
 
-    HeaderWidget m_header;
+    Variable<InterpolationStrategy<T>>& m_strategy;
 
-    Variable<InterpolationStrategy<T>> m_strategy;
+    HeaderWidget m_header;
 
     Layout m_layout;
 

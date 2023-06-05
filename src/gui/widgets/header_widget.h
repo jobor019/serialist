@@ -12,13 +12,23 @@ class HeaderWidget : public juce::Component
                      , private juce::Button::Listener {
 public:
 
+    explicit HeaderWidget(const std::string& public_name)
+            : m_enabled(std::nullopt)
+              , m_label({}, public_name)
+              , m_stepped(std::nullopt)
+              , m_minimized("-") {
+        initialize_widgets();
+
+    }
+
+
     HeaderWidget(const std::string& public_name
                  , Variable<bool>& enabled)
             : m_enabled(enabled)
               , m_label({}, public_name)
               , m_stepped(std::nullopt)
               , m_minimized("-") {
-        initialize_widgets(public_name);
+        initialize_widgets();
     }
 
 
@@ -29,7 +39,7 @@ public:
               , m_label({}, public_name)
               , m_stepped(std::make_optional<ToggleButtonWidget>(stepped))
               , m_minimized("-") {
-        initialize_widgets(public_name);
+        initialize_widgets();
     }
 
 
@@ -46,7 +56,12 @@ public:
 
     void resized() override {
         auto bounds = getLocalBounds().reduced(DimensionConstants::HEADER_INTERNAL_MARGINS);
-        m_enabled.setBounds(bounds.removeFromLeft(bounds.getHeight()));
+
+        auto enabled_bounds = bounds.removeFromLeft(bounds.getHeight());
+        if (m_enabled) {
+            m_enabled->setBounds(enabled_bounds);
+        }
+
         m_minimized.setBounds(bounds.removeFromRight(bounds.getHeight()));
 
         auto font = m_label.getFont();
@@ -60,7 +75,7 @@ public:
     }
 
 
-    ToggleButtonWidget& get_enabled() { return m_enabled; }
+    std::optional<ToggleButtonWidget>& get_enabled() { return m_enabled; }
 
 
     std::optional<ToggleButtonWidget>& get_stepped() { return m_stepped; }
@@ -68,11 +83,12 @@ public:
 
 private:
 
-    void initialize_widgets(const std::string& public_name) {
-        m_label.setText(public_name, juce::dontSendNotification);
+    void initialize_widgets() {
         m_label.setJustificationType(juce::Justification::centredLeft);
 
-        addAndMakeVisible(m_enabled);
+        if (m_enabled)
+            addAndMakeVisible(*m_enabled);
+
         addAndMakeVisible(m_label);
 
         if (m_stepped)
@@ -88,7 +104,7 @@ private:
     }
 
 
-    ToggleButtonWidget m_enabled;
+    std::optional<ToggleButtonWidget> m_enabled;
     juce::Label m_label;
     std::optional<ToggleButtonWidget> m_stepped;
     juce::ToggleButton m_minimized;

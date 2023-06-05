@@ -37,9 +37,9 @@ public:
             : m_tick(tick), m_tempo(tempo), m_beat(beat), m_meter(meter) {}
 
 
-    void increment(int64_t delta_ms) {
-        std::cout << "problematic truncation due to int64_t (change to ns or float_ms)\n";
-        double tick_increment = static_cast<double>(delta_ms) * 0.001 * m_tempo / 60.0;
+    void increment(int64_t delta_nanos) {
+//        std::cout << "problematic truncation due to int64_t (change to ns or float_ms)\n";
+        double tick_increment = static_cast<double>(delta_nanos) * 1e-9 * m_tempo / 60.0;
         m_tick += tick_increment;
         m_beat = fmod(m_beat + tick_increment, m_meter.duration());
 
@@ -93,7 +93,7 @@ public:
     const TimePoint& update_time() {
         if (m_active) {
             auto current_time = std::chrono::system_clock::now();
-            auto time_delta = std::chrono::duration_cast<std::chrono::milliseconds>(
+            auto time_delta = std::chrono::duration_cast<std::chrono::nanoseconds>(
                     current_time - m_previous_update_time).count();
             m_time_point.increment(time_delta);
             m_previous_update_time = current_time;

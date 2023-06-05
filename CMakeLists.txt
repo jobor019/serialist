@@ -53,6 +53,7 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/gui/main_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/module_factory.h
         ${CMAKE_SOURCE_DIR}/src/gui/socket_component.h
+        ${CMAKE_SOURCE_DIR}/src/io/midi_config.h
         ${CMAKE_SOURCE_DIR}/src/io/renderers.h
         )
 

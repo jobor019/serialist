@@ -9,13 +9,47 @@
 #include "variable.h"
 #include "modules/oscillator_module.h"
 #include "text_sequence_module.h"
+#include "interpolation_module.h"
+#include "note_source_module.h"
 
-template<typename Module>
-using ModuleAndGeneratives = std::pair<std::unique_ptr<Module>, std::vector<std::unique_ptr<Generative>>>;
+template<typename ModuleType>
+using ModuleAndGeneratives = std::pair<std::unique_ptr<ModuleType>, std::vector<std::unique_ptr<Generative>>>;
 
 class ModuleFactory {
 public:
     ModuleFactory() = delete;
+
+
+    static ModuleAndGeneratives<NoteSourceModule>
+    new_midi_note_source(const std::string& id
+                         , ParameterHandler& parent
+                         , NoteSourceModule::Layout layout = NoteSourceModule::Layout::full) {
+        auto note_source = std::make_unique<MidiNoteSource>(id, parent);
+
+        note_source->set_midi_device(MidiConfig::get_instance().get_default_device_name());
+
+        auto onset = std::make_unique<Variable<float>>(id + "::onset", parent, 1.0f);
+        auto duration = std::make_unique<Variable<float>>(id + "::duration", parent, 1.0f);
+        auto pitch = std::make_unique<Variable<int>>(id + "::pitch", parent, 6000);
+        auto velocity = std::make_unique<Variable<int>>(id + "::velocity", parent, 100);
+        auto channel = std::make_unique<Variable<int>>(id + "::channel", parent, 1);
+        auto enabled = std::make_unique<Variable<bool>>(id + "::enabled", parent, true);
+
+        note_source->set_onset(onset.get());
+        note_source->set_duration(duration.get());
+        note_source->set_pitch(pitch.get());
+        note_source->set_velocity(velocity.get());
+        note_source->set_channel(channel.get());
+        note_source->set_enabled(enabled.get());
+
+        auto note_source_module = std::make_unique<NoteSourceModule>(
+                *note_source, *onset, *duration, *pitch, *velocity, *channel, *enabled, layout);
+
+        auto generatives = collect(std::move(note_source), std::move(onset), std::move(duration), std::move(pitch)
+                                   , std::move(velocity), std::move(channel), std::move(enabled));
+
+        return std::make_pair(std::move(note_source_module), std::move(generatives));
+    }
 
 
     static ModuleAndGeneratives<OscillatorModule>
@@ -42,15 +76,8 @@ public:
         auto oscillator_module = std::make_unique<OscillatorModule>(
                 *oscillator, *type, *freq, *mul, *add, *duty, *curve, *enabled, layout);
 
-        std::vector<std::unique_ptr<Generative>> generatives;
-        generatives.push_back(std::move(oscillator));
-        generatives.push_back(std::move(type));
-        generatives.push_back(std::move(freq));
-        generatives.push_back(std::move(mul));
-        generatives.push_back(std::move(add));
-        generatives.push_back(std::move(duty));
-        generatives.push_back(std::move(curve));
-        generatives.push_back(std::move(enabled));
+        auto generatives = collect(std::move(oscillator), std::move(type), std::move(freq), std::move(mul)
+                                   , std::move(add), std::move(duty), std::move(curve), std::move(enabled));
 
         return {std::move(oscillator_module), std::move(generatives)};
     }
@@ -67,16 +94,42 @@ public:
         sequence->set_enabled(enabled.get());
 
         auto sequence_module = std::make_unique<TextSequenceModule<T>>(*sequence, *enabled, layout);
-        std::vector<std::unique_ptr<Generative>> generatives;
 
-        generatives.push_back(std::move(sequence));
-        generatives.push_back(std::move(enabled));
+        std::vector<std::unique_ptr<Generative>> generatives = collect(std::move(sequence), std::move(enabled));
 
         return {std::move(sequence_module), std::move(generatives)};
     }
 
 
+    template<typename T>
+    static ModuleAndGeneratives<InterpolationModule<T>>
+    new_interpolator(const std::string& id
+                     , ParameterHandler& parent
+                     , typename InterpolationModule<T>::Layout layout = InterpolationModule<T>::Layout::full) {
+        auto interpolator = std::make_unique<Variable<InterpolationStrategy<T>>>(id
+                                                                                 , parent
+                                                                                 , InterpolationStrategy<T>());
+
+        auto interpolator_module = std::make_unique<InterpolationModule<T>>(*interpolator, layout);
+
+        std::vector<std::unique_ptr<Generative>> generatives = collect(std::move(interpolator));
+
+        return {std::move(interpolator_module), std::move(generatives)};
+
+    }
+
+
 private:
+
+    template<typename... Args>
+    static std::vector<std::unique_ptr<Generative>> collect(std::unique_ptr<Args> ... args) {
+        std::vector<std::unique_ptr<Generative>> result;
+        result.reserve(sizeof...(Args));
+
+        (result.push_back(std::move(args)), ...);
+
+        return result;
+    }
 
 };
 

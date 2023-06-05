@@ -27,7 +27,7 @@ public:
 };
 
 class PlaygroundComponent : public juce::Component
-                            , private juce::Timer {
+                            , private juce::HighResolutionTimer {
 public:
 
 
@@ -66,9 +66,15 @@ public:
         m_modular_generator.add(std::move(g2));
         addAndMakeVisible(*m_sequence);
 
+        auto [interpolator, g3] = ModuleFactory::new_interpolator<int>("seq1", m_modular_generator);
+        m_interpolator = std::move(interpolator);
+        m_modular_generator.add(std::move(g3));
+        addAndMakeVisible(*m_interpolator);
 
-
-
+        auto [source, g4] = ModuleFactory::new_midi_note_source("src1", m_modular_generator);
+        m_source = std::move(source);
+        m_modular_generator.add(std::move(g4));
+        addAndMakeVisible(*m_source);
 
 //        m_model.add(std::move(generatives));
 
@@ -102,7 +108,8 @@ public:
 
 //        std::cout << m_some_handler.get_value_tree().toXmlString() << std::endl;
 
-        startTimer(50);
+        m_transport.start();
+        startTimer(1);
         setSize(600, 400);
     }
 
@@ -120,22 +127,24 @@ public:
         m_oscillator->setBounds(50, 30, OscillatorModule::width_of(), OscillatorModule::height_of());
 
         m_sequence->setBounds(300, 30, TextSequenceModule<int>::width_of(), TextSequenceModule<int>::height_of());
-//        m_interpolator.setBounds(50, 200, 180, 40);
+        m_interpolator->setBounds(50, 200, InterpolationModule<int>::width_of(), InterpolationModule<int>::height_of());
 //        m_pitch.setBounds(300, 200, 180, 210);
 //        s.setBounds(300, 100, 12, 40);
 //        tb.setBounds(350, 100, 40, 40);
 //        hc.setBounds(400, 100, 200, 20);
 //        my_cb.setBounds(500, 40, 80, 50);
-//        m_source.setBounds(50, 270, 200, 115);
+        m_source->setBounds(50, 270, NoteSourceModule::width_of(), NoteSourceModule::height_of());
     }
 
 
-    void timerCallback() override {
+    void hiResTimerCallback() override {
 //        auto ee = dynamic_cast<Oscillator*>(&m_oscillator.get_generative())->process(TimePoint());
 //        m_oscillator.repaint();
+        m_modular_generator.process(m_transport.update_time());
+
         ++callback_count;
 
-        if (callback_count % 50 == 0) {
+        if (callback_count % 1000 == 0) {
             std::cout << m_modular_generator.get_value_tree().toXmlString() << "\n";
         }
 
@@ -143,6 +152,8 @@ public:
 
 
 private:
+    Transport m_transport;
+
     std::unique_ptr<juce::LookAndFeel> m_lnf;
 
     juce::UndoManager m_undo_manager;
@@ -153,10 +164,10 @@ private:
 
     std::unique_ptr<OscillatorModule> m_oscillator;
     std::unique_ptr<TextSequenceModule<int>> m_sequence;
-//    InterpolationModule<int> m_interpolator;
+    std::unique_ptr<InterpolationModule<int>> m_interpolator;
 //    GeneratorModule<int> m_pitch;
 //
-//    NoteSourceModule m_source;
+    std::unique_ptr<NoteSourceModule> m_source;
 
 //    juce::ToggleButton tb;
 

@@ -11,26 +11,38 @@
 #include "widgets/header_widget.h"
 #include "views/note_view.h"
 
-class NoteSourceModule : public GenerativeComponent
-                         , private juce::Timer {
+class NoteSourceModule : public GenerativeComponent {
 public:
-    NoteSourceModule(const std::string& id
-                     , ParameterHandler& parent)
-            : m_midi_source(id, parent)
-              , m_header(id, parent)
-              , m_visualizer(m_midi_source)
-              , m_internal_onset(id + "::onset", parent, 0.125f, 4.0f, 0.125f, 1.0f, "onset")
-              , m_internal_duration(id + "::duration", parent, 0.1f, 1.1f, 0.1f, 1.0f, "dur")
-              , m_internal_pitch(id + "::pitch", parent, 2100, 10800, 100, 6000, "pitch")
-              , m_internal_velocity(id + "::velocity", parent, 0, 127, 1, 100, "vel")
-              , m_internal_channel(id + "::channel", parent, 1, 16, 1, 1, "ch") {
 
-        m_midi_source.set_onset(dynamic_cast<Node<float>*>(&m_internal_onset.get_generative()));
-        m_midi_source.set_duration(dynamic_cast<Node<float>*>(&m_internal_duration.get_generative()));
-        m_midi_source.set_pitch(dynamic_cast<Node<int>*>(&m_internal_pitch.get_generative()));
-        m_midi_source.set_velocity(dynamic_cast<Node<int>*>(&m_internal_velocity.get_generative()));
-        m_midi_source.set_channel(dynamic_cast<Node<int>*>(&m_internal_channel.get_generative()));
-        m_midi_source.set_enabled(dynamic_cast<Node<bool>*>(&m_header.get_enabled().get_generative()));
+    static const int SLIDER_WIDTH = static_cast<int>(DimensionConstants::SLIDER_DEFAULT_WIDTH * 0.8);
+
+    enum class Layout {
+        full = 0
+    };
+
+
+    NoteSourceModule(MidiNoteSource& note_source
+                     , Variable<float>& internal_onset
+                     , Variable<float>& internal_duration
+                     , Variable<int>& internal_pitch
+                     , Variable<int>& internal_velocity
+                     , Variable<int>& internal_channel
+                     , Variable<bool>& internal_enabled
+                     , Layout layout = Layout::full)
+            : m_midi_source(note_source)
+              , m_internal_onset(internal_onset, 0.125f, 4.0f, 0.125f
+                                 , "onset", SliderWidget<float>::Layout::label_below)
+              , m_internal_duration(internal_duration, 0.1f, 1.1f, 0.1f
+                                    , "dur", SliderWidget<float>::Layout::label_below)
+              , m_internal_pitch(internal_pitch, 2100, 10800, 100
+                                 , "pitch", SliderWidget<int>::Layout::label_below)
+              , m_internal_velocity(internal_velocity, 0, 127, 1
+                                    , "vel", SliderWidget<int>::Layout::label_below)
+              , m_internal_channel(internal_channel, 1, 16, 1
+                                   , "ch", SliderWidget<int>::Layout::label_below)
+              , m_header(note_source.get_identifier_as_string(), internal_enabled)
+              , m_visualizer(m_midi_source) {
+        (void) layout;
 
         addAndMakeVisible(m_header);
         addAndMakeVisible(m_visualizer);
@@ -39,23 +51,30 @@ public:
         addAndMakeVisible(m_internal_pitch);
         addAndMakeVisible(m_internal_velocity);
         addAndMakeVisible(m_internal_channel);
-
-        m_midi_source.set_midi_device(MidiConfig::get_instance().get_default_device_name());
-        startTimer(25);
-
     }
 
-    static int width_of(Layout layout) {
 
+    static int width_of(Layout layout = Layout::full) {
+        (void) layout;
+
+        return DimensionConstants::COMPONENT_LR_MARGINS
+               + 5 * SLIDER_WIDTH
+               + 4 * DimensionConstants::OBJECT_X_MARGINS_ROW;
     }
 
-    static int height_of(Layout layout) {
 
+    static int height_of(Layout layout = Layout::full) {
+        (void) layout;
+
+        return HeaderWidget::height_of()
+               + NoteView::height_of()
+               + 2 * DimensionConstants::COMPONENT_UD_MARGINS
+               + DimensionConstants::OBJECT_Y_MARGINS_COLUMN
+               + SliderWidget<float>::height_of(SliderWidget<float>::Layout::label_below);
     }
 
-    std::pair<int, int> dimensions() override {
-        return {0, 0};
-    }
+
+    void set_layout(int) override {}
 
 
     Generative& get_generative() override {
@@ -74,35 +93,28 @@ public:
     void resized() override {
         auto bounds = getLocalBounds();
 
-        m_header.setBounds(bounds.removeFromTop(m_header.default_height()));
-        bounds.reduce(5, 8);
+        m_header.setBounds(bounds.removeFromTop(HeaderWidget::height_of()));
+        bounds.reduce(DimensionConstants::COMPONENT_LR_MARGINS, DimensionConstants::COMPONENT_UD_MARGINS);
 
-        m_visualizer.setBounds(bounds.removeFromTop(m_visualizer.default_height()));
+        m_visualizer.setBounds(bounds.removeFromTop(NoteView::height_of()));
 
-        bounds.removeFromTop(5);
+        bounds.removeFromTop(DimensionConstants::OBJECT_Y_MARGINS_COLUMN);
 
-        auto component_width = bounds.getWidth() / 5;
-        auto spacing = component_width * 0.075;
-        m_internal_onset.setBounds(bounds.removeFromLeft(component_width).reduced(static_cast<int>(spacing), 0));
-        m_internal_duration.setBounds(bounds.removeFromLeft(component_width).reduced(static_cast<int>(spacing), 0));
-        m_internal_pitch.setBounds(bounds.removeFromLeft(component_width).reduced(static_cast<int>(spacing), 0));
-        m_internal_velocity.setBounds(bounds.removeFromLeft(component_width).reduced(static_cast<int>(spacing), 0));
-        m_internal_channel.setBounds(bounds.removeFromLeft(component_width).reduced(static_cast<int>(spacing), 0));
+        m_internal_onset.setBounds(bounds.removeFromLeft(SLIDER_WIDTH));
+        bounds.removeFromLeft(DimensionConstants::OBJECT_X_MARGINS_ROW);
+        m_internal_duration.setBounds(bounds.removeFromLeft(SLIDER_WIDTH));
+        bounds.removeFromLeft(DimensionConstants::OBJECT_X_MARGINS_ROW);
+        m_internal_pitch.setBounds(bounds.removeFromLeft(SLIDER_WIDTH));
+        bounds.removeFromLeft(DimensionConstants::OBJECT_X_MARGINS_ROW);
+        m_internal_velocity.setBounds(bounds.removeFromLeft(SLIDER_WIDTH));
+        bounds.removeFromLeft(DimensionConstants::OBJECT_X_MARGINS_ROW);
+        m_internal_channel.setBounds(bounds.removeFromLeft(SLIDER_WIDTH));
     }
 
 
 private:
-    void timerCallback() override {
-        if (!m_midi_source.get_played_notes().empty())
-            std::cout << "NoteSourceModule: played note\n";
-    }
 
-
-    MidiNoteSource m_midi_source;
-
-    HeaderWidget m_header;
-
-    NoteView m_visualizer;
+    MidiNoteSource& m_midi_source;
 
     SliderWidget<float> m_internal_onset;
     SliderWidget<float> m_internal_duration;
@@ -110,8 +122,10 @@ private:
     SliderWidget<int> m_internal_velocity;
     SliderWidget<int> m_internal_channel;
 
-//    ToggleButtonWidget m_enable_button;
-//    juce::Label m_label;
+    HeaderWidget m_header;
+
+    NoteView m_visualizer;
+
 };
 
 
