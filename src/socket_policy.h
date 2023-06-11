@@ -16,7 +16,13 @@ template<typename T>
 using DataSocket = VTDataSocket<T>;
 #else
 
+#include "nop_socket.h"
 
+template<typename T>
+using Socket = NopSocket<T>;
+
+template<typename T>
+using DataSocket = NopDataSocket<T>;
 
 #endif
 

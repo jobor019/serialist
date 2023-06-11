@@ -4,6 +4,7 @@
 #define SERIALISTLOOPER_SEQUENCE_H
 
 #include "parameter_policy.h"
+#include "socket_policy.h"
 #include "generative.h"
 #include "interpolator.h"
 

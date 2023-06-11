@@ -5,7 +5,6 @@
 #include "../src/io/renderers.h"
 #include "../src/events.h"
 #include "../src/scheduler.h"
-#include "../src/generation_graph.h"
 
 TEST_CASE("rendering", "[midi, renderer]") {
 

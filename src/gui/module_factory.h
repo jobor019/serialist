@@ -11,6 +11,7 @@
 #include "text_sequence_module.h"
 #include "interpolation_module.h"
 #include "note_source_module.h"
+#include "generator_module.h"
 
 template<typename ModuleType>
 using ModuleAndGeneratives = std::pair<std::unique_ptr<ModuleType>, std::vector<std::unique_ptr<Generative>>>;
@@ -48,7 +49,46 @@ public:
         auto generatives = collect(std::move(note_source), std::move(onset), std::move(duration), std::move(pitch)
                                    , std::move(velocity), std::move(channel), std::move(enabled));
 
-        return std::make_pair(std::move(note_source_module), std::move(generatives));
+        return {std::move(note_source_module), std::move(generatives)};
+    }
+
+
+    template<typename T>
+    static ModuleAndGeneratives<GeneratorModule<T>>
+    new_generator(const std::string& id
+                  , ParameterHandler& parent
+                  , typename GeneratorModule<T>::Layout layout = GeneratorModule<T>::Layout::full) {
+
+        // TODO: Loads of cast issues!!!
+
+        auto generator = std::make_unique<Generator<T>>(id, parent);
+
+        auto [oscillator_module, oscillator_generatives] = new_oscillator(
+                id + "::osc", parent, OscillatorModule::Layout::generator_internal);
+        auto [interpolator_module, interpolator_generatives] = new_interpolator<T>(
+                id + "::interp", parent, InterpolationModule<T>::Layout::generator_internal);
+        auto [sequence_module, sequence_generatives] = new_text_sequence<T>(
+                id + "::sequence", parent, TextSequenceModule<T>::Layout::full);
+
+        // TODO: Not really safe, though should be valid in these cases
+        generator->set_cursor(oscillator_module->get_generative());
+        generator->set_interpolation_strategy(interpolator_module->get_generative());
+        generator->set_sequence(dynamic_cast<Sequence<T>*>(sequence_module->get_generative()));
+
+
+        auto generator_module = std::make_unique<GeneratorModule<T>>(*generator
+                                                                     , std::move(oscillator_module)
+                                                                     , std::move(interpolator_module)
+                                                                     , std::move(sequence_module)
+                                                                     , layout);
+
+        std::vector<std::unique_ptr<Generative>> generatives;
+        generatives.push_back(std::move(generator));
+        std::move(oscillator_generatives.begin(), oscillator_generatives.end(), std::back_inserter(generatives));
+        std::move(interpolator_generatives.begin(), interpolator_generatives.end(), std::back_inserter(generatives));
+        std::move(sequence_generatives.begin(), sequence_generatives.end(), std::back_inserter(generatives));
+
+        return {std::move(generator_module), std::move(generatives)};
     }
 
 

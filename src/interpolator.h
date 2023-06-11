@@ -6,6 +6,7 @@
 #include <vector>
 #include <optional>
 #include <cmath>
+#include <sstream>
 #include "utils.h"
 
 
@@ -72,7 +73,7 @@ template<typename T>
 class Interpolator {
 public:
 
-    static constexpr double epsilon = 1e-8;
+    static constexpr double epsilon = 1e-6;
 
 
     static std::vector<T> interpolate(double position

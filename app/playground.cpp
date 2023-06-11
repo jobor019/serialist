@@ -21,6 +21,8 @@
 #include "module_factory.h"
 //#include "modules/note_source_module.h"
 
+#include "generator.h"
+
 class SomeObject : public ParameterHandler {
 public:
     SomeObject(ParameterHandler&& handler) : ParameterHandler(std::move(handler)) {}
@@ -34,11 +36,7 @@ public:
     PlaygroundComponent()
 //            : m_some_handler(m_undo_manager)
             : m_modular_generator(ParameterHandler(m_undo_manager))
-//              , m_oscillator("osc1")
-//              , m_sequence("seq1", m_some_handler)
-//              , m_interpolator("interp1", m_some_handler)
 //              , m_pitch("pitch", m_some_handler)
-//              , m_source("source", m_some_handler)
 //              , s(ScalableSlider::Orientation::vertical)
 //              , hc("header", m_some_handler)
 //              , my_cb("osctype"
@@ -75,6 +73,11 @@ public:
         m_source = std::move(source);
         m_modular_generator.add(std::move(g4));
         addAndMakeVisible(*m_source);
+
+        auto [pitch_generator, g5] = ModuleFactory::new_generator<int>("pitchg1", m_modular_generator);
+        m_pitch_generator = std::move(pitch_generator);
+        m_modular_generator.add(std::move(g5));
+        addAndMakeVisible(*m_pitch_generator);
 
 //        m_model.add(std::move(generatives));
 
@@ -128,7 +131,7 @@ public:
 
         m_sequence->setBounds(300, 30, TextSequenceModule<int>::width_of(), TextSequenceModule<int>::height_of());
         m_interpolator->setBounds(50, 200, InterpolationModule<int>::width_of(), InterpolationModule<int>::height_of());
-//        m_pitch.setBounds(300, 200, 180, 210);
+        m_pitch_generator->setBounds(300, 200, GeneratorModule<int>::width_of(), GeneratorModule<int>::height_of());
 //        s.setBounds(300, 100, 12, 40);
 //        tb.setBounds(350, 100, 40, 40);
 //        hc.setBounds(400, 100, 200, 20);
@@ -165,7 +168,7 @@ private:
     std::unique_ptr<OscillatorModule> m_oscillator;
     std::unique_ptr<TextSequenceModule<int>> m_sequence;
     std::unique_ptr<InterpolationModule<int>> m_interpolator;
-//    GeneratorModule<int> m_pitch;
+    std::unique_ptr<GeneratorModule<int>> m_pitch_generator;
 //
     std::unique_ptr<NoteSourceModule> m_source;
 

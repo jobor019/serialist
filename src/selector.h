@@ -58,17 +58,20 @@ private:
     std::vector<T> nth(const std::vector<T>& material, const std::vector<double>& mask, bool select_from_end) {
         // Select any element enabled in mask (mask > 0.5),
         // handling boundaries correctly. negative indices if select_from_end
+        (void) material;(void) mask;(void) select_from_end;
         throw std::runtime_error("not implemented"); // TODO
     }
 
 
     std::vector<T> random(const std::vector<T>& material, const std::vector<double>& mask) {
+        (void) material;(void) mask;(void) select_from_end;
         // random select N elements (N = mask.size())
         throw std::runtime_error("not implemented"); // TODO
     }
 
 
     std::vector<T> proba(const std::vector<T>& material, const std::vector<double>& mask, bool select_from_end) {
+        (void) material;(void) mask;(void) select_from_end;
         // weighted random, i.e. a probability for each element by index, selecting [0..N] elements
         throw std::runtime_error("not implemented"); // TODO
     }

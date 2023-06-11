@@ -18,7 +18,6 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/generative.h
         ${CMAKE_SOURCE_DIR}/src/generator.h
         ${CMAKE_SOURCE_DIR}/src/interpolator.h
-        ${CMAKE_SOURCE_DIR}/src/mapping.h
         ${CMAKE_SOURCE_DIR}/src/modular_generator.h
         ${CMAKE_SOURCE_DIR}/src/nop_parameter.h
         ${CMAKE_SOURCE_DIR}/src/oscillator.h
@@ -186,14 +185,13 @@ target_link_libraries(playground
 #####################################################################################
 
 add_executable(tests
-        ${CMAKE_SOURCE_DIR}/test/core_tests.cpp
-        ${CMAKE_SOURCE_DIR}/test/mapping_tests.cpp
+        ${CMAKE_SOURCE_DIR}/test/oscillator_tests.cpp
         ${CMAKE_SOURCE_DIR}/test/interpolator_tests.cpp
         ${CMAKE_SOURCE_DIR}/test/selector_tests.cpp
         ${CMAKE_SOURCE_DIR}/test/looper_tests.cpp
         ${CMAKE_SOURCE_DIR}/test/generator_tests.cpp
         ${CMAKE_SOURCE_DIR}/test/juce_tests.cpp
-        )
+        test/sequence_tests.cpp)
 
 target_link_libraries(tests
         PRIVATE
@@ -201,6 +199,10 @@ target_link_libraries(tests
         ${MODULE_DEPENDENCIES_JUCE}
         PUBLIC
         ${FLAGS_JUCE}
+        )
+
+target_include_directories(tests PRIVATE
+        ${INCLUDES}
         )
 
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)

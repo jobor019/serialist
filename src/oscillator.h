@@ -3,6 +3,8 @@
 #ifndef SERIALISTLOOPER_OSCILLATOR_H
 #define SERIALISTLOOPER_OSCILLATOR_H
 
+#include <random>
+
 #include "parameter_policy.h"
 #include "generative.h"
 #include "phasor.h"
@@ -40,8 +42,8 @@ public:
               , m_duty("duty", *this, duty)
               , m_curve("curve", *this, curve)
               , m_enabled("enabled", *this, enabled)
-              , m_previous_values(100) {
-    }
+              , m_rng(std::random_device()()), m_distribution(0.0, 1.0)
+              , m_previous_values(100) {}
 
 
     std::vector<double> process(const TimePoint& t) override {
@@ -116,20 +118,24 @@ private:
             case Type::sin:
                 return sin(t);
             case Type::square:
+                return square(t);
             case Type::tri:
+                return tri(t);
             case Type::white_noise:
+                return white_noise(t);
             case Type::brown_noise:
+                return brown_noise(t);
             case Type::random_walk:
-                throw std::runtime_error("oscillator types not implemented"); // TODO
+                return random_walk(t);
+            default:
+                throw std::runtime_error("oscillator types not implemented");
         }
     }
 
 
     double phasor_position(const TimePoint& t) {
         auto freq = m_freq.process_or(t, 1.0f);
-        auto step_size = std::abs(freq) > 1e-8 ? 1 / freq : 0.0;
-
-        return m_phasor.process(t.get_tick(), step_size);
+        return m_phasor.process(t.get_tick(), freq);
     }
 
 
@@ -139,8 +145,67 @@ private:
 
 
     double sin(const TimePoint& t) {
-        auto y = 0.5 * std::sin(2 * M_PI * phasor_position(t)) + 0.5;
+        auto y = 0.5 * -std::cos(2 * M_PI * phasor_position(t)) + 0.5;
         return m_mul.process_or(t, 1.0f) * y + m_add.process_or(t, 0.0f);
+    }
+
+
+    double square(const TimePoint& t) {
+        auto y = static_cast<double>(phasor_position(t) <= m_duty.process_or(t, 0.5f));
+        return m_mul.process_or(t, 1.0f) * y + m_add.process_or(t, 0.0f);
+    }
+
+
+    double tri(const TimePoint& t) {
+        auto duty = m_duty.process_or(t, 0.5f);
+        auto curve = m_curve.process_or(t, 1.0f);
+        auto x = phasor_position(t);
+
+        double y;
+        if (duty < 1e-8) {                  // duty = 0 => negative phase only (avoid div0)
+            y = std::pow(1 - x, curve);
+        } else if (x <= duty) {             // positive phase
+            y = std::pow(x / duty, curve);
+        } else {                            // negative phase
+            y = std::pow(1 - (x - duty) / (1 - duty), curve);
+        }
+
+        return m_mul.process_or(t, 1.0f) * y + m_add.process_or(t, 0.0f);
+    }
+
+
+    double white_noise(const TimePoint& t) {
+        (void) t;
+        return m_distribution(m_rng);
+    }
+
+
+    double brown_noise(const TimePoint& t) {
+        (void) t;
+        throw std::runtime_error("not implemented"); // TODO
+//        double white_noise = distribution_(generator_);
+//        double new_output = last_output_ + (white_noise - last_output_) / 16.0;
+//        double difference = std::abs(new_output - last_output_);
+//        if (difference > max_difference_) {
+//            new_output = last_output_ + max_difference_ * std::copysign(1.0, new_output - last_output_);
+//        }
+//        last_output_ = new_output;
+//        return last_output_ + 0.5;
+    }
+
+
+    double random_walk(const TimePoint& t) {
+        (void) t;
+        throw std::runtime_error("not implemented"); // TODO
+//        double next = current_ + distribution_(rng_);
+//        if (next > 1.0) {
+//            current_ = 2.0 - next;
+//        } else if (next < 0.0) {
+//            current_ = -next;
+//        } else {
+//            current_ = next;
+//        }
+//        return current_;
     }
 
 
@@ -155,6 +220,8 @@ private:
 
     Phasor m_phasor;
 
+    std::mt19937 m_rng;
+    std::uniform_real_distribution<double> m_distribution;
 
     utils::LockingQueue<double> m_previous_values;
 

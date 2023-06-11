@@ -9,8 +9,6 @@
 
 using ParameterHandler = VTParameterHandler;
 
-using ParameterListener = VTParameterListener;
-
 template<typename T>
 using AtomicParameter = AtomicVTParameter<T>;
 
@@ -23,16 +21,11 @@ using ParametrizedCollection = VTParametrizedSequence<T>; // TODO: Temp, until V
 template<typename T>
 using ParametrizedSequence = VTParametrizedSequence<T>;
 
-
-
-
 #else
 
 #include "nop_parameter.h"
 
 using ParameterHandler = NopParameterHandler;
-
-using ParameterListener = NopParameterListener; // TODO
 
 template<typename DataType>
 using AtomicParameter = NopParameter<DataType>;
@@ -40,7 +33,11 @@ using AtomicParameter = NopParameter<DataType>;
 template<typename DataType>
 using ComplexParameter = NopParameter<DataType>;
 
+template<typename T>
+using ParametrizedCollection = NopParametrizedSequence<T>; // TODO: Temp, until VTParametrizedSequence is handling lists of lists
 
+template<typename T>
+using ParametrizedSequence = NopParametrizedSequence<T>;
 
 
 #endif

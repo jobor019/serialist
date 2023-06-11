@@ -5,6 +5,7 @@
 
 #include "transport.h"
 #include "parameter_policy.h"
+#include "interpolator.h"
 
 #include <optional>
 
