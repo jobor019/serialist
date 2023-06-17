@@ -129,14 +129,16 @@ public:
     void resized() override {
         m_oscillator->setBounds(50, 30, OscillatorModule::width_of(), OscillatorModule::height_of());
 
-        m_sequence->setBounds(300, 30, TextSequenceModule<int>::width_of(), TextSequenceModule<int>::height_of());
+        m_sequence->setBounds(300, 30, 100, TextSequenceModule<int>::height_of());
         m_interpolator->setBounds(50, 200, InterpolationModule<int>::width_of(), InterpolationModule<int>::height_of());
         m_pitch_generator->setBounds(300, 200, GeneratorModule<int>::width_of(), GeneratorModule<int>::height_of());
+//        m_pitch_generator->setBounds(300, 200, 100, 100);
 //        s.setBounds(300, 100, 12, 40);
 //        tb.setBounds(350, 100, 40, 40);
 //        hc.setBounds(400, 100, 200, 20);
 //        my_cb.setBounds(500, 40, 80, 50);
         m_source->setBounds(50, 270, NoteSourceModule::width_of(), NoteSourceModule::height_of());
+
     }
 
 

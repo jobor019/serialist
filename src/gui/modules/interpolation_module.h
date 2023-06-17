@@ -13,6 +13,9 @@ class InterpolationModule : public GenerativeComponent
                             , juce::Slider::Listener
                             , juce::ComboBox::Listener {
 public:
+
+    using InterpType = typename InterpolationStrategy<T>::Type;
+
     enum class Layout {
         full = 0
         , generator_internal = 1
@@ -32,17 +35,20 @@ public:
 
     static int width_of(Layout layout = Layout::full) {
         (void) layout;
-        return DimensionConstants::COMPONENT_LR_MARGINS * 2 + DimensionConstants::SLIDER_DEFAULT_WIDTH * 2;
+        return 2 * DC::COMPONENT_LR_MARGINS
+               + 2 * DC::SLIDER_DEFAULT_WIDTH;
     }
 
 
     static int height_of(Layout layout = Layout::full) {
-        if (layout == Layout::full) {
-            return HeaderWidget::height_of()
-                   + 2 * DimensionConstants::COMPONENT_UD_MARGINS * 2
-                   + DimensionConstants::SLIDER_DEFAULT_HEIGHT;
+        switch (layout) {
+            case Layout::full:
+                return HeaderWidget::height_of()
+                       + 2 * DC::COMPONENT_UD_MARGINS * 2
+                       + DC::SLIDER_DEFAULT_HEIGHT;
+            case Layout::generator_internal:
+                return DC::SLIDER_DEFAULT_HEIGHT;
         }
-        std::cout << "interpolation module: layout not implemented\n";
         return 0;
     }
 
@@ -61,18 +67,16 @@ public:
 
 
     void resized() override {
+        auto bounds = getLocalBounds();
+
         if (m_layout == Layout::full) {
-            auto bounds = getLocalBounds();
-
             m_header.setBounds(bounds.removeFromTop(HeaderWidget::height_of()));
-            bounds.reduce(DimensionConstants::COMPONENT_LR_MARGINS, DimensionConstants::COMPONENT_UD_MARGINS);
-
-            m_pivot.setBounds(bounds.removeFromLeft(DimensionConstants::SLIDER_DEFAULT_WIDTH));
-            bounds.removeFromLeft(DimensionConstants::OBJECT_X_MARGINS_ROW);
-            m_type.setBounds(bounds);
-        } else {
-            std::cout << "internal layout not implemented for interpolationstrategy\n";
+            bounds.reduce(DC::COMPONENT_LR_MARGINS, DC::COMPONENT_UD_MARGINS);
         }
+
+        m_pivot.setBounds(bounds.removeFromLeft(DC::SLIDER_DEFAULT_WIDTH));
+        bounds.removeFromLeft(DC::OBJECT_X_MARGINS_ROW);
+        m_type.setBounds(bounds);
     }
 
 
@@ -83,10 +87,10 @@ private:
     void initialize_components() {
         addAndMakeVisible(m_header);
 
-        m_type.addItem("continuation", static_cast<int>(InterpolationStrategy<T>::Type::continuation));
-        m_type.addItem("modulo", static_cast<int>(InterpolationStrategy<T>::Type::modulo));
-        m_type.addItem("clip", static_cast<int>(InterpolationStrategy<T>::Type::clip));
-        m_type.addItem("pass", static_cast<int>(InterpolationStrategy<T>::Type::pass));
+        m_type.addItem("continuation", static_cast<int>(InterpType::continuation));
+        m_type.addItem("modulo", static_cast<int>(InterpType::modulo));
+        m_type.addItem("clip", static_cast<int>(InterpType::clip));
+        m_type.addItem("pass", static_cast<int>(InterpType::pass));
         m_type.setSelectedId(static_cast<int>(m_strategy.get_value().get_type()), juce::dontSendNotification);
         m_type.addListener(this);
         addAndMakeVisible(m_type);
@@ -111,7 +115,7 @@ private:
 
 
     void value_changed() {
-        typename InterpolationStrategy<T>::Type type{m_type.getSelectedId()};
+        InterpType type{m_type.getSelectedId()};
         std::cout << "new value: " << static_cast<int>(type) << ":" << static_cast<T>(m_pivot.getValue()) << "\n";
         m_strategy.set_value(InterpolationStrategy<T>(type, static_cast<T>(m_pivot.getValue())));
     }

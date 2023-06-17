@@ -59,9 +59,7 @@ public:
                   , ParameterHandler& parent
                   , typename GeneratorModule<T>::Layout layout = GeneratorModule<T>::Layout::full) {
 
-        // TODO: Loads of cast issues!!!
 
-        auto generator = std::make_unique<Generator<T>>(id, parent);
 
         auto [oscillator_module, oscillator_generatives] = new_oscillator(
                 id + "::osc", parent, OscillatorModule::Layout::generator_internal);
@@ -70,20 +68,27 @@ public:
         auto [sequence_module, sequence_generatives] = new_text_sequence<T>(
                 id + "::sequence", parent, TextSequenceModule<T>::Layout::full);
 
-        // TODO: Not really safe, though should be valid in these cases
-        generator->set_cursor(oscillator_module->get_generative());
-        generator->set_interpolation_strategy(interpolator_module->get_generative());
-        generator->set_sequence(dynamic_cast<Sequence<T>*>(sequence_module->get_generative()));
+        auto oscillator = dynamic_cast<Node<double>*>(&oscillator_module->get_generative());
+        auto interpolator = dynamic_cast<Node<InterpolationStrategy<T>>*>(&interpolator_module->get_generative());
+        auto sequence = dynamic_cast<Sequence<T>*>(&sequence_module->get_generative());
 
+        assert(oscillator && interpolator && sequence);
+
+        auto enabled = std::make_unique<Variable<bool>>(id + "::enabled", parent, true);
+
+        auto generator = std::make_unique<Generator<T>>(id, parent, oscillator, interpolator, sequence, enabled.get());
 
         auto generator_module = std::make_unique<GeneratorModule<T>>(*generator
                                                                      , std::move(oscillator_module)
                                                                      , std::move(interpolator_module)
                                                                      , std::move(sequence_module)
+                                                                     , *enabled
                                                                      , layout);
 
         std::vector<std::unique_ptr<Generative>> generatives;
+        // TODO: Generalize with `collect`
         generatives.push_back(std::move(generator));
+        generatives.push_back(std::move(enabled));
         std::move(oscillator_generatives.begin(), oscillator_generatives.end(), std::back_inserter(generatives));
         std::move(interpolator_generatives.begin(), interpolator_generatives.end(), std::back_inserter(generatives));
         std::move(sequence_generatives.begin(), sequence_generatives.end(), std::back_inserter(generatives));

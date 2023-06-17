@@ -64,6 +64,7 @@ public:
 
 
     void reset_values(std::vector<T> new_values) {
+        m_values.clear();
         for (auto& value: new_values) {
             internal_insert(value, -1);
         }

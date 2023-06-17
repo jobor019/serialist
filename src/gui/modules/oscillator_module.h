@@ -16,6 +16,9 @@
 class OscillatorModule : public GenerativeComponent {
 public:
 
+    using SliderLayout = SliderWidget<float>::Layout;
+    using CbLayout = ComboBoxWidget<Oscillator::Type>::Layout;
+
     enum class Layout {
         full
         , generator_internal
@@ -40,17 +43,17 @@ public:
                             , {"sqr"   , Oscillator::Type::square}
                             , {"tri"   , Oscillator::Type::tri}}
                     , "type"
-                    , ComboBoxWidget<Oscillator::Type>::Layout::label_left))
+                    , CbLayout::label_left))
               , m_freq_socket(oscillator.get_freq(), std::make_unique<SliderWidget<float>>(
-                    internal_freq, 0.0f, 20.0f, 0.01f, "freq", SliderWidget<float>::Layout::label_left))
+                    internal_freq, 0.0f, 20.0f, 0.01f, "freq", SliderLayout::label_left))
               , m_mul_socket(oscillator.get_mul(), std::make_unique<SliderWidget<float>>(
-                    internal_mul, 0.0f, 20.0f, 0.01f, "mul", SliderWidget<float>::Layout::label_left))
+                    internal_mul, 0.0f, 20.0f, 0.01f, "mul", SliderLayout::label_left))
               , m_add_socket(oscillator.get_add(), std::make_unique<SliderWidget<float>>(
-                    internal_add, 0.0f, 20.0f, 0.01f, "add", SliderWidget<float>::Layout::label_left))
+                    internal_add, 0.0f, 20.0f, 0.01f, "add", SliderLayout::label_left))
               , m_duty_socket(oscillator.get_duty(), std::make_unique<SliderWidget<float>>(
-                    internal_duty, 0.0f, 1.0f, 0.01f, "duty", SliderWidget<float>::Layout::label_left))
+                    internal_duty, 0.0f, 1.0f, 0.01f, "duty", SliderLayout::label_left))
               , m_curve_socket(oscillator.get_curve(), std::make_unique<SliderWidget<float>>(
-                    internal_curve, 0.0f, 1.0f, 0.01f, "curve", SliderWidget<float>::Layout::label_left))
+                    internal_curve, 0.0f, 1.0f, 0.01f, "curve", SliderLayout::label_left))
               , m_header(oscillator.get_identifier_as_string(), internal_enabled)
               , m_layout(layout)
               , m_oscillator_view(oscillator) {
@@ -69,23 +72,31 @@ public:
 
 
     static int width_of(Layout layout = Layout::full) {
-        if (layout == Layout::full) {
-            return 2 * DimensionConstants::COMPONENT_LR_MARGINS
-                   + SliderWidget<float>::default_width(SliderWidget<float>::Layout::label_left, true);
+        switch (layout) {
+            case Layout::full:
+                return 2 * DC::COMPONENT_LR_MARGINS
+                       + SliderWidget<float>::default_width(SliderLayout::label_left, true);
+            case Layout::generator_internal:
+                return 4 * SliderWidget<float>::default_width(SliderLayout::label_below, true)
+                       + 3 * DC::OBJECT_X_MARGINS_ROW;
         }
-        std::cout << "oscillator: layout not implemented\n";
+
         return 0;
     }
 
 
     static int height_of(Layout layout = Layout::full) {
-        if (layout == Layout::full) {
-            return HeaderWidget::height_of()
-                   + 2 * DimensionConstants::COMPONENT_UD_MARGINS
-                   + OscillatorView::height_of(OscillatorView::Layout::full)
-                   + ComboBoxWidget<float>::height_of(ComboBoxWidget<float>::Layout::label_left) // type
-                   + 5 * SliderWidget<float>::height_of(SliderWidget<float>::Layout::label_left) // f, m, a, c, d
-                   + 7 * DimensionConstants::OBJECT_Y_MARGINS_COLUMN;
+        switch (layout) {
+            case Layout::full:
+                return HeaderWidget::height_of()
+                       + 2 * DC::COMPONENT_UD_MARGINS
+                       + OscillatorView::height_of(OscillatorView::Layout::full)
+                       + ComboBoxWidget<Oscillator::Type>::height_of(CbLayout::label_left) // type
+                       + 5 * SliderWidget<float>::height_of(SliderLayout::label_left) // f, m, a, c, d
+                       + 7 * DC::OBJECT_Y_MARGINS_COLUMN;
+            case Layout::generator_internal:
+                return 2 * SliderWidget<float>::height_of((SliderLayout::label_below))
+                       + DC::OBJECT_Y_MARGINS_ROW;
         }
         std::cout << "oscillator: layout not implemented\n";
         return 0;
@@ -116,72 +127,87 @@ private:
         if (m_layout == Layout::full) {
             full_layout();
         } else if (m_layout == Layout::generator_internal) {
-            generator_internal_layout();
+            layout_generator_internal();
         }
     }
 
 
     void full_layout() {
+        auto slider_height = SliderWidget<float>::height_of(SliderLayout::label_left);
+        auto y_margin = DC::OBJECT_Y_MARGINS_COLUMN;
+
         auto bounds = getLocalBounds();
 
+        // header
         m_header.setBounds(bounds.removeFromTop(HeaderWidget::height_of()));
-        bounds.reduce(DimensionConstants::COMPONENT_LR_MARGINS, DimensionConstants::COMPONENT_UD_MARGINS);
+        bounds.reduce(DC::COMPONENT_LR_MARGINS, DC::COMPONENT_UD_MARGINS);
 
+        // layout
         m_oscillator_view.set_layout(OscillatorView::Layout::full);
+        m_type_socket.set_layout(static_cast<int>(CbLayout::label_left));
+        set_layout_for_all_sliders(SliderLayout::label_left);
+
         m_oscillator_view.setBounds(bounds.removeFromTop(OscillatorView::height_of(OscillatorView::Layout::full)));
-        bounds.removeFromTop(DimensionConstants::OBJECT_Y_MARGINS_COLUMN);
+        bounds.removeFromTop(y_margin);
 
-        layout_socket(m_type_socket, bounds, static_cast<int>(ComboBoxWidget<Oscillator::Type>::Layout::label_left));
-        layout_socket(m_freq_socket, bounds, static_cast<int>(SliderWidget<float>::Layout::label_left));
-        layout_socket(m_mul_socket, bounds, static_cast<int>(SliderWidget<float>::Layout::label_left));
-        layout_socket(m_add_socket, bounds, static_cast<int>(SliderWidget<float>::Layout::label_left));
-        layout_socket(m_duty_socket, bounds, static_cast<int>(SliderWidget<float>::Layout::label_left));
-        layout_socket(m_curve_socket, bounds, static_cast<int>(SliderWidget<float>::Layout::label_left));
-
+        m_type_socket.setBounds(bounds.removeFromTop(slider_height));
+        bounds.removeFromTop(y_margin);
+        m_freq_socket.setBounds(bounds.removeFromTop(slider_height));
+        bounds.removeFromTop(y_margin);
+        m_mul_socket.setBounds(bounds.removeFromTop(slider_height));
+        bounds.removeFromTop(y_margin);
+        m_add_socket.setBounds(bounds.removeFromTop(slider_height));
+        bounds.removeFromTop(y_margin);
+        m_duty_socket.setBounds(bounds.removeFromTop(slider_height));
+        bounds.removeFromTop(y_margin);
+        m_curve_socket.setBounds(bounds.removeFromTop(slider_height));
     }
 
 
-    template<typename SocketType>
-    void layout_socket(SocketComponent<SocketType>& socket, juce::Rectangle<int>& bounds, int layout) {
-        socket.get_internal().set_layout(layout);
-        socket.setBounds(bounds.removeFromTop(SliderWidget<float>::height_of(SliderWidget<float>::Layout::label_left)));
-        bounds.removeFromTop(DimensionConstants::OBJECT_Y_MARGINS_COLUMN);
-
+    void set_layout_for_all_sliders(SliderWidget<float>::Layout layout) {
+        auto i = static_cast<int>(layout);
+        m_freq_socket.set_layout(i);
+        m_mul_socket.set_layout(i);
+        m_add_socket.set_layout(i);
+        m_duty_socket.set_layout(i);
+        m_curve_socket.set_layout(i);
     }
 
 
-    void generator_internal_layout() {
-//        auto bounds = getLocalBounds().reduced(5, 8);
-//
-//        auto col1 = bounds.removeFromLeft(bounds.proportionOfWidth(0.45f));
-//
-//        m_oscillator_view.set_layout(OscillatorView::Layout::compact);
-//        m_oscillator_view.setBounds(col1.removeFromTop(m_oscillator_view.default_height()));
-//        col1.removeFromTop(FULL_LAYOUT_SPACING);
-//
-//        m_type_socket.set_label_position(ComboBoxWidget<Oscillator::Type>::LabelPosition::bottom);
-//        m_type_socket.setBounds(col1.removeFromLeft(col1.getWidth() / 2));
-//        col1.removeFromLeft(FULL_LAYOUT_SPACING);
-//
-//        m_freq_socket.get_internal().set_layout(static_cast<int>(SliderWidget<float>::Layout::label_below));
-//        m_freq_socket.setBounds(col1);
-//
-//        auto col2 = bounds.removeFromLeft(bounds.getWidth() / 2);
-//        m_mul_socket.get_internal().set_layout(static_cast<int>(SliderWidget<float>::Layout::label_below));
-//        m_mul_socket.setBounds(col2.removeFromTop(m_mul_socket.default_height()));
-//        col2.removeFromTop(FULL_LAYOUT_SPACING);
-//
-//        m_add_socket.get_internal().set_layout(static_cast<int>(SliderWidget<float>::Layout::label_below));
-//        m_add_socket.setBounds(col2.removeFromTop(m_add_socket.default_height()));
-//        col2.removeFromTop(FULL_LAYOUT_SPACING);
-//
-//        m_duty_socket..get_internal().set_layout(static_cast<int>(SliderWidget<float>::Layout::label_below));
-//        m_duty_socket.setBounds(bounds.removeFromTop(m_duty_socket.default_height()));
-//        bounds.removeFromTop(FULL_LAYOUT_SPACING);
-//
-//        m_curve_socket..get_internal().set_layout(static_cast<int>(SliderWidget<float>::Layout::label_below));
-//        m_curve_socket.setBounds(bounds.removeFromTop(m_curve_socket.default_height()));
-//        bounds.removeFromTop(FULL_LAYOUT_SPACING);
+    void layout_generator_internal() {
+        auto label_position = SliderLayout::label_below;
+        auto slider_width = SliderWidget<float>::default_width(SliderLayout::label_below, true);
+        auto x_margins = DC::OBJECT_X_MARGINS_ROW;
+        auto y_margins = DC::OBJECT_Y_MARGINS_ROW;
+        auto slider_height = SliderWidget<float>::height_of(label_position);
+
+        auto bounds = getLocalBounds();
+
+        // layout
+        m_oscillator_view.set_layout(OscillatorView::Layout::compact);
+        m_type_socket.set_layout(static_cast<int>(CbLayout::label_below));
+        set_layout_for_all_sliders(label_position);
+
+        // row 1:
+        auto row1 = bounds.removeFromTop(slider_height);
+        m_oscillator_view.setBounds(row1.removeFromLeft(2 * slider_width + x_margins));
+        row1.removeFromLeft(x_margins);
+        m_duty_socket.setBounds(row1.removeFromLeft(slider_width));
+        row1.removeFromLeft(x_margins);
+        m_curve_socket.setBounds(row1);
+
+        bounds.removeFromTop(y_margins);
+
+        // row 2:
+        auto row2 = bounds;
+        m_type_socket.setBounds(row2.removeFromLeft(slider_width));
+        row2.removeFromLeft(x_margins);
+        m_freq_socket.setBounds(row2.removeFromLeft(slider_width));
+        row2.removeFromLeft(x_margins);
+        m_add_socket.setBounds(row2.removeFromLeft(slider_width));
+        row2.removeFromLeft(x_margins);
+        m_mul_socket.setBounds(row2.removeFromLeft(slider_width));
+        row2.removeFromLeft(x_margins);
     }
 
 

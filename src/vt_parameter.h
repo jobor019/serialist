@@ -363,6 +363,7 @@ public:
     void reset_values(std::vector<T> new_values) {
         std::lock_guard<std::mutex> lock{m_values_mutex};
         m_value_tree.removeAllChildren(&m_parent.get_undo_manager());
+        std::cout << "warning: missing CLEAR of vector / REMOVE\n";
         for (auto& value: new_values) {
             internal_insert(value, -1);
         }

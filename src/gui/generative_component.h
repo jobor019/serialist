@@ -33,6 +33,8 @@ public:
     DimensionConstants() = delete;
 };
 
+using DC = DimensionConstants;
+
 // ==============================================================================================
 
 class GenerativeComponent : public juce::Component {

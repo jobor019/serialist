@@ -18,7 +18,7 @@ public:
               , Node<double>* cursor = nullptr
               , Node<InterpolationStrategy<T>>* interp = nullptr
               , Sequence<T>* sequence = nullptr
-                      , Node<bool>* enabled = nullptr)
+              , Node<bool>* enabled = nullptr)
             : Node<T>(id, parent)
               , m_cursor("cursor", *this, cursor)
               , m_interpolation_strategy("interp", *this, interp)
@@ -70,13 +70,20 @@ public:
 
     void set_sequence(Sequence<T>* sequence) { m_sequence = sequence; }
 
-    Socket<double>& get_cursor() {return m_cursor; }
+
+    void set_enabled(Node<bool>* enabled) { m_enabled = enabled; }
+
+
+    Socket<double>& get_cursor() { return m_cursor; }
+
 
     Socket<InterpolationStrategy<T>>& get_interpolation_strategy() { return m_interpolation_strategy; }
 
+
     DataSocket<T> get_sequence() { return m_sequence; }
 
-    Socket<bool>& get_enabled() {return m_enabled; }
+
+    Socket<bool>& get_enabled() { return m_enabled; }
 
 
 private:
@@ -84,6 +91,7 @@ private:
     bool is_enabled(const TimePoint& t) {
         return m_enabled.process_or(t, true);
     }
+
 
     Socket<double> m_cursor;
     Socket<InterpolationStrategy<T>> m_interpolation_strategy;

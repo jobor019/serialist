@@ -11,7 +11,7 @@ class TextSequenceModule : public GenerativeComponent
                            , private juce::Label::Listener {
 public:
 
-    static const int INPUT_BOX_HEIGHT = static_cast<const int>(DimensionConstants::SLIDER_DEFAULT_HEIGHT * 1.6);
+    static const int INPUT_BOX_HEIGHT = static_cast<const int>(DC::SLIDER_DEFAULT_HEIGHT * 1.6);
 
 
     enum class Layout {
@@ -35,13 +35,14 @@ public:
 
 
     static int height_of(Layout layout = Layout::full) {
-        if (layout == Layout::full) {
-            return HeaderWidget::height_of()
-                   + 2 * DimensionConstants::COMPONENT_UD_MARGINS
-                   + INPUT_BOX_HEIGHT;
+        switch (layout) {
+            case Layout::full:
+                return HeaderWidget::height_of()
+                       + 2 * DC::COMPONENT_UD_MARGINS
+                       + INPUT_BOX_HEIGHT;
+            case Layout::generator_internal:
+                return INPUT_BOX_HEIGHT;
         }
-        std::cout << "TextSequenceModule not updated for this layout\n";
-        return 0;
     }
 
 
@@ -50,6 +51,7 @@ public:
 
     void set_layout(int layout_id) override {
         m_layout = static_cast<Layout>(layout_id);
+        std::cout << "layout set to " << layout_id << "\n";
         resized();
     }
 
@@ -95,14 +97,16 @@ private:
 
 
     void resized() override {
+        auto bounds = getLocalBounds();
+
         if (m_layout == Layout::full) {
-            auto bounds = getLocalBounds();
             m_header.setBounds(bounds.removeFromTop(HeaderWidget::height_of()));
-            bounds.reduce(DimensionConstants::COMPONENT_LR_MARGINS, DimensionConstants::COMPONENT_UD_MARGINS);
-            value_input_success.setBounds(bounds.removeFromRight(DimensionConstants::SLIDER_DEFAULT_HEIGHT));
-            bounds.removeFromRight(DimensionConstants::OBJECT_X_MARGINS_ROW);
-            value_input.setBounds(bounds);
+            bounds.reduce(DC::COMPONENT_LR_MARGINS, DC::COMPONENT_UD_MARGINS);
         }
+
+        value_input_success.setBounds(bounds.removeFromRight(bounds.getHeight()));
+        bounds.removeFromRight(DC::OBJECT_X_MARGINS_ROW);
+        value_input.setBounds(bounds);
     }
 
 

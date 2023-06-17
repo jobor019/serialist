@@ -43,6 +43,10 @@ public:
         return *m_default_component;
     }
 
+    void set_layout(int layout) {
+        get_internal().set_layout(layout);
+    }
+
 
     void paint(juce::Graphics&) override {}
 

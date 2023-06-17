@@ -22,12 +22,13 @@ public:
                     , std::unique_ptr<OscillatorModule> oscillator
                     , std::unique_ptr<InterpolationModule<T>> interpolator
                     , std::unique_ptr<TextSequenceModule<T>> sequence
+                    , Variable<bool>& internal_enabled
                     , Layout layout = Layout::full)
             : m_generator(generator)
-              , m_header(generator.get_enabled().get_connected()) // TODO: Technically not safe
               , m_internal_oscillator(std::move(oscillator))
               , m_interpolator(std::move(interpolator))
-              , m_internal_sequence(std::move(sequence)) {
+              , m_internal_sequence(std::move(sequence))
+              , m_header(generator.get_identifier_as_string(), internal_enabled) {
         (void) layout;
 
         if (!m_internal_oscillator || !m_interpolator || !m_internal_sequence)
@@ -50,10 +51,11 @@ public:
     static int height_of(Layout layout = Layout::full) {
         (void) layout;
         return HeaderWidget::height_of()
-               + 2 * DimensionConstants::COMPONENT_UD_MARGINS
+               + 2 * DC::COMPONENT_UD_MARGINS
                + OscillatorModule::height_of(OscillatorModule::Layout::generator_internal)
                + TextSequenceModule<T>::height_of(TextSequenceModule<T>::Layout::generator_internal)
-               + InterpolationModule<T>::height_of(InterpolationModule<T>::Layout::generator_internal);
+               + InterpolationModule<T>::height_of(InterpolationModule<T>::Layout::generator_internal)
+               + 2 * DC::OBJECT_Y_MARGINS_COLUMN;
     }
 
 
@@ -84,19 +86,25 @@ public:
 
 private:
     void full_layout() {
+        // layout
+        auto oscillator_layout = OscillatorModule::Layout::generator_internal;
+        auto sequence_layout = TextSequenceModule<T>::Layout::generator_internal;
+        auto interpolator_layout = InterpolationModule<T>::Layout::generator_internal;
+
+        m_internal_oscillator->set_layout(static_cast<int>(oscillator_layout));
+        m_internal_sequence->set_layout(static_cast<int>(sequence_layout));
+        m_interpolator->set_layout(static_cast<int>(interpolator_layout));
+
         auto bounds = getLocalBounds();
 
         m_header.setBounds(bounds.removeFromTop(HeaderWidget::height_of()));
-        bounds.reduce(DimensionConstants::COMPONENT_LR_MARGINS, DimensionConstants::COMPONENT_UD_MARGINS);
+        bounds.reduce(DC::COMPONENT_LR_MARGINS, DC::COMPONENT_UD_MARGINS);
 
-        m_internal_oscillator->setBounds(
-                bounds.removeFromTop(OscillatorModule::height_of(OscillatorModule::Layout::generator_internal)));
-        bounds.removeFromTop(DimensionConstants::OBJECT_Y_MARGINS_COLUMN);
-        m_internal_sequence->setBounds(bounds.removeFromTop(
-                TextSequenceModule<T>::height_of(TextSequenceModule<T>::Layout::generator_internal)));
-        bounds.removeFromTop(DimensionConstants::OBJECT_Y_MARGINS_COLUMN);
-        m_interpolator->setBounds(bounds.removeFromTop(
-                InterpolationModule<T>::height_of(InterpolationModule<T>::Layout::generator_internal)));
+        m_internal_oscillator->setBounds(bounds.removeFromTop(OscillatorModule::height_of(oscillator_layout)));
+        bounds.removeFromTop(DC::OBJECT_Y_MARGINS_COLUMN);
+        m_internal_sequence->setBounds(bounds.removeFromTop(TextSequenceModule<T>::height_of(sequence_layout)));
+        bounds.removeFromTop(DC::OBJECT_Y_MARGINS_COLUMN);
+        m_interpolator->setBounds(bounds.removeFromTop(InterpolationModule<T>::height_of(interpolator_layout)));
     }
 
 
