@@ -79,6 +79,14 @@ public:
         m_modular_generator.add(std::move(g5));
         addAndMakeVisible(*m_pitch_generator);
 
+        auto* generator = dynamic_cast<Node<int>*>(m_modular_generator.find("pitchg1"));
+        auto* midi_source = dynamic_cast<MidiNoteSource*>(m_modular_generator.find("src1"));
+        if (!generator || !midi_source) {
+            throw std::runtime_error("Failed to convert");
+        }
+        midi_source->set_pitch(generator);
+
+
 //        m_model.add(std::move(generatives));
 
 

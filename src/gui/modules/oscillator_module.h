@@ -10,7 +10,7 @@
 #include "widgets/header_widget.h"
 #include "widgets/combobox_widget.h"
 #include "views/oscillator_view.h"
-#include "socket_component.h"
+#include "socket_widget.h"
 
 
 class OscillatorModule : public GenerativeComponent {
@@ -214,12 +214,12 @@ private:
     Oscillator& m_oscillator;
 
 
-    SocketComponent<Oscillator::Type> m_type_socket;
-    SocketComponent<float> m_freq_socket;
-    SocketComponent<float> m_mul_socket;
-    SocketComponent<float> m_add_socket;
-    SocketComponent<float> m_duty_socket;
-    SocketComponent<float> m_curve_socket;
+    SocketWidget<Oscillator::Type> m_type_socket;
+    SocketWidget<float> m_freq_socket;
+    SocketWidget<float> m_mul_socket;
+    SocketWidget<float> m_add_socket;
+    SocketWidget<float> m_duty_socket;
+    SocketWidget<float> m_curve_socket;
 
     HeaderWidget m_header;
 

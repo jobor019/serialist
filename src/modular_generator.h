@@ -33,8 +33,9 @@ public:
         m_generatives.emplace_back(std::move(generative));
     }
 
+
     void add(std::vector<std::unique_ptr<Generative>> generatives) {
-        for (auto& generative : generatives) {
+        for (auto& generative: generatives) {
             add(std::move(generative));
         }
     }
@@ -47,11 +48,18 @@ public:
     }
 
 
-    void connect() { throw std::runtime_error("not implemented"); /* TODO */ }
+    Generative* find(const std::string& generative_id) {
+        auto it = std::find_if(m_generatives.begin()
+                     , m_generatives.end()
+                     , [&generative_id](const std::unique_ptr<Generative>& g) {
+                    return g->get_identifier_as_string() == generative_id;
+                });
 
-
-    void disconnect() { throw std::runtime_error("not implemented"); /* TODO */ }
-
+        if (it != m_generatives.end())
+            return it->get();
+        else
+            return nullptr;
+    }
 
     void reposition() { throw std::runtime_error("not implemented"); /* TODO */ }
 

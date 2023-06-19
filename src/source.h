@@ -88,21 +88,19 @@ public:
 
 
     void set_onset(Node<float>* onset) { m_onset = onset; }
-
-
     void set_duration(Node<float>* duration) { m_duration = duration; }
-
-
     void set_pitch(Node<int>* pitch) { m_pitch = pitch; }
-
-
     void set_velocity(Node<int>* velocity) { m_velocity = velocity; }
-
-
     void set_channel(Node<int>* channel) { m_channel = channel; }
-
-
     void set_enabled(Node<bool>* enabled) { m_enabled = enabled; }
+
+
+    Socket<float>& get_onset() { return m_onset; }
+    Socket<float>& get_duration() { return m_duration; }
+    Socket<int>& get_pitch() { return m_pitch; }
+    Socket<int>& get_velocity() { return m_velocity; }
+    Socket<int>& get_channel() { return m_channel; }
+    Socket<bool>& get_enabled() { return m_enabled; }
 
 
     void set_midi_device(const std::string& device_name, bool override = true) {
