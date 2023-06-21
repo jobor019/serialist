@@ -5,8 +5,8 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 
-class ConnectorObject : public juce::Component
-                        , private juce::ValueTree::Listener {
+class ConnectorComponent : public juce::Component
+                           , private juce::ValueTree::Listener {
 public:
 
 private:

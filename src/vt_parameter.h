@@ -41,16 +41,16 @@ public:
     VTParameterHandler& operator=(VTParameterHandler&&) noexcept = delete;
 
 
-    juce::ValueTree& get_value_tree() {
+    [[nodiscard]] juce::ValueTree& get_value_tree() {
         return m_value_tree;
     }
 
 
-    juce::Identifier get_identifier() const {
+    [[nodiscard]] juce::Identifier get_identifier() const {
         return m_value_tree.getType();
     }
 
-    std::string get_identifier_as_string() const {
+    [[nodiscard]] std::string get_identifier_as_string() const {
         return get_identifier().toString().toStdString();
     }
 
@@ -313,7 +313,7 @@ public:
     }
 
 
-    ~VTParametrizedSequence() {
+    ~VTParametrizedSequence() override {
         m_parent.get_value_tree().removeListener(this);
         m_parent.get_value_tree().removeChild(m_value_tree, &m_parent.get_undo_manager());
     }

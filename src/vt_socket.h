@@ -37,11 +37,11 @@ public:
     }
 
 
-    Generative* get_connected() const {
+    [[nodiscard]] Generative* get_connected() const {
         return dynamic_cast<Generative*>(m_node);
     }
 
-    bool is_connected() const {
+    [[nodiscard]] bool is_connected() const {
         return m_node;
     }
 

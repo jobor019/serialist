@@ -37,7 +37,7 @@ private:
 
     std::mutex m_mutex;
 
-    std::string m_default_device_name = "IAC Driver IAC1";
+    std::string m_default_device_name = "IAC1";
 };
 
 

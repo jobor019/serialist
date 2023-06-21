@@ -64,7 +64,7 @@ private:
 
 
     std::vector<T> random(const std::vector<T>& material, const std::vector<double>& mask) {
-        (void) material;(void) mask;(void) select_from_end;
+        (void) material;(void) mask;
         // random select N elements (N = mask.size())
         throw std::runtime_error("not implemented"); // TODO
     }

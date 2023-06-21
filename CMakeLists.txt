@@ -51,7 +51,7 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/gui/look_and_feel.h
         ${CMAKE_SOURCE_DIR}/src/gui/main_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/module_factory.h
-        ${CMAKE_SOURCE_DIR}/src/gui/socket_component.h
+        ${CMAKE_SOURCE_DIR}/src/io/keyboard_shortcuts.h
         ${CMAKE_SOURCE_DIR}/src/io/midi_config.h
         ${CMAKE_SOURCE_DIR}/src/io/renderers.h
         )
@@ -191,7 +191,7 @@ add_executable(tests
         ${CMAKE_SOURCE_DIR}/test/looper_tests.cpp
         ${CMAKE_SOURCE_DIR}/test/generator_tests.cpp
         ${CMAKE_SOURCE_DIR}/test/juce_tests.cpp
-        test/sequence_tests.cpp)
+        test/sequence_tests.cpp src/io/tehpth.h)
 
 target_link_libraries(tests
         PRIVATE

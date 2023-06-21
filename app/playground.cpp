@@ -22,6 +22,7 @@
 //#include "modules/note_source_module.h"
 
 #include "generator.h"
+#include "configuration_layer_component.h"
 
 class SomeObject : public ParameterHandler {
 public:
@@ -36,6 +37,7 @@ public:
     PlaygroundComponent()
 //            : m_some_handler(m_undo_manager)
             : m_modular_generator(ParameterHandler(m_undo_manager))
+              , m_config_layer_component(m_modular_generator)
 //              , m_pitch("pitch", m_some_handler)
 //              , s(ScalableSlider::Orientation::vertical)
 //              , hc("header", m_some_handler)
@@ -79,12 +81,14 @@ public:
         m_modular_generator.add(std::move(g5));
         addAndMakeVisible(*m_pitch_generator);
 
+        addAndMakeVisible(m_config_layer_component);
+
         auto* generator = dynamic_cast<Node<int>*>(m_modular_generator.find("pitchg1"));
         auto* midi_source = dynamic_cast<MidiNoteSource*>(m_modular_generator.find("src1"));
         if (!generator || !midi_source) {
             throw std::runtime_error("Failed to convert");
         }
-        midi_source->set_pitch(generator);
+//        midi_source->set_pitch(generator);
 
 
 //        m_model.add(std::move(generatives));
@@ -121,7 +125,7 @@ public:
 
         m_transport.start();
         startTimer(1);
-        setSize(600, 400);
+        setSize(1000, 400);
     }
 
 
@@ -146,6 +150,8 @@ public:
 //        hc.setBounds(400, 100, 200, 20);
 //        my_cb.setBounds(500, 40, 80, 50);
         m_source->setBounds(50, 270, NoteSourceModule::width_of(), NoteSourceModule::height_of());
+
+        m_config_layer_component.setBounds(600, 20, 980, getHeight() - 40);
 
     }
 
@@ -181,6 +187,8 @@ private:
     std::unique_ptr<GeneratorModule<int>> m_pitch_generator;
 //
     std::unique_ptr<NoteSourceModule> m_source;
+
+    ConfigurationLayerComponent m_config_layer_component;
 
 //    juce::ToggleButton tb;
 
