@@ -29,7 +29,7 @@ public:
     SomeObject(ParameterHandler&& handler) : ParameterHandler(std::move(handler)) {}
 };
 
-class PlaygroundComponent : public juce::Component
+class PlaygroundComponent : public MainKeyboardFocusComponent
                             , private juce::HighResolutionTimer {
 public:
 
@@ -164,9 +164,18 @@ public:
         ++callback_count;
 
         if (callback_count % 1000 == 0) {
-            std::cout << m_modular_generator.get_value_tree().toXmlString() << "\n";
+//            std::cout << m_modular_generator.get_value_tree().toXmlString() << "\n";
         }
 
+    }
+
+    void globalFocusChanged(juce::Component *focusedComponent) override {
+        if (focusedComponent) {
+            std::cout << "focused component dims " << focusedComponent->getWidth() << " " << focusedComponent->getHeight() << "\n";
+        } else {
+            std::cout << "nullptr\n";
+        }
+        MainKeyboardFocusComponent::globalFocusChanged(focusedComponent);
     }
 
 

@@ -15,7 +15,7 @@
 #include "modules/generator_module.h"
 
 
-class MainComponent : public juce::Component
+class MainComponent : public MainKeyboardFocusComponent
                       , private juce::HighResolutionTimer {
 
 public:

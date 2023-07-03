@@ -190,8 +190,7 @@ add_executable(tests
         ${CMAKE_SOURCE_DIR}/test/selector_tests.cpp
         ${CMAKE_SOURCE_DIR}/test/looper_tests.cpp
         ${CMAKE_SOURCE_DIR}/test/generator_tests.cpp
-        ${CMAKE_SOURCE_DIR}/test/juce_tests.cpp
-        test/sequence_tests.cpp src/io/tehpth.h)
+        ${CMAKE_SOURCE_DIR}/test/juce_tests.cpp)
 
 target_link_libraries(tests
         PRIVATE
