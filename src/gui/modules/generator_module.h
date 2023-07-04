@@ -3,6 +3,7 @@
 #ifndef SERIALISTLOOPER_NEW_GENERATOR_COMPONENT_H
 #define SERIALISTLOOPER_NEW_GENERATOR_COMPONENT_H
 
+#include "base_module.h"
 #include "generative_component.h"
 #include "parameter_policy.h"
 #include "generator.h"
@@ -10,8 +11,9 @@
 #include "text_sequence_module.h"
 #include "interpolation_module.h"
 
+
 template<typename T>
-class GeneratorModule : public GenerativeComponent {
+class GeneratorModule : public BaseModule {
 public:
     enum class Layout {
         full
@@ -80,6 +82,7 @@ public:
     void resized() override {
         if (m_layout == Layout::full) {
             full_layout();
+            BaseModule::resized();
         }
     }
 

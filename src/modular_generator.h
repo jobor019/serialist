@@ -44,7 +44,8 @@ public:
     void remove(Generative* generative) {
         (void) generative;
         std::lock_guard<std::mutex> lock(process_mutex);
-        throw std::runtime_error("remove is not implemented"); // TODO
+//        std::cout << "DUMMY REMOVE (NOT IMPLEMENTED): THIS WILL LEAK!!!!\n";
+        throw std::runtime_error("Don't forget to implement this to fix this leak"); // TODO
     }
 
 

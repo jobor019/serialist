@@ -34,6 +34,7 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/utils.h
         ${CMAKE_SOURCE_DIR}/src/variable.h
         ${CMAKE_SOURCE_DIR}/src/vt_parameter.h
+        ${CMAKE_SOURCE_DIR}/src/gui/modules/base_module.h
         ${CMAKE_SOURCE_DIR}/src/gui/modules/generator_module.h
         ${CMAKE_SOURCE_DIR}/src/gui/modules/interpolation_module.h
         ${CMAKE_SOURCE_DIR}/src/gui/modules/note_source_module.h

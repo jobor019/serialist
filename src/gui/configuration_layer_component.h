@@ -14,22 +14,38 @@
 #include "editable.h"
 
 class ConfigurationLayerComponent : public juce::Component
+                                    , public GlobalKeyState::Listener
                                     , public juce::DragAndDropContainer {
 public:
 
     using KeyCodes = ConfigurationLayerKeyboardShortcuts;
+
 
     struct ComponentAndBounds {
         std::unique_ptr<GenerativeComponent> component;
         juce::Rectangle<int> position;
     };
 
+    class DummyMidiSourceHighlight : public EditHighlight {
+    public:
+        DummyMidiSourceHighlight(const juce::Point<int>& mouse_position) : position(mouse_position) {}
+
+
+        juce::Point<int> position;
+        // TODO: for now just default EditHighlight implementation but should be a bitmap of the module in the future
+    };
+
 
     explicit ConfigurationLayerComponent(ModularGenerator& modular_generator)
             : m_modular_generator(modular_generator) {
+        GlobalKeyState::add_listener(*this);
         setWantsKeyboardFocus(false);
         setInterceptsMouseClicks(true, false);
+    }
 
+
+    ~ConfigurationLayerComponent() override {
+        GlobalKeyState::remove_listener(*this);
     }
 
 
@@ -41,6 +57,12 @@ public:
     void resized() override {
         for (auto& component_and_bounds: m_generative_components) {
             component_and_bounds.component->setBounds(component_and_bounds.position);
+        }
+
+        if (m_creation_highlight) {
+            auto& pos = m_creation_highlight->position;
+            m_creation_highlight->setBounds(pos.getX(), pos.getY(), GeneratorModule<int>::width_of(), GeneratorModule<
+                    int>::height_of());
         }
     }
 
@@ -85,6 +107,63 @@ public:
 
 private:
 
+    void mouseEnter(const juce::MouseEvent& event) override {
+        if (event.originalComponent == this) {
+            m_last_mouse_position = std::make_unique<juce::Point<int>>(event.getPosition());
+            process_mouse_highlights();
+        }
+    }
+
+
+    void mouseMove(const juce::MouseEvent& event) override {
+        if (event.originalComponent == this) {
+            m_last_mouse_position = std::make_unique<juce::Point<int>>(event.getPosition());
+            process_mouse_highlights();
+        }
+    }
+
+
+    void mouseExit(const juce::MouseEvent& event) override {
+        if (event.originalComponent == this) {
+            m_last_mouse_position = nullptr;
+            process_mouse_highlights();
+        }
+    }
+
+
+    void key_pressed() override {
+        process_mouse_highlights();
+    }
+
+
+    void key_released() override {
+        process_mouse_highlights();
+    }
+
+
+    void process_mouse_highlights() {
+        if (!m_creation_highlight && !m_last_mouse_position) {
+            return; // mouse is not over component
+        }
+
+        if (m_last_mouse_position && GlobalKeyState::is_down_exclusive(KeyCodes::NEW_GENERATOR_KEY)) {
+            if (m_creation_highlight) {
+                m_creation_highlight->position = *m_last_mouse_position;
+            } else {
+                m_creation_highlight = std::make_unique<DummyMidiSourceHighlight>(*m_last_mouse_position);
+                addAndMakeVisible(*m_creation_highlight);
+            }
+
+        } else if (m_creation_highlight) {
+            m_creation_highlight = nullptr;
+        }
+
+        resized();
+
+
+    }
+
+
     void mouseDown(const juce::MouseEvent& event) override {
         (void) event;
     }
@@ -110,9 +189,19 @@ private:
 
 
     void try_remove_component(const juce::MouseEvent& event) {
-        auto* c = get_component_under_mouse(event);
-        if (c != nullptr) {
-            std::cout << "COMPONENT FOUND HEHE:: " << c->component->get_generative().get_identifier_as_string() << "\n";
+        auto* component_and_bounds = get_component_under_mouse(event);
+        if (component_and_bounds != nullptr) {
+            std::cout << "COMPONENT FOUND HEHE:: "
+                      << component_and_bounds->component->get_generative().get_identifier_as_string() << "\n";
+            m_modular_generator.remove(&component_and_bounds->component->get_generative());
+            m_generative_components.erase(
+                    std::remove_if(
+                            m_generative_components.begin()
+                            , m_generative_components.end()
+                            , [component_and_bounds](const ComponentAndBounds& c) { return &c == component_and_bounds; }
+                    ), m_generative_components.end());
+
+
         } else {
             std::cout << "no component found\n";
         }
@@ -120,16 +209,17 @@ private:
 
 
     void create_component(const juce::MouseEvent& event) {
-        if (GlobalKeyState::is_down_exclusive(KeyCodes::NEW_MIDI_SOURCE_KEY)) {
+        if (GlobalKeyState::is_down_exclusive(KeyCodes::NEW_GENERATOR_KEY)) {
             auto [component, generatives] = ModuleFactory::new_generator<float>("generator", m_modular_generator);
             addAndMakeVisible(*component);
+            component->addMouseListener(this, true);
             m_generative_components.push_back(
                     {std::move(component), {event.getPosition().getX(), event.getPosition().getY(), GeneratorModule<
                             int>::width_of(), GeneratorModule<int>::height_of()}});
             m_modular_generator.add(std::move(generatives));
             std::cout << m_generative_components.size() << "\n\n\n";
             resized();
-        } else if (GlobalKeyState::is_down_exclusive(KeyCodes::NEW_GENERATOR_KEY)) {
+        } else if (GlobalKeyState::is_down_exclusive(KeyCodes::NEW_MIDI_SOURCE_KEY)) {
             std::cout << "CREATE NEW GENERATOR (dummy)\n";
         } else if (GlobalKeyState::is_down_exclusive(KeyCodes::NEW_OSCILLATOR_KEY)) {
             std::cout << "CREATE NEW OSCILLATOR (dummy)\n";
@@ -170,8 +260,8 @@ private:
     std::vector<ComponentAndBounds> m_generative_components;
     std::vector<ConnectorComponent> m_connectors;
 
-    // TODO: This should be a dummy bitmap created from each module, rather than just a blank highlight
-    EditHighlight m_create_component_highlight;
+    std::unique_ptr<juce::Point<int>> m_last_mouse_position = nullptr;
+    std::unique_ptr<DummyMidiSourceHighlight> m_creation_highlight = nullptr;
 
 
 };

@@ -20,6 +20,7 @@ public:
 
     static const int CONNECTOR_KEY = static_cast<int>('R');
     static const int DELETE_KEY = static_cast<int>('X');
+    static const int MOVE_KEY = static_cast<int>('M');
 
 };
 
