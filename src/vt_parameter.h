@@ -4,6 +4,7 @@
 #define SERIALISTPLAYGROUND_VT_PARAMETER_H
 
 #include <iostream>
+#include <regex>
 #include <juce_data_structures/juce_data_structures.h>
 #include "exceptions.h"
 #include "interpolator.h"
@@ -50,8 +51,39 @@ public:
         return m_value_tree.getType();
     }
 
+
     [[nodiscard]] std::string get_identifier_as_string() const {
         return get_identifier().toString().toStdString();
+    }
+
+
+    /**
+     * matches, e.g. `base_name` "osc" matches identifiers "osc", "osc::freq", "osc::freq::value" but not "osc1"
+     */
+    [[nodiscard]] bool identifier_matches(const std::string& base_name) const {
+        return identifier_matches(std::regex("^" + base_name + "(:{2}.*)?$"));
+    }
+
+
+    [[nodiscard]] bool identifier_matches(const std::regex& base_name_regex) const {
+        return std::regex_match(get_identifier_as_string(), base_name_regex);
+    }
+
+
+    /**
+     * equals, e.g. `exact_name` "osc" only equals the exact identifier "osc"
+     */
+    [[nodiscard]] bool identifier_equals(const std::string& exact_name) const {
+        return get_identifier_as_string() == exact_name;
+    }
+
+
+    /**
+     * begins with, e.g. `name_root` "osc" is true for identifiers "osc", "osc1"
+     *  but false for "osc::freq" and "osc1::freq"
+     */
+    [[nodiscard]] bool identifier_begins_with(const std::string& name_root) const {
+        return identifier_matches(std::regex("^" + name_root + "[^:]*$"));
     }
 
 

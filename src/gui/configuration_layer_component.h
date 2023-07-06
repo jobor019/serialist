@@ -193,7 +193,9 @@ private:
         if (component_and_bounds != nullptr) {
             std::cout << "COMPONENT FOUND HEHE:: "
                       << component_and_bounds->component->get_generative().get_identifier_as_string() << "\n";
-            m_modular_generator.remove(&component_and_bounds->component->get_generative());
+
+            auto& generative = component_and_bounds->component->get_generative();
+
             m_generative_components.erase(
                     std::remove_if(
                             m_generative_components.begin()
@@ -201,16 +203,24 @@ private:
                             , [component_and_bounds](const ComponentAndBounds& c) { return &c == component_and_bounds; }
                     ), m_generative_components.end());
 
+            m_modular_generator.remove_generative_and_children(generative);
 
         } else {
             std::cout << "no component found\n";
         }
+
+        std::cout << "Size: " << m_modular_generator.size() << "\n";
+
     }
 
 
     void create_component(const juce::MouseEvent& event) {
+        if (event.originalComponent != this)
+            return;
+
         if (GlobalKeyState::is_down_exclusive(KeyCodes::NEW_GENERATOR_KEY)) {
-            auto [component, generatives] = ModuleFactory::new_generator<float>("generator", m_modular_generator);
+            auto name = m_modular_generator.next_free_name("generator");
+            auto [component, generatives] = ModuleFactory::new_generator<float>(name, m_modular_generator);
             addAndMakeVisible(*component);
             component->addMouseListener(this, true);
             m_generative_components.push_back(
@@ -227,6 +237,7 @@ private:
             std::cout << "(click without modifier)\n";
         }
 
+        m_modular_generator.print_names();
     }
 
 

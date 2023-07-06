@@ -4,6 +4,7 @@
 #define SERIALISTLOOPER_MODULAR_GENERATOR_H
 
 #include <mutex>
+#include <regex>
 #include "source.h"
 
 class ModularGenerator : public ParameterHandler {
@@ -41,18 +42,32 @@ public:
     }
 
 
-    void remove(Generative* generative) {
-        (void) generative;
+    void remove(Generative& generative) {
         std::lock_guard<std::mutex> lock(process_mutex);
-//        std::cout << "DUMMY REMOVE (NOT IMPLEMENTED): THIS WILL LEAK!!!!\n";
-        throw std::runtime_error("Don't forget to implement this to fix this leak"); // TODO
+        remove_internal(generative);
+
+    }
+
+
+    void remove(const std::vector<Generative*>& generatives) {
+        std::lock_guard<std::mutex> lock(process_mutex);
+        remove_internal(generatives);
+
+    }
+
+
+    void remove_generative_and_children(Generative& generative) {
+        std::lock_guard<std::mutex> lock{process_mutex};
+
+        auto generative_and_children = find_generatives_matching(generative.get_identifier_as_string());
+        remove_internal(generative_and_children);
     }
 
 
     Generative* find(const std::string& generative_id) {
         auto it = std::find_if(m_generatives.begin()
-                     , m_generatives.end()
-                     , [&generative_id](const std::unique_ptr<Generative>& g) {
+                               , m_generatives.end()
+                               , [&generative_id](const std::unique_ptr<Generative>& g) {
                     return g->get_identifier_as_string() == generative_id;
                 });
 
@@ -62,10 +77,81 @@ public:
             return nullptr;
     }
 
-    void reposition() { throw std::runtime_error("not implemented"); /* TODO */ }
+
+    void print_names() {
+        std::cout << "names: ";
+        for (const auto& g: m_generatives) {
+            std::cout << g->get_identifier_as_string() << ", ";
+        }
+        std::cout << "\n";
+    }
+
+
+    std::vector<Generative*> find_generatives_matching(const std::string& base_name) {
+        std::vector<Generative*> matching_generatives;
+
+        // match exact base name as well as any children on format <base_name>::.*
+        std::regex regex("^" + base_name + "(:{2}.*)?$");
+
+        for (const auto& generative: m_generatives) {
+            if (generative->identifier_matches(regex)) {
+                matching_generatives.push_back(generative.get());
+            }
+        }
+
+        return matching_generatives;
+    }
+
+
+    std::size_t size() {
+        return m_generatives.size();
+    }
+
+
+    std::string next_free_name(const std::string& suggested_name) {
+        std::lock_guard<std::mutex> lock{process_mutex};
+        std::vector<std::string> conflicting_names;
+
+        for (const auto& generative: m_generatives) {
+            if (generative->identifier_begins_with(suggested_name))
+                conflicting_names.emplace_back(generative->get_identifier_as_string());
+        }
+
+        // TODO: Naive approach, might need optimization for large patches
+        int i = 1;
+        std::string new_name = suggested_name + std::to_string(i);
+        while (std::find(conflicting_names.begin(), conflicting_names.end(), new_name) != conflicting_names.end()) {
+            i += 1;
+            new_name = suggested_name + std::to_string(i);
+        }
+        return new_name;
+    }
 
 
 private:
+
+    void remove_internal(Generative& generative) {
+        if (auto source = dynamic_cast<Source*>(&generative)) {
+            m_sources.erase(std::remove(m_sources.begin(), m_sources.end(), source), m_sources.end());
+        }
+
+        m_generatives.erase(
+                std::remove_if(
+                        m_generatives.begin()
+                        , m_generatives.end()
+                        , [&generative](const auto& e) { return e.get() == &generative; }
+                ), m_generatives.end());
+    }
+
+
+    void remove_internal(const std::vector<Generative*>& generatives) {
+        // TODO: Optimize with erase-remove if slow
+        for (auto* generative: generatives) {
+            if (generative)
+                remove_internal(*generative);
+        }
+    }
+
 
     std::mutex process_mutex;
 

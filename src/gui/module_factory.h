@@ -21,6 +21,12 @@ public:
     ModuleFactory() = delete;
 
 
+//    static std::optional<ModuleAndGeneratives<NoteSourceModule>>
+//    new_from_key(int key ) {
+//        switch (key) {}
+//    }
+
+
     static ModuleAndGeneratives<NoteSourceModule>
     new_midi_note_source(const std::string& id
                          , ParameterHandler& parent
