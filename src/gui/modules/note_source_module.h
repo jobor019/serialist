@@ -73,6 +73,10 @@ public:
                + SliderWidget<float>::height_of(SliderWidget<float>::Layout::label_below);
     }
 
+    static std::string default_name() {
+        return "source";
+    }
+
 
     void set_layout(int) override {}
 

@@ -218,26 +218,34 @@ private:
         if (event.originalComponent != this)
             return;
 
-        if (GlobalKeyState::is_down_exclusive(KeyCodes::NEW_GENERATOR_KEY)) {
-            auto name = m_modular_generator.next_free_name("generator");
-            auto [component, generatives] = ModuleFactory::new_generator<float>(name, m_modular_generator);
+        if (GlobalKeyState::any_is_down_exclusive(KeyCodes::NEW_GENERATOR_KEY
+                                                  , KeyCodes::NEW_OSCILLATOR_KEY
+                                                  , KeyCodes::NEW_MIDI_SOURCE_KEY)) {
+            auto cng = ModuleFactory::new_from_key(GlobalKeyState::get_held_keys()[0], m_modular_generator);
+
+            if (!cng)
+                return;
+
+            auto component = std::move(cng.value().component);
+            auto generatives = std::move(cng.value().generatives);
+
             addAndMakeVisible(*component);
             component->addMouseListener(this, true);
             m_generative_components.push_back(
-                    {std::move(component), {event.getPosition().getX(), event.getPosition().getY(), GeneratorModule<
-                            int>::width_of(), GeneratorModule<int>::height_of()}});
+                    {std::move(component)
+                     , {event.getPosition().getX(), event.getPosition().getY(), cng->width, cng->height}}
+            );
+
             m_modular_generator.add(std::move(generatives));
             std::cout << m_generative_components.size() << "\n\n\n";
             resized();
-        } else if (GlobalKeyState::is_down_exclusive(KeyCodes::NEW_MIDI_SOURCE_KEY)) {
-            std::cout << "CREATE NEW GENERATOR (dummy)\n";
-        } else if (GlobalKeyState::is_down_exclusive(KeyCodes::NEW_OSCILLATOR_KEY)) {
-            std::cout << "CREATE NEW OSCILLATOR (dummy)\n";
+
+            m_modular_generator.print_names();
         } else {
-            std::cout << "(click without modifier)\n";
+            return;
         }
 
-        m_modular_generator.print_names();
+
     }
 
 

@@ -16,15 +16,78 @@
 template<typename ModuleType>
 using ModuleAndGeneratives = std::pair<std::unique_ptr<ModuleType>, std::vector<std::unique_ptr<Generative>>>;
 
+class ComponentAndGeneratives {
+public:
+    ComponentAndGeneratives(std::unique_ptr<GenerativeComponent> comp
+                            , std::vector<std::unique_ptr<Generative>> gens
+                            , int w
+                            , int h)
+            : component(std::move(comp)), generatives(std::move(gens)), width(w), height(h) {}
+
+
+    template<typename ModuleType>
+    static ComponentAndGeneratives from_internal(ModuleAndGeneratives<ModuleType> mng) {
+        return {downcast(std::move(mng.first))
+                , std::move(mng.second)
+                , ModuleType::width_of()
+                , ModuleType::height_of()};
+    }
+
+
+    template<typename ModuleType>
+    static std::unique_ptr<GenerativeComponent> downcast(std::unique_ptr<ModuleType> derived_object) {
+        static_assert(std::is_base_of_v<GenerativeComponent, ModuleType>
+                      , "ModuleType must inherit from GenerativeComponent");
+
+        std::unique_ptr<GenerativeComponent> target_generative = nullptr;
+
+        auto* object_as_generative = dynamic_cast<GenerativeComponent*>(derived_object.get());
+
+        if (object_as_generative) {
+            target_generative.reset(object_as_generative);
+            (void) derived_object.release(); // (void) is just to remove clang-tidy warning
+            return target_generative;
+
+        } else {
+            return nullptr;
+        }
+    }
+
+
+    std::unique_ptr<GenerativeComponent> component;
+    std::vector<std::unique_ptr<Generative>> generatives;
+    int width;
+    int height;
+};
+
+
 class ModuleFactory {
 public:
+
+    using KeyCodes = ConfigurationLayerKeyboardShortcuts;
+
     ModuleFactory() = delete;
 
+    static std::optional<ComponentAndGeneratives>
+    new_from_key(int key, ModularGenerator& parent) {
+        if (key == KeyCodes::NEW_GENERATOR_KEY) {
+            auto name = parent.next_free_name(GeneratorModule<float>::default_name());
+            auto mng = new_generator<float>(name, parent);
+            return {ComponentAndGeneratives::from_internal(std::move(mng))};
+        } else if (key == KeyCodes::NEW_MIDI_SOURCE_KEY) {
+            auto name = parent.next_free_name(NoteSourceModule::default_name());
+            auto mng = new_midi_note_source(name, parent);
+            return {ComponentAndGeneratives::from_internal(std::move(mng))};
+        } else if (key == KeyCodes::NEW_OSCILLATOR_KEY) {
+            auto name = parent.next_free_name(OscillatorModule::default_name());
+            auto mng = new_oscillator(name, parent);
+            return {ComponentAndGeneratives::from_internal(std::move(mng))};
+        }
 
-//    static std::optional<ModuleAndGeneratives<NoteSourceModule>>
-//    new_from_key(int key ) {
-//        switch (key) {}
-//    }
+        return std::nullopt;
+    }
+
+
 
 
     static ModuleAndGeneratives<NoteSourceModule>
@@ -64,7 +127,6 @@ public:
     new_generator(const std::string& id
                   , ParameterHandler& parent
                   , typename GeneratorModule<T>::Layout layout = GeneratorModule<T>::Layout::full) {
-
 
 
         auto [oscillator_module, oscillator_generatives] = new_oscillator(

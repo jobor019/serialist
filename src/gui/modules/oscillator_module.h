@@ -71,6 +71,10 @@ public:
     }
 
 
+    static std::string default_name() {
+        return "oscillator";
+    }
+
     static int width_of(Layout layout = Layout::full) {
         switch (layout) {
             case Layout::full:

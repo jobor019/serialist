@@ -44,6 +44,10 @@ public:
     }
 
 
+    static std::string default_name() {
+        return "generator";
+    }
+
     static int width_of(Layout layout = Layout::full) {
         (void) layout;
         return OscillatorModule::width_of(OscillatorModule::Layout::generator_internal);

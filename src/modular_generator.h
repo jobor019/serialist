@@ -110,15 +110,23 @@ public:
 
     std::string next_free_name(const std::string& suggested_name) {
         std::lock_guard<std::mutex> lock{process_mutex};
-        std::vector<std::string> conflicting_names;
 
+
+        if (std::find_if(m_generatives.begin()
+                         , m_generatives.end()
+                         , [&suggested_name](const auto& g) { return g->identifier_equals(suggested_name); })
+            == m_generatives.end()) {
+            return suggested_name;
+        }
+
+        std::vector<std::string> conflicting_names;
         for (const auto& generative: m_generatives) {
             if (generative->identifier_begins_with(suggested_name))
                 conflicting_names.emplace_back(generative->get_identifier_as_string());
         }
 
         // TODO: Naive approach, might need optimization for large patches
-        int i = 1;
+        int i = 2;
         std::string new_name = suggested_name + std::to_string(i);
         while (std::find(conflicting_names.begin(), conflicting_names.end(), new_name) != conflicting_names.end()) {
             i += 1;
