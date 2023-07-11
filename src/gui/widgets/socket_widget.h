@@ -7,19 +7,15 @@
 #include "socket_policy.h"
 #include "generative_component.h"
 #include "keyboard_shortcuts.h"
-#include <editable.h>
+#include "connectable.h"
 
 template<typename T>
-class SocketWidget : public Editable
-                     , public juce::Component
-                     , public juce::DragAndDropContainer
+class SocketWidget : public juce::Component
                      , private juce::ValueTree::Listener {
 public:
     explicit SocketWidget(Socket<T>& socket, std::unique_ptr<GenerativeComponent> default_widget)
             : m_socket(socket)
-              , m_default_widget(std::move(default_widget))
-              , m_highlight_manager(*this, this) {
-
+              , m_default_widget(std::move(default_widget)) {
 
         if (!m_default_widget) {
             throw std::runtime_error("A default component must be provided for the socket");
@@ -27,10 +23,9 @@ public:
 
         m_socket.add_value_tree_listener(*this);
         addAndMakeVisible(*m_default_widget);
-        addAndMakeVisible(m_highlight_manager);
+
+        m_default_widget->addMouseListener(this, true);
     }
-
-
 
 
     ~SocketWidget() override {
@@ -54,6 +49,16 @@ public:
     }
 
 
+//    bool connectable_to(GenerativeComponent& generative_component) override {
+//        return m_socket.is_connectable(generative_component.get_generative());
+//    }
+
+
+//    bool on_connect(GenerativeComponent& generative_component) override {
+//        return m_socket.try_connect(generative_component.get_generative());
+//    }
+
+
     void set_layout(int layout) {
         get_internal().set_layout(layout);
     }
@@ -64,13 +69,9 @@ public:
 
     void resized() override {
         m_default_widget->setBounds(getLocalBounds());
-        m_highlight_manager.setBounds(getLocalBounds());
+//        Connectable::resized();
     }
 
-protected:
-    int compute_edit_state() override {
-        return GlobalKeyState::is_down_exclusive(ConfigurationLayerKeyboardShortcuts::CONNECTOR_KEY);
-    }
 
 private:
     void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier&) override {
@@ -81,9 +82,6 @@ private:
     Socket<T>& m_socket;
 
     std::unique_ptr<GenerativeComponent> m_default_widget;
-
-    EditHighlightManager m_highlight_manager;
-
 
 };
 

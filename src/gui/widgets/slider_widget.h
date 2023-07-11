@@ -8,14 +8,14 @@
 #include "generative_component.h"
 #include "variable.h"
 #include "look_and_feel.h"
-#include "editable.h"
 
 
 template<typename T>
 class SliderWidget : public GenerativeComponent
-        , public Editable
                      , private juce::ValueTree::Listener {
 public:
+
+
 
 
     enum class Layout : int {

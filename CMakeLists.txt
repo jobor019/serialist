@@ -34,7 +34,6 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/utils.h
         ${CMAKE_SOURCE_DIR}/src/variable.h
         ${CMAKE_SOURCE_DIR}/src/vt_parameter.h
-        ${CMAKE_SOURCE_DIR}/src/gui/modules/base_module.h
         ${CMAKE_SOURCE_DIR}/src/gui/modules/generator_module.h
         ${CMAKE_SOURCE_DIR}/src/gui/modules/interpolation_module.h
         ${CMAKE_SOURCE_DIR}/src/gui/modules/note_source_module.h
@@ -47,8 +46,10 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/gui/widgets/slider_widget.h
         ${CMAKE_SOURCE_DIR}/src/gui/widgets/toggle_button_widget.h
         ${CMAKE_SOURCE_DIR}/src/gui/configuration_layer_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/connectable.h
         ${CMAKE_SOURCE_DIR}/src/gui/connector_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/generative_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/interaction_visualizations.h
         ${CMAKE_SOURCE_DIR}/src/gui/look_and_feel.h
         ${CMAKE_SOURCE_DIR}/src/gui/main_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/module_factory.h

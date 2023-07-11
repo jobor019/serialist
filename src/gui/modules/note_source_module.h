@@ -10,6 +10,7 @@
 #include "widgets/toggle_button_widget.h"
 #include "widgets/header_widget.h"
 #include "views/note_view.h"
+#include "interaction_visualizations.h"
 
 class NoteSourceModule : public GenerativeComponent {
 public:
@@ -41,7 +42,8 @@ public:
               , m_internal_channel(internal_channel, 1, 16, 1
                                    , "ch", SliderWidget<int>::Layout::label_below)
               , m_header(note_source.get_identifier_as_string(), internal_enabled)
-              , m_visualizer(m_midi_source) {
+              , m_visualizer(m_midi_source)
+              , m_highlight_manager(*this, &m_edit_state, ModuleEditState::default_module_highlights()) {
         (void) layout;
 
         addAndMakeVisible(m_header);
@@ -51,6 +53,8 @@ public:
         addAndMakeVisible(m_internal_pitch);
         addAndMakeVisible(m_internal_velocity);
         addAndMakeVisible(m_internal_channel);
+
+        addAndMakeVisible(m_highlight_manager);
     }
 
 
@@ -72,6 +76,7 @@ public:
                + DimensionConstants::OBJECT_Y_MARGINS_COLUMN
                + SliderWidget<float>::height_of(SliderWidget<float>::Layout::label_below);
     }
+
 
     static std::string default_name() {
         return "source";
@@ -113,6 +118,8 @@ public:
         m_internal_velocity.setBounds(bounds.removeFromLeft(SLIDER_WIDTH));
         bounds.removeFromLeft(DimensionConstants::OBJECT_X_MARGINS_ROW);
         m_internal_channel.setBounds(bounds.removeFromLeft(SLIDER_WIDTH));
+
+        m_highlight_manager.setBounds(getLocalBounds());
     }
 
 
@@ -129,6 +136,9 @@ private:
     HeaderWidget m_header;
 
     NoteView m_visualizer;
+
+    ModuleEditState m_edit_state;
+    EditHighlightManager m_highlight_manager;
 
 };
 

@@ -11,7 +11,7 @@
 #include "modular_generator.h"
 #include "key_state.h"
 #include "keyboard_shortcuts.h"
-#include "editable.h"
+#include "edit_state.h"
 
 class ConfigurationLayerComponent : public juce::Component
                                     , public GlobalKeyState::Listener
@@ -28,7 +28,7 @@ public:
 
     class DummyMidiSourceHighlight : public EditHighlight {
     public:
-        DummyMidiSourceHighlight(const juce::Point<int>& mouse_position) : position(mouse_position) {}
+        explicit DummyMidiSourceHighlight(const juce::Point<int>& mouse_position) : position(mouse_position) {}
 
 
         juce::Point<int> position;
@@ -103,6 +103,17 @@ public:
     void reposition() {
         throw std::runtime_error("not implemented"); // TODO
     }
+
+    void dragOperationStarted(const juce::DragAndDropTarget::SourceDetails &) override {
+    }
+
+    void dragOperationEnded(const juce::DragAndDropTarget::SourceDetails & source) override {
+        if (auto* connectable = dynamic_cast<Connectable*>(source.sourceComponent.get())) {
+            connectable->drag_operation_ended();
+        }
+    }
+
+
 
 
 private:
@@ -281,6 +292,8 @@ private:
 
     std::unique_ptr<juce::Point<int>> m_last_mouse_position = nullptr;
     std::unique_ptr<DummyMidiSourceHighlight> m_creation_highlight = nullptr;
+
+
 
 
 };

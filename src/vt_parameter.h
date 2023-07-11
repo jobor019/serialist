@@ -71,7 +71,7 @@ public:
 
 
     /**
-     * equals, e.g. `exact_name` "osc" only equals the exact identifier "osc"
+     * equals, e.g. `exact_name` "osc" only state_equals the exact identifier "osc"
      */
     [[nodiscard]] bool identifier_equals(const std::string& exact_name) const {
         return get_identifier_as_string() == exact_name;

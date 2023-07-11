@@ -3,7 +3,7 @@
 #ifndef SERIALISTLOOPER_NEW_GENERATOR_COMPONENT_H
 #define SERIALISTLOOPER_NEW_GENERATOR_COMPONENT_H
 
-#include "base_module.h"
+#include "interaction_visualizations.h"
 #include "generative_component.h"
 #include "parameter_policy.h"
 #include "generator.h"
@@ -13,7 +13,7 @@
 
 
 template<typename T>
-class GeneratorModule : public BaseModule {
+class GeneratorModule : public GenerativeComponent {
 public:
     enum class Layout {
         full
@@ -30,7 +30,8 @@ public:
               , m_internal_oscillator(std::move(oscillator))
               , m_interpolator(std::move(interpolator))
               , m_internal_sequence(std::move(sequence))
-              , m_header(generator.get_identifier_as_string(), internal_enabled) {
+              , m_header(generator.get_identifier_as_string(), internal_enabled)
+              , m_highlight_manager(*this, &m_edit_state, ModuleEditState::default_module_highlights()){
         (void) layout;
 
         if (!m_internal_oscillator || !m_interpolator || !m_internal_sequence)
@@ -41,6 +42,7 @@ public:
         addAndMakeVisible(m_internal_sequence.get());
 
         addAndMakeVisible(m_header);
+        addAndMakeVisible(m_highlight_manager);
     }
 
 
@@ -86,7 +88,6 @@ public:
     void resized() override {
         if (m_layout == Layout::full) {
             full_layout();
-            BaseModule::resized();
         }
     }
 
@@ -112,6 +113,8 @@ private:
         m_internal_sequence->setBounds(bounds.removeFromTop(TextSequenceModule<T>::height_of(sequence_layout)));
         bounds.removeFromTop(DC::OBJECT_Y_MARGINS_COLUMN);
         m_interpolator->setBounds(bounds.removeFromTop(InterpolationModule<T>::height_of(interpolator_layout)));
+
+        m_highlight_manager.setBounds(getLocalBounds());
     }
 
 
@@ -124,6 +127,9 @@ private:
     HeaderWidget m_header;
 
     Layout m_layout = Layout::full;
+
+    ModuleEditState m_edit_state;
+    EditHighlightManager m_highlight_manager;
 };
 
 #endif //SERIALISTLOOPER_NEW_GENERATOR_COMPONENT_H

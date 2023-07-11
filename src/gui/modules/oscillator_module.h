@@ -11,6 +11,7 @@
 #include "widgets/combobox_widget.h"
 #include "views/oscillator_view.h"
 #include "socket_widget.h"
+#include "interaction_visualizations.h"
 
 
 class OscillatorModule : public GenerativeComponent {
@@ -56,7 +57,8 @@ public:
                     internal_curve, 0.0f, 1.0f, 0.01f, "curve", SliderLayout::label_left))
               , m_header(oscillator.get_identifier_as_string(), internal_enabled)
               , m_layout(layout)
-              , m_oscillator_view(oscillator) {
+              , m_oscillator_view(oscillator)
+              , m_highlight_manager(*this, &m_edit_state, ModuleEditState::default_module_highlights()) {
 
         addAndMakeVisible(m_oscillator_view);
 
@@ -68,12 +70,15 @@ public:
         addAndMakeVisible(m_curve_socket);
 
         addAndMakeVisible(m_header);
+
+        addAndMakeVisible(m_highlight_manager);
     }
 
 
     static std::string default_name() {
         return "oscillator";
     }
+
 
     static int width_of(Layout layout = Layout::full) {
         switch (layout) {
@@ -165,6 +170,8 @@ private:
         m_duty_socket.setBounds(bounds.removeFromTop(slider_height));
         bounds.removeFromTop(y_margin);
         m_curve_socket.setBounds(bounds.removeFromTop(slider_height));
+
+        m_highlight_manager.setBounds(getLocalBounds());
     }
 
 
@@ -231,6 +238,8 @@ private:
 
     OscillatorView m_oscillator_view;
 
+    ModuleEditState m_edit_state;
+    EditHighlightManager m_highlight_manager;
 
 };
 

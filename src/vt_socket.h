@@ -23,6 +23,19 @@ public:
         value_tree.addListener(this);
     }
 
+    bool is_connectable(Generative& generative) {
+        std::lock_guard<std::mutex> lock{m_mutex};
+        return static_cast<bool>(dynamic_cast<SocketType*>(&generative));
+    }
+
+    bool try_connect(Generative& generative) {
+        if (auto* node = dynamic_cast<SocketType*>(&generative)) {
+            set_connection_internal(node);
+            return true;
+        }
+        return false;
+    }
+
 
     void connect(SocketType& node) {
         std::lock_guard<std::mutex> lock{m_mutex};
@@ -41,6 +54,7 @@ public:
         return dynamic_cast<Generative*>(m_node);
     }
 
+
     [[nodiscard]] bool is_connected() const {
         return m_node;
     }
@@ -55,11 +69,10 @@ public:
         m_parent.get_value_tree().removeListener(&listener);
     }
 
+
     bool equals_property(juce::ValueTree& treeWhosePropertyHasChanged, const juce::Identifier& property) {
         return treeWhosePropertyHasChanged == m_parent.get_value_tree() && property == m_identifier;
     }
-
-
 
 
 protected:
@@ -72,7 +85,6 @@ protected:
             update_value_tree("");
         }
     }
-
 
     void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier&) override {
         std::cout << "VT changed: TODO update internal state\n";
@@ -112,7 +124,6 @@ public:
     }
 
 
-
     std::vector<T> process(const TimePoint& t) {
         std::lock_guard<std::mutex> lock{VTSocketBase<Node<T>>::m_mutex};
         if (VTSocketBase<Node<T>>::m_node == nullptr)
@@ -144,6 +155,7 @@ class VTDataSocket : public VTSocketBase<DataNode<T>> {
 public:
     VTDataSocket(const std::string& id, ParameterHandler& parent, DataNode<T>* initial = nullptr)
             : VTSocketBase<DataNode<T>>(id, parent, initial) {}
+
 
     VTDataSocket& operator=(DataNode<T>* node) {
         std::lock_guard<std::mutex> lock{VTSocketBase<DataNode<T>>::m_mutex};

@@ -32,7 +32,7 @@ public:
             : m_variable(variable)
               , m_label({}, label)
               , m_layout(layout)
-              , m_label_width(label_width){
+              , m_label_width(label_width) {
 
         initialize_combo_box(std::move(values));
         initialize_label();
