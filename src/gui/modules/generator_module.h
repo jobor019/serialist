@@ -29,17 +29,17 @@ public:
                     , Variable<bool>& internal_enabled
                     , Layout layout = Layout::full)
             : m_generator(generator)
-              , m_internal_oscillator(std::move(oscillator))
-              , m_interpolator(std::move(interpolator))
+              , m_oscillator_socket(generator.get_cursor(), std::move(oscillator))
+              , m_interpolator(generator.get_interpolation_strategy(), std::move(interpolator))
               , m_internal_sequence(std::move(sequence))
               , m_header(generator.get_identifier_as_string(), internal_enabled) {
         (void) layout;
 
-        if (!m_internal_oscillator || !m_interpolator || !m_internal_sequence)
+        if (/*!m_oscillator_socket || !m_interpolator || */ !m_internal_sequence)
             throw std::runtime_error("A GeneratorModule requires all internal modules to be initialized");
 
-        addAndMakeVisible(m_internal_oscillator.get());
-        addAndMakeVisible(m_interpolator.get());
+        addAndMakeVisible(m_oscillator_socket);
+        addAndMakeVisible(m_interpolator);
         addAndMakeVisible(m_internal_sequence.get());
 
         addAndMakeVisible(m_header);
@@ -165,20 +165,20 @@ private:
         auto sequence_layout = TextSequenceModule<T>::Layout::generator_internal;
         auto interpolator_layout = InterpolationModule<T>::Layout::generator_internal;
 
-        m_internal_oscillator->set_layout(static_cast<int>(oscillator_layout));
+        m_oscillator_socket.set_layout(static_cast<int>(oscillator_layout));
         m_internal_sequence->set_layout(static_cast<int>(sequence_layout));
-        m_interpolator->set_layout(static_cast<int>(interpolator_layout));
+        m_interpolator.set_layout(static_cast<int>(interpolator_layout));
 
         auto bounds = getLocalBounds();
 
         m_header.setBounds(bounds.removeFromTop(HeaderWidget::height_of()));
         bounds.reduce(DC::COMPONENT_LR_MARGINS, DC::COMPONENT_UD_MARGINS);
 
-        m_internal_oscillator->setBounds(bounds.removeFromTop(OscillatorModule::height_of(oscillator_layout)));
+        m_oscillator_socket.setBounds(bounds.removeFromTop(OscillatorModule::height_of(oscillator_layout)));
         bounds.removeFromTop(DC::OBJECT_Y_MARGINS_COLUMN);
         m_internal_sequence->setBounds(bounds.removeFromTop(TextSequenceModule<T>::height_of(sequence_layout)));
         bounds.removeFromTop(DC::OBJECT_Y_MARGINS_COLUMN);
-        m_interpolator->setBounds(bounds.removeFromTop(InterpolationModule<T>::height_of(interpolator_layout)));
+        m_interpolator.setBounds(bounds.removeFromTop(InterpolationModule<T>::height_of(interpolator_layout)));
 
         m_interaction_visualizer.setBounds(getLocalBounds());
     }
@@ -186,8 +186,9 @@ private:
 
     Generator<T>& m_generator;
 
-    std::unique_ptr<OscillatorModule> m_internal_oscillator;
-    std::unique_ptr<InterpolationModule<T>> m_interpolator;
+    SocketWidget<double> m_oscillator_socket;
+
+    SocketWidget<InterpolationStrategy<T>> m_interpolator;
     std::unique_ptr<TextSequenceModule<T>> m_internal_sequence; // TODO: Replace with generic SequenceComponent
 
     HeaderWidget m_header;

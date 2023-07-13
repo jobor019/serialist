@@ -31,16 +31,16 @@ public:
                      , Variable<bool>& internal_enabled
                      , Layout layout = Layout::full)
             : m_midi_source(note_source)
-              , m_internal_onset(internal_onset, 0.125f, 4.0f, 0.125f
-                                 , "onset", SliderWidget<float>::Layout::label_below)
-              , m_internal_duration(internal_duration, 0.1f, 1.1f, 0.1f
-                                    , "dur", SliderWidget<float>::Layout::label_below)
-              , m_internal_pitch(internal_pitch, 2100, 10800, 100
-                                 , "pitch", SliderWidget<int>::Layout::label_below)
-              , m_internal_velocity(internal_velocity, 0, 127, 1
-                                    , "vel", SliderWidget<int>::Layout::label_below)
-              , m_internal_channel(internal_channel, 1, 16, 1
-                                   , "ch", SliderWidget<int>::Layout::label_below)
+              , m_internal_onset(note_source.get_onset(), std::make_unique<SliderWidget<float>>(
+                      internal_onset, 0.125f, 4.0f, 0.125f, "onset", SliderWidget<float>::Layout::label_below))
+              , m_internal_duration(note_source.get_duration(), std::make_unique<SliderWidget<float>>(
+                      internal_duration, 0.1f, 1.1f, 0.1f, "dur", SliderWidget<float>::Layout::label_below))
+              , m_internal_pitch(note_source.get_pitch(), std::make_unique<SliderWidget<int>>(
+                      internal_pitch, 2100, 10800, 100, "pitch", SliderWidget<int>::Layout::label_below))
+              , m_internal_velocity(note_source.get_velocity(), std::make_unique<SliderWidget<int>>(
+                      internal_velocity, 0, 127, 1, "vel", SliderWidget<int>::Layout::label_below))
+              , m_internal_channel(note_source.get_channel(), std::make_unique<SliderWidget<int>>(
+                      internal_channel, 1, 16, 1, "ch", SliderWidget<int>::Layout::label_below))
               , m_header(note_source.get_identifier_as_string(), internal_enabled)
               , m_visualizer(m_midi_source) {
         (void) layout;
@@ -134,11 +134,11 @@ private:
 
     MidiNoteSource& m_midi_source;
 
-    SliderWidget<float> m_internal_onset;
-    SliderWidget<float> m_internal_duration;
-    SliderWidget<int> m_internal_pitch;
-    SliderWidget<int> m_internal_velocity;
-    SliderWidget<int> m_internal_channel;
+    SocketWidget<float> m_internal_onset;
+    SocketWidget<float> m_internal_duration;
+    SocketWidget<int> m_internal_pitch;
+    SocketWidget<int> m_internal_velocity;
+    SocketWidget<int> m_internal_channel;
 
     HeaderWidget m_header;
 

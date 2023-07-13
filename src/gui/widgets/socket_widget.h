@@ -17,19 +17,25 @@ class SocketWidget : public juce::Component
                      , public juce::DragAndDropTarget
                      , private juce::ValueTree::Listener {
 public:
+
+    class ConnectionSourceComponent : public juce::Component {
+    public:
+        void paint(juce::Graphics &g) override {
+            g.fillAll(juce::Colours::slategrey);
+        }
+    };
+
+
     explicit SocketWidget(Socket<T>& socket, std::unique_ptr<GenerativeComponent> default_widget)
             : m_socket(socket)
               , m_default_widget(std::move(default_widget)) {
-
-
-
-
         if (!m_default_widget) {
             throw std::runtime_error("A default component must be provided for the socket");
         }
 
         m_socket.add_value_tree_listener(*this);
         addAndMakeVisible(*m_default_widget);
+        addChildComponent(m_connection_source_component);
         addAndMakeVisible(m_interaction_visualizer);
 
         m_default_widget->addMouseListener(this, true);
@@ -46,6 +52,10 @@ public:
     SocketWidget(SocketWidget&&) noexcept = default;
     SocketWidget& operator=(SocketWidget&&) noexcept = default;
 
+    static bool is_connectable() {
+        return GlobalKeyState::is_down_exclusive(ConfigurationLayerKeyboardShortcuts::CONNECTOR_KEY);
+    }
+
 
     std::vector<std::unique_ptr<InteractionVisualization>> create_visualizations() {
         std::vector<std::unique_ptr<InteractionVisualization>> visualizations;
@@ -55,18 +65,19 @@ public:
 
 
     bool isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
-//    bool is(const juce::DragAndDropTarget::SourceDetails& source_details) override {
-        if (auto* source = dragSourceDetails.sourceComponent.get())
-            return connectable_to(*source);
+        if (is_connectable()) {
+            if (auto* source = dragSourceDetails.sourceComponent.get())
+                return connectable_to(*source) && is_connectable();
+        }
         return false;
     }
 
 
     void itemDropped(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
-//    void item_dropped(const juce::DragAndDropTarget::SourceDetails& source_details) override {
-        std::cout << "item dropped on socket\n";
-        if (auto* connectable = dynamic_cast<Connectable*>(dragSourceDetails.sourceComponent.get())) {
-            connect(*connectable);
+        if (is_connectable()) {
+            if (auto* connectable = dynamic_cast<Connectable*>(dragSourceDetails.sourceComponent.get())) {
+                connect(*connectable);
+            }
         }
     }
 
@@ -75,21 +86,21 @@ public:
         juce::DragAndDropContainer* parent_drag_component =
                 juce::DragAndDropContainer::findParentDragContainerFor(this);
 
-        if (parent_drag_component && !parent_drag_component->isDragAndDropActive()) {
-//            parent_drag_component->startDragging("src", this, juce::ScaledImage(createComponentSnapshot(juce::Rectangle<int>(1, 1))));
-            parent_drag_component->startDragging("src", this, juce::ScaledImage(juce::Image(juce::Image::PixelFormat::RGB, 1, 1, true)));
+        if (is_connectable() && parent_drag_component && !parent_drag_component->isDragAndDropActive()) {
+            parent_drag_component->startDragging("src", this, juce::ScaledImage(
+                    juce::Image(juce::Image::PixelFormat::RGB, 1, 1, true)));
         }
     }
 
 
     void itemDragEnter(const juce::DragAndDropTarget::SourceDetails&) override {
-        std::cout << "enter SOCKET\n";
+        if (is_connectable())
         m_interaction_visualizer.set_drag_and_dropping(true);
     }
 
 
     void itemDragExit(const juce::DragAndDropTarget::SourceDetails&) override {
-        std::cout << "exit SOCKET\n";
+        if (is_connectable())
         m_interaction_visualizer.set_drag_and_dropping(false);
     }
 
@@ -105,8 +116,10 @@ public:
 
 
     bool connectable_to(juce::Component& component) override {
-        if (auto* generative_component = dynamic_cast<GenerativeComponent*>(&component)) {
-            return m_socket.is_connectable(generative_component->get_generative());
+        if (is_connectable()) {
+            if (auto* generative_component = dynamic_cast<GenerativeComponent*>(&component)) {
+                return m_socket.is_connectable(generative_component->get_generative());
+            }
         }
 
         return false;
@@ -114,8 +127,10 @@ public:
 
 
     bool connect(Connectable& connectable) override {
-        if (auto* generative_component = dynamic_cast<GenerativeComponent*>(&connectable)) {
-            return m_socket.try_connect(generative_component->get_generative());
+        if (is_connectable()) {
+            if (auto* generative_component = dynamic_cast<GenerativeComponent*>(&connectable)) {
+                return m_socket.try_connect(generative_component->get_generative());
+            }
         }
         return false;
     }
@@ -131,13 +146,27 @@ public:
 
     void resized() override {
         m_default_widget->setBounds(getLocalBounds());
+        m_connection_source_component.setBounds(getLocalBounds().removeFromTop(getHeight() / 2));
         m_interaction_visualizer.setBounds(getLocalBounds());
     }
 
 
 private:
-    void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier&) override {
-        std::cout << "[TODO] VT changed in SocketWidget\n";
+    void valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& id) override {
+        if (m_socket.equals_property(vt, id)) {
+            bool old_visibility = m_connection_source_component.isVisible();
+            bool new_visibility = m_socket.get_connected() != &m_default_widget->get_generative();
+
+            std::cout
+            << "socket: " << m_socket.get_connected()->get_identifier_as_string()
+            << ", widget: " << m_default_widget->get_generative().get_identifier_as_string()
+            << "-> new visibility: " << new_visibility
+            << "\n";
+            m_connection_source_component.setVisible(new_visibility);
+            if (old_visibility != new_visibility) {
+                resized();
+            }
+        }
     }
 
 
@@ -146,6 +175,9 @@ private:
     std::unique_ptr<GenerativeComponent> m_default_widget;
 
     InteractionVisualizer m_interaction_visualizer{*this, create_visualizations()};
+
+    ConnectionSourceComponent m_connection_source_component;
+
 
 };
 

@@ -75,6 +75,16 @@ public:
     }
 
 
+    [[nodiscard]] juce::Identifier get_identifier() const {
+        return m_identifier;
+    }
+
+
+    [[nodiscard]] std::string get_identifier_as_string() const {
+        return get_identifier().toString().toStdString();
+    }
+
+
 protected:
     void set_connection_internal(SocketType* node) {
         if (node) {
