@@ -11,7 +11,6 @@
 #include "modular_generator.h"
 #include "key_state.h"
 #include "keyboard_shortcuts.h"
-#include "edit_state.h"
 
 class ConfigurationLayerComponent : public juce::Component
                                     , public GlobalKeyState::Listener
@@ -26,9 +25,20 @@ public:
         juce::Rectangle<int> position;
     };
 
-    class DummyMidiSourceHighlight : public EditHighlight {
+    class DummyMidiSourceHighlight : public juce::Component {
     public:
-        explicit DummyMidiSourceHighlight(const juce::Point<int>& mouse_position) : position(mouse_position) {}
+        explicit DummyMidiSourceHighlight(const juce::Point<int>& mouse_position) : position(mouse_position) {
+            setWantsKeyboardFocus(false);
+            setInterceptsMouseClicks(false, false);
+        }
+
+
+        void paint(juce::Graphics& g) override {
+            g.setColour(juce::Colours::gold.withAlpha(0.6f));
+            g.drawRect(getLocalBounds());
+            g.setColour(juce::Colours::gold.withAlpha(0.2f));
+            g.fillRect(getLocalBounds());
+        }
 
 
         juce::Point<int> position;
@@ -104,16 +114,20 @@ public:
         throw std::runtime_error("not implemented"); // TODO
     }
 
-    void dragOperationStarted(const juce::DragAndDropTarget::SourceDetails &) override {
-    }
 
-    void dragOperationEnded(const juce::DragAndDropTarget::SourceDetails & source) override {
-        if (auto* connectable = dynamic_cast<Connectable*>(source.sourceComponent.get())) {
-            connectable->drag_operation_ended();
+    void dragOperationStarted(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
+        if (auto* source = dragSourceDetails.sourceComponent.get()) {
+            std::cout << "DRAGDARG\n";
+            GlobalActionHandler::register_action(std::make_unique<Action>(static_cast<int>(ActionTypes::connect)
+                                                                          , *source));
         }
     }
 
 
+    void dragOperationEnded(const juce::DragAndDropTarget::SourceDetails&) override {
+        std::cout << "DARGENDDD\n";
+        GlobalActionHandler::terminate_ongoing_action();
+    }
 
 
 private:
@@ -181,10 +195,10 @@ private:
 
 
     void mouseUp(const juce::MouseEvent& event) override {
-        if (GlobalKeyState::is_down_exclusive(KeyCodes::CONNECTOR_KEY)) {
-            connect_component(event);
+//        if (GlobalKeyState::is_down_exclusive(KeyCodes::CONNECTOR_KEY)) {
+//            connect_component(event);
 
-        } else if (GlobalKeyState::is_down(KeyCodes::DELETE_KEY)) {
+        if (GlobalKeyState::is_down(KeyCodes::DELETE_KEY)) {
             try_remove_component(event);
 
         } else {
@@ -193,10 +207,10 @@ private:
     }
 
 
-    void connect_component(const juce::MouseEvent& event) {
-        (void) event;
-
-    }
+//    void connect_component(const juce::MouseEvent& event) {
+//        (void) event;
+//
+//    }
 
 
     void try_remove_component(const juce::MouseEvent& event) {

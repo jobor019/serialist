@@ -14,6 +14,8 @@ public:
 
     virtual bool connectable_to(juce::Component& component) = 0;
 
+    virtual bool connect(Connectable& connectable) = 0;
+
 };
 
 

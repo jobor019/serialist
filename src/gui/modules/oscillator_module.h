@@ -58,7 +58,7 @@ public:
               , m_header(oscillator.get_identifier_as_string(), internal_enabled)
               , m_layout(layout)
               , m_oscillator_view(oscillator)
-              , m_highlight_manager(*this, &m_edit_state, ModuleEditState::default_module_highlights()) {
+              {
 
         addAndMakeVisible(m_oscillator_view);
 
@@ -71,7 +71,7 @@ public:
 
         addAndMakeVisible(m_header);
 
-        addAndMakeVisible(m_highlight_manager);
+        addAndMakeVisible(m_interaction_visualizer);
     }
 
 
@@ -109,6 +109,14 @@ public:
         }
         std::cout << "oscillator: layout not implemented\n";
         return 0;
+    }
+
+    std::vector<std::unique_ptr<InteractionVisualization>> create_visualizations() {
+        std::vector<std::unique_ptr<InteractionVisualization>> visualizations;
+        visualizations.emplace_back(std::make_unique<ConnectVisualization>(*this));
+        visualizations.emplace_back(std::make_unique<MoveVisualization>(*this));
+        visualizations.emplace_back(std::make_unique<DeleteVisualization>(*this));
+        return visualizations;
     }
 
 
@@ -171,7 +179,7 @@ private:
         bounds.removeFromTop(y_margin);
         m_curve_socket.setBounds(bounds.removeFromTop(slider_height));
 
-        m_highlight_manager.setBounds(getLocalBounds());
+        m_interaction_visualizer.setBounds(getLocalBounds());
     }
 
 
@@ -238,8 +246,10 @@ private:
 
     OscillatorView m_oscillator_view;
 
-    ModuleEditState m_edit_state;
-    EditHighlightManager m_highlight_manager;
+    InteractionVisualizer m_interaction_visualizer{*this, create_visualizations()};
+
+//    ModuleEditState m_edit_state;
+//    EditHighlightManager m_highlight_manager;
 
 };
 

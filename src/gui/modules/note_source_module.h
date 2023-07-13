@@ -42,8 +42,7 @@ public:
               , m_internal_channel(internal_channel, 1, 16, 1
                                    , "ch", SliderWidget<int>::Layout::label_below)
               , m_header(note_source.get_identifier_as_string(), internal_enabled)
-              , m_visualizer(m_midi_source)
-              , m_highlight_manager(*this, &m_edit_state, ModuleEditState::default_module_highlights()) {
+              , m_visualizer(m_midi_source) {
         (void) layout;
 
         addAndMakeVisible(m_header);
@@ -54,7 +53,7 @@ public:
         addAndMakeVisible(m_internal_velocity);
         addAndMakeVisible(m_internal_channel);
 
-        addAndMakeVisible(m_highlight_manager);
+        addAndMakeVisible(m_interaction_visualizer);
     }
 
 
@@ -80,6 +79,14 @@ public:
 
     static std::string default_name() {
         return "source";
+    }
+
+
+    std::vector<std::unique_ptr<InteractionVisualization>> create_visualizations() {
+        std::vector<std::unique_ptr<InteractionVisualization>> visualizations;
+        visualizations.emplace_back(std::make_unique<MoveVisualization>(*this));
+        visualizations.emplace_back(std::make_unique<DeleteVisualization>(*this));
+        return visualizations;
     }
 
 
@@ -119,7 +126,7 @@ public:
         bounds.removeFromLeft(DimensionConstants::OBJECT_X_MARGINS_ROW);
         m_internal_channel.setBounds(bounds.removeFromLeft(SLIDER_WIDTH));
 
-        m_highlight_manager.setBounds(getLocalBounds());
+        m_interaction_visualizer.setBounds(getLocalBounds());
     }
 
 
@@ -137,9 +144,7 @@ private:
 
     NoteView m_visualizer;
 
-    ModuleEditState m_edit_state;
-    EditHighlightManager m_highlight_manager;
-
+    InteractionVisualizer m_interaction_visualizer{*this, create_visualizations()};
 };
 
 

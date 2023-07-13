@@ -4,6 +4,7 @@
 
 #include <interaction_visualizer.h>
 
+
 enum class ActionTypes {
     move = 0
     , remove = 1
@@ -11,25 +12,65 @@ enum class ActionTypes {
 };
 
 
-class ConnectVisualization : public InteractionVisualization {
+// ==============================================================================================
+
+class BorderHighlight : public juce::Component {
 public:
-    class TempHighlight : public juce::Component {
-    public:
-        explicit TempHighlight(juce::Colour color) : m_color(color) {}
+    explicit BorderHighlight(juce::Colour color, int border_width = 2)
+            : m_color(color), m_border_width(border_width) {}
 
 
-        void paint(juce::Graphics& g) override {
-            g.setColour(m_color);
-            g.drawRect(getLocalBounds(), 3);
+    void paint(juce::Graphics& g) override {
+        g.setColour(m_color);
+        g.drawRect(getLocalBounds(), m_border_width);
+    }
+
+
+private:
+    juce::Colour m_color;
+    int m_border_width;
+
+};
+
+
+
+// ==============================================================================================
+
+class BorderAndFillHighlight : public juce::Component {
+public:
+    explicit BorderAndFillHighlight(std::optional<juce::Colour> border_color
+                                    , std::optional<juce::Colour> fill_color
+                                    , int border_width = 2)
+            : m_border_color(border_color)
+              , m_fill_color(fill_color)
+              , m_border_width(border_width) {}
+
+
+    void paint(juce::Graphics& g) override {
+        if (m_fill_color) {
+            g.setColour(*m_fill_color);
+            g.fillRect(getLocalBounds());
         }
 
+        if (m_border_color) {
+            g.setColour(*m_border_color);
+            g.drawRect(getLocalBounds(), m_border_width);
 
-    private:
-        juce::Colour m_color;
-
-    };
+        }
+    }
 
 
+private:
+    std::optional<juce::Colour> m_border_color;
+    std::optional<juce::Colour> m_fill_color;
+    int m_border_width;
+};
+
+
+// ==============================================================================================
+
+class ConnectVisualization : public InteractionVisualization {
+public:
     explicit ConnectVisualization(juce::Component& source)
             : InteractionVisualization(source)
               , m_source_if_connectable(dynamic_cast<Connectable*>(&source)) {
@@ -47,25 +88,33 @@ public:
         if (!GlobalKeyState::is_down_exclusive(ConfigurationLayerKeyboardShortcuts::CONNECTOR_KEY)) {
             // no ongoing connection action
             hide_all();
-        } else if (mouse_is_over_component && active_action == nullptr) {
-            // connection key is down but no connection action started
-            m_mouseover_highlight.setVisible(true);
-        } else if (active_action && &active_action->get_source() == &get_source_component()) {
-            // connection key is down and ongoing connection action originates from this component
-            m_source_highlight.setVisible(true);
-        } else if (active_action
-                   && m_source_if_connectable
-                   && m_source_if_connectable->connectable_to(active_action->get_source())) {
-            // connection key is down and ongoing connection which could be connected to this target
-            m_potential_target_highlight.setVisible(true);
-            if (mouse_is_over_component) {
-                m_target_highlight.setVisible(true);
-            }
+            if (visibility_changed(initial_state, get_visibility()))
+                resized();
+
+            return;
         }
+
+        m_mouseover_highlight.setVisible(mouse_is_over_component && active_action == nullptr);
+        m_source_highlight.setVisible(active_action && &active_action->get_source() == &get_source_component());
+
+        bool connectable = active_action
+                           && m_source_if_connectable
+                           && m_source_if_connectable->connectable_to(active_action->get_source());
+
+        m_potential_target_highlight.setVisible(connectable);
+        m_target_highlight.setVisible(connectable && mouse_is_over_component);
 
         if (visibility_changed(initial_state, get_visibility())) {
             resized();
         }
+    }
+
+
+    void resized() override {
+        m_mouseover_highlight.setBounds(getLocalBounds());
+        m_source_highlight.setBounds(getLocalBounds());
+        m_target_highlight.setBounds(getLocalBounds());
+        m_potential_target_highlight.setBounds(getLocalBounds());
     }
 
 
@@ -88,7 +137,7 @@ private:
 
 
     static bool any_is_visible(std::array<bool, 4> visibility) {
-        std::any_of(visibility.begin(), visibility.end(), [](bool value) { return value; });
+        return std::any_of(visibility.begin(), visibility.end(), [](bool value) { return value; });
     }
 
 
@@ -97,10 +146,10 @@ private:
     }
 
 
-    TempHighlight m_mouseover_highlight{juce::Colours::orchid};
-    TempHighlight m_source_highlight{juce::Colours::greenyellow};
-    TempHighlight m_target_highlight{juce::Colours::lightsalmon};
-    TempHighlight m_potential_target_highlight{juce::Colours::skyblue};
+    BorderHighlight m_mouseover_highlight{juce::Colours::orchid};
+    BorderHighlight m_source_highlight{juce::Colours::greenyellow};
+    BorderAndFillHighlight m_target_highlight{std::nullopt, {juce::Colours::skyblue.withAlpha(0.5f)}};
+    BorderHighlight m_potential_target_highlight{juce::Colours::chocolate};
 
     Connectable* m_source_if_connectable;
 };
@@ -155,6 +204,61 @@ public:
 
 private:
     TempHighlight m_mouseover_highlight{juce::Colours::limegreen};
+
+};
+
+
+// ==============================================================================================
+
+class DeleteVisualization : public InteractionVisualization {
+public:
+    class TempHighlight : public juce::Component {
+    public:
+        explicit TempHighlight(juce::Colour color) : m_color(color) {}
+
+
+        void paint(juce::Graphics& g) override {
+            g.setColour(m_color);
+            g.drawRect(getLocalBounds(), 3);
+            g.setColour(juce::Colours::salmon.withAlpha(0.4f));
+            g.fillRect(getLocalBounds());
+        }
+
+
+    private:
+        juce::Colour m_color;
+
+    };
+
+
+    explicit DeleteVisualization(juce::Component& source)
+            : InteractionVisualization(source) {
+        addChildComponent(m_mouseover_highlight);
+    }
+
+
+    void resized() override {
+        m_mouseover_highlight.setBounds(getLocalBounds());
+    }
+
+
+    void update_state(bool mouse_is_over_component, Action*) override {
+        bool is_visible = m_mouseover_highlight.isVisible();
+        if (GlobalKeyState::is_down_exclusive(ConfigurationLayerKeyboardShortcuts::DELETE_KEY)
+            && mouse_is_over_component) {
+            m_mouseover_highlight.setVisible(true);
+        } else {
+            m_mouseover_highlight.setVisible(false);
+        }
+
+        if (is_visible != m_mouseover_highlight.isVisible()) {
+            resized();
+        }
+    }
+
+
+private:
+    TempHighlight m_mouseover_highlight{juce::Colours::firebrick};
 
 };
 

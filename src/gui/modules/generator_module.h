@@ -13,7 +13,9 @@
 
 
 template<typename T>
-class GeneratorModule : public GenerativeComponent {
+class GeneratorModule : public GenerativeComponent
+                        , public Connectable
+                        , public juce::DragAndDropTarget {
 public:
     enum class Layout {
         full
@@ -30,8 +32,7 @@ public:
               , m_internal_oscillator(std::move(oscillator))
               , m_interpolator(std::move(interpolator))
               , m_internal_sequence(std::move(sequence))
-              , m_header(generator.get_identifier_as_string(), internal_enabled)
-              , m_highlight_manager(*this, &m_edit_state, ModuleEditState::default_module_highlights()){
+              , m_header(generator.get_identifier_as_string(), internal_enabled) {
         (void) layout;
 
         if (!m_internal_oscillator || !m_interpolator || !m_internal_sequence)
@@ -42,13 +43,14 @@ public:
         addAndMakeVisible(m_internal_sequence.get());
 
         addAndMakeVisible(m_header);
-        addAndMakeVisible(m_highlight_manager);
+        addAndMakeVisible(m_interaction_visualizer);
     }
 
 
     static std::string default_name() {
         return "generator";
     }
+
 
     static int width_of(Layout layout = Layout::full) {
         (void) layout;
@@ -67,6 +69,15 @@ public:
     }
 
 
+    std::vector<std::unique_ptr<InteractionVisualization>> create_visualizations() {
+        std::vector<std::unique_ptr<InteractionVisualization>> visualizations;
+        visualizations.emplace_back(std::make_unique<ConnectVisualization>(*this));
+        visualizations.emplace_back(std::make_unique<MoveVisualization>(*this));
+        visualizations.emplace_back(std::make_unique<DeleteVisualization>(*this));
+        return visualizations;
+    }
+
+
     void set_layout(int layout_id) override {
         m_layout = static_cast<Layout>(layout_id);
         resized();
@@ -75,6 +86,61 @@ public:
 
     Generative& get_generative() override {
         return m_generator;
+    }
+
+
+    bool connectable_to(juce::Component& component) override {
+        if (auto* socket = dynamic_cast<SocketWidget<T>*>(&component)) {
+            return socket->connectable_to(*this);
+        }
+        return false;
+    }
+
+
+    bool connect(Connectable& connectable) override {
+        if (auto* socket = dynamic_cast<SocketWidget<T>*>(&connectable)) {
+            return socket->connect(*this);
+        }
+        return false;
+
+    }
+
+
+    bool isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
+        if (auto* source = dragSourceDetails.sourceComponent.get()) {
+            return connectable_to(*source);
+        }
+        return false;
+    }
+
+
+    void itemDropped(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
+        if (auto* connectable = dynamic_cast<Connectable*>(dragSourceDetails.sourceComponent.get())) {
+            connect(*connectable);
+        }
+    }
+
+
+    void mouseDrag(const juce::MouseEvent&) override {
+        juce::DragAndDropContainer* parent_drag_component =
+                juce::DragAndDropContainer::findParentDragContainerFor(this);
+
+        if (parent_drag_component && !parent_drag_component->isDragAndDropActive()) {
+            parent_drag_component->startDragging("src", this, juce::ScaledImage(
+                    createComponentSnapshot(juce::Rectangle<int>(1, 1))));
+        }
+    }
+
+
+    void itemDragEnter(const juce::DragAndDropTarget::SourceDetails&) override {
+        std::cout << "enter SOCKET\n";
+        m_interaction_visualizer.set_drag_and_dropping(true);
+    }
+
+
+    void itemDragExit(const juce::DragAndDropTarget::SourceDetails&) override {
+        std::cout << "exit SOCKET\n";
+        m_interaction_visualizer.set_drag_and_dropping(false);
     }
 
 
@@ -114,7 +180,7 @@ private:
         bounds.removeFromTop(DC::OBJECT_Y_MARGINS_COLUMN);
         m_interpolator->setBounds(bounds.removeFromTop(InterpolationModule<T>::height_of(interpolator_layout)));
 
-        m_highlight_manager.setBounds(getLocalBounds());
+        m_interaction_visualizer.setBounds(getLocalBounds());
     }
 
 
@@ -128,8 +194,7 @@ private:
 
     Layout m_layout = Layout::full;
 
-    ModuleEditState m_edit_state;
-    EditHighlightManager m_highlight_manager;
+    InteractionVisualizer m_interaction_visualizer{*this, create_visualizations()};
 };
 
 #endif //SERIALISTLOOPER_NEW_GENERATOR_COMPONENT_H
