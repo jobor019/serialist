@@ -30,7 +30,8 @@ public:
 };
 
 class PlaygroundComponent : public MainKeyboardFocusComponent
-                            , private juce::HighResolutionTimer {
+                            , private juce::HighResolutionTimer
+                            , private juce::ValueTree::Listener {
 public:
 
 
@@ -56,38 +57,39 @@ public:
         juce::Desktop::getInstance().setDefaultLookAndFeel(m_lnf.get());
 
 
-        auto [oscillator, g1] = ModuleFactory::new_oscillator("osc1", m_modular_generator);
-        m_oscillator = std::move(oscillator);
-        m_modular_generator.add(std::move(g1));
-        addAndMakeVisible(*m_oscillator);
-
-        auto [sequence, g2] = ModuleFactory::new_text_sequence<int>("seq1", m_modular_generator);
-        m_sequence = std::move(sequence);
-        m_modular_generator.add(std::move(g2));
-        addAndMakeVisible(*m_sequence);
-
-        auto [interpolator, g3] = ModuleFactory::new_interpolator<int>("seq1", m_modular_generator);
-        m_interpolator = std::move(interpolator);
-        m_modular_generator.add(std::move(g3));
-        addAndMakeVisible(*m_interpolator);
-
-        auto [source, g4] = ModuleFactory::new_midi_note_source("src1", m_modular_generator);
-        m_source = std::move(source);
-        m_modular_generator.add(std::move(g4));
-        addAndMakeVisible(*m_source);
-
-        auto [pitch_generator, g5] = ModuleFactory::new_generator<int>("pitchg1", m_modular_generator);
-        m_pitch_generator = std::move(pitch_generator);
-        m_modular_generator.add(std::move(g5));
-        addAndMakeVisible(*m_pitch_generator);
+//        auto [oscillator, g1] = ModuleFactory::new_oscillator("osc1", m_modular_generator);
+//        m_oscillator = std::move(oscillator);
+//        m_modular_generator.add(std::move(g1));
+//        addAndMakeVisible(*m_oscillator);
+//
+//        auto [sequence, g2] = ModuleFactory::new_text_sequence<int>("seq1", m_modular_generator);
+//        m_sequence = std::move(sequence);
+//        m_modular_generator.add(std::move(g2));
+//        addAndMakeVisible(*m_sequence);
+//
+//        auto [interpolator, g3] = ModuleFactory::new_interpolator<int>("seq1", m_modular_generator);
+//        m_interpolator = std::move(interpolator);
+//        m_modular_generator.add(std::move(g3));
+//        addAndMakeVisible(*m_interpolator);
+//
+//        auto [source, g4] = ModuleFactory::new_midi_note_source("src1", m_modular_generator);
+//        m_source = std::move(source);
+//        m_modular_generator.add(std::move(g4));
+//        addAndMakeVisible(*m_source);
+//
+//        auto [pitch_generator, g5] = ModuleFactory::new_generator<int>("pitchg1", m_modular_generator);
+//        m_pitch_generator = std::move(pitch_generator);
+//        m_modular_generator.add(std::move(g5));
+//        addAndMakeVisible(*m_pitch_generator);
 
         addAndMakeVisible(m_config_layer_component);
 
-        auto* generator = dynamic_cast<Node<int>*>(m_modular_generator.find("pitchg1"));
-        auto* midi_source = dynamic_cast<MidiNoteSource*>(m_modular_generator.find("src1"));
-        if (!generator || !midi_source) {
-            throw std::runtime_error("Failed to convert");
-        }
+//        auto* generator = dynamic_cast<Node<int>*>(m_modular_generator.find("pitchg1"));
+//        auto* midi_source = dynamic_cast<MidiNoteSource*>(m_modular_generator.find("src1"));
+//        if (!generator || !midi_source) {
+//            throw std::runtime_error("Failed to convert");
+//        }
+
 //        midi_source->set_pitch(generator);
 
 
@@ -126,6 +128,8 @@ public:
         m_transport.start();
         startTimer(1);
         setSize(1000, 400);
+
+        m_modular_generator.get_value_tree().addListener(this);
     }
 
 
@@ -139,19 +143,19 @@ public:
 
 
     void resized() override {
-        m_oscillator->setBounds(50, 30, OscillatorModule::width_of(), OscillatorModule::height_of());
-
-        m_sequence->setBounds(300, 30, 100, TextSequenceModule<int>::height_of());
-        m_interpolator->setBounds(50, 200, InterpolationModule<int>::width_of(), InterpolationModule<int>::height_of());
-        m_pitch_generator->setBounds(300, 200, GeneratorModule<int>::width_of(), GeneratorModule<int>::height_of());
+//        m_oscillator->setBounds(50, 30, OscillatorModule::width_of(), OscillatorModule::height_of());
+//
+//        m_sequence->setBounds(300, 30, 100, TextSequenceModule<int>::height_of());
+//        m_interpolator->setBounds(50, 200, InterpolationModule<int>::width_of(), InterpolationModule<int>::height_of());
+//        m_pitch_generator->setBounds(300, 200, GeneratorModule<int>::width_of(), GeneratorModule<int>::height_of());
 //        m_pitch_generator->setBounds(300, 200, 100, 100);
 //        s.setBounds(300, 100, 12, 40);
 //        tb.setBounds(350, 100, 40, 40);
 //        hc.setBounds(400, 100, 200, 20);
 //        my_cb.setBounds(500, 40, 80, 50);
-        m_source->setBounds(50, 270, NoteSourceModule::width_of(), NoteSourceModule::height_of());
+//        m_source->setBounds(50, 270, NoteSourceModule::width_of(), NoteSourceModule::height_of());
 
-        m_config_layer_component.setBounds(600, 20, 980, getHeight() - 40);
+        m_config_layer_component.setBounds(getLocalBounds().reduced(10));
 
     }
 
@@ -169,13 +173,19 @@ public:
 
     }
 
-    void globalFocusChanged(juce::Component *focusedComponent) override {
+
+    void globalFocusChanged(juce::Component* focusedComponent) override {
         if (focusedComponent) {
-            std::cout << "focused component dims " << focusedComponent->getWidth() << " " << focusedComponent->getHeight() << "\n";
+            std::cout << "focused component dims " << focusedComponent->getWidth() << " "
+                      << focusedComponent->getHeight() << "\n";
         } else {
             std::cout << "nullptr\n";
         }
         MainKeyboardFocusComponent::globalFocusChanged(focusedComponent);
+    }
+
+    void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier &) override {
+        std::cout << m_modular_generator.get_value_tree().toXmlString() << "\n";
     }
 
 
@@ -189,13 +199,13 @@ private:
 //    ParameterHandler m_some_handler;
 
     ModularGenerator m_modular_generator;
-
-    std::unique_ptr<OscillatorModule> m_oscillator;
-    std::unique_ptr<TextSequenceModule<int>> m_sequence;
-    std::unique_ptr<InterpolationModule<int>> m_interpolator;
-    std::unique_ptr<GeneratorModule<int>> m_pitch_generator;
 //
-    std::unique_ptr<NoteSourceModule> m_source;
+//    std::unique_ptr<OscillatorModule> m_oscillator;
+//    std::unique_ptr<TextSequenceModule<int>> m_sequence;
+//    std::unique_ptr<InterpolationModule<int>> m_interpolator;
+//    std::unique_ptr<GeneratorModule<int>> m_pitch_generator;
+//
+//    std::unique_ptr<NoteSourceModule> m_source;
 
     ConfigurationLayerComponent m_config_layer_component;
 
