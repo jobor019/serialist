@@ -24,8 +24,6 @@ public:
     }
 
 
-
-
     // create root
     explicit VTParameterHandler(juce::UndoManager& um)
             : m_value_tree({ParameterKeys::ROOT_TREE}), m_undo_manager(um), m_parent(nullptr) {}
@@ -55,6 +53,18 @@ public:
 
     [[nodiscard]] std::string get_identifier_as_string() const {
         return get_identifier().toString().toStdString();
+    }
+
+
+    /**
+     * @throws: RuntimeError if property_value already exists
+     */
+    template<typename T>
+    void add_static_property(const std::string& property_name, T property_value) {
+        if (m_value_tree.hasProperty({property_name}))
+            throw std::runtime_error("A property_value with the name '" + property_value + "' already exists");
+
+        m_value_tree.setProperty({property_name}, {property_value}, &m_undo_manager);
     }
 
 

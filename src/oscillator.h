@@ -26,7 +26,7 @@ public:
 
     class OscillatorKeys {
     public:
-        OscillatorKeys()=  delete;
+        OscillatorKeys() = delete;
         static const inline std::string TYPE = "type";
         static const inline std::string FREQ = "freq";
         static const inline std::string ADD = "add";
@@ -34,6 +34,8 @@ public:
         static const inline std::string DUTY = "duty";
         static const inline std::string CURVE = "curve";
         static const inline std::string ENABLED = "enabled";
+
+        static const inline std::string CLASS_NAME = "oscillator";
     };
 
 
@@ -47,7 +49,7 @@ public:
                , Node<float>* curve = nullptr
                , Node<bool>* enabled = nullptr)
             : m_parameter_handler(identifier, parent)
-            , m_socket_handler(ParameterKeys::GENERATIVE_SOCKETS, m_parameter_handler)
+              , m_socket_handler(ParameterKeys::GENERATIVE_SOCKETS_TREE, m_parameter_handler)
               , m_type(OscillatorKeys::TYPE, m_socket_handler, type)
               , m_freq(OscillatorKeys::FREQ, m_socket_handler, freq)
               , m_add(OscillatorKeys::ADD, m_socket_handler, add)
@@ -56,7 +58,9 @@ public:
               , m_curve(OscillatorKeys::CURVE, m_socket_handler, curve)
               , m_enabled(OscillatorKeys::CURVE, m_socket_handler, enabled)
               , m_rng(std::random_device()()), m_distribution(0.0, 1.0)
-              , m_previous_values(100) {}
+              , m_previous_values(100) {
+        m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, OscillatorKeys::CLASS_NAME);
+    }
 
 
     std::vector<double> process(const TimePoint& t) override {
@@ -76,7 +80,8 @@ public:
                                  , m_enabled.get_connected());
     }
 
-    ParameterHandler & get_parameter_handler() override {
+
+    ParameterHandler& get_parameter_handler() override {
         return m_parameter_handler;
     }
 
@@ -224,6 +229,7 @@ private:
 //        }
 //        return current_;
     }
+
 
     ParameterHandler m_parameter_handler;
     ParameterHandler m_socket_handler;

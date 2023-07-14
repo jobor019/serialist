@@ -9,24 +9,38 @@
 
 template<typename SocketType>
 class VTSocketBase : private juce::ValueTree::Listener {
+
+    static const inline std::string CONNECTED_PROPERTY = "connected";
+
+
 public:
     VTSocketBase(const std::string& id, ParameterHandler& parent, SocketType* initial = nullptr)
-            : m_identifier(id), m_parent(parent) {
+            : m_id(id), m_parent(parent) {
 
         static_assert(std::is_base_of_v<Generative, SocketType>, "SocketType must inherit from Generative");
 
-        auto& value_tree = m_parent.get_value_tree();
-        if (!value_tree.isValid())
+        if (!m_parent.get_value_tree().isValid())
             throw ParameterError("Cannot register VTParameter for invalid tree");
 
+        m_value_tree = juce::ValueTree({ParameterKeys::GENERATIVE_SOCKET});
+        m_value_tree.setProperty({ParameterKeys::ID_PROPERTY}, {m_id}, &m_parent.get_undo_manager());
+        m_parent.get_value_tree().addChild(m_value_tree, -1, &m_parent.get_undo_manager());
+
         set_connection_internal(initial);
-        value_tree.addListener(this);
+        m_value_tree.addListener(this);
     }
+
+
+    ~VTSocketBase() override {
+        m_parent.get_value_tree().removeChild(m_value_tree, &m_parent.get_undo_manager());
+    }
+
 
     bool is_connectable(Generative& generative) {
         std::lock_guard<std::mutex> lock{m_mutex};
         return static_cast<bool>(dynamic_cast<SocketType*>(&generative));
     }
+
 
     bool try_connect(Generative& generative) {
         if (auto* node = dynamic_cast<SocketType*>(&generative)) {
@@ -70,13 +84,13 @@ public:
     }
 
 
-    bool equals_property(juce::ValueTree& treeWhosePropertyHasChanged, const juce::Identifier& property) {
-        return treeWhosePropertyHasChanged == m_parent.get_value_tree() && property == m_identifier;
+    bool equals_property(juce::ValueTree& treeWhosePropertyHasChanged, const juce::Identifier&) {
+        return treeWhosePropertyHasChanged == m_value_tree;
     }
 
 
     [[nodiscard]] juce::Identifier get_identifier() const {
-        return m_identifier;
+        return {m_id};
     }
 
 
@@ -96,22 +110,25 @@ protected:
         }
     }
 
+
     void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier&) override {
         std::cout << "VT changed: TODO update internal state\n";
     }
 
 
     void update_value_tree(const juce::String& connected_node_identifier) {
-        m_parent.get_value_tree().setProperty(m_identifier
-                                              , connected_node_identifier
-                                              , &m_parent.get_undo_manager());
+        m_value_tree.setProperty({CONNECTED_PROPERTY}
+                                 , connected_node_identifier
+                                 , &m_parent.get_undo_manager());
     }
 
 
     std::mutex m_mutex;
 
-    juce::Identifier m_identifier;
+    std::string m_id;
     VTParameterHandler& m_parent;
+
+    juce::ValueTree m_value_tree;
 
     SocketType* m_node = nullptr;
 };

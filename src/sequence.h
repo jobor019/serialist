@@ -12,7 +12,9 @@ template<typename T>
 class Sequence : public DataNode<T> {
 public:
 
-    inline static const std::string PARAMETER_ADDRESS = "sequence";
+    inline static const std::string SEQUENCE_TREE = "SEQUENCE";
+    inline static const std::string ENABLED = "enabled";
+    inline static const std::string CLASS_NAME = "sequence";
 
 
     explicit Sequence(const std::string& id
@@ -20,15 +22,18 @@ public:
                       , const std::vector<T>& initial_values = {}
                       , Node<bool>* enabled = nullptr)
             : m_parameter_handler(id, parent)
-              , m_sequence(PARAMETER_ADDRESS, m_parameter_handler, initial_values)
-              , m_enabled("enabled", m_parameter_handler, enabled) {}
+              , m_sequence(SEQUENCE_TREE, m_parameter_handler, initial_values)
+              , m_enabled(ENABLED, m_parameter_handler, enabled) {
+        m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, CLASS_NAME);
+    }
 
 
     std::vector<T> process(const TimePoint&, double y, InterpolationStrategy<T> strategy) override {
         return m_sequence.interpolate(y, std::move(strategy));
     }
 
-    ParameterHandler & get_parameter_handler() override {
+
+    ParameterHandler& get_parameter_handler() override {
         return m_parameter_handler;
     }
 

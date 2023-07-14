@@ -70,16 +70,14 @@ public:
 
     static std::optional<ComponentAndGeneratives>
     new_from_key(int key, ModularGenerator& modular_generator) {
+        auto name = modular_generator.next_id();
         if (key == KeyCodes::NEW_GENERATOR_KEY) {
-            auto name = modular_generator.next_free_name(GeneratorModule<float>::default_name());
             auto mng = new_generator<float>(name, modular_generator.get_parameter_handler());
             return {ComponentAndGeneratives::from_internal(std::move(mng))};
         } else if (key == KeyCodes::NEW_MIDI_SOURCE_KEY) {
-            auto name = modular_generator.next_free_name(NoteSourceModule::default_name());
             auto mng = new_midi_note_source(name, modular_generator.get_parameter_handler());
             return {ComponentAndGeneratives::from_internal(std::move(mng))};
         } else if (key == KeyCodes::NEW_OSCILLATOR_KEY) {
-            auto name = modular_generator.next_free_name(OscillatorModule::default_name());
             auto mng = new_oscillator(name, modular_generator.get_parameter_handler());
             return {ComponentAndGeneratives::from_internal(std::move(mng))};
         }

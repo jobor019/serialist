@@ -13,6 +13,17 @@
 template<typename T>
 class Generator : public Node<T> {
 public:
+
+    class GeneratorKeys {
+    public:
+        static const inline std::string CURSOR = "cursor";
+        static const inline std::string INTERP = "interpolator";
+        static const inline std::string SEQUENCE = "sequence";
+        static const inline std::string ENABLED = "enabled";
+
+        static const inline std::string CLASS_NAME = "generator";
+    };
+
     Generator(const std::string& id
               , ParameterHandler& parent
               , Node<double>* cursor = nullptr
@@ -20,11 +31,13 @@ public:
               , Sequence<T>* sequence = nullptr
               , Node<bool>* enabled = nullptr)
             : m_parameter_handler(id, parent)
-            , m_socket_handler(ParameterKeys::GENERATIVE_SOCKETS, m_parameter_handler)
-              , m_cursor("cursor", m_socket_handler, cursor)
-              , m_interpolation_strategy("interp", m_socket_handler, interp)
-              , m_sequence("sequence", m_socket_handler, sequence)
-              , m_enabled("enabled", m_socket_handler, enabled) {}
+            , m_socket_handler(ParameterKeys::GENERATIVE_SOCKETS_TREE, m_parameter_handler)
+              , m_cursor(GeneratorKeys::CURSOR, m_socket_handler, cursor)
+              , m_interpolation_strategy(GeneratorKeys::INTERP, m_socket_handler, interp)
+              , m_sequence(GeneratorKeys::SEQUENCE, m_socket_handler, sequence)
+              , m_enabled(GeneratorKeys::ENABLED, m_socket_handler, enabled) {
+        m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, GeneratorKeys::CLASS_NAME);
+    }
 
 
     std::vector<T> process(const TimePoint& t) override {

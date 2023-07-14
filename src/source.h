@@ -18,6 +18,18 @@ public:
 
     static const int HISTORY_LENGTH = 50;
 
+    class NoteSourceKeys {
+    public:
+        static const inline std::string ONSET = "onset";
+        static const inline std::string DURATION = "duration";
+        static const inline std::string PITCH = "pitch";
+        static const inline std::string VELOCITY = "velocity";
+        static const inline std::string CHANNEL = "channel";
+        static const inline std::string ENABLED = "enabled";
+
+        static const inline std::string CLASS_NAME = "notesource";
+    };
+
 
     MidiNoteSource(const std::string& id
                    , ParameterHandler& parent
@@ -28,14 +40,15 @@ public:
                    , Node<int>* channel = nullptr
                    , Node<bool>* enabled = nullptr)
             : m_parameter_handler(id, parent)
-            , m_socket_handler(ParameterKeys::GENERATIVE_SOCKETS, m_parameter_handler)
-              , m_onset("onset", m_socket_handler, onset)
-              , m_duration("duration", m_socket_handler, duration)
-              , m_pitch("pitch", m_socket_handler, pitch)
-              , m_velocity("velocity", m_socket_handler, velocity)
-              , m_channel("channel", m_socket_handler, channel)
-              , m_enabled("enabled", m_socket_handler, enabled)
+            , m_socket_handler(ParameterKeys::GENERATIVE_SOCKETS_TREE, m_parameter_handler)
+              , m_onset(NoteSourceKeys::ONSET, m_socket_handler, onset)
+              , m_duration(NoteSourceKeys::DURATION, m_socket_handler, duration)
+              , m_pitch(NoteSourceKeys::PITCH, m_socket_handler, pitch)
+              , m_velocity(NoteSourceKeys::VELOCITY, m_socket_handler, velocity)
+              , m_channel(NoteSourceKeys::CHANNEL, m_socket_handler, channel)
+              , m_enabled(NoteSourceKeys::ENABLED, m_socket_handler, enabled)
               , m_played_notes(HISTORY_LENGTH) {
+        m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, NoteSourceKeys::CLASS_NAME);
     }
 
 

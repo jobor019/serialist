@@ -10,13 +10,19 @@ public:
 
     static const inline std::string ROOT_TREE = "ROOT";
     static const inline std::string GENERATIVES_TREE = "GENERATIVES";
-    static const inline std::string GENERATIVE_CLASS = "CLASS";
-    static const inline std::string GENERATIVE_SOCKETS = "SOCKETS";
+    static const inline std::string GENERATIVE_CLASS = "class";
+
+    static const inline std::string GENERATIVE_SOCKETS_TREE = "SOCKETS";
+    static const inline std::string GENERATIVE_SOCKET = "SOCKET";
+
     static const inline std::string MODULES_TREE = "MODULES";
-    static const inline std::string MODULE_NAME = "NAME";
-    static const inline std::string MODULE_POSITION = "POSITION";
-    static const inline std::string MODULE_LAYOUT = "LAYOUT";
-    static const inline std::string MODULE_INTERNALS = "INTERNALS";
+    static const inline std::string MODULE_NAME = "name";
+    static const inline std::string MODULE_POSITION = "position";
+    static const inline std::string MODULE_LAYOUT = "layout";
+
+    static const inline std::string MODULE_INTERNALS_TREE = "INTERNALS";
+
+    static const inline std::string ID_PROPERTY = "id";
 };
 
 #endif //SERIALISTLOOPER_PARAMETER_KEYS_H
