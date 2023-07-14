@@ -31,7 +31,7 @@ public:
               , Sequence<T>* sequence = nullptr
               , Node<bool>* enabled = nullptr)
             : m_parameter_handler(id, parent)
-            , m_socket_handler(ParameterKeys::GENERATIVE_SOCKETS_TREE, m_parameter_handler)
+              , m_socket_handler("", m_parameter_handler, ParameterKeys::GENERATIVE_SOCKETS_TREE)
               , m_cursor(GeneratorKeys::CURSOR, m_socket_handler, cursor)
               , m_interpolation_strategy(GeneratorKeys::INTERP, m_socket_handler, interp)
               , m_sequence(GeneratorKeys::SEQUENCE, m_socket_handler, sequence)

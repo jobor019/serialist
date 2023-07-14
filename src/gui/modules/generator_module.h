@@ -32,14 +32,14 @@ public:
               , m_oscillator_socket(generator.get_cursor(), std::move(oscillator))
               , m_interpolator(generator.get_interpolation_strategy(), std::move(interpolator))
               , m_internal_sequence(std::move(sequence))
-              , m_header(generator.get_parameter_handler().get_identifier_as_string(), internal_enabled) {
+              , m_header(generator.get_parameter_handler().get_id(), internal_enabled) {
         (void) layout;
 
         if (/*!m_oscillator_socket || !m_interpolator || */ !m_internal_sequence)
             throw std::runtime_error("A GeneratorModule requires all internal modules to be initialized");
 
 
-        setComponentID(generator.get_parameter_handler().get_identifier_as_string());
+        setComponentID(generator.get_parameter_handler().get_id());
 
         addAndMakeVisible(m_oscillator_socket);
         addAndMakeVisible(m_interpolator);

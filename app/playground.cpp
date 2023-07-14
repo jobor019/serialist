@@ -37,8 +37,8 @@ public:
 
 
     PlaygroundComponent()
-//            : m_some_handler(m_undo_manager)
-            : m_modular_generator(ParameterHandler(m_undo_manager))
+            : m_some_handler(m_undo_manager)
+            , m_modular_generator(m_some_handler)
               , m_config_layer_component(m_modular_generator)
 //              , m_pitch("pitch", m_some_handler)
 //              , s(ScalableSlider::Orientation::vertical)
@@ -269,7 +269,7 @@ public:
     }
 
     void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier &) override {
-        std::cout << m_modular_generator.get_parameter_handler().get_value_tree().toXmlString() << "\n";
+        std::cout << m_some_handler.get_value_tree().toXmlString() << "\n";
     }
 
 
@@ -278,9 +278,10 @@ private:
 
     std::unique_ptr<juce::LookAndFeel> m_lnf;
 
+
     juce::UndoManager m_undo_manager;
 
-//    ParameterHandler m_some_handler;
+    ParameterHandler m_some_handler;
 
     ModularGenerator m_modular_generator;
 //

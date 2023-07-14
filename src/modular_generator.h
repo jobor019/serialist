@@ -12,8 +12,8 @@ public:
     static const int N_DIGITS_ID = 6;
 
 
-    explicit ModularGenerator(ParameterHandler&& handler)
-            : m_parameter_handler(std::move(handler)) {}
+    explicit ModularGenerator(ParameterHandler& root)
+            : m_parameter_handler("", root, ParameterKeys::GENERATIVES_TREE) {}
 
 
     void process(const TimePoint& time) {
@@ -67,7 +67,7 @@ public:
         std::lock_guard<std::mutex> lock{process_mutex};
 
         auto generative_and_children = find_generatives_matching(
-                generative.get_parameter_handler().get_identifier_as_string());
+                generative.get_parameter_handler().get_id());
         remove_internal(generative_and_children);
     }
 
@@ -76,7 +76,7 @@ public:
         auto it = std::find_if(m_generatives.begin()
                                , m_generatives.end()
                                , [&generative_id](const std::unique_ptr<Generative>& g) {
-                    return g->get_parameter_handler().get_identifier_as_string() == generative_id;
+                    return g->get_parameter_handler().get_id() == generative_id;
                 });
 
         if (it != m_generatives.end())
@@ -89,7 +89,7 @@ public:
     void print_names() {
         std::cout << "names: ";
         for (const auto& g: m_generatives) {
-            std::cout << g->get_parameter_handler().get_identifier_as_string() << ", ";
+            std::cout << g->get_parameter_handler().get_id() << ", ";
         }
         std::cout << "\n";
     }
@@ -139,7 +139,7 @@ public:
 //        std::vector<std::string> conflicting_names;
 //        for (const auto& generative: m_generatives) {
 //            if (generative->get_parameter_handler().identifier_begins_with(suggested_name))
-//                conflicting_names.emplace_back(generative->get_parameter_handler().get_identifier_as_string());
+//                conflicting_names.emplace_back(generative->get_parameter_handler().get_id());
 //        }
 //
 //        // TODO: Naive approach, might need optimization for large patches

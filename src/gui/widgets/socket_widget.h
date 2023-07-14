@@ -168,8 +168,8 @@ private:
             bool new_visibility = m_socket.get_connected() != &m_default_widget->get_generative();
 
             std::cout
-            << "socket: " << m_socket.get_connected()->get_parameter_handler().get_identifier_as_string()
-            << ", widget: " << m_default_widget->get_generative().get_parameter_handler().get_identifier_as_string()
+            << "socket: " << m_socket.get_connected()->get_parameter_handler().get_id()
+            << ", widget: " << m_default_widget->get_generative().get_parameter_handler().get_id()
             << "-> new visibility: " << new_visibility
             << "\n";
             m_connection_source_component.setVisible(new_visibility);

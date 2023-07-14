@@ -16,10 +16,16 @@ class VTParameterHandler {
 public:
 
     // Public ctor, same template as NopParameterHandler
-    VTParameterHandler(const std::string& identifier, VTParameterHandler& parent)
-            : m_value_tree({identifier})
+    VTParameterHandler(const std::string& id_property
+                       , VTParameterHandler& parent
+                       , const std::string& value_tree_id = ParameterKeys::GENERATIVE)
+            : m_value_tree({value_tree_id})
               , m_undo_manager(parent.get_undo_manager())
               , m_parent(&parent) {
+        if (!id_property.empty()) {
+            m_value_tree.setProperty({ParameterKeys::ID_PROPERTY}, {id_property}, &m_undo_manager);
+        }
+
         m_parent->add_child(*this);
     }
 
@@ -46,14 +52,10 @@ public:
     }
 
 
-    [[nodiscard]] juce::Identifier get_identifier() const {
-        return m_value_tree.getType();
+    [[nodiscard]] std::string get_id() const {
+        return m_value_tree.getProperty({ParameterKeys::ID_PROPERTY}).toString().toStdString();
     }
 
-
-    [[nodiscard]] std::string get_identifier_as_string() const {
-        return get_identifier().toString().toStdString();
-    }
 
 
     /**
@@ -77,7 +79,7 @@ public:
 
 
     [[nodiscard]] bool identifier_matches(const std::regex& base_name_regex) const {
-        return std::regex_match(get_identifier_as_string(), base_name_regex);
+        return std::regex_match(get_id(), base_name_regex);
     }
 
 
@@ -85,7 +87,7 @@ public:
      * equals, e.g. `exact_name` "osc" only state_equals the exact identifier "osc"
      */
     [[nodiscard]] bool identifier_equals(const std::string& exact_name) const {
-        return get_identifier_as_string() == exact_name;
+        return get_id() == exact_name;
     }
 
 

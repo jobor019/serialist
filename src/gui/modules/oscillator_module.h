@@ -55,11 +55,11 @@ public:
                     internal_duty, 0.0f, 1.0f, 0.01f, "duty", SliderLayout::label_left))
               , m_curve_socket(oscillator.get_curve(), std::make_unique<SliderWidget<float>>(
                     internal_curve, 0.0f, 1.0f, 0.01f, "curve", SliderLayout::label_left))
-              , m_header(oscillator.get_parameter_handler().get_identifier_as_string(), internal_enabled)
+              , m_header(oscillator.get_parameter_handler().get_id(), internal_enabled)
               , m_layout(layout)
               , m_oscillator_view(oscillator) {
 
-        setComponentID(oscillator.get_parameter_handler().get_identifier_as_string());
+        setComponentID(oscillator.get_parameter_handler().get_id());
 
         addAndMakeVisible(m_oscillator_view);
 

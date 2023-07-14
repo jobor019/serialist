@@ -25,7 +25,7 @@ public:
     explicit InterpolationModule(Variable<InterpolationStrategy<T>>& strategy
                                  , Layout layout = Layout::full)
             : m_strategy(strategy)
-              , m_header(strategy.get_parameter_handler().get_identifier_as_string())
+              , m_header(strategy.get_parameter_handler().get_id())
               , m_layout(layout) {
 
         initialize_components();

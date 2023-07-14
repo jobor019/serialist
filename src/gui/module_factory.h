@@ -68,17 +68,17 @@ public:
 
     ModuleFactory() = delete;
 
+
     static std::optional<ComponentAndGeneratives>
     new_from_key(int key, ModularGenerator& modular_generator) {
-        auto name = modular_generator.next_id();
         if (key == KeyCodes::NEW_GENERATOR_KEY) {
-            auto mng = new_generator<float>(name, modular_generator.get_parameter_handler());
+            auto mng = new_generator<float>(modular_generator);
             return {ComponentAndGeneratives::from_internal(std::move(mng))};
         } else if (key == KeyCodes::NEW_MIDI_SOURCE_KEY) {
-            auto mng = new_midi_note_source(name, modular_generator.get_parameter_handler());
+            auto mng = new_midi_note_source(modular_generator);
             return {ComponentAndGeneratives::from_internal(std::move(mng))};
         } else if (key == KeyCodes::NEW_OSCILLATOR_KEY) {
-            auto mng = new_oscillator(name, modular_generator.get_parameter_handler());
+            auto mng = new_oscillator(modular_generator);
             return {ComponentAndGeneratives::from_internal(std::move(mng))};
         }
 
@@ -86,22 +86,22 @@ public:
     }
 
 
-
-
     static ModuleAndGeneratives<NoteSourceModule>
-    new_midi_note_source(const std::string& id
-                         , ParameterHandler& parent
+    new_midi_note_source(ModularGenerator& mg
                          , NoteSourceModule::Layout layout = NoteSourceModule::Layout::full) {
-        auto note_source = std::make_unique<MidiNoteSource>(id, parent);
+
+        auto& parent = mg.get_parameter_handler();
+
+        auto note_source = std::make_unique<MidiNoteSource>(mg.next_id(), mg.get_parameter_handler());
 
         note_source->set_midi_device(MidiConfig::get_instance().get_default_device_name());
 
-        auto onset = std::make_unique<Variable<float>>(id + "::onset", parent, 1.0f);
-        auto duration = std::make_unique<Variable<float>>(id + "::duration", parent, 1.0f);
-        auto pitch = std::make_unique<Variable<int>>(id + "::pitch", parent, 6000);
-        auto velocity = std::make_unique<Variable<int>>(id + "::velocity", parent, 100);
-        auto channel = std::make_unique<Variable<int>>(id + "::channel", parent, 1);
-        auto enabled = std::make_unique<Variable<bool>>(id + "::enabled", parent, true);
+        auto onset = std::make_unique<Variable<float>>(mg.next_id(), parent, 1.0f);
+        auto duration = std::make_unique<Variable<float>>(mg.next_id(), parent, 1.0f);
+        auto pitch = std::make_unique<Variable<int>>(mg.next_id(), parent, 6000);
+        auto velocity = std::make_unique<Variable<int>>(mg.next_id(), parent, 100);
+        auto channel = std::make_unique<Variable<int>>(mg.next_id(), parent, 1);
+        auto enabled = std::make_unique<Variable<bool>>(mg.next_id(), parent, true);
 
         note_source->set_onset(onset.get());
         note_source->set_duration(duration.get());
@@ -122,17 +122,17 @@ public:
 
     template<typename T>
     static ModuleAndGeneratives<GeneratorModule<T>>
-    new_generator(const std::string& id
-                  , ParameterHandler& parent
+    new_generator(ModularGenerator& mg
                   , typename GeneratorModule<T>::Layout layout = GeneratorModule<T>::Layout::full) {
 
+        auto& parent = mg.get_parameter_handler();
 
         auto [oscillator_module, oscillator_generatives] = new_oscillator(
-                id + "::osc", parent, OscillatorModule::Layout::generator_internal);
+                mg, OscillatorModule::Layout::generator_internal);
         auto [interpolator_module, interpolator_generatives] = new_interpolator<T>(
-                id + "::interp", parent, InterpolationModule<T>::Layout::generator_internal);
+                mg, InterpolationModule<T>::Layout::generator_internal);
         auto [sequence_module, sequence_generatives] = new_text_sequence<T>(
-                id + "::sequence", parent, TextSequenceModule<T>::Layout::full);
+                mg, TextSequenceModule<T>::Layout::full);
 
         auto oscillator = dynamic_cast<Node<double>*>(&oscillator_module->get_generative());
         auto interpolator = dynamic_cast<Node<InterpolationStrategy<T>>*>(&interpolator_module->get_generative());
@@ -140,16 +140,18 @@ public:
 
         assert(oscillator && interpolator && sequence);
 
-        auto enabled = std::make_unique<Variable<bool>>(id + "::enabled", parent, true);
+        auto enabled = std::make_unique<Variable<bool>>(mg.next_id(), parent, true);
 
-        auto generator = std::make_unique<Generator<T>>(id, parent, oscillator, interpolator, sequence, enabled.get());
+        auto generator = std::make_unique<Generator<T>>(
+                mg.next_id(), parent, oscillator, interpolator, sequence, enabled.get());
 
-        auto generator_module = std::make_unique<GeneratorModule<T>>(*generator
-                                                                     , std::move(oscillator_module)
-                                                                     , std::move(interpolator_module)
-                                                                     , std::move(sequence_module)
-                                                                     , *enabled
-                                                                     , layout);
+        auto generator_module = std::make_unique<GeneratorModule<T>>(
+                *generator
+                , std::move(oscillator_module)
+                , std::move(interpolator_module)
+                , std::move(sequence_module)
+                , *enabled
+                , layout);
 
         std::vector<std::unique_ptr<Generative>> generatives;
         // TODO: Generalize with `collect`
@@ -164,17 +166,19 @@ public:
 
 
     static ModuleAndGeneratives<OscillatorModule>
-    new_oscillator(const std::string& id
-                   , ParameterHandler& parent
+    new_oscillator(ModularGenerator& mg
                    , OscillatorModule::Layout layout = OscillatorModule::Layout::full) {
-        auto oscillator = std::make_unique<Oscillator>(id, parent);
-        auto type = std::make_unique<Variable<Oscillator::Type>>(id + "::type", parent, Oscillator::Type::phasor);
-        auto freq = std::make_unique<Variable<float>>(id + "::freq", parent, 0.25f);
-        auto mul = std::make_unique<Variable<float>>(id + "::mul", parent, 1.0f);
-        auto add = std::make_unique<Variable<float>>(id + "::add", parent, 0.0f);
-        auto duty = std::make_unique<Variable<float>>(id + "::duty", parent, 0.5f);
-        auto curve = std::make_unique<Variable<float>>(id + "::curve", parent, 1.0f);
-        auto enabled = std::make_unique<Variable<bool>>(id + "::enabled", parent, true);
+
+        auto& parent = mg.get_parameter_handler();
+
+        auto oscillator = std::make_unique<Oscillator>(mg.next_id(), parent);
+        auto type = std::make_unique<Variable<Oscillator::Type>>(mg.next_id(), parent, Oscillator::Type::phasor);
+        auto freq = std::make_unique<Variable<float>>(mg.next_id(), parent, 0.25f);
+        auto mul = std::make_unique<Variable<float>>(mg.next_id(), parent, 1.0f);
+        auto add = std::make_unique<Variable<float>>(mg.next_id(), parent, 0.0f);
+        auto duty = std::make_unique<Variable<float>>(mg.next_id(), parent, 0.5f);
+        auto curve = std::make_unique<Variable<float>>(mg.next_id(), parent, 1.0f);
+        auto enabled = std::make_unique<Variable<bool>>(mg.next_id(), parent, true);
 
         oscillator->set_type(type.get());
         oscillator->set_freq(freq.get());
@@ -196,12 +200,13 @@ public:
 
     template<typename T>
     static ModuleAndGeneratives<TextSequenceModule<T>>
-    new_text_sequence(const std::string& id
-                      , ParameterHandler& parent
+    new_text_sequence(ModularGenerator& mg
                       , typename TextSequenceModule<T>::Layout layout = TextSequenceModule<T>::Layout::full) {
-        auto sequence = std::make_unique<Sequence<T>>(id, parent);
+        auto& parent = mg.get_parameter_handler();
 
-        auto enabled = std::make_unique<Variable<bool>>(id + "::enabled", parent, true);
+        auto sequence = std::make_unique<Sequence<T>>(mg.next_id(), parent);
+
+        auto enabled = std::make_unique<Variable<bool>>(mg.next_id(), parent, true);
         sequence->set_enabled(enabled.get());
 
         auto sequence_module = std::make_unique<TextSequenceModule<T>>(*sequence, *enabled, layout);
@@ -214,12 +219,14 @@ public:
 
     template<typename T>
     static ModuleAndGeneratives<InterpolationModule<T>>
-    new_interpolator(const std::string& id
-                     , ParameterHandler& parent
+    new_interpolator(ModularGenerator& mg
                      , typename InterpolationModule<T>::Layout layout = InterpolationModule<T>::Layout::full) {
-        auto interpolator = std::make_unique<Variable<InterpolationStrategy<T>>>(id
-                                                                                 , parent
-                                                                                 , InterpolationStrategy<T>());
+        auto& parent = mg.get_parameter_handler();
+
+        auto interpolator = std::make_unique<Variable<InterpolationStrategy<T>>>(
+                mg.next_id()
+                , parent
+                , InterpolationStrategy<T>());
 
         auto interpolator_module = std::make_unique<InterpolationModule<T>>(*interpolator, layout);
 

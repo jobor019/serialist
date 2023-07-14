@@ -10,6 +10,8 @@ public:
 
     static const inline std::string ROOT_TREE = "ROOT";
     static const inline std::string GENERATIVES_TREE = "GENERATIVES";
+    static const inline std::string GENERATIVE = "GENERATIVE";
+
     static const inline std::string GENERATIVE_CLASS = "class";
 
     static const inline std::string GENERATIVE_SOCKETS_TREE = "SOCKETS";

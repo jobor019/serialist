@@ -33,7 +33,7 @@ public:
               , m_label({}, label)
               , m_layout(layout)
               , m_label_width(label_width) {
-        setComponentID(variable.get_parameter_handler().get_identifier_as_string());
+        setComponentID(variable.get_parameter_handler().get_id());
 
         initialize_combo_box(std::move(values));
         initialize_label();

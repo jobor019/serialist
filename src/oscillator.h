@@ -49,7 +49,7 @@ public:
                , Node<float>* curve = nullptr
                , Node<bool>* enabled = nullptr)
             : m_parameter_handler(identifier, parent)
-              , m_socket_handler(ParameterKeys::GENERATIVE_SOCKETS_TREE, m_parameter_handler)
+              , m_socket_handler("", m_parameter_handler, ParameterKeys::GENERATIVE_SOCKETS_TREE)
               , m_type(OscillatorKeys::TYPE, m_socket_handler, type)
               , m_freq(OscillatorKeys::FREQ, m_socket_handler, freq)
               , m_add(OscillatorKeys::ADD, m_socket_handler, add)

@@ -40,7 +40,7 @@ public:
                    , Node<int>* channel = nullptr
                    , Node<bool>* enabled = nullptr)
             : m_parameter_handler(id, parent)
-            , m_socket_handler(ParameterKeys::GENERATIVE_SOCKETS_TREE, m_parameter_handler)
+              , m_socket_handler("", m_parameter_handler, ParameterKeys::GENERATIVE_SOCKETS_TREE)
               , m_onset(NoteSourceKeys::ONSET, m_socket_handler, onset)
               , m_duration(NoteSourceKeys::DURATION, m_socket_handler, duration)
               , m_pitch(NoteSourceKeys::PITCH, m_socket_handler, pitch)
