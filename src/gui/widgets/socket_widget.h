@@ -87,8 +87,16 @@ public:
                 juce::DragAndDropContainer::findParentDragContainerFor(this);
 
         if (is_connectable() && parent_drag_component && !parent_drag_component->isDragAndDropActive()) {
-            parent_drag_component->startDragging("src", this, juce::ScaledImage(
-                    juce::Image(juce::Image::PixelFormat::RGB, 1, 1, true)));
+            auto img = juce::Image(juce::Image::PixelFormat::RGB, 100, 30, true);
+            juce::Graphics g (img);
+            g.setColour (juce::Colours::steelblue);
+//            g.fillRect(img.getBounds());
+            g.setColour (juce::Colours::powderblue);
+            img.multiplyAllAlphas(0.5f);
+            g.drawFittedText("typename", img.getBounds(), juce::Justification::centred, 1);
+
+
+            parent_drag_component->startDragging("src", this, juce::ScaledImage(img));
         }
     }
 

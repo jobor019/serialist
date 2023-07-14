@@ -170,7 +170,7 @@ public:
                    , ParameterHandler& parent
                    , OscillatorModule::Layout layout = OscillatorModule::Layout::full) {
         auto oscillator = std::make_unique<Oscillator>(id, parent);
-        auto type = std::make_unique<Variable<Oscillator::Type>>(id, parent, Oscillator::Type::phasor);
+        auto type = std::make_unique<Variable<Oscillator::Type>>(id + "::type", parent, Oscillator::Type::phasor);
         auto freq = std::make_unique<Variable<float>>(id + "::freq", parent, 0.25f);
         auto mul = std::make_unique<Variable<float>>(id + "::mul", parent, 1.0f);
         auto add = std::make_unique<Variable<float>>(id + "::add", parent, 0.0f);
