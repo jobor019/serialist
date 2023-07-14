@@ -9,12 +9,11 @@
 #include "exceptions.h"
 #include "interpolator.h"
 #include "serializable.h"
+#include "parameter_keys.h"
 
 
 class VTParameterHandler {
 public:
-    static const inline juce::Identifier ROOT = "root";
-
 
     // Public ctor, same template as NopParameterHandler
     VTParameterHandler(const std::string& identifier, VTParameterHandler& parent)
@@ -25,9 +24,11 @@ public:
     }
 
 
+
+
     // create root
     explicit VTParameterHandler(juce::UndoManager& um)
-            : m_value_tree(ROOT), m_undo_manager(um), m_parent(nullptr) {}
+            : m_value_tree({ParameterKeys::ROOT_TREE}), m_undo_manager(um), m_parent(nullptr) {}
 
 
     ~VTParameterHandler() {

@@ -19,13 +19,17 @@ public:
                       , ParameterHandler& parent
                       , const std::vector<T>& initial_values = {}
                       , Node<bool>* enabled = nullptr)
-            : DataNode<T>(id, parent)
-              , m_sequence(PARAMETER_ADDRESS, *this, initial_values)
-              , m_enabled("enabled", *this, enabled) {}
+            : m_parameter_handler(id, parent)
+              , m_sequence(PARAMETER_ADDRESS, m_parameter_handler, initial_values)
+              , m_enabled("enabled", m_parameter_handler, enabled) {}
 
 
     std::vector<T> process(const TimePoint&, double y, InterpolationStrategy<T> strategy) override {
         return m_sequence.interpolate(y, std::move(strategy));
+    }
+
+    ParameterHandler & get_parameter_handler() override {
+        return m_parameter_handler;
     }
 
 
@@ -46,6 +50,8 @@ public:
 
 
 private:
+    ParameterHandler m_parameter_handler;
+
     ParametrizedSequence<T> m_sequence;
 
     Socket<bool> m_enabled;

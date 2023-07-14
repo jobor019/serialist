@@ -24,6 +24,18 @@ public:
         , random_walk
     };
 
+    class OscillatorKeys {
+    public:
+        OscillatorKeys()=  delete;
+        static const inline std::string TYPE = "type";
+        static const inline std::string FREQ = "freq";
+        static const inline std::string ADD = "add";
+        static const inline std::string MUL = "mul";
+        static const inline std::string DUTY = "duty";
+        static const inline std::string CURVE = "curve";
+        static const inline std::string ENABLED = "enabled";
+    };
+
 
     Oscillator(const std::string& identifier
                , ParameterHandler& parent
@@ -34,14 +46,15 @@ public:
                , Node<float>* duty = nullptr
                , Node<float>* curve = nullptr
                , Node<bool>* enabled = nullptr)
-            : Node<double>(identifier, parent)
-              , m_type("type", *this, type)
-              , m_freq("freq", *this, freq)
-              , m_add("add", *this, add)
-              , m_mul("mul", *this, mul)
-              , m_duty("duty", *this, duty)
-              , m_curve("curve", *this, curve)
-              , m_enabled("enabled", *this, enabled)
+            : m_parameter_handler(identifier, parent)
+            , m_socket_handler(ParameterKeys::GENERATIVE_SOCKETS, m_parameter_handler)
+              , m_type(OscillatorKeys::TYPE, m_socket_handler, type)
+              , m_freq(OscillatorKeys::FREQ, m_socket_handler, freq)
+              , m_add(OscillatorKeys::ADD, m_socket_handler, add)
+              , m_mul(OscillatorKeys::MUL, m_socket_handler, mul)
+              , m_duty(OscillatorKeys::DUTY, m_socket_handler, duty)
+              , m_curve(OscillatorKeys::CURVE, m_socket_handler, curve)
+              , m_enabled(OscillatorKeys::CURVE, m_socket_handler, enabled)
               , m_rng(std::random_device()()), m_distribution(0.0, 1.0)
               , m_previous_values(100) {}
 
@@ -61,6 +74,10 @@ public:
                                  , m_duty.get_connected()
                                  , m_curve.get_connected()
                                  , m_enabled.get_connected());
+    }
+
+    ParameterHandler & get_parameter_handler() override {
+        return m_parameter_handler;
     }
 
 
@@ -207,6 +224,9 @@ private:
 //        }
 //        return current_;
     }
+
+    ParameterHandler m_parameter_handler;
+    ParameterHandler m_socket_handler;
 
 
     Socket<Type> m_type;

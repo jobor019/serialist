@@ -9,9 +9,9 @@
 
 #include <optional>
 
-class Generative : public ParameterHandler {
+class Generative {
 public:
-    Generative(const std::string& identifier, ParameterHandler& parent) : ParameterHandler(identifier, parent) {}
+    Generative() = default;
 
 
     virtual ~Generative() = default;
@@ -21,7 +21,7 @@ public:
     Generative& operator=(Generative&&) noexcept = delete;
 
     virtual std::vector<Generative*> get_connected() = 0;
-
+    virtual ParameterHandler& get_parameter_handler() = 0;
 
     template<typename... Args, std::enable_if_t<std::conjunction_v<std::is_base_of<Generative, Args>...>, int> = 0>
     std::vector<Generative*> collect_connected(Args* ... args) {
@@ -42,9 +42,6 @@ public:
 
 class Source : public Generative {
 public:
-    Source(const std::string& identifier, ParameterHandler& parent) : Generative(identifier, parent) {}
-
-
     virtual void process(const TimePoint& t) = 0;
 };
 
@@ -54,9 +51,6 @@ public:
 template<typename T>
 class Node : public Generative {
 public:
-    Node(const std::string& identifier, ParameterHandler& parent) : Generative(identifier, parent) {}
-
-
     virtual std::vector<T> process(const TimePoint& t) = 0;
 };
 
@@ -67,9 +61,6 @@ public:
 template<typename T>
 class DataNode : public Generative {
 public:
-    DataNode(const std::string& identifier, ParameterHandler& parent) : Generative(identifier, parent) {}
-
-
     virtual std::vector<T> process(const TimePoint&, double y, InterpolationStrategy<T> strategy) = 0;
 };
 

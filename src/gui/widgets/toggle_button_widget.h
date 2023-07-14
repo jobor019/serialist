@@ -17,6 +17,7 @@ public:
               , m_on_text(on_text)
               , m_off_text(off_text) {
 
+        setComponentID(variable.get_parameter_handler().get_identifier_as_string());
         initialize_button();
 
         m_variable.get_parameter_obj().add_value_tree_listener(*this);

@@ -41,9 +41,11 @@ public:
                       internal_velocity, 0, 127, 1, "vel", SliderWidget<int>::Layout::label_below))
               , m_internal_channel(note_source.get_channel(), std::make_unique<SliderWidget<int>>(
                       internal_channel, 1, 16, 1, "ch", SliderWidget<int>::Layout::label_below))
-              , m_header(note_source.get_identifier_as_string(), internal_enabled)
+              , m_header(note_source.get_parameter_handler().get_identifier_as_string(), internal_enabled)
               , m_visualizer(m_midi_source) {
         (void) layout;
+
+        setComponentID(note_source.get_parameter_handler().get_identifier_as_string());
 
         addAndMakeVisible(m_header);
         addAndMakeVisible(m_visualizer);

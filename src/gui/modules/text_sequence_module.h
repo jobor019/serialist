@@ -22,7 +22,7 @@ public:
 
     explicit TextSequenceModule(Sequence<T>& sequence, Variable<bool>& enabled, Layout layout = Layout::full)
             : m_sequence(sequence)
-              , m_header(sequence.get_identifier_as_string(), enabled)
+              , m_header(sequence.get_parameter_handler().get_identifier_as_string(), enabled)
               , m_layout(layout) {
         initialize_components();
     }

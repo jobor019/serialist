@@ -15,7 +15,7 @@ public:
 
 
     explicit Collection(const std::string& id, VTParameterHandler& parent, const std::vector<T>& initial_values = {})
-            : Node<T>(id, parent)
+            : m_parameter_handler(id, parent)
               , m_collection(PARAMETER_ADDRESS, *this, initial_values) {}
 
 
@@ -35,7 +35,9 @@ public:
 
 
 private:
+    ParameterHandler m_parameter_handler;
     ParametrizedCollection<T> m_collection;
+
 
 };
 

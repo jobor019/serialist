@@ -37,6 +37,9 @@ public:
               , m_label_width(label_width){
 
         static_assert(std::is_arithmetic_v<T>, "DataType must be arithmetic");
+
+        setComponentID(variable.get_parameter_handler().get_identifier_as_string());
+
         initialize_slider(min, max, step);
         initialize_label();
 

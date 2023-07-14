@@ -17,6 +17,10 @@ private:
 class ConnectionComponentManager : public juce::Component
                                    , private juce::ValueTree::Listener {
 public:
+
+
+    
+
 private:
 };
 

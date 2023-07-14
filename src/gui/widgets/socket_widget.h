@@ -33,6 +33,8 @@ public:
             throw std::runtime_error("A default component must be provided for the socket");
         }
 
+        setComponentID(socket.get_identifier_as_string());
+
         m_socket.add_value_tree_listener(*this);
         addAndMakeVisible(*m_default_widget);
         addChildComponent(m_connection_source_component);
@@ -166,8 +168,8 @@ private:
             bool new_visibility = m_socket.get_connected() != &m_default_widget->get_generative();
 
             std::cout
-            << "socket: " << m_socket.get_connected()->get_identifier_as_string()
-            << ", widget: " << m_default_widget->get_generative().get_identifier_as_string()
+            << "socket: " << m_socket.get_connected()->get_parameter_handler().get_identifier_as_string()
+            << ", widget: " << m_default_widget->get_generative().get_parameter_handler().get_identifier_as_string()
             << "-> new visibility: " << new_visibility
             << "\n";
             m_connection_source_component.setVisible(new_visibility);

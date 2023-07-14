@@ -27,13 +27,14 @@ public:
                    , Node<int>* velocity = nullptr
                    , Node<int>* channel = nullptr
                    , Node<bool>* enabled = nullptr)
-            : Source(id, parent)
-              , m_onset("onset", *this, onset)
-              , m_duration("duration", *this, duration)
-              , m_pitch("pitch", *this, pitch)
-              , m_velocity("velocity", *this, velocity)
-              , m_channel("channel", *this, channel)
-              , m_enabled("enabled", *this, enabled)
+            : m_parameter_handler(id, parent)
+            , m_socket_handler(ParameterKeys::GENERATIVE_SOCKETS, m_parameter_handler)
+              , m_onset("onset", m_socket_handler, onset)
+              , m_duration("duration", m_socket_handler, duration)
+              , m_pitch("pitch", m_socket_handler, pitch)
+              , m_velocity("velocity", m_socket_handler, velocity)
+              , m_channel("channel", m_socket_handler, channel)
+              , m_enabled("enabled", m_socket_handler, enabled)
               , m_played_notes(HISTORY_LENGTH) {
     }
 
@@ -79,6 +80,10 @@ public:
                                  , m_pitch.get_connected()
                                  , m_velocity.get_connected()
                                  , m_channel.get_connected());
+    }
+
+    ParameterHandler & get_parameter_handler() override {
+        return m_parameter_handler;
     }
 
 
@@ -170,6 +175,8 @@ private:
         return events;
     }
 
+    ParameterHandler m_parameter_handler;
+    ParameterHandler m_socket_handler;
 
     Scheduler m_scheduler;
     MidiRenderer m_midi_renderer;

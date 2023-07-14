@@ -7,10 +7,13 @@
 #include <regex>
 #include "source.h"
 
-class ModularGenerator : public ParameterHandler {
+class ModularGenerator {
 public:
+    static const int N_DIGITS_ID = 6;
+
+
     explicit ModularGenerator(ParameterHandler&& handler)
-            : ParameterHandler(std::move(handler)) {}
+            : m_parameter_handler(std::move(handler)) {}
 
 
     void process(const TimePoint& time) {
@@ -18,6 +21,10 @@ public:
         for (auto& source: m_sources) {
             source->process(time);
         }
+    }
+
+    ParameterHandler & get_parameter_handler(){
+        return m_parameter_handler;
     }
 
 
@@ -59,7 +66,8 @@ public:
     void remove_generative_and_children(Generative& generative) {
         std::lock_guard<std::mutex> lock{process_mutex};
 
-        auto generative_and_children = find_generatives_matching(generative.get_identifier_as_string());
+        auto generative_and_children = find_generatives_matching(
+                generative.get_parameter_handler().get_identifier_as_string());
         remove_internal(generative_and_children);
     }
 
@@ -68,7 +76,7 @@ public:
         auto it = std::find_if(m_generatives.begin()
                                , m_generatives.end()
                                , [&generative_id](const std::unique_ptr<Generative>& g) {
-                    return g->get_identifier_as_string() == generative_id;
+                    return g->get_parameter_handler().get_identifier_as_string() == generative_id;
                 });
 
         if (it != m_generatives.end())
@@ -81,7 +89,7 @@ public:
     void print_names() {
         std::cout << "names: ";
         for (const auto& g: m_generatives) {
-            std::cout << g->get_identifier_as_string() << ", ";
+            std::cout << g->get_parameter_handler().get_identifier_as_string() << ", ";
         }
         std::cout << "\n";
     }
@@ -94,7 +102,7 @@ public:
         std::regex regex("^" + base_name + "(:{2}.*)?$");
 
         for (const auto& generative: m_generatives) {
-            if (generative->identifier_matches(regex)) {
+            if (generative->get_parameter_handler().identifier_matches(regex)) {
                 matching_generatives.push_back(generative.get());
             }
         }
@@ -108,21 +116,30 @@ public:
     }
 
 
+    std::string next_id() {
+        std::lock_guard<std::mutex> lock{process_mutex};
+        std::string str = std::to_string(++m_next_id);
+        str = std::string(N_DIGITS_ID - str.length(), '0') + str;
+        return str;
+    }
+
+
     std::string next_free_name(const std::string& suggested_name) {
         std::lock_guard<std::mutex> lock{process_mutex};
 
 
         if (std::find_if(m_generatives.begin()
                          , m_generatives.end()
-                         , [&suggested_name](const auto& g) { return g->identifier_equals(suggested_name); })
-            == m_generatives.end()) {
+                         , [&suggested_name](const auto& g) {
+                    return g->get_parameter_handler().identifier_equals(suggested_name);
+                }) == m_generatives.end()) {
             return suggested_name;
         }
 
         std::vector<std::string> conflicting_names;
         for (const auto& generative: m_generatives) {
-            if (generative->identifier_begins_with(suggested_name))
-                conflicting_names.emplace_back(generative->get_identifier_as_string());
+            if (generative->get_parameter_handler().identifier_begins_with(suggested_name))
+                conflicting_names.emplace_back(generative->get_parameter_handler().get_identifier_as_string());
         }
 
         // TODO: Naive approach, might need optimization for large patches
@@ -161,10 +178,14 @@ private:
     }
 
 
+    ParameterHandler m_parameter_handler;
+
     std::mutex process_mutex;
 
     std::vector<std::unique_ptr<Generative>> m_generatives;
     std::vector<Source*> m_sources;
+
+    int m_next_id = 1;
 
 
 };

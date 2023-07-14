@@ -217,7 +217,7 @@ private:
         auto* component_and_bounds = get_component_under_mouse(event);
         if (component_and_bounds != nullptr) {
             std::cout << "COMPONENT FOUND HEHE:: "
-                      << component_and_bounds->component->get_generative().get_identifier_as_string() << "\n";
+                      << component_and_bounds->component->get_generative().get_parameter_handler().get_identifier_as_string() << "\n";
 
             auto& generative = component_and_bounds->component->get_generative();
 

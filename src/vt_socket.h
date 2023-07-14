@@ -89,7 +89,7 @@ protected:
     void set_connection_internal(SocketType* node) {
         if (node) {
             m_node = node;
-            update_value_tree(node->get_identifier().toString());
+            update_value_tree(node->get_parameter_handler().get_identifier().toString());
         } else {
             m_node = nullptr;
             update_value_tree("");

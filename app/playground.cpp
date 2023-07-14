@@ -2,6 +2,7 @@
 #include <scalable_slider.h>
 
 #include <memory>
+#include <chrono>
 #include "look_and_feel.h"
 #include "parameter_policy.h"
 #include "generative_component.h"
@@ -126,10 +127,10 @@ public:
 //        std::cout << m_some_handler.get_value_tree().toXmlString() << std::endl;
 
         m_transport.start();
-        startTimer(1);
+        startTimer(1000);
         setSize(1000, 400);
 
-        m_modular_generator.get_value_tree().addListener(this);
+        m_modular_generator.get_parameter_handler().get_value_tree().addListener(this);
     }
 
 
@@ -159,6 +160,31 @@ public:
 
     }
 
+    void recurse(juce::Component* component, std::vector<juce::Component*>& components) {
+        for (auto* child : component->getChildren()) {
+            if (child && child->getComponentID().isNotEmpty()) {
+                components.push_back(child);
+                recurse(child, components);
+            }
+        }
+    }
+
+    juce::Component* find_recursively(juce::Component* component, const juce::String& component_id) {
+        if (!component)
+            return nullptr;
+
+        if (component->getComponentID().equalsIgnoreCase(component_id))
+            return component;
+
+        for (auto* child : component->getChildren()) {
+            juce::Component* foundComponent = find_recursively(child, component_id);
+            if (foundComponent)
+                return foundComponent;
+        }
+
+        return nullptr;
+    }
+
 
     void hiResTimerCallback() override {
 //        auto ee = dynamic_cast<Oscillator*>(&m_oscillator.get_generative())->process(TimePoint());
@@ -166,6 +192,64 @@ public:
         m_modular_generator.process(m_transport.update_time());
 
         ++callback_count;
+
+//        for (auto* c : m_config_layer_component.getChildren()) {
+//            std::cout << c->getComponentID() << "\n";
+//        }
+
+
+
+        std::cout << "attempting to find components...\n";
+
+
+
+//        juce::Component* target = nullptr;
+        auto t1 = std::chrono::high_resolution_clock::now();
+        auto target = find_recursively(&m_config_layer_component, "generator103::osc");
+        auto t2 = std::chrono::high_resolution_clock::now();
+
+        if (target) {
+            std::cout << "-- found it!!!!\n";
+        }
+
+
+        std::cout << "-- (time: "
+                  << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count()
+                  << " microsec)\n";
+
+
+//        auto* component = &m_config_layer_component;
+//        std::vector<juce::Component*> components;
+//        recurse(component, components);
+//        for (auto* c : components) {
+//            std::cout << "    " << c->getComponentID() << "\n";
+//        }
+
+
+
+
+
+//        if (auto* generator = m_config_layer_component.findChildWithID("generator")) {
+//            std::cout << "found generator\n";
+//                    for (auto* c : generator->getChildren()) {
+//                        std::cout << "g1: " << c->getComponentID() << "\n";
+//                        for (auto* cc : c->getChildren()) {
+//                            std::cout << "  - g2: " << cc->getComponentID() << "\n";
+//                            for (auto* ccc : cc->getChildren()) {
+//                                std::cout << "    -- g3: " << ccc->getComponentID() << "\n";
+//                            }
+//                        }
+//
+//        }
+
+//            if (auto* osc = generator->findChildWithID("generator::osc")) {
+//                std::cout << "found osc\n";
+//                if (auto* freq = osc->findChildWithID("generator::osc::freq")) {
+//                    std::cout << "FREQ COORDS: " <<  freq->getX() << ", " << freq->getY() << "\n";
+//                }
+//            }
+//        }
+
 
         if (callback_count % 1000 == 0) {
 //            std::cout << m_modular_generator.get_value_tree().toXmlString() << "\n";
@@ -185,7 +269,7 @@ public:
     }
 
     void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier &) override {
-        std::cout << m_modular_generator.get_value_tree().toXmlString() << "\n";
+        std::cout << m_modular_generator.get_parameter_handler().get_value_tree().toXmlString() << "\n";
     }
 
 

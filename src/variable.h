@@ -19,8 +19,8 @@ public:
 
 
     explicit Variable(const std::string& id, ParameterHandler& parent, T value)
-            : Node<T>(id, parent)
-              , m_value(value, PARAMETER_ADDRESS, *this) {}
+            : m_parameter_handler(id, parent)
+              , m_value(value, PARAMETER_ADDRESS, m_parameter_handler) {}
 
 
     std::vector<T> process(const TimePoint&) override { return {m_value.get()}; }
@@ -32,17 +32,18 @@ public:
     void set_value(T value) { m_value.set(value); }
 
 
-    ParameterType<T>& get_parameter_obj() {
-        return m_value;
-    }
+    ParameterType<T>& get_parameter_obj() { return m_value; }
 
 
-    std::vector<Generative*> get_connected() override {
-        return {};
-    }
+    ParameterHandler& get_parameter_handler() override { return m_parameter_handler; }
+
+
+    std::vector<Generative*> get_connected() override { return {}; }
 
 
 private:
+
+    ParameterHandler m_parameter_handler;
 
     ParameterType<T> m_value;
 

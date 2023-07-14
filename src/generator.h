@@ -19,11 +19,12 @@ public:
               , Node<InterpolationStrategy<T>>* interp = nullptr
               , Sequence<T>* sequence = nullptr
               , Node<bool>* enabled = nullptr)
-            : Node<T>(id, parent)
-              , m_cursor("cursor", *this, cursor)
-              , m_interpolation_strategy("interp", *this, interp)
-              , m_sequence("sequence", *this, sequence)
-              , m_enabled("enabled", *this, enabled) {}
+            : m_parameter_handler(id, parent)
+            , m_socket_handler(ParameterKeys::GENERATIVE_SOCKETS, m_parameter_handler)
+              , m_cursor("cursor", m_socket_handler, cursor)
+              , m_interpolation_strategy("interp", m_socket_handler, interp)
+              , m_sequence("sequence", m_socket_handler, sequence)
+              , m_enabled("enabled", m_socket_handler, enabled) {}
 
 
     std::vector<T> process(const TimePoint& t) override {
@@ -59,6 +60,10 @@ public:
                                              , m_sequence.get_connected());
     }
 
+    ParameterHandler & get_parameter_handler() override {
+        return m_parameter_handler;
+    }
+
 
     void set_cursor(Node<double>* cursor) { m_cursor = cursor; }
 
@@ -91,6 +96,9 @@ private:
     bool is_enabled(const TimePoint& t) {
         return m_enabled.process_or(t, true);
     }
+
+    ParameterHandler m_parameter_handler;
+    ParameterHandler m_socket_handler;
 
 
     Socket<double> m_cursor;
