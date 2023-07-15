@@ -154,6 +154,7 @@ public:
 
     ~VTParameter() override {
         m_parent.get_value_tree().removeListener(this);
+        std::cout << "removing " << m_identifier.toString() << " from " << m_parent.get_value_tree().getType().toString() << m_parent.get_value_tree().getProperty({ParameterKeys::ID_PROPERTY}).toString() << m_parent.get_value_tree().getProperty({ParameterKeys::GENERATIVE_CLASS}).toString()<< "\n";
         m_parent.get_value_tree().removeProperty(m_identifier, &m_parent.get_undo_manager());
     }
 
@@ -185,7 +186,13 @@ public:
 
 
     bool equals_property(juce::ValueTree& treeWhosePropertyHasChanged, const juce::Identifier& property) {
-        return treeWhosePropertyHasChanged == m_parent.get_value_tree() && property == m_identifier;
+        auto temp = treeWhosePropertyHasChanged == m_parent.get_value_tree() && property == m_identifier;
+
+        if (temp) {
+            std::cout << "CHANGED TREE: " << treeWhosePropertyHasChanged.toXmlString() << "\n";
+            std::cout << "EQUALS TREE : " << m_parent.get_value_tree().toXmlString() << "\n";
+        }
+        return temp;
     }
 
 

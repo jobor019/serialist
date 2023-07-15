@@ -133,6 +133,9 @@ private:
     void valueTreePropertyChanged(juce::ValueTree& treeWhosePropertyHasChanged
                                   , const juce::Identifier& property) override {
         if (m_variable.get_parameter_obj().equals_property(treeWhosePropertyHasChanged, property)) {
+            std::cout << "Variable ValueTree: "<< m_variable.get_parameter_handler().get_value_tree().toXmlString() << "\n";
+            std::cout << "Changed ValueTree: "<< treeWhosePropertyHasChanged.toXmlString() << "\n";
+
             m_combo_box.setSelectedId(id_from_value(m_variable.get_value()), juce::dontSendNotification);
         }
     }

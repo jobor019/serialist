@@ -47,7 +47,8 @@ public:
 
 
     explicit ConfigurationLayerComponent(ModularGenerator& modular_generator)
-            : m_modular_generator(modular_generator) {
+            : m_modular_generator(modular_generator)
+            , m_connector_manager(*this, modular_generator.get_parameter_handler()){
         GlobalKeyState::add_listener(*this);
         setWantsKeyboardFocus(false);
         setInterceptsMouseClicks(true, false);
@@ -302,6 +303,8 @@ private:
     ModularGenerator& m_modular_generator;
 
     std::vector<ComponentAndBounds> m_generative_components;
+    ConnectionComponentManager m_connector_manager;
+
     std::vector<ConnectorComponent> m_connectors;
 
     std::unique_ptr<juce::Point<int>> m_last_mouse_position = nullptr;

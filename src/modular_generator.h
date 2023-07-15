@@ -118,7 +118,7 @@ public:
 
     std::string next_id() {
         std::lock_guard<std::mutex> lock{process_mutex};
-        std::string str = std::to_string(++m_next_id);
+        std::string str = std::to_string(++m_last_id);
         str = std::string(N_DIGITS_ID - str.length(), '0') + str;
         return str;
     }
@@ -185,7 +185,7 @@ private:
     std::vector<std::unique_ptr<Generative>> m_generatives;
     std::vector<Source*> m_sources;
 
-    int m_next_id = 1;
+    int m_last_id = 0;
 
 
 };

@@ -9,11 +9,9 @@
 
 template<typename SocketType>
 class VTSocketBase : private juce::ValueTree::Listener {
-
+public:
     static const inline std::string CONNECTED_PROPERTY = "connected";
 
-
-public:
     VTSocketBase(const std::string& id, ParameterHandler& parent, SocketType* initial = nullptr)
             : m_id(id), m_parent(parent) {
 

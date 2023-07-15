@@ -199,23 +199,23 @@ public:
 
 
 
-        std::cout << "attempting to find components...\n";
+//        std::cout << "attempting to find components...\n";
 
 
 
 //        juce::Component* target = nullptr;
-        auto t1 = std::chrono::high_resolution_clock::now();
-        auto target = find_recursively(&m_config_layer_component, "generator103::osc");
-        auto t2 = std::chrono::high_resolution_clock::now();
-
-        if (target) {
-            std::cout << "-- found it!!!!\n";
-        }
-
-
-        std::cout << "-- (time: "
-                  << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count()
-                  << " microsec)\n";
+//        auto t1 = std::chrono::high_resolution_clock::now();
+//        auto target = find_recursively(&m_config_layer_component, "generator103::osc");
+//        auto t2 = std::chrono::high_resolution_clock::now();
+//
+//        if (target) {
+//            std::cout << "-- found it!!!!\n";
+//        }
+//
+//
+//        std::cout << "-- (time: "
+//                  << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count()
+//                  << " microsec)\n";
 
 
 //        auto* component = &m_config_layer_component;

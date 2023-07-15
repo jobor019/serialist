@@ -16,11 +16,14 @@ public:
                                                     , ComplexParameter<U>>::type;
 
     inline static const std::string PARAMETER_ADDRESS = "value";
+    inline static const std::string CLASS_NAME = "variable";
 
 
     explicit Variable(const std::string& id, ParameterHandler& parent, T value)
             : m_parameter_handler(id, parent)
-              , m_value(value, PARAMETER_ADDRESS, m_parameter_handler) {}
+              , m_value(value, PARAMETER_ADDRESS, m_parameter_handler) {
+        m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, CLASS_NAME);
+    }
 
 
     std::vector<T> process(const TimePoint&) override { return {m_value.get()}; }

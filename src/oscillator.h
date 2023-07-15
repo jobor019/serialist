@@ -56,7 +56,7 @@ public:
               , m_mul(OscillatorKeys::MUL, m_socket_handler, mul)
               , m_duty(OscillatorKeys::DUTY, m_socket_handler, duty)
               , m_curve(OscillatorKeys::CURVE, m_socket_handler, curve)
-              , m_enabled(OscillatorKeys::CURVE, m_socket_handler, enabled)
+              , m_enabled(OscillatorKeys::ENABLED, m_socket_handler, enabled)
               , m_rng(std::random_device()()), m_distribution(0.0, 1.0)
               , m_previous_values(100) {
         m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, OscillatorKeys::CLASS_NAME);

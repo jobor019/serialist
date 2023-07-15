@@ -22,8 +22,9 @@ public:
                       , const std::vector<T>& initial_values = {}
                       , Node<bool>* enabled = nullptr)
             : m_parameter_handler(id, parent)
+            , m_socket_handler(ParameterKeys::GENERATIVE_SOCKETS_TREE, m_parameter_handler)
               , m_sequence(SEQUENCE_TREE, m_parameter_handler, initial_values)
-              , m_enabled(ENABLED, m_parameter_handler, enabled) {
+              , m_enabled(ENABLED, m_socket_handler, enabled) {
         m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, CLASS_NAME);
     }
 
@@ -56,6 +57,7 @@ public:
 
 private:
     ParameterHandler m_parameter_handler;
+    ParameterHandler m_socket_handler;
 
     ParametrizedSequence<T> m_sequence;
 

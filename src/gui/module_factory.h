@@ -157,7 +157,9 @@ public:
         // TODO: Generalize with `collect`
         generatives.push_back(std::move(generator));
         generatives.push_back(std::move(enabled));
+
         std::move(oscillator_generatives.begin(), oscillator_generatives.end(), std::back_inserter(generatives));
+
         std::move(interpolator_generatives.begin(), interpolator_generatives.end(), std::back_inserter(generatives));
         std::move(sequence_generatives.begin(), sequence_generatives.end(), std::back_inserter(generatives));
 

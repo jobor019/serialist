@@ -66,6 +66,9 @@ private:
     void valueTreePropertyChanged(juce::ValueTree& treeWhosePropertyHasChanged
                                   , const juce::Identifier& property) override {
         if (m_variable.get_parameter_obj().equals_property(treeWhosePropertyHasChanged, property)) {
+            std::cout << "TREE    : " << treeWhosePropertyHasChanged.toXmlString() << std::endl;
+            std::cout << "PROPERTY: " << property.toString() << std::endl;
+            std::cout << "VALUE   : " << treeWhosePropertyHasChanged.getProperty(property).toString() << std::endl;
             m_button.setToggleState(m_variable.get_value(), juce::dontSendNotification);
         }
     }
