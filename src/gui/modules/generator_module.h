@@ -136,13 +136,11 @@ public:
 
 
     void itemDragEnter(const juce::DragAndDropTarget::SourceDetails&) override {
-        std::cout << "enter SOCKET\n";
         m_interaction_visualizer.set_drag_and_dropping(true);
     }
 
 
     void itemDragExit(const juce::DragAndDropTarget::SourceDetails&) override {
-        std::cout << "exit SOCKET\n";
         m_interaction_visualizer.set_drag_and_dropping(false);
     }
 

@@ -167,11 +167,6 @@ private:
             bool old_visibility = m_connection_source_component.isVisible();
             bool new_visibility = m_socket.get_connected() != &m_default_widget->get_generative();
 
-            std::cout
-            << "socket: " << m_socket.get_connected()->get_parameter_handler().get_id()
-            << ", widget: " << m_default_widget->get_generative().get_parameter_handler().get_id()
-            << "-> new visibility: " << new_visibility
-            << "\n";
             m_connection_source_component.setVisible(new_visibility);
             if (old_visibility != new_visibility) {
                 resized();

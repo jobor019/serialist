@@ -269,7 +269,7 @@ public:
     }
 
     void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier &) override {
-        std::cout << m_some_handler.get_value_tree().toXmlString() << "\n";
+//        std::cout << m_some_handler.get_value_tree().toXmlString() << "\n";
     }
 
 

@@ -49,6 +49,8 @@ public:
     explicit ConfigurationLayerComponent(ModularGenerator& modular_generator)
             : m_modular_generator(modular_generator)
             , m_connector_manager(*this, modular_generator.get_parameter_handler()){
+        addAndMakeVisible(m_connector_manager);
+
         GlobalKeyState::add_listener(*this);
         setWantsKeyboardFocus(false);
         setInterceptsMouseClicks(true, false);
@@ -75,6 +77,8 @@ public:
             m_creation_highlight->setBounds(pos.getX(), pos.getY(), GeneratorModule<int>::width_of(), GeneratorModule<
                     int>::height_of());
         }
+
+        m_connector_manager.setBounds(getLocalBounds());
     }
 
 
@@ -118,7 +122,6 @@ public:
 
     void dragOperationStarted(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
         if (auto* source = dragSourceDetails.sourceComponent.get()) {
-            std::cout << "DRAGDARG\n";
             GlobalActionHandler::register_action(std::make_unique<Action>(static_cast<int>(ActionTypes::connect)
                                                                           , *source));
         }
@@ -126,7 +129,6 @@ public:
 
 
     void dragOperationEnded(const juce::DragAndDropTarget::SourceDetails&) override {
-        std::cout << "DARGENDDD\n";
         GlobalActionHandler::terminate_ongoing_action();
     }
 
@@ -255,7 +257,7 @@ private:
             auto component = std::move(cng.value().component);
             auto generatives = std::move(cng.value().generatives);
 
-            addAndMakeVisible(*component);
+            addAndMakeVisible(*component, 0);
             component->addMouseListener(this, true);
             m_generative_components.push_back(
                     {std::move(component)
@@ -263,7 +265,7 @@ private:
             );
 
             m_modular_generator.add(std::move(generatives));
-            std::cout << m_generative_components.size() << "\n\n\n";
+            std::cout << "Num modules: " << m_generative_components.size() << "\n";
             resized();
 
             m_modular_generator.print_names();

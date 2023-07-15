@@ -51,7 +51,6 @@ public:
 
     void set_layout(int layout_id) override {
         m_layout = static_cast<Layout>(layout_id);
-        std::cout << "layout set to " << layout_id << "\n";
         resized();
     }
 
