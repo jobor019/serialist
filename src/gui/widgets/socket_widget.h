@@ -164,8 +164,19 @@ public:
 private:
     void valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& id) override {
         if (m_socket.equals_property(vt, id)) {
+            std::cout << "SOCKETWIDGET VTP CHANGED\n";
             bool old_visibility = m_connection_source_component.isVisible();
-            bool new_visibility = m_socket.get_connected() != &m_default_widget->get_generative();
+            bool new_visibility;
+
+            auto* connected = m_socket.get_connected();
+
+            if (connected == nullptr) {
+                std::cout << "RECONNECTING INTERNAL\n";
+                m_socket.try_connect(m_default_widget->get_generative());
+                new_visibility = false;
+            } else {
+                new_visibility = m_socket.get_connected() != &m_default_widget->get_generative();
+            }
 
             m_connection_source_component.setVisible(new_visibility);
             if (old_visibility != new_visibility) {
