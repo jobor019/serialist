@@ -33,6 +33,12 @@ public :
     }
 
 
+    void disconnect_if(Generative& connected_to) override {
+        m_type.disconnect_if(connected_to);
+        m_pivot.disconnect_if(connected_to);
+    }
+
+
     std::vector<InterpolationStrategy> process(const TimePoint& t) override {
         auto default_strategy = InterpolationStrategy::default_strategy();
         auto strategy_type = m_type.process_or(t, default_strategy.get_type());

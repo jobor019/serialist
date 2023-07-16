@@ -33,6 +33,8 @@ public:
         return m_sequence.interpolate(y, std::move(strategy));
     }
 
+    void disconnect_if(Generative&) override {}
+
 
     ParameterHandler& get_parameter_handler() override {
         return m_parameter_handler;

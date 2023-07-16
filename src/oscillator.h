@@ -85,6 +85,16 @@ public:
         return m_parameter_handler;
     }
 
+    void disconnect_if(Generative& connected_to) override {
+        m_type.disconnect_if(connected_to);
+        m_freq.disconnect_if(connected_to);
+        m_add.disconnect_if(connected_to);
+        m_mul.disconnect_if(connected_to);
+        m_duty.disconnect_if(connected_to);
+        m_curve.disconnect_if(connected_to);
+        m_enabled.disconnect_if(connected_to);
+    }
+
 
     void set_type(Node<Type>* type) { m_type = type; }
 

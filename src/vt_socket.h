@@ -12,6 +12,7 @@ class VTSocketBase : private juce::ValueTree::Listener {
 public:
     static const inline std::string CONNECTED_PROPERTY = "connected";
 
+
     VTSocketBase(const std::string& id, ParameterHandler& parent, SocketType* initial = nullptr)
             : m_id(id), m_parent(parent) {
 
@@ -59,6 +60,15 @@ public:
         std::lock_guard<std::mutex> lock{m_mutex};
         set_connection_internal(nullptr);
 
+    }
+
+
+    void disconnect_if(Generative& connected_to){
+        std::lock_guard<std::mutex> lock{m_mutex};
+        if (get_connected() == &connected_to) {
+            std::cout << "\nDISCONNECTING !!!!!\n";
+            set_connection_internal(nullptr);
+        }
     }
 
 

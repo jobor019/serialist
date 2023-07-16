@@ -23,7 +23,8 @@ public:
         }
     }
 
-    ParameterHandler & get_parameter_handler(){
+
+    ParameterHandler& get_parameter_handler() {
         return m_parameter_handler;
     }
 
@@ -68,6 +69,8 @@ public:
 
         auto generative_and_children = find_generatives_matching(
                 generative.get_parameter_handler().get_id());
+
+        disconnect_if(generative_and_children);
         remove_internal(generative_and_children);
     }
 
@@ -154,6 +157,21 @@ public:
 
 
 private:
+
+    void disconnect_if(std::vector<Generative*> connected_to) {
+        for (auto* connected: connected_to) {
+            if (connected)
+                disconnect_if(*connected);
+        }
+    }
+
+
+    void disconnect_if(Generative& connected_to) {
+        for (auto& generative: m_generatives) {
+            generative->disconnect_if(connected_to);
+        }
+    }
+
 
     void remove_internal(Generative& generative) {
         if (auto source = dynamic_cast<Source*>(&generative)) {

@@ -87,15 +87,28 @@ public:
     }
 
 
+    void disconnect_if(Generative& connected_to) override {
+        m_onset.disconnect_if(connected_to);
+        m_duration.disconnect_if(connected_to);
+        m_pitch.disconnect_if(connected_to);
+        m_velocity.disconnect_if(connected_to);
+        m_channel.disconnect_if(connected_to);
+        m_onset.disconnect_if(connected_to);
+        m_enabled.disconnect_if(connected_to);
+    }
+
+
     std::vector<Generative*> get_connected() override {
         return collect_connected(m_onset.get_connected()
                                  , m_duration.get_connected()
                                  , m_pitch.get_connected()
                                  , m_velocity.get_connected()
-                                 , m_channel.get_connected());
+                                 , m_channel.get_connected()
+                                 , m_enabled.get_connected());
     }
 
-    ParameterHandler & get_parameter_handler() override {
+
+    ParameterHandler& get_parameter_handler() override {
         return m_parameter_handler;
     }
 
@@ -187,6 +200,7 @@ private:
         events.emplace_back(std::make_unique<TriggerEvent>(t.get_tick() + 1));
         return events;
     }
+
 
     ParameterHandler m_parameter_handler;
     ParameterHandler m_socket_handler;

@@ -22,6 +22,8 @@ public:
     }
 
 
+    void disconnect_if(Generative&) override{}
+
     std::vector<T> process(const TimePoint&, double y, const InterpolationStrategy strategy) {
         return m_collection.clone_values();
     }

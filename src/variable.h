@@ -28,6 +28,8 @@ public:
 
     std::vector<T> process(const TimePoint&) override { return {m_value.get()}; }
 
+    void disconnect_if(Generative&) override {}
+
 
     T get_value() { return m_value.get(); }
 

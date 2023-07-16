@@ -73,6 +73,12 @@ public:
                                              , m_sequence.get_connected());
     }
 
+    void disconnect_if(Generative& connected_to) override {
+        m_cursor.disconnect_if(connected_to);
+        m_interpolation_strategy.disconnect_if(connected_to);
+        m_sequence.disconnect_if(connected_to);
+    }
+
     ParameterHandler & get_parameter_handler() override {
         return m_parameter_handler;
     }
