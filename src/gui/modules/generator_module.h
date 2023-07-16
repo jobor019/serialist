@@ -24,7 +24,7 @@ public:
 
     GeneratorModule(Generator<T>& generator
                     , std::unique_ptr<OscillatorModule> oscillator
-                    , std::unique_ptr<InterpolationModule<T>> interpolator
+                    , std::unique_ptr<InterpolationModule> interpolator
                     , std::unique_ptr<TextSequenceModule<T>> sequence
                     , Variable<bool>& internal_enabled
                     , Layout layout = Layout::full)
@@ -67,7 +67,7 @@ public:
                + 2 * DC::COMPONENT_UD_MARGINS
                + OscillatorModule::height_of(OscillatorModule::Layout::generator_internal)
                + TextSequenceModule<T>::height_of(TextSequenceModule<T>::Layout::generator_internal)
-               + InterpolationModule<T>::height_of(InterpolationModule<T>::Layout::generator_internal)
+               + InterpolationModule::height_of(InterpolationModule::Layout::generator_internal)
                + 2 * DC::OBJECT_Y_MARGINS_COLUMN;
     }
 
@@ -164,7 +164,7 @@ private:
         // layout
         auto oscillator_layout = OscillatorModule::Layout::generator_internal;
         auto sequence_layout = TextSequenceModule<T>::Layout::generator_internal;
-        auto interpolator_layout = InterpolationModule<T>::Layout::generator_internal;
+        auto interpolator_layout = InterpolationModule::Layout::generator_internal;
 
         m_oscillator_socket.set_layout(static_cast<int>(oscillator_layout));
         m_internal_sequence->set_layout(static_cast<int>(sequence_layout));
@@ -179,7 +179,7 @@ private:
         bounds.removeFromTop(DC::OBJECT_Y_MARGINS_COLUMN);
         m_internal_sequence->setBounds(bounds.removeFromTop(TextSequenceModule<T>::height_of(sequence_layout)));
         bounds.removeFromTop(DC::OBJECT_Y_MARGINS_COLUMN);
-        m_interpolator.setBounds(bounds.removeFromTop(InterpolationModule<T>::height_of(interpolator_layout)));
+        m_interpolator.setBounds(bounds.removeFromTop(InterpolationModule::height_of(interpolator_layout)));
 
         m_interaction_visualizer.setBounds(getLocalBounds());
     }
@@ -189,7 +189,7 @@ private:
 
     SocketWidget<double> m_oscillator_socket;
 
-    SocketWidget<InterpolationStrategy<T>> m_interpolator;
+    SocketWidget<InterpolationStrategy> m_interpolator;
     std::unique_ptr<TextSequenceModule<T>> m_internal_sequence; // TODO: Replace with generic SequenceComponent
 
     HeaderWidget m_header;

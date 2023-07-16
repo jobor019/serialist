@@ -129,13 +129,13 @@ public:
 
         auto [oscillator_module, oscillator_generatives] = new_oscillator(
                 mg, OscillatorModule::Layout::generator_internal);
-        auto [interpolator_module, interpolator_generatives] = new_interpolator<T>(
-                mg, InterpolationModule<T>::Layout::generator_internal);
+        auto [interpolator_module, interpolator_generatives] = new_interpolator(
+                mg, InterpolationModule::Layout::generator_internal);
         auto [sequence_module, sequence_generatives] = new_text_sequence<T>(
                 mg, TextSequenceModule<T>::Layout::full);
 
         auto oscillator = dynamic_cast<Node<double>*>(&oscillator_module->get_generative());
-        auto interpolator = dynamic_cast<Node<InterpolationStrategy<T>>*>(&interpolator_module->get_generative());
+        auto interpolator = dynamic_cast<Node<InterpolationStrategy>*>(&interpolator_module->get_generative());
         auto sequence = dynamic_cast<Sequence<T>*>(&sequence_module->get_generative());
 
         assert(oscillator && interpolator && sequence);
@@ -219,20 +219,27 @@ public:
     }
 
 
-    template<typename T>
-    static ModuleAndGeneratives<InterpolationModule<T>>
+    static ModuleAndGeneratives<InterpolationModule>
     new_interpolator(ModularGenerator& mg
-                     , typename InterpolationModule<T>::Layout layout = InterpolationModule<T>::Layout::full) {
+                     , typename InterpolationModule::Layout layout = InterpolationModule::Layout::full) {
         auto& parent = mg.get_parameter_handler();
 
-        auto interpolator = std::make_unique<Variable<InterpolationStrategy<T>>>(
-                mg.next_id()
-                , parent
-                , InterpolationStrategy<T>());
 
-        auto interpolator_module = std::make_unique<InterpolationModule<T>>(*interpolator, layout);
+        auto default_strategy = InterpolationStrategy::default_strategy();
+        auto interpolation_adapter = std::make_unique<InterpolationAdapter>(mg.next_id(), parent);
+        auto type = std::make_unique<Variable<InterpolationStrategy::Type>>(mg.next_id()
+                                                                            , parent
+                                                                            , default_strategy.get_type());
+        auto pivot = std::make_unique<Variable<float>>(mg.next_id(), parent, default_strategy.get_pivot());
 
-        std::vector<std::unique_ptr<Generative>> generatives = collect(std::move(interpolator));
+        interpolation_adapter->set_type(type.get());
+        interpolation_adapter->set_pivot(pivot.get());
+
+
+        auto interpolator_module = std::make_unique<InterpolationModule>(
+                *interpolation_adapter, *type, *pivot, layout);
+
+        auto generatives = collect(std::move(interpolation_adapter), std::move(type), std::move(pivot));
 
         return {std::move(interpolator_module), std::move(generatives)};
 

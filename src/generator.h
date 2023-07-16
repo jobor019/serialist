@@ -27,7 +27,7 @@ public:
     Generator(const std::string& id
               , ParameterHandler& parent
               , Node<double>* cursor = nullptr
-              , Node<InterpolationStrategy<T>>* interp = nullptr
+              , Node<InterpolationStrategy>* interp = nullptr
               , Sequence<T>* sequence = nullptr
               , Node<bool>* enabled = nullptr)
             : m_parameter_handler(id, parent)
@@ -81,7 +81,7 @@ public:
     void set_cursor(Node<double>* cursor) { m_cursor = cursor; }
 
 
-    void set_interpolation_strategy(Node<InterpolationStrategy<T>>* interpolation_strategy) {
+    void set_interpolation_strategy(Node<InterpolationStrategy>* interpolation_strategy) {
         m_interpolation_strategy = interpolation_strategy;
     }
 
@@ -95,7 +95,7 @@ public:
     Socket<double>& get_cursor() { return m_cursor; }
 
 
-    Socket<InterpolationStrategy<T>>& get_interpolation_strategy() { return m_interpolation_strategy; }
+    Socket<InterpolationStrategy>& get_interpolation_strategy() { return m_interpolation_strategy; }
 
 
     DataSocket<T> get_sequence() { return m_sequence; }
@@ -115,7 +115,7 @@ private:
 
 
     Socket<double> m_cursor;
-    Socket<InterpolationStrategy<T>> m_interpolation_strategy;
+    Socket<InterpolationStrategy> m_interpolation_strategy;
     DataSocket<T> m_sequence;
 
     Socket<bool> m_enabled;

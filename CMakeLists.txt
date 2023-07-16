@@ -15,8 +15,10 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/collection.h
         ${CMAKE_SOURCE_DIR}/src/events.h
         ${CMAKE_SOURCE_DIR}/src/exceptions.h
+        ${CMAKE_SOURCE_DIR}/src/facet.h
         ${CMAKE_SOURCE_DIR}/src/generative.h
         ${CMAKE_SOURCE_DIR}/src/generator.h
+        ${CMAKE_SOURCE_DIR}/src/interpolation_adapter.h
         ${CMAKE_SOURCE_DIR}/src/interpolator.h
         ${CMAKE_SOURCE_DIR}/src/modular_generator.h
         ${CMAKE_SOURCE_DIR}/src/nop_parameter.h
@@ -29,6 +31,7 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/serializable.h
         ${CMAKE_SOURCE_DIR}/src/selector.h
         ${CMAKE_SOURCE_DIR}/src/socket_policy.h
+        ${CMAKE_SOURCE_DIR}/src/transform.h
         ${CMAKE_SOURCE_DIR}/src/vt_socket.h
         ${CMAKE_SOURCE_DIR}/src/source.h
         ${CMAKE_SOURCE_DIR}/src/utils.h

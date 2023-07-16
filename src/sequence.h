@@ -29,7 +29,7 @@ public:
     }
 
 
-    std::vector<T> process(const TimePoint&, double y, InterpolationStrategy<T> strategy) override {
+    std::vector<T> process(const TimePoint&, double y, InterpolationStrategy strategy) override {
         return m_sequence.interpolate(y, std::move(strategy));
     }
 

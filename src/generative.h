@@ -5,7 +5,6 @@
 
 #include "transport.h"
 #include "parameter_policy.h"
-#include "interpolator.h"
 
 #include <optional>
 
@@ -57,11 +56,12 @@ public:
 
 // ==============================================================================================
 
+class InterpolationStrategy;
 
 template<typename T>
 class DataNode : public Generative {
 public:
-    virtual std::vector<T> process(const TimePoint&, double y, InterpolationStrategy<T> strategy) = 0;
+    virtual std::vector<T> process(const TimePoint&, double y, InterpolationStrategy strategy) = 0;
 };
 
 

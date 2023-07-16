@@ -189,7 +189,7 @@ public:
     }
 
 
-    std::vector<T> process(const TimePoint& t, double y, InterpolationStrategy<T> strategy) {
+    std::vector<T> process(const TimePoint& t, double y, InterpolationStrategy strategy) {
         std::lock_guard<std::mutex> lock{VTSocketBase<DataNode<T>>::m_mutex};
         if (VTSocketBase<DataNode<T>>::m_node == nullptr)
             return {};

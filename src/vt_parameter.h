@@ -415,7 +415,7 @@ public:
     }
 
 
-    std::vector<T> interpolate(double position, const InterpolationStrategy<T>& strategy) {
+    std::vector<T> interpolate(double position, const InterpolationStrategy& strategy) {
         std::lock_guard<std::mutex> lock{m_values_mutex};
         return Interpolator<T>::interpolate(position, strategy, m_values);
     }

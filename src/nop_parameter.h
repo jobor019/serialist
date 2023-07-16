@@ -71,7 +71,7 @@ public:
     }
 
 
-    std::vector<T> interpolate(double position, const InterpolationStrategy<T>& strategy) {
+    std::vector<T> interpolate(double position, const InterpolationStrategy& strategy) {
         return Interpolator<T>::interpolate(position, strategy, m_values);
     }
 

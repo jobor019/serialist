@@ -104,7 +104,7 @@ public:
     }
 
 
-    std::vector<T> process(const TimePoint& t, double y, InterpolationStrategy<T> strategy) {
+    std::vector<T> process(const TimePoint& t, double y, InterpolationStrategy strategy) {
         if (NopSocketBase<DataNode<T>>::m_node == nullptr)
             return {};
         return NopSocketBase<DataNode<T>>::m_node->process(t, y, strategy);

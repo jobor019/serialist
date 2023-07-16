@@ -11,10 +11,8 @@
 
 
 
-
 // ==============================================================================================
 
-template<typename T>
 class InterpolationStrategy {
 public:
 
@@ -28,9 +26,11 @@ public:
     };
 
 
-    explicit InterpolationStrategy(Type type = Type::clip, T pivot = static_cast<T>(0)) // TODO: Bad default pivot
-            : m_type(type), m_pivot(pivot) {
-        static_assert(std::is_arithmetic_v<T>, "DataType must be arithmetic");
+    explicit InterpolationStrategy(Type type = Type::clip, float pivot = 1.0)
+            : m_type(type), m_pivot(pivot) {}
+
+    static InterpolationStrategy default_strategy() {
+        return InterpolationStrategy(Type::clip, 1.0);
     }
 
 
@@ -41,28 +41,28 @@ public:
     }
 
 
-    static InterpolationStrategy<T> from_string(const std::string& s) {
+    static InterpolationStrategy from_string(const std::string& s) {
         std::istringstream iss(s);
 
         int type;
-        T pivot;
+        float pivot;
         char dump;
 
         iss >> type >> dump >> pivot;
 
-        return InterpolationStrategy<T>(static_cast<Type>(type), pivot);
+        return InterpolationStrategy(static_cast<Type>(type), pivot);
     }
 
 
     Type get_type() const { return m_type; }
 
 
-    T get_pivot() const { return m_pivot; }
+    float get_pivot() const { return m_pivot; }
 
 
 private:
     Type m_type;
-    T m_pivot;
+    float m_pivot;
 
 };
 
@@ -77,16 +77,16 @@ public:
 
 
     static std::vector<T> interpolate(double position
-                                      , const InterpolationStrategy<T>& strategy
+                                      , const InterpolationStrategy& strategy
                                       , const std::vector<T>& sequence) {
         switch (strategy.get_type()) {
-            case InterpolationStrategy<T>::Type::continuation:
+            case InterpolationStrategy::Type::continuation:
                 return continuation(position, strategy, sequence);
-            case InterpolationStrategy<T>::Type::modulo:
+            case InterpolationStrategy::Type::modulo:
                 return modulo(position, strategy, sequence);
-            case InterpolationStrategy<T>::Type::clip:
+            case InterpolationStrategy::Type::clip:
                 return clip(position, strategy, sequence);
-            case InterpolationStrategy<T>::Type::pass:
+            case InterpolationStrategy::Type::pass:
                 return pass(position, strategy, sequence);
             default:
                 throw std::runtime_error("Invalid interpolation type detected");
@@ -96,7 +96,7 @@ public:
 
 private:
     static std::vector<T> continuation(double position
-                                       , const InterpolationStrategy<T>& strategy
+                                       , const InterpolationStrategy& strategy
                                        , const std::vector<T>& sequence) {
         if (sequence.empty())
             return {};
@@ -105,7 +105,7 @@ private:
 
         auto element = sequence.at(index);
 
-        if constexpr(utils::is_container<T>::value) {
+        if constexpr (utils::is_container<T>::value) {
             std::vector<T> output;
             output.reserve(element.size());
             std::transform(element.begin()
@@ -122,14 +122,14 @@ private:
 
 
     static std::vector<T> modulo(double position
-                                 , const InterpolationStrategy<T>&
+                                 , const InterpolationStrategy&
                                  , const std::vector<T>& sequence) {
         if (sequence.empty())
             return {};
 
         auto index = get_index(utils::modulo(position, 1.0), sequence.size());
 
-        if constexpr(utils::is_container<T>::value) {
+        if constexpr (utils::is_container<T>::value) {
             return sequence.at(index);
         } else {
             return {sequence.at(index)};
@@ -138,7 +138,7 @@ private:
 
 
     static std::vector<T> clip(double position
-                               , const InterpolationStrategy<T>&
+                               , const InterpolationStrategy&
                                , const std::vector<T>& sequence) {
         if (sequence.empty())
             return {};
@@ -149,7 +149,7 @@ private:
                                     , static_cast<long>(get_index(position, sequence.size()))))
         );
 
-        if constexpr(utils::is_container<T>::value) {
+        if constexpr (utils::is_container<T>::value) {
             return sequence.at(index);
         } else {
             return {sequence.at(index)};
@@ -159,7 +159,7 @@ private:
 
 
     static std::vector<T> pass(double position
-                               , const InterpolationStrategy<T>&
+                               , const InterpolationStrategy&
                                , const std::vector<T>& sequence) {
         if (sequence.empty() || position < 0)
             return {};
@@ -169,7 +169,7 @@ private:
         if (index >= sequence.size())
             return {};
 
-        if constexpr(utils::is_container<T>::value) {
+        if constexpr (utils::is_container<T>::value) {
             return sequence.at(index);
         } else {
             return {sequence.at(index)};

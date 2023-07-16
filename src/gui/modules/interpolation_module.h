@@ -7,14 +7,14 @@
 #include "interpolator.h"
 #include "variable.h"
 #include "generative_component.h"
+#include "interpolation_adapter.h"
 
-template<typename T>
-class InterpolationModule : public GenerativeComponent
-                            , juce::Slider::Listener
-                            , juce::ComboBox::Listener {
+class InterpolationModule : public GenerativeComponent {
 public:
 
-    using InterpType = typename InterpolationStrategy<T>::Type;
+    using InterpType = typename InterpolationStrategy::Type;
+    using SliderLayout = SliderWidget<float>::Layout;
+    using CbLayout = ComboBoxWidget<InterpolationStrategy::Type>::Layout;
 
     enum class Layout {
         full = 0
@@ -22,13 +22,34 @@ public:
     };
 
 
-    explicit InterpolationModule(Variable<InterpolationStrategy<T>>& strategy
+    explicit InterpolationModule(InterpolationAdapter& interpolation_adapter
+                                 , Variable<InterpolationStrategy::Type>& internal_type
+                                 , Variable<float>& internal_pivot
                                  , Layout layout = Layout::full)
-            : m_strategy(strategy)
-              , m_header(strategy.get_parameter_handler().get_id())
+            : m_interpolation_adapter(interpolation_adapter)
+              , m_type_socket(interpolation_adapter.get_type()
+                              , std::make_unique<ComboBoxWidget<InterpolationStrategy::Type>>(
+                            internal_type
+                            , std::vector<ComboBoxWidget<InterpolationStrategy::Type>::Entry>{
+                                    {  "cont", InterpolationStrategy::Type::continuation}
+                                    , {"mod" , InterpolationStrategy::Type::modulo}
+                                    , {"clip", InterpolationStrategy::Type::clip}
+                                    , {"pass", InterpolationStrategy::Type::pass}}
+                            , "type"
+                            , CbLayout::label_left))
+              , m_pivot_socket(interpolation_adapter.get_pivot(), std::make_unique<SliderWidget<float>>(
+                    internal_pivot, 0.0f, 20.0f, 0.01f, "pivot", SliderLayout::label_left))
+              , m_header(interpolation_adapter.get_parameter_handler().get_id())
               , m_layout(layout) {
 
-        initialize_components();
+        setComponentID(interpolation_adapter.get_parameter_handler().get_id());
+
+        addAndMakeVisible(m_type_socket);
+        addAndMakeVisible(m_pivot_socket);
+
+        addAndMakeVisible(m_header);
+
+        addAndMakeVisible(m_interaction_visualizer);
 
     }
 
@@ -45,11 +66,20 @@ public:
             case Layout::full:
                 return HeaderWidget::height_of()
                        + 2 * DC::COMPONENT_UD_MARGINS * 2
-                       + DC::SLIDER_DEFAULT_HEIGHT;
+                       + 1 * SliderWidget<float>::height_of(SliderLayout::label_below);
             case Layout::generator_internal:
                 return DC::SLIDER_DEFAULT_HEIGHT;
         }
         return 0;
+    }
+
+
+    std::vector<std::unique_ptr<InteractionVisualization>> create_visualizations() {
+        std::vector<std::unique_ptr<InteractionVisualization>> visualizations;
+        visualizations.emplace_back(std::make_unique<ConnectVisualization>(*this));
+        visualizations.emplace_back(std::make_unique<MoveVisualization>(*this));
+        visualizations.emplace_back(std::make_unique<DeleteVisualization>(*this));
+        return visualizations;
     }
 
 
@@ -74,62 +104,27 @@ public:
             bounds.reduce(DC::COMPONENT_LR_MARGINS, DC::COMPONENT_UD_MARGINS);
         }
 
-        m_pivot.setBounds(bounds.removeFromLeft(DC::SLIDER_DEFAULT_WIDTH));
+        m_pivot_socket.setBounds(bounds.removeFromLeft(DC::SLIDER_DEFAULT_WIDTH));
         bounds.removeFromLeft(DC::OBJECT_X_MARGINS_ROW);
-        m_type.setBounds(bounds);
+        m_type_socket.setBounds(bounds);
     }
 
 
-    Generative& get_generative() override { return m_strategy; }
+    Generative& get_generative() override { return m_interpolation_adapter; }
 
 
 private:
-    void initialize_components() {
-        addAndMakeVisible(m_header);
 
-        m_type.addItem("continuation", static_cast<int>(InterpType::continuation));
-        m_type.addItem("modulo", static_cast<int>(InterpType::modulo));
-        m_type.addItem("clip", static_cast<int>(InterpType::clip));
-        m_type.addItem("pass", static_cast<int>(InterpType::pass));
-        m_type.setSelectedId(static_cast<int>(m_strategy.get_value().get_type()), juce::dontSendNotification);
-        m_type.addListener(this);
-        addAndMakeVisible(m_type);
+    InterpolationAdapter& m_interpolation_adapter;
 
-        m_pivot.setSliderStyle(juce::Slider::SliderStyle::LinearBarVertical);
-        m_pivot.setValue(m_strategy.get_value().get_pivot(), juce::dontSendNotification);
-        m_pivot.setNumDecimalPlacesToDisplay(std::is_integral_v<T> ? 0 : 2);
-        m_pivot.setTextBoxIsEditable(false);
-        m_pivot.addListener(this);
-        addAndMakeVisible(m_pivot);
-    }
-
-
-    void sliderValueChanged(juce::Slider*) override {
-        value_changed();
-    }
-
-
-    void comboBoxChanged(juce::ComboBox*) override {
-        value_changed();
-    }
-
-
-    void value_changed() {
-        InterpType type{m_type.getSelectedId()};
-        std::cout << "new value: " << static_cast<int>(type) << ":" << static_cast<T>(m_pivot.getValue()) << "\n";
-        m_strategy.set_value(InterpolationStrategy<T>(type, static_cast<T>(m_pivot.getValue())));
-    }
-
-
-    Variable<InterpolationStrategy<T>>& m_strategy;
+    SocketWidget<InterpolationStrategy::Type> m_type_socket;
+    SocketWidget<float> m_pivot_socket;
 
     HeaderWidget m_header;
 
     Layout m_layout;
 
-    juce::ComboBox m_type;
-    juce::Slider m_pivot;
-
+    InteractionVisualizer m_interaction_visualizer{*this, create_visualizations()};
 };
 
 

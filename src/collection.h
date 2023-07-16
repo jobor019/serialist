@@ -22,7 +22,7 @@ public:
     }
 
 
-    std::vector<T> process(const TimePoint&, double y, const InterpolationStrategy<T> strategy) {
+    std::vector<T> process(const TimePoint&, double y, const InterpolationStrategy strategy) {
         return m_collection.clone_values();
     }
 
