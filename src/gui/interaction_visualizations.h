@@ -157,6 +157,58 @@ private:
 
 // ==============================================================================================
 
+class DisconnectVisualization : public InteractionVisualization {
+public:
+    class TempHighlight : public juce::Component {
+    public:
+        explicit TempHighlight(juce::Colour color) : m_color(color) {}
+
+
+        void paint(juce::Graphics& g) override {
+            g.setColour(m_color);
+            g.drawRect(getLocalBounds(), 3);
+        }
+
+
+    private:
+        juce::Colour m_color;
+
+    };
+
+
+    explicit DisconnectVisualization(juce::Component& source)
+            : InteractionVisualization(source) {
+        addChildComponent(m_mouseover_highlight);
+    }
+
+
+    void resized() override {
+        m_mouseover_highlight.setBounds(getLocalBounds());
+    }
+
+
+    void update_state(bool mouse_is_over_component, Action*) override {
+        bool is_visible = m_mouseover_highlight.isVisible();
+        if (GlobalKeyState::is_down_exclusive(ConfigurationLayerKeyboardShortcuts::DISCONNECT_KEY)
+            && mouse_is_over_component) {
+            m_mouseover_highlight.setVisible(true);
+        } else {
+            m_mouseover_highlight.setVisible(false);
+        }
+
+        if (is_visible != m_mouseover_highlight.isVisible()) {
+            resized();
+        }
+    }
+
+
+private:
+    TempHighlight m_mouseover_highlight{juce::Colours::deeppink.withAlpha(0.8f)};
+
+};
+
+// ==============================================================================================
+
 class MoveVisualization : public InteractionVisualization {
 public:
     class TempHighlight : public juce::Component {

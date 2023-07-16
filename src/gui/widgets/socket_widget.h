@@ -58,10 +58,15 @@ public:
         return GlobalKeyState::is_down_exclusive(ConfigurationLayerKeyboardShortcuts::CONNECTOR_KEY);
     }
 
+    static bool is_disconnectable() {
+        return GlobalKeyState::is_down_exclusive(ConfigurationLayerKeyboardShortcuts::DISCONNECT_KEY);
+    }
+
 
     std::vector<std::unique_ptr<InteractionVisualization>> create_visualizations() {
         std::vector<std::unique_ptr<InteractionVisualization>> visualizations;
         visualizations.emplace_back(std::make_unique<ConnectVisualization>(*this));
+        visualizations.emplace_back(std::make_unique<DisconnectVisualization>(*this));
         return visualizations;
     }
 
@@ -99,6 +104,14 @@ public:
 
 
             parent_drag_component->startDragging("src", this, juce::ScaledImage(img));
+        }
+    }
+
+    void mouseUp(const juce::MouseEvent&) override {
+        if (is_disconnectable()) {
+            if (!is_connected_to_internal()) {
+                connect_internal();
+            }
         }
     }
 
@@ -162,6 +175,15 @@ public:
 
 
 private:
+    bool is_connected_to_internal() {
+        return m_socket.get_connected() == &m_default_widget->get_generative();
+    }
+
+    void connect_internal() {
+        m_socket.try_connect(m_default_widget->get_generative());
+    }
+
+
     void valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& id) override {
         if (m_socket.equals_property(vt, id)) {
             std::cout << "SOCKETWIDGET VTP CHANGED\n";
@@ -172,10 +194,10 @@ private:
 
             if (connected == nullptr) {
                 std::cout << "RECONNECTING INTERNAL\n";
-                m_socket.try_connect(m_default_widget->get_generative());
+                connect_internal();
                 new_visibility = false;
             } else {
-                new_visibility = m_socket.get_connected() != &m_default_widget->get_generative();
+                new_visibility = !is_connected_to_internal();
             }
 
             m_connection_source_component.setVisible(new_visibility);

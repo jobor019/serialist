@@ -48,7 +48,7 @@ public:
 
     explicit ConfigurationLayerComponent(ModularGenerator& modular_generator)
             : m_modular_generator(modular_generator)
-            , m_connector_manager(*this, modular_generator.get_parameter_handler()){
+              , m_connector_manager(*this, modular_generator.get_parameter_handler()) {
         addAndMakeVisible(m_connector_manager);
 
         GlobalKeyState::add_listener(*this);
@@ -159,6 +159,44 @@ private:
     }
 
 
+    void mouseDown(const juce::MouseEvent& event) override {
+        if (GlobalKeyState::is_down_exclusive(KeyCodes::MOVE_KEY)) {
+            auto* component_and_bounds = get_component_under_mouse(event);
+            m_currently_moving_component = component_and_bounds;
+            GlobalActionHandler::register_action(std::make_unique<Action>(static_cast<int>(ActionTypes::move), *this));
+        }
+    }
+
+
+    void mouseDrag(const juce::MouseEvent& event) override {
+        if (m_currently_moving_component && GlobalKeyState::is_down_exclusive(KeyCodes::MOVE_KEY)) {
+
+            auto p = getLocalPoint(event.originalComponent, event.getPosition());
+//            std::cout << "ID: " << event.originalComponent->getWidth() << " pos: "<< event.getPosition().getX() << ", " << event.getPosition().getY() << "\n";
+            m_currently_moving_component->position.setPosition(p);
+            resized();
+        }
+    }
+
+
+    void mouseUp(const juce::MouseEvent& event) override {
+        if (m_currently_moving_component) {
+            m_currently_moving_component = nullptr;
+            GlobalActionHandler::terminate_ongoing_action();
+            resized();
+        }
+//        if (GlobalKeyState::is_down_exclusive(KeyCodes::CONNECTOR_KEY)) {
+//            connect_component(event);
+
+        if (GlobalKeyState::is_down(KeyCodes::DELETE_KEY)) {
+            try_remove_component(event);
+
+        } else {
+            create_component(event);
+        }
+    }
+
+
     void key_pressed() override {
         process_mouse_highlights();
     }
@@ -166,6 +204,11 @@ private:
 
     void key_released() override {
         process_mouse_highlights();
+        if (m_currently_moving_component && !GlobalKeyState::is_down_exclusive(KeyCodes::MOVE_KEY)) {
+            m_currently_moving_component = nullptr;
+            GlobalActionHandler::terminate_ongoing_action();
+            resized();
+        }
     }
 
 
@@ -192,22 +235,6 @@ private:
     }
 
 
-    void mouseDown(const juce::MouseEvent& event) override {
-        (void) event;
-    }
-
-
-    void mouseUp(const juce::MouseEvent& event) override {
-//        if (GlobalKeyState::is_down_exclusive(KeyCodes::CONNECTOR_KEY)) {
-//            connect_component(event);
-
-        if (GlobalKeyState::is_down(KeyCodes::DELETE_KEY)) {
-            try_remove_component(event);
-
-        } else {
-            create_component(event);
-        }
-    }
 
 
 //    void connect_component(const juce::MouseEvent& event) {
@@ -221,6 +248,8 @@ private:
         if (component_and_bounds != nullptr) {
             std::cout << "COMPONENT FOUND HEHE:: "
                       << component_and_bounds->component->get_generative().get_parameter_handler().get_id() << "\n";
+
+            m_connector_manager.remove_connections_associated_with(*component_and_bounds->component);
 
             auto& generative = component_and_bounds->component->get_generative();
 
@@ -312,7 +341,7 @@ private:
     std::unique_ptr<juce::Point<int>> m_last_mouse_position = nullptr;
     std::unique_ptr<DummyMidiSourceHighlight> m_creation_highlight = nullptr;
 
-
+    ComponentAndBounds* m_currently_moving_component = nullptr;
 
 
 };

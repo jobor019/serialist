@@ -9,19 +9,24 @@
 class ConnectorComponent : public juce::Component {
 public:
     ConnectorComponent(juce::ValueTree socket_tree
-                       , juce::Rectangle<int> socket_bounds
-                       , juce::Rectangle<int> module_bounds)
+                       , juce::Component& socket_component
+                       , juce::Component& module_component
+                       , juce::Component& parent)
             : m_socket_tree(std::move(socket_tree))
-              , m_socket_bounds(socket_bounds)
-              , m_module_bounds(module_bounds)
+              , m_socket_component(socket_component)
+              , m_module_component(module_component)
+              , m_parent(parent)
               , m_registered_module(m_socket_tree.getProperty({Socket<int>::CONNECTED_PROPERTY}).toString()) {}
 
 
     void paint(juce::Graphics& g) override {
-        int x0 = m_socket_bounds.getX();
-        int y0 = m_socket_bounds.getY();
-        int x1 = m_module_bounds.getX();
-        int y1 = m_module_bounds.getY();
+        auto socket_relative_bounds = bounds_relative_to_parent(m_socket_component);
+        auto module_relative_bounds = bounds_relative_to_parent(m_module_component);
+
+        int x0 = socket_relative_bounds.getX();
+        int y0 = socket_relative_bounds.getY();
+        int x1 = module_relative_bounds.getX();
+        int y1 = module_relative_bounds.getY();
 
         bool delta_x = x1 > x0;
         bool delta_y = y1 > y0;
@@ -37,8 +42,12 @@ public:
 
 
     juce::Rectangle<int> target_bounds() {
-        auto socket_center = m_socket_bounds.getCentre();
-        auto module_corner = juce::Point<int>{m_module_bounds.getCentreX(), m_module_bounds.getBottom()};
+        auto socket_relative_bounds = bounds_relative_to_parent(m_socket_component);
+        auto module_relative_bounds = bounds_relative_to_parent(m_module_component);
+
+        auto socket_center = socket_relative_bounds.getCentre();
+        auto module_corner = juce::Point<int>{module_relative_bounds.getCentreX()
+                                              , module_relative_bounds.getBottom()};
 //        auto module_corner = m_module_bounds.getCentre();
 
         std::cout << "target bounds: \n"
@@ -56,26 +65,46 @@ public:
 
 
     bool is_valid() {
-        std::cout << "connected: " << get_connected_module() << ", registered: " << m_registered_module << " (eq: " << (get_connected_module() == m_registered_module) << ")\n";
+        std::cout << "connected: " << get_connected_module() << ", registered: " << m_registered_module << " (eq: "
+                  << (get_connected_module() == m_registered_module) << ")\n";
         return get_connected_module() == m_registered_module;
+    }
+
+    bool socket_equals(juce::Component& component) {
+        return &m_socket_component == &component;
+    }
+
+    bool module_equals(juce::Component& component) {
+        return &m_module_component == &component;
+    }
+
+    bool either_equals(juce::Component& component) {
+        return socket_equals(component) || module_equals(component);
     }
 
 
 private:
+
+    juce::Rectangle<int> bounds_relative_to_parent(const Component& component) {
+        return m_parent.getLocalArea(&component, component.getLocalBounds());
+    }
+
     juce::String get_connected_module() {
         return m_socket_tree.getProperty({Socket<int>::CONNECTED_PROPERTY}).toString();
     }
 
 
     juce::ValueTree m_socket_tree;
-    juce::Rectangle<int> m_socket_bounds;
-    juce::Rectangle<int> m_module_bounds;
+    juce::Component& m_socket_component;
+    juce::Component& m_module_component;
+    juce::Component& m_parent;
 
     juce::String m_registered_module;
 };
 
 
 class ConnectionComponentManager : public juce::Component
+                                   , public GlobalActionHandler::Listener
                                    , private juce::ValueTree::Listener {
 public:
     explicit ConnectionComponentManager(juce::Component& parent, ParameterHandler& generative_parameter_handler)
@@ -95,6 +124,33 @@ public:
     void resized() override {
         for (auto& connector: m_connectors) {
             connector->setBounds(connector->target_bounds());
+        }
+    }
+
+    void remove_connections_associated_with(juce::Component& component) {
+        auto removed_components = ComponentUtils::get_named_children_recursively(&component);
+
+        auto is_associated = [&removed_components](const std::unique_ptr<ConnectorComponent>& conn) {
+            for (auto& removed_component : removed_components) {
+               if (conn->either_equals(*removed_component)) {
+                   return true;
+               }
+            }
+            return false;
+        };
+
+        auto new_end = std::remove_if(m_connectors.begin(), m_connectors.end(), is_associated);
+        auto changed = new_end != m_connectors.end();
+        m_connectors.erase(new_end, m_connectors.end());
+
+        if (changed) {
+            resized();
+        }
+    }
+
+    void on_action_change(Action * action) override {
+        if (!action) {
+            // TODO
         }
     }
 
@@ -144,8 +200,8 @@ private:
             if (!socket_widget)
                 return;
 
-            auto* connected_component = find_connected_module(socket_tree);
-            if (!connected_component)
+            auto* connected_module = find_connected_module(socket_tree);
+            if (!connected_module)
                 return;
 
 
@@ -153,11 +209,11 @@ private:
                       << socket_widget->getTopLevelComponent()->getHeight() << "\n";
 //            auto socket_bounds = socket_widget->getTopLevelComponent()->getLocalArea(socket_widget
 //                                                                            , socket_widget->getLocalBounds());
-//            auto module_bounds = connected_component->getTopLevelComponent()->getLocalArea(connected_component
-//                                                                                , connected_component->getLocalBounds());
+//            auto module_bounds = connected_module->getTopLevelComponent()->getLocalArea(connected_module
+//                                                                                , connected_module->getLocalBounds());
 
             auto socket_bounds = getLocalArea(socket_widget, socket_widget->getLocalBounds());
-            auto module_bounds = getLocalArea(connected_component, connected_component->getLocalBounds());
+            auto module_bounds = getLocalArea(connected_module, connected_module->getLocalBounds());
 
 //            auto socket_bounds =  socket_widget->localAreaToGlobal(socket_widget->getLocalBounds());
 //            auto module_bounds =  socket_widget->localAreaToGlobal(socket_widget->getLocalBounds());
@@ -172,7 +228,7 @@ private:
 
             std::cout << "socket_bounds: " << socket_bounds.getX() << ", " << socket_bounds.getY() << "\n";
             std::cout << "module_bounds: " << module_bounds.getX() << ", " << module_bounds.getY() << "\n";
-            auto connector = std::make_unique<ConnectorComponent>(socket_tree, socket_bounds, module_bounds);
+            auto connector = std::make_unique<ConnectorComponent>(socket_tree, *socket_widget, *connected_module, *this);
             addAndMakeVisible(*connector);
             m_connectors.push_back(std::move(connector));
             resized();
