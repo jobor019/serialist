@@ -7,6 +7,7 @@
 #include "socket_policy.h"
 #include "generative.h"
 #include "interpolator.h"
+#include "parameter_keys.h"
 
 template<typename T>
 class Sequence : public DataNode<T> {

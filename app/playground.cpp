@@ -127,7 +127,7 @@ public:
 //        std::cout << m_some_handler.get_value_tree().toXmlString() << std::endl;
 
         m_transport.start();
-        startTimer(1000);
+        startTimer(1);
         setSize(1000, 400);
 
         m_modular_generator.get_parameter_handler().get_value_tree().addListener(this);
@@ -260,10 +260,10 @@ public:
 
     void globalFocusChanged(juce::Component* focusedComponent) override {
         if (focusedComponent) {
-            std::cout << "focused component dims " << focusedComponent->getWidth() << " "
-                      << focusedComponent->getHeight() << "\n";
+//            std::cout << "focused component dims " << focusedComponent->getWidth() << " "
+//                      << focusedComponent->getHeight() << "\n";
         } else {
-            std::cout << "nullptr\n";
+//            std::cout << "nullptr\n";
         }
         MainKeyboardFocusComponent::globalFocusChanged(focusedComponent);
     }

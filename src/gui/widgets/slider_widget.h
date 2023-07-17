@@ -15,9 +15,6 @@ class SliderWidget : public GenerativeComponent
                      , private juce::ValueTree::Listener {
 public:
 
-
-
-
     enum class Layout : int {
         label_left = 0
         , label_below = 1

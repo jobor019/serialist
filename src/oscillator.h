@@ -11,8 +11,9 @@
 #include "utils.h"
 #include "socket_policy.h"
 #include "variable.h"
+#include "facet.h"
 
-class Oscillator : public Node<double> {
+class Oscillator : public Node<Facet> {
 public:
     enum class Type {
         phasor
@@ -63,7 +64,7 @@ public:
     }
 
 
-    std::vector<double> process(const TimePoint& t) override {
+    std::vector<Facet> process(const TimePoint& t) override {
         auto value = step_oscillator(t);
         m_previous_values.push(value);
         return {value};
@@ -143,7 +144,7 @@ public:
 
 private:
 
-    double step_oscillator(const TimePoint& t) {
+    Facet step_oscillator(const TimePoint& t) {
         switch (m_type.process_or(t, Type::phasor)) {
             case Type::phasor:
                 return phasor(t);
@@ -165,13 +166,13 @@ private:
     }
 
 
-    double phasor_position(const TimePoint& t) {
+    Facet phasor_position(const TimePoint& t) {
         auto freq = m_freq.process_or(t, 1.0f);
         return m_phasor.process(t.get_tick(), freq);
     }
 
 
-    double phasor(const TimePoint& t) {
+    Facet phasor(const TimePoint& t) {
         return m_mul.process_or(t, 1.0f) * phasor_position(t) + m_add.process_or(t, 0.0f);
     }
 

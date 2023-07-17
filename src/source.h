@@ -69,16 +69,16 @@ public:
                 // TODO: Should use trigger's time to avoid drifting: how to handle time sig / tempo?
                 m_scheduler.add_events(new_event(time));
 
-//                std::cout << "#################### Trigger: " << event->get_time() << "\n";
+                std::cout << "#################### Trigger: " << event->get_time() << "\n";
 
             } else if (auto note_event = dynamic_cast<MidiEvent*>(event.get())) {
                 m_midi_renderer.render(note_event);
                 m_played_notes.push(*note_event);
 
-//                std::cout << "note:    @" << note_event->get_time()
-//                          << " (" << note_event->get_note_number()
-//                          << ", " << note_event->get_velocity()
-//                          << ", " << note_event->get_channel() << ")\n";
+                std::cout << "note:    @" << note_event->get_time()
+                          << " (" << note_event->get_note_number()
+                          << ", " << note_event->get_velocity()
+                          << ", " << note_event->get_channel() << ")\n";
 
             } else {
                 std::cout << "unknown event type\n";
