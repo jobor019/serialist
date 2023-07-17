@@ -10,6 +10,7 @@
 #include "interpolator.h"
 #include "serializable.h"
 #include "parameter_keys.h"
+#include "facet.h"
 
 
 class VTParameterHandler {
@@ -55,7 +56,6 @@ public:
     [[nodiscard]] std::string get_id() const {
         return m_value_tree.getProperty({ParameterKeys::ID_PROPERTY}).toString().toStdString();
     }
-
 
 
     /**
@@ -223,6 +223,12 @@ private:
     }
 
 
+    template<typename U = T, std::enable_if_t<std::is_same_v<U, Facet>, int> = 0>
+    juce::var serialize(const T& value) {
+        return {value.get()};
+    }
+
+
     template<typename U =T, std::enable_if_t<is_serializable<U>::value, int> = 0>
     juce::var serialize(const T& value) {
         return {value.to_string()};
@@ -235,7 +241,9 @@ private:
     }
 
 
-    template<typename U = T, std::enable_if_t<!is_serializable<U>::value && !std::is_enum_v<U>, int> = 0>
+    template<typename U = T, std::enable_if_t<!std::is_same_v<U, Facet>
+                                              && !is_serializable<U>::value
+                                              && !std::is_enum_v<U>, int> = 0>
     juce::var serialize(const T& value) {
         return value;
     }
@@ -252,8 +260,15 @@ private:
         return T(static_cast<int>(obj));
     }
 
+    template<typename U = T, std::enable_if_t<std::is_same_v<U, Facet>, int> = 0>
+    T deserialize(const juce::var& obj) {
+        return Facet(obj);
+    }
 
-    template<typename U = T, std::enable_if_t<!is_serializable<U>::value && !std::is_enum_v<U>, int> = 0>
+
+    template<typename U = T, std::enable_if_t<!std::is_same_v<U, Facet>
+                                              && !is_serializable<U>::value
+                                              && !std::is_enum_v<U>, int> = 0>
     T deserialize(const juce::var& obj) {
         return obj;
     }

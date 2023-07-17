@@ -7,7 +7,6 @@
 #include "variable.h"
 #include "generative_component.h"
 
-template<typename T>
 class ComboBoxWidget : public GenerativeComponent
                        , private juce::ValueTree::Listener
                        , private juce::ComboBox::Listener {
@@ -15,7 +14,7 @@ public:
 
     struct Entry {
         juce::String display_name;
-        T value;
+        Facet value;
     };
 
     enum class Layout : int {
@@ -24,7 +23,7 @@ public:
     };
 
 
-    ComboBoxWidget(Variable<T>& variable
+    ComboBoxWidget(Variable<Facet>& variable
                    , std::vector<Entry>&& values
                    , const juce::String& label = ""
                    , const Layout layout = Layout::label_left
@@ -35,7 +34,7 @@ public:
               , m_label_width(label_width) {
         setComponentID(variable.get_parameter_handler().get_id());
 
-        initialize_combo_box(std::move(values));
+        initialize_combo_box(values);
         initialize_label();
 
         m_variable.get_parameter_obj().add_value_tree_listener(*this);
@@ -49,8 +48,8 @@ public:
 
     ComboBoxWidget(const ComboBoxWidget&) = delete;
     ComboBoxWidget& operator=(const ComboBoxWidget&) = delete;
-    ComboBoxWidget(ComboBoxWidget&&) noexcept = default;
-    ComboBoxWidget& operator=(ComboBoxWidget&&) noexcept = default;
+    ComboBoxWidget(ComboBoxWidget&&) noexcept = delete;
+    ComboBoxWidget& operator=(ComboBoxWidget&&) noexcept = delete;
 
 
     static int height_of(Layout layout) {
@@ -104,7 +103,7 @@ public:
 
 private:
 
-    void initialize_combo_box(std::vector<Entry> values) {
+    void initialize_combo_box(const std::vector<Entry>& values) {
         for (auto& item: values) {
             add_entry(item);
         }
@@ -141,9 +140,9 @@ private:
     }
 
 
-    int id_from_value(const T& value) const {
+    int id_from_value(const Facet& value) const {
         for (const auto& entry: m_item_map) {
-            if (entry.second.value == value)
+            if (entry.second.value == static_cast<int>(value))
                 return entry.first;
         }
 
@@ -151,12 +150,12 @@ private:
     }
 
 
-    const T& value_from_id(int id) const {
+    const Facet& value_from_id(int id) const {
         return m_item_map.at(id).value;
     }
 
 
-    Variable<T>& m_variable;
+    Variable<Facet>& m_variable;
 
     juce::Label m_label;
     Layout m_layout;

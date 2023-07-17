@@ -96,12 +96,12 @@ public:
 
         note_source->set_midi_device(MidiConfig::get_instance().get_default_device_name());
 
-        auto onset = std::make_unique<Variable<float>>(mg.next_id(), parent, 1.0f);
-        auto duration = std::make_unique<Variable<float>>(mg.next_id(), parent, 1.0f);
-        auto pitch = std::make_unique<Variable<int>>(mg.next_id(), parent, 6000);
-        auto velocity = std::make_unique<Variable<int>>(mg.next_id(), parent, 100);
-        auto channel = std::make_unique<Variable<int>>(mg.next_id(), parent, 1);
-        auto enabled = std::make_unique<Variable<bool>>(mg.next_id(), parent, true);
+        auto onset = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(1.0));
+        auto duration = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(1.0));
+        auto pitch = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(6000));
+        auto velocity = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(100));
+        auto channel = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(1));
+        auto enabled = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(true));
 
         note_source->set_onset(onset.get());
         note_source->set_duration(duration.get());
@@ -134,13 +134,13 @@ public:
         auto [sequence_module, sequence_generatives] = new_text_sequence<T>(
                 mg, TextSequenceModule<T>::Layout::full);
 
-        auto oscillator = dynamic_cast<Node<double>*>(&oscillator_module->get_generative());
+        auto oscillator = dynamic_cast<Node<Facet>*>(&oscillator_module->get_generative());
         auto interpolator = dynamic_cast<Node<InterpolationStrategy>*>(&interpolator_module->get_generative());
         auto sequence = dynamic_cast<Sequence<T>*>(&sequence_module->get_generative());
 
         assert(oscillator && interpolator && sequence);
 
-        auto enabled = std::make_unique<Variable<bool>>(mg.next_id(), parent, true);
+        auto enabled = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(true));
 
         auto generator = std::make_unique<Generator<T>>(
                 mg.next_id(), parent, oscillator, interpolator, sequence, enabled.get());
@@ -174,13 +174,14 @@ public:
         auto& parent = mg.get_parameter_handler();
 
         auto oscillator = std::make_unique<Oscillator>(mg.next_id(), parent);
-        auto type = std::make_unique<Variable<Oscillator::Type>>(mg.next_id(), parent, Oscillator::Type::phasor);
-        auto freq = std::make_unique<Variable<float>>(mg.next_id(), parent, 0.25f);
-        auto mul = std::make_unique<Variable<float>>(mg.next_id(), parent, 1.0f);
-        auto add = std::make_unique<Variable<float>>(mg.next_id(), parent, 0.0f);
-        auto duty = std::make_unique<Variable<float>>(mg.next_id(), parent, 0.5f);
-        auto curve = std::make_unique<Variable<float>>(mg.next_id(), parent, 1.0f);
-        auto enabled = std::make_unique<Variable<bool>>(mg.next_id(), parent, true);
+        auto type = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Oscillator::type_to_facet(
+                Oscillator::Type::phasor));
+        auto freq = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(0.25));
+        auto mul = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(1.0));
+        auto add = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(0.0));
+        auto duty = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(0.5));
+        auto curve = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(1.0));
+        auto enabled = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(true));
 
         oscillator->set_type(type.get());
         oscillator->set_freq(freq.get());
@@ -208,7 +209,7 @@ public:
 
         auto sequence = std::make_unique<Sequence<T>>(mg.next_id(), parent);
 
-        auto enabled = std::make_unique<Variable<bool>>(mg.next_id(), parent, true);
+        auto enabled = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(true));
         sequence->set_enabled(enabled.get());
 
         auto sequence_module = std::make_unique<TextSequenceModule<T>>(*sequence, *enabled, layout);
@@ -227,10 +228,11 @@ public:
 
         auto default_strategy = InterpolationStrategy::default_strategy();
         auto interpolation_adapter = std::make_unique<InterpolationAdapter>(mg.next_id(), parent);
-        auto type = std::make_unique<Variable<InterpolationStrategy::Type>>(mg.next_id()
-                                                                            , parent
-                                                                            , default_strategy.get_type());
-        auto pivot = std::make_unique<Variable<float>>(mg.next_id(), parent, default_strategy.get_pivot());
+        auto type = std::make_unique<Variable<Facet>>(
+                mg.next_id()
+                , parent
+                , InterpolationStrategy::type_to_facet(default_strategy.get_type()));
+        auto pivot = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(default_strategy.get_pivot()));
 
         interpolation_adapter->set_type(type.get());
         interpolation_adapter->set_pivot(pivot.get());

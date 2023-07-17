@@ -21,7 +21,7 @@ public:
     explicit Sequence(const std::string& id
                       , ParameterHandler& parent
                       , const std::vector<T>& initial_values = {}
-                      , Node<bool>* enabled = nullptr)
+                      , Node<Facet>* enabled = nullptr)
             : m_parameter_handler(id, parent)
             , m_socket_handler(ParameterKeys::GENERATIVE_SOCKETS_TREE, m_parameter_handler)
               , m_sequence(SEQUENCE_TREE, m_parameter_handler, initial_values)
@@ -52,10 +52,10 @@ public:
     }
 
 
-    void set_enabled(Node<bool>* enabled) { m_enabled = enabled; }
+    void set_enabled(Node<Facet>* enabled) { m_enabled = enabled; }
 
 
-    Socket<bool>& get_enabled() { return m_enabled; }
+    Socket<Facet>& get_enabled() { return m_enabled; }
 
 
 private:
@@ -64,7 +64,7 @@ private:
 
     ParametrizedSequence<T> m_sequence;
 
-    Socket<bool> m_enabled;
+    Socket<Facet> m_enabled;
 
 };
 

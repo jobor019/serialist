@@ -15,8 +15,8 @@ class InterpolationAdapter : public Node<InterpolationStrategy> {
 public :
     InterpolationAdapter(const std::string& identifier
                          , ParameterHandler& parent
-                         , Node<InterpolationStrategy::Type>* type = nullptr
-                         , Node<float>* pivot = nullptr)
+                         , Node<Facet>* type = nullptr
+                         , Node<Facet>* pivot = nullptr)
             : m_parameter_handler(identifier, parent)
               , m_socket_handler("", m_parameter_handler, ParameterKeys::GENERATIVE_SOCKETS_TREE)
               , m_type(TYPE, m_socket_handler, type)
@@ -41,30 +41,31 @@ public :
 
     std::vector<InterpolationStrategy> process(const TimePoint& t) override {
         auto default_strategy = InterpolationStrategy::default_strategy();
-        auto strategy_type = m_type.process_or(t, default_strategy.get_type());
-        auto strategy_pivot = m_pivot.process_or(t, default_strategy.get_pivot());
-        return {InterpolationStrategy(strategy_type, strategy_pivot)};
+        auto strategy_type = m_type.process_or(t, InterpolationStrategy::type_to_facet(default_strategy.get_type()));
+        auto strategy_pivot = m_pivot.process_or(t, Facet(default_strategy.get_pivot()));
+        return {InterpolationStrategy(InterpolationStrategy::facet_to_type(strategy_type)
+                                      , static_cast<float>(strategy_pivot.get()))};
     }
 
 
-    void set_type(Node<InterpolationStrategy::Type>* type) { m_type = type; }
+    void set_type(Node<Facet>* type) { m_type = type; }
 
 
-    void set_pivot(Node<float>* pivot) { m_pivot = pivot; }
+    void set_pivot(Node<Facet>* pivot) { m_pivot = pivot; }
 
 
-    Socket<InterpolationStrategy::Type>& get_type() { return m_type; }
+    Socket<Facet>& get_type() { return m_type; }
 
 
-    Socket<float>& get_pivot() { return m_pivot; }
+    Socket<Facet>& get_pivot() { return m_pivot; }
 
 
 private:
     ParameterHandler m_parameter_handler;
     ParameterHandler m_socket_handler;
 
-    Socket<InterpolationStrategy::Type> m_type;
-    Socket<float> m_pivot;
+    Socket<Facet> m_type;
+    Socket<Facet> m_pivot;
 
 };
 

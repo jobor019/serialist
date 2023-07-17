@@ -33,12 +33,12 @@ public:
 
     MidiNoteSource(const std::string& id
                    , ParameterHandler& parent
-                   , Node<float>* onset = nullptr
-                   , Node<float>* duration = nullptr
-                   , Node<int>* pitch = nullptr
-                   , Node<int>* velocity = nullptr
-                   , Node<int>* channel = nullptr
-                   , Node<bool>* enabled = nullptr)
+                   , Node<Facet>* onset = nullptr
+                   , Node<Facet>* duration = nullptr
+                   , Node<Facet>* pitch = nullptr
+                   , Node<Facet>* velocity = nullptr
+                   , Node<Facet>* channel = nullptr
+                   , Node<Facet>* enabled = nullptr)
             : m_parameter_handler(id, parent)
               , m_socket_handler("", m_parameter_handler, ParameterKeys::GENERATIVE_SOCKETS_TREE)
               , m_onset(NoteSourceKeys::ONSET, m_socket_handler, onset)
@@ -118,20 +118,20 @@ public:
     }
 
 
-    void set_onset(Node<float>* onset) { m_onset = onset; }
-    void set_duration(Node<float>* duration) { m_duration = duration; }
-    void set_pitch(Node<int>* pitch) { m_pitch = pitch; }
-    void set_velocity(Node<int>* velocity) { m_velocity = velocity; }
-    void set_channel(Node<int>* channel) { m_channel = channel; }
-    void set_enabled(Node<bool>* enabled) { m_enabled = enabled; }
+    void set_onset(Node<Facet>* onset) { m_onset = onset; }
+    void set_duration(Node<Facet>* duration) { m_duration = duration; }
+    void set_pitch(Node<Facet>* pitch) { m_pitch = pitch; }
+    void set_velocity(Node<Facet>* velocity) { m_velocity = velocity; }
+    void set_channel(Node<Facet>* channel) { m_channel = channel; }
+    void set_enabled(Node<Facet>* enabled) { m_enabled = enabled; }
 
 
-    Socket<float>& get_onset() { return m_onset; }
-    Socket<float>& get_duration() { return m_duration; }
-    Socket<int>& get_pitch() { return m_pitch; }
-    Socket<int>& get_velocity() { return m_velocity; }
-    Socket<int>& get_channel() { return m_channel; }
-    Socket<bool>& get_enabled() { return m_enabled; }
+    Socket<Facet>& get_onset() { return m_onset; }
+    Socket<Facet>& get_duration() { return m_duration; }
+    Socket<Facet>& get_pitch() { return m_pitch; }
+    Socket<Facet>& get_velocity() { return m_velocity; }
+    Socket<Facet>& get_channel() { return m_channel; }
+    Socket<Facet>& get_enabled() { return m_enabled; }
 
 
     void set_midi_device(const std::string& device_name, bool override = true) {
@@ -163,20 +163,20 @@ private:
 
         // TODO: Handle vector properly rather than just using the first element
         auto note = MidiEvent::note(t.get_tick()
-                                    , note_pitch.at(0)
-                                    , note_velocity.at(0)
-                                    , note_channel.at(0)
-                                    , next_onset.at(0) * note_duration.at(0));
+                                    , static_cast<int>(note_pitch.at(0))
+                                    , static_cast<int>(note_velocity.at(0))
+                                    , static_cast<int>(note_channel.at(0))
+                                    , next_onset.at(0).get() * note_duration.at(0).get());
         events.emplace_back(std::make_unique<MidiEvent>(note.first));
         events.emplace_back(std::make_unique<MidiEvent>(note.second));
-        events.emplace_back(std::make_unique<TriggerEvent>(next_onset.at(0) + t.get_tick()));
+        events.emplace_back(std::make_unique<TriggerEvent>(next_onset.at(0).get() + t.get_tick()));
 
         return events;
     }
 
 
     bool is_enabled(const TimePoint& t) {
-        return m_enabled.process_or(t, false);
+        return static_cast<bool>(m_enabled.process_or(t, Facet(false)));
     }
 
 
@@ -208,13 +208,13 @@ private:
     Scheduler m_scheduler;
     MidiRenderer m_midi_renderer;
 
-    Socket<float> m_onset;
-    Socket<float> m_duration;
-    Socket<int> m_pitch;
-    Socket<int> m_velocity;
-    Socket<int> m_channel;
+    Socket<Facet> m_onset;
+    Socket<Facet> m_duration;
+    Socket<Facet> m_pitch;
+    Socket<Facet> m_velocity;
+    Socket<Facet> m_channel;
 
-    Socket<bool> m_enabled;
+    Socket<Facet> m_enabled;
 
     utils::LockingQueue<MidiEvent> m_played_notes;
 

@@ -25,6 +25,17 @@ public:
         , random_walk
     };
 
+
+    static Facet type_to_facet(const Oscillator::Type& t) {
+        return Facet::from_enum(t, Type::phasor, Type::random_walk);
+    }
+
+
+    static Oscillator::Type facet_to_type(const Facet& facet) {
+        return facet.as_enum(Type::phasor, Type::random_walk);
+    }
+
+
     class OscillatorKeys {
     public:
         OscillatorKeys() = delete;
@@ -42,13 +53,13 @@ public:
 
     Oscillator(const std::string& identifier
                , ParameterHandler& parent
-               , Node<Type>* type = nullptr
-               , Node<float>* freq = nullptr
-               , Node<float>* add = nullptr
-               , Node<float>* mul = nullptr
-               , Node<float>* duty = nullptr
-               , Node<float>* curve = nullptr
-               , Node<bool>* enabled = nullptr)
+               , Node<Facet>* type = nullptr
+               , Node<Facet>* freq = nullptr
+               , Node<Facet>* add = nullptr
+               , Node<Facet>* mul = nullptr
+               , Node<Facet>* duty = nullptr
+               , Node<Facet>* curve = nullptr
+               , Node<Facet>* enabled = nullptr)
             : m_parameter_handler(identifier, parent)
               , m_socket_handler("", m_parameter_handler, ParameterKeys::GENERATIVE_SOCKETS_TREE)
               , m_type(OscillatorKeys::TYPE, m_socket_handler, type)
@@ -66,7 +77,7 @@ public:
 
     std::vector<Facet> process(const TimePoint& t) override {
         auto value = step_oscillator(t);
-        m_previous_values.push(value);
+        m_previous_values.push(static_cast<double>(value));
         return {value};
     }
 
@@ -86,6 +97,7 @@ public:
         return m_parameter_handler;
     }
 
+
     void disconnect_if(Generative& connected_to) override {
         m_type.disconnect_if(connected_to);
         m_freq.disconnect_if(connected_to);
@@ -97,46 +109,46 @@ public:
     }
 
 
-    void set_type(Node<Type>* type) { m_type = type; }
+    void set_type(Node<Facet>* type) { m_type = type; }
 
 
-    void set_freq(Node<float>* freq) { m_freq = freq; }
+    void set_freq(Node<Facet>* freq) { m_freq = freq; }
 
 
-    void set_add(Node<float>* add) { m_add = add; }
+    void set_add(Node<Facet>* add) { m_add = add; }
 
 
-    void set_mul(Node<float>* mul) { m_mul = mul; }
+    void set_mul(Node<Facet>* mul) { m_mul = mul; }
 
 
-    void set_duty(Node<float>* duty) { m_duty = duty; }
+    void set_duty(Node<Facet>* duty) { m_duty = duty; }
 
 
-    void set_curve(Node<float>* curve) { m_curve = curve; }
+    void set_curve(Node<Facet>* curve) { m_curve = curve; }
 
 
-    void set_enabled(Node<bool>* enabled) { m_enabled = enabled; }
+    void set_enabled(Node<Facet>* enabled) { m_enabled = enabled; }
 
 
-    Socket<Type>& get_type() { return m_type; }
+    Socket<Facet>& get_type() { return m_type; }
 
 
-    Socket<float>& get_freq() { return m_freq; }
+    Socket<Facet>& get_freq() { return m_freq; }
 
 
-    Socket<float>& get_add() { return m_add; }
+    Socket<Facet>& get_add() { return m_add; }
 
 
-    Socket<float>& get_mul() { return m_mul; }
+    Socket<Facet>& get_mul() { return m_mul; }
 
 
-    Socket<float>& get_duty() { return m_duty; }
+    Socket<Facet>& get_duty() { return m_duty; }
 
 
-    Socket<float>& get_curve() { return m_curve; }
+    Socket<Facet>& get_curve() { return m_curve; }
 
 
-    Socket<bool>& get_enabled() { return m_enabled; }
+    Socket<Facet>& get_enabled() { return m_enabled; }
 
 
     std::vector<double> get_output_history() { return m_previous_values.pop_all(); }
@@ -145,53 +157,55 @@ public:
 private:
 
     Facet step_oscillator(const TimePoint& t) {
-        switch (m_type.process_or(t, Type::phasor)) {
+
+        auto type = facet_to_type(m_type.process_or(t, type_to_facet(Type::phasor)));
+        switch (type) {
             case Type::phasor:
-                return phasor(t);
+                return Facet(phasor(t));
             case Type::sin:
-                return sin(t);
+                return Facet(sin(t));
             case Type::square:
-                return square(t);
+                return Facet(square(t));
             case Type::tri:
-                return tri(t);
+                return Facet(tri(t));
             case Type::white_noise:
-                return white_noise(t);
+                return Facet(white_noise(t));
             case Type::brown_noise:
-                return brown_noise(t);
+                return Facet(brown_noise(t));
             case Type::random_walk:
-                return random_walk(t);
+                return Facet(random_walk(t));
             default:
                 throw std::runtime_error("oscillator types not implemented");
         }
     }
 
 
-    Facet phasor_position(const TimePoint& t) {
-        auto freq = m_freq.process_or(t, 1.0f);
-        return m_phasor.process(t.get_tick(), freq);
+    double phasor_position(const TimePoint& t) {
+        auto freq = m_freq.process_or(t, Facet(1.0));
+        return m_phasor.process(t.get_tick(), static_cast<double>(freq));
     }
 
 
-    Facet phasor(const TimePoint& t) {
-        return m_mul.process_or(t, 1.0f) * phasor_position(t) + m_add.process_or(t, 0.0f);
+    double phasor(const TimePoint& t) {
+        return m_mul.process_or(t, Facet(1.0)).get() * phasor_position(t) + m_add.process_or(t, Facet(0.0)).get();
     }
 
 
     double sin(const TimePoint& t) {
         auto y = 0.5 * -std::cos(2 * M_PI * phasor_position(t)) + 0.5;
-        return m_mul.process_or(t, 1.0f) * y + m_add.process_or(t, 0.0f);
+        return m_mul.process_or(t, Facet(1.0)).get() * y + m_add.process_or(t, Facet(0.0)).get();
     }
 
 
     double square(const TimePoint& t) {
-        auto y = static_cast<double>(phasor_position(t) <= m_duty.process_or(t, 0.5f));
-        return m_mul.process_or(t, 1.0f) * y + m_add.process_or(t, 0.0f);
+        auto y = static_cast<double>(phasor_position(t) <= m_duty.process_or(t, Facet(0.5)).get());
+        return m_mul.process_or(t, Facet(1.0)).get() * y + m_add.process_or(t, Facet(0.0)).get();
     }
 
 
     double tri(const TimePoint& t) {
-        auto duty = m_duty.process_or(t, 0.5f);
-        auto curve = m_curve.process_or(t, 1.0f);
+        auto duty = m_duty.process_or(t, Facet(0.5)).get();
+        auto curve = m_curve.process_or(t, Facet(1.0)).get();
         auto x = phasor_position(t);
 
         double y;
@@ -203,7 +217,7 @@ private:
             y = std::pow(1 - (x - duty) / (1 - duty), curve);
         }
 
-        return m_mul.process_or(t, 1.0f) * y + m_add.process_or(t, 0.0f);
+        return m_mul.process_or(t, Facet(1.0)).get() * y + m_add.process_or(t, Facet(0.0)).get();
     }
 
 
@@ -246,14 +260,14 @@ private:
     ParameterHandler m_socket_handler;
 
 
-    Socket<Type> m_type;
-    Socket<float> m_freq;
-    Socket<float> m_add;
-    Socket<float> m_mul;
-    Socket<float> m_duty;
-    Socket<float> m_curve;
+    Socket<Facet> m_type;
+    Socket<Facet> m_freq;
+    Socket<Facet> m_add;
+    Socket<Facet> m_mul;
+    Socket<Facet> m_duty;
+    Socket<Facet> m_curve;
 
-    Socket<bool> m_enabled;
+    Socket<Facet> m_enabled;
 
     Phasor m_phasor;
 

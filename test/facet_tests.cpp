@@ -118,8 +118,37 @@ TEST_CASE("Enum conversion") {
             REQUIRE(f.as_enum(min_enum, evaluated_max_enum) == e);
         }
     }
-
-    max_enum = Enum100::e2;
-
-
 }
+
+
+//TEST_CASE("Performance") {
+//    // Creation
+//    std::size_t n = 10'000'000;
+//    std::vector<Facet> v1;
+//    v1.reserve(n);
+//
+//    auto t1 = std::chrono::high_resolution_clock::now();
+//    for (std::size_t i = 0; i < n; ++i) {
+//        v1.emplace_back(i);
+//    }
+//
+//    auto t2 = std::chrono::high_resolution_clock::now();
+//
+//    std::cout << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << " usec\n";
+//
+//
+//    std::vector<double> v2;
+//    v2.reserve(n);
+//
+//    t1 = std::chrono::high_resolution_clock::now();
+//    for (std::size_t i = 0; i < n; ++i) {
+//        v2.emplace_back(i);
+//    }
+//    t2 = std::chrono::high_resolution_clock::now();
+//
+//    std::cout << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << " usec\n";
+//
+//
+//
+//
+//}

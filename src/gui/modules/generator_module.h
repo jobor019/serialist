@@ -26,7 +26,7 @@ public:
                     , std::unique_ptr<OscillatorModule> oscillator
                     , std::unique_ptr<InterpolationModule> interpolator
                     , std::unique_ptr<TextSequenceModule<T>> sequence
-                    , Variable<bool>& internal_enabled
+                    , Variable<Facet>& internal_enabled
                     , Layout layout = Layout::full)
             : m_generator(generator)
               , m_oscillator_socket(generator.get_cursor(), std::move(oscillator))
@@ -187,7 +187,7 @@ private:
 
     Generator<T>& m_generator;
 
-    SocketWidget<double> m_oscillator_socket;
+    SocketWidget<Facet> m_oscillator_socket;
 
     SocketWidget<InterpolationStrategy> m_interpolator;
     std::unique_ptr<TextSequenceModule<T>> m_internal_sequence; // TODO: Replace with generic SequenceComponent

@@ -26,10 +26,10 @@ public:
 
     Generator(const std::string& id
               , ParameterHandler& parent
-              , Node<double>* cursor = nullptr
+              , Node<Facet>* cursor = nullptr
               , Node<InterpolationStrategy>* interp = nullptr
               , Sequence<T>* sequence = nullptr
-              , Node<bool>* enabled = nullptr)
+              , Node<Facet>* enabled = nullptr)
             : m_parameter_handler(id, parent)
               , m_socket_handler("", m_parameter_handler, ParameterKeys::GENERATIVE_SOCKETS_TREE)
               , m_cursor(GeneratorKeys::CURSOR, m_socket_handler, cursor)
@@ -47,10 +47,10 @@ public:
         if (!m_cursor.is_connected())
             return {};
 
-        auto y = m_cursor.process_or(t, 0.0);
+        auto y = m_cursor.process_or(t, Facet(0.0)).get();
 
         if (!m_interpolation_strategy.is_connected() || !m_sequence.is_connected()) {
-            if constexpr (std::is_arithmetic_v<T>) {
+            if constexpr (std::is_same_v<T, Facet>) {
                 return {static_cast<T>(y)};
             } else {
                 return {};
@@ -84,7 +84,7 @@ public:
     }
 
 
-    void set_cursor(Node<double>* cursor) { m_cursor = cursor; }
+    void set_cursor(Node<Facet>* cursor) { m_cursor = cursor; }
 
 
     void set_interpolation_strategy(Node<InterpolationStrategy>* interpolation_strategy) {
@@ -95,10 +95,10 @@ public:
     void set_sequence(Sequence<T>* sequence) { m_sequence = sequence; }
 
 
-    void set_enabled(Node<bool>* enabled) { m_enabled = enabled; }
+    void set_enabled(Node<Facet>* enabled) { m_enabled = enabled; }
 
 
-    Socket<double>& get_cursor() { return m_cursor; }
+    Socket<Facet>& get_cursor() { return m_cursor; }
 
 
     Socket<InterpolationStrategy>& get_interpolation_strategy() { return m_interpolation_strategy; }
@@ -107,24 +107,24 @@ public:
     DataSocket<T> get_sequence() { return m_sequence; }
 
 
-    Socket<bool>& get_enabled() { return m_enabled; }
+    Socket<Facet>& get_enabled() { return m_enabled; }
 
 
 private:
 
     bool is_enabled(const TimePoint& t) {
-        return m_enabled.process_or(t, true);
+        return static_cast<bool>(m_enabled.process_or(t, Facet(true)));
     }
 
     ParameterHandler m_parameter_handler;
     ParameterHandler m_socket_handler;
 
 
-    Socket<double> m_cursor;
+    Socket<Facet> m_cursor;
     Socket<InterpolationStrategy> m_interpolation_strategy;
     DataSocket<T> m_sequence;
 
-    Socket<bool> m_enabled;
+    Socket<Facet> m_enabled;
 
 };
 

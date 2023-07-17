@@ -10,7 +10,7 @@
 class ToggleButtonWidget : public GenerativeComponent
                            , private juce::ValueTree::Listener {
 public:
-    explicit ToggleButtonWidget(Variable<bool>& variable
+    explicit ToggleButtonWidget(Variable<Facet>& variable
                                 , const std::string& on_text = ""
                                 , const std::string& off_text = "")
             : m_variable(variable)
@@ -53,7 +53,7 @@ public:
 
 private:
     void initialize_button() {
-        bool is_on = m_variable.get_value();
+        bool is_on = static_cast<bool>(m_variable.get_value());
 
         m_button.setToggleState(is_on, juce::dontSendNotification);
         m_button.setButtonText(is_on ? m_on_text : m_off_text);
@@ -69,18 +69,18 @@ private:
             std::cout << "TREE    : " << treeWhosePropertyHasChanged.toXmlString() << std::endl;
             std::cout << "PROPERTY: " << property.toString() << std::endl;
             std::cout << "VALUE   : " << treeWhosePropertyHasChanged.getProperty(property).toString() << std::endl;
-            m_button.setToggleState(m_variable.get_value(), juce::dontSendNotification);
+            m_button.setToggleState(static_cast<bool>(m_variable.get_value()), juce::dontSendNotification);
         }
     }
 
 
     void on_value_change() {
-        m_variable.set_value(m_button.getToggleState());
+        m_variable.set_value(Facet(m_button.getToggleState()));
         m_button.setButtonText(m_button.getToggleState() ? m_on_text : m_off_text);
     }
 
 
-    Variable<bool>& m_variable;
+    Variable<Facet>& m_variable;
 
     juce::ToggleButton m_button;
 

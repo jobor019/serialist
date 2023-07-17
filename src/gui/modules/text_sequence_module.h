@@ -20,7 +20,7 @@ public:
     };
 
 
-    explicit TextSequenceModule(Sequence<T>& sequence, Variable<bool>& enabled, Layout layout = Layout::full)
+    explicit TextSequenceModule(Sequence<T>& sequence, Variable<Facet>& enabled, Layout layout = Layout::full)
             : m_sequence(sequence)
               , m_header(sequence.get_parameter_handler().get_id(), enabled)
               , m_layout(layout) {

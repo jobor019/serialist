@@ -10,12 +10,11 @@ public:
     static const inline double enum_epsilon = 1e-6;
 
 
-    template<typename T, std::enable_if_t<std::is_same_v<T, double>, int> = 0>
     explicit Facet(double v) : m_value(v) {}
 
 
     template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
-    explicit Facet(T v) : m_value(static_cast<double>(v)) {}
+    explicit Facet(const T& v) : m_value(static_cast<double>(v)) {}
 
 
     template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
@@ -29,7 +28,7 @@ public:
     }
 
 
-    template<typename T>
+    template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
     explicit operator T() const {
         return static_cast<T>(m_value);
     }
@@ -74,6 +73,30 @@ public:
     bool operator<(const T& t) const { return static_cast<T>(*this) < t; }
 
 
+//    template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+//    Facet operator+(const T& t) {
+//        return Facet(m_value + t);
+//    }
+//
+//
+//    template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+//    Facet operator-(const T& t) {
+//        return Facet(m_value - t);
+//    }
+//
+//
+//    template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+//    Facet operator*(const T& t) {
+//        return Facet(m_value * t);
+//    }
+//
+//
+//    template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+//    Facet operator/(const T& t) {
+//        return Facet(m_value / t);
+//    }
+
+
     friend std::ostream& operator<<(std::ostream& os, const Facet& obj) {
         os << obj.m_value;
         return os;
@@ -83,6 +106,11 @@ public:
     template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
     T as_enum(const T& min_enum_value, const T& max_enum_value) const {
         return double_to_enum(m_value, min_enum_value, max_enum_value);
+    }
+
+
+    double get() const {
+        return m_value;
     }
 
 

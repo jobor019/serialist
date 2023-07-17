@@ -13,8 +13,8 @@ class InterpolationModule : public GenerativeComponent {
 public:
 
     using InterpType = typename InterpolationStrategy::Type;
-    using SliderLayout = SliderWidget<float>::Layout;
-    using CbLayout = ComboBoxWidget<InterpolationStrategy::Type>::Layout;
+    using SliderLayout = SliderWidget::Layout;
+    using CbLayout = ComboBoxWidget::Layout;
 
     enum class Layout {
         full = 0
@@ -23,22 +23,22 @@ public:
 
 
     explicit InterpolationModule(InterpolationAdapter& interpolation_adapter
-                                 , Variable<InterpolationStrategy::Type>& internal_type
-                                 , Variable<float>& internal_pivot
+                                 , Variable<Facet>& internal_type
+                                 , Variable<Facet>& internal_pivot
                                  , Layout layout = Layout::full)
             : m_interpolation_adapter(interpolation_adapter)
               , m_type_socket(interpolation_adapter.get_type()
-                              , std::make_unique<ComboBoxWidget<InterpolationStrategy::Type>>(
+                              , std::make_unique<ComboBoxWidget>(
                             internal_type
-                            , std::vector<ComboBoxWidget<InterpolationStrategy::Type>::Entry>{
-                                    {  "cont", InterpolationStrategy::Type::continuation}
-                                    , {"mod" , InterpolationStrategy::Type::modulo}
-                                    , {"clip", InterpolationStrategy::Type::clip}
-                                    , {"pass", InterpolationStrategy::Type::pass}}
+                            , std::vector<ComboBoxWidget::Entry>{
+                                    {  "cont", InterpolationStrategy::type_to_facet(InterpType::continuation)}
+                                    , {"mod" , InterpolationStrategy::type_to_facet(InterpType::modulo)}
+                                    , {"clip", InterpolationStrategy::type_to_facet(InterpType::clip)}
+                                    , {"pass", InterpolationStrategy::type_to_facet(InterpType::pass)}}
                             , "type"
                             , CbLayout::label_left))
-              , m_pivot_socket(interpolation_adapter.get_pivot(), std::make_unique<SliderWidget<float>>(
-                    internal_pivot, 0.0f, 20.0f, 0.01f, "pivot", SliderLayout::label_left))
+              , m_pivot_socket(interpolation_adapter.get_pivot(), std::make_unique<SliderWidget>(
+                    internal_pivot, 0.0, 20.0, 0.01, false, "pivot", SliderLayout::label_left))
               , m_header(interpolation_adapter.get_parameter_handler().get_id())
               , m_layout(layout) {
 
@@ -66,7 +66,7 @@ public:
             case Layout::full:
                 return HeaderWidget::height_of()
                        + 2 * DC::COMPONENT_UD_MARGINS * 2
-                       + 1 * SliderWidget<float>::height_of(SliderLayout::label_below);
+                       + 1 * SliderWidget::height_of(SliderLayout::label_below);
             case Layout::generator_internal:
                 return DC::SLIDER_DEFAULT_HEIGHT;
         }
@@ -117,8 +117,8 @@ private:
 
     InterpolationAdapter& m_interpolation_adapter;
 
-    SocketWidget<InterpolationStrategy::Type> m_type_socket;
-    SocketWidget<float> m_pivot_socket;
+    SocketWidget<Facet> m_type_socket;
+    SocketWidget<Facet> m_pivot_socket;
 
     HeaderWidget m_header;
 
