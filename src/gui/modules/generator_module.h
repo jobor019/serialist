@@ -111,6 +111,7 @@ public:
 
     bool isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
         if (auto* source = dragSourceDetails.sourceComponent.get()) {
+            std::cout << "isinttres " << (++temp) << "\n";
             return connectable_to(*source);
         }
         return false;
@@ -197,6 +198,8 @@ private:
     Layout m_layout = Layout::full;
 
     InteractionVisualizer m_interaction_visualizer{*this, create_visualizations()};
+
+    int temp = 0;
 };
 
 #endif //SERIALISTLOOPER_NEW_GENERATOR_COMPONENT_H

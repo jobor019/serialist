@@ -12,6 +12,7 @@
 #include "interpolation_module.h"
 #include "note_source_module.h"
 #include "generator_module.h"
+#include "modular_generator.h"
 
 template<typename ModuleType>
 using ModuleAndGeneratives = std::pair<std::unique_ptr<ModuleType>, std::vector<std::unique_ptr<Generative>>>;
@@ -69,10 +70,15 @@ public:
     ModuleFactory() = delete;
 
 
-    static std::optional<ComponentAndGeneratives>
+    /**
+     * Note: result must be destroyed in the order `component` -> `generatives`,
+     *  otherwise will result in all sorts of errors (typically "Pure virtual function called" as the object
+     *  managing the value tree is deleted before the module listening to the value tree)
+     */
+    [[nodiscard]] static std::optional<ComponentAndGeneratives>
     new_from_key(int key, ModularGenerator& modular_generator) {
         if (key == KeyCodes::NEW_GENERATOR_KEY) {
-            auto mng = new_generator<float>(modular_generator);
+            auto mng = new_generator<Facet>(modular_generator);
             return {ComponentAndGeneratives::from_internal(std::move(mng))};
         } else if (key == KeyCodes::NEW_MIDI_SOURCE_KEY) {
             auto mng = new_midi_note_source(modular_generator);
@@ -86,7 +92,7 @@ public:
     }
 
 
-    static ModuleAndGeneratives<NoteSourceModule>
+    [[nodiscard]] static ModuleAndGeneratives<NoteSourceModule>
     new_midi_note_source(ModularGenerator& mg
                          , NoteSourceModule::Layout layout = NoteSourceModule::Layout::full) {
 
@@ -121,7 +127,7 @@ public:
 
 
     template<typename T>
-    static ModuleAndGeneratives<GeneratorModule<T>>
+    [[nodiscard]] static ModuleAndGeneratives<GeneratorModule<T>>
     new_generator(ModularGenerator& mg
                   , typename GeneratorModule<T>::Layout layout = GeneratorModule<T>::Layout::full) {
 
@@ -167,7 +173,7 @@ public:
     }
 
 
-    static ModuleAndGeneratives<OscillatorModule>
+    [[nodiscard]] static ModuleAndGeneratives<OscillatorModule>
     new_oscillator(ModularGenerator& mg
                    , OscillatorModule::Layout layout = OscillatorModule::Layout::full) {
 
@@ -202,7 +208,7 @@ public:
 
 
     template<typename T>
-    static ModuleAndGeneratives<TextSequenceModule<T>>
+    [[nodiscard]] static ModuleAndGeneratives<TextSequenceModule<T>>
     new_text_sequence(ModularGenerator& mg
                       , typename TextSequenceModule<T>::Layout layout = TextSequenceModule<T>::Layout::full) {
         auto& parent = mg.get_parameter_handler();
@@ -220,7 +226,7 @@ public:
     }
 
 
-    static ModuleAndGeneratives<InterpolationModule>
+    [[nodiscard]] static ModuleAndGeneratives<InterpolationModule>
     new_interpolator(ModularGenerator& mg
                      , typename InterpolationModule::Layout layout = InterpolationModule::Layout::full) {
         auto& parent = mg.get_parameter_handler();

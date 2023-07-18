@@ -186,7 +186,7 @@ target_link_libraries(playground
 
 
 #####################################################################################
-## TARGET: TESTS
+## TARGET: NOP TESTS
 #####################################################################################
 
 add_executable(tests
@@ -195,8 +195,7 @@ add_executable(tests
 #        ${CMAKE_SOURCE_DIR}/test/selector_tests.cpp
 #        ${CMAKE_SOURCE_DIR}/test/looper_tests.cpp
 #        ${CMAKE_SOURCE_DIR}/test/generator_tests.cpp
-#        ${CMAKE_SOURCE_DIR}/test/juce_tests.cpp
-        ${CMAKE_SOURCE_DIR}/test/facet_tests.cpp
+        ${CMAKE_SOURCE_DIR}/test/backend/facet_tests.cpp
         )
 
 target_link_libraries(tests
@@ -212,4 +211,31 @@ target_include_directories(tests PRIVATE
         )
 
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
+
+
+#####################################################################################
+## TARGET: VTTESTS TESTS
+#####################################################################################
+
+add_executable(juceTests
+        ${CMAKE_SOURCE_DIR}/test/juce/juce_tests.cpp
+        )
+
+target_link_libraries(juceTests
+        PRIVATE
+        # GuiAppData            # If we'd created a binary data target, we'd link to it here
+        ${MODULE_DEPENDENCIES_JUCE}
+        PUBLIC
+        ${FLAGS_JUCE}
+        )
+
+target_compile_definitions(juceTests
+        PRIVATE
+        USE_JUCE=1
+        )
+
+target_include_directories(juceTests PRIVATE ${INCLUDES})
+
+target_link_libraries(juceTests PRIVATE Catch2::Catch2WithMain)
+
 

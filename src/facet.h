@@ -73,26 +73,26 @@ public:
     bool operator<(const T& t) const { return static_cast<T>(*this) < t; }
 
 
-//    template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
-//    Facet operator+(const T& t) {
+//    template<typename OutputType, std::enable_if_t<std::is_arithmetic_v<OutputType>, int> = 0>
+//    Facet operator+(const OutputType& t) {
 //        return Facet(m_value + t);
 //    }
 //
 //
-//    template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
-//    Facet operator-(const T& t) {
+//    template<typename OutputType, std::enable_if_t<std::is_arithmetic_v<OutputType>, int> = 0>
+//    Facet operator-(const OutputType& t) {
 //        return Facet(m_value - t);
 //    }
 //
 //
-//    template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
-//    Facet operator*(const T& t) {
+//    template<typename OutputType, std::enable_if_t<std::is_arithmetic_v<OutputType>, int> = 0>
+//    Facet operator*(const OutputType& t) {
 //        return Facet(m_value * t);
 //    }
 //
 //
-//    template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
-//    Facet operator/(const T& t) {
+//    template<typename OutputType, std::enable_if_t<std::is_arithmetic_v<OutputType>, int> = 0>
+//    Facet operator/(const OutputType& t) {
 //        return Facet(m_value / t);
 //    }
 
@@ -115,10 +115,10 @@ public:
 
 
     // TODO
-//    template<typename T>
-//    std::optional<T> as_enum(int min_enum_value, int max_enum_value) {
+//    template<typename OutputType>
+//    std::optional<OutputType> as_enum(int min_enum_value, int max_enum_value) {
 //        if (!m_value.empty())
-//            return static_cast<T>(m_value.at(0));
+//            return static_cast<OutputType>(m_value.at(0));
 //        return std::nullopt;
 //    }
 
@@ -155,6 +155,7 @@ private:
 
     template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
     static T double_to_enum(double d, const T& min_enum, const T& max_enum) {
+        d = std::min(1.0, std::max(0.0, d));
         auto min = static_cast<int>(min_enum);
         auto max = static_cast<int>(max_enum);
         int n_values = max - min + 1;

@@ -223,10 +223,10 @@ private:
     }
 
 
-    template<typename U = T, std::enable_if_t<std::is_same_v<U, Facet>, int> = 0>
-    juce::var serialize(const T& value) {
-        return {value.get()};
-    }
+//    template<typename U = OutputType, std::enable_if_t<std::is_same_v<U, Facet>, int> = 0>
+//    juce::var serialize(const OutputType& value) {
+//        return {value.get()};
+//    }
 
 
     template<typename U =T, std::enable_if_t<is_serializable<U>::value, int> = 0>
@@ -260,10 +260,10 @@ private:
         return T(static_cast<int>(obj));
     }
 
-    template<typename U = T, std::enable_if_t<std::is_same_v<U, Facet>, int> = 0>
-    T deserialize(const juce::var& obj) {
-        return Facet(obj);
-    }
+//    template<typename U = OutputType, std::enable_if_t<std::is_same_v<U, Facet>, int> = 0>
+//    OutputType deserialize(const juce::var& obj) {
+//        return Facet(obj);
+//    }
 
 
     template<typename U = T, std::enable_if_t<!std::is_same_v<U, Facet>
