@@ -14,18 +14,15 @@ class Sequence : public DataNode<OutputType> {
 public:
 
     inline static const std::string SEQUENCE_TREE = "SEQUENCE";
-    inline static const std::string ENABLED = "enabled";
     inline static const std::string CLASS_NAME = "sequence";
 
 
     explicit Sequence(const std::string& id
                       , ParameterHandler& parent
-                      , const std::vector<StoredType>& initial_values = {}
-                      , Node<Facet>* enabled = nullptr)
+                      , const std::vector<StoredType>& initial_values = {})
             : m_parameter_handler(id, parent)
               , m_socket_handler(ParameterKeys::GENERATIVE_SOCKETS_TREE, m_parameter_handler)
-              , m_sequence(SEQUENCE_TREE, m_parameter_handler, initial_values)
-              , m_enabled(ENABLED, m_socket_handler, enabled) {
+              , m_sequence(SEQUENCE_TREE, m_parameter_handler, initial_values) {
         static_assert(std::is_constructible_v<OutputType, StoredType>
                       && std::is_constructible_v<StoredType, OutputType>
                       , "Cannot create a Sequence with incompatible types");
@@ -65,14 +62,10 @@ public:
 
 
     std::vector<Generative*> get_connected() override {
-        return {m_enabled.get_connected()};
+        return {};
     }
 
 
-    void set_enabled(Node<Facet>* enabled) { m_enabled = enabled; }
-
-
-    Socket<Facet>& get_enabled() { return m_enabled; }
 
 
 private:
@@ -80,8 +73,6 @@ private:
     ParameterHandler m_socket_handler;
 
     ParametrizedSequence<StoredType> m_sequence;
-
-    Socket<Facet> m_enabled;
 
 };
 

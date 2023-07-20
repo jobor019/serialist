@@ -10,7 +10,7 @@
 class ToggleButtonWidget : public GenerativeComponent
                            , private juce::ValueTree::Listener {
 public:
-    explicit ToggleButtonWidget(Variable<Facet>& variable
+    explicit ToggleButtonWidget(Variable<Facet, bool>& variable
                                 , const std::string& on_text = ""
                                 , const std::string& off_text = "")
             : m_variable(variable)
@@ -75,12 +75,12 @@ private:
 
 
     void on_value_change() {
-        m_variable.set_value(Facet(m_button.getToggleState()));
+        m_variable.set_value(m_button.getToggleState());
         m_button.setButtonText(m_button.getToggleState() ? m_on_text : m_off_text);
     }
 
 
-    Variable<Facet>& m_variable;
+    Variable<Facet, bool>& m_variable;
 
     juce::ToggleButton m_button;
 

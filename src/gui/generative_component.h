@@ -15,7 +15,7 @@ public:
     static inline const int FONT_HEIGHT = SerialistLookAndFeel::FONT_SIZE;
     static inline const int DEFAULT_LABEL_WIDTH = 40;
 
-    static inline const int SEQUENCE_HEIGHT = 46;
+    static inline const int DEFAULT_SEQUENCE_HEIGHT = 46;
 
     static inline const int COMPONENT_LR_MARGINS = 5;
     static inline const int COMPONENT_UD_MARGINS = 8;

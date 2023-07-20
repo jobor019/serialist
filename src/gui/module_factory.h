@@ -78,7 +78,7 @@ public:
     [[nodiscard]] static std::optional<ComponentAndGeneratives>
     new_from_key(int key, ModularGenerator& modular_generator) {
         if (key == KeyCodes::NEW_GENERATOR_KEY) {
-            auto mng = new_generator<Facet>(modular_generator);
+            auto mng = new_generator<Facet, float>(modular_generator);
             return {ComponentAndGeneratives::from_internal(std::move(mng))};
         } else if (key == KeyCodes::NEW_MIDI_SOURCE_KEY) {
             auto mng = new_midi_note_source(modular_generator);
@@ -102,12 +102,12 @@ public:
 
         note_source->set_midi_device(MidiConfig::get_instance().get_default_device_name());
 
-        auto onset = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(1.0));
-        auto duration = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(1.0));
-        auto pitch = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(6000));
-        auto velocity = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(100));
-        auto channel = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(1));
-        auto enabled = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(true));
+        auto onset = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, 1.0f);
+        auto duration = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, 1.0f);
+        auto pitch = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, 6000.0f);
+        auto velocity = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, 100.0f);
+        auto channel = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, 1.0f);
+        auto enabled = std::make_unique<Variable<Facet, bool>>(mg.next_id(), parent, true);
 
         note_source->set_onset(onset.get());
         note_source->set_duration(duration.get());
@@ -126,10 +126,10 @@ public:
     }
 
 
-    template<typename T>
-    [[nodiscard]] static ModuleAndGeneratives<GeneratorModule<T>>
+    template<typename OutputType, typename SequenceStorageType>
+    [[nodiscard]] static ModuleAndGeneratives<GeneratorModule<OutputType, SequenceStorageType>>
     new_generator(ModularGenerator& mg
-                  , typename GeneratorModule<T>::Layout layout = GeneratorModule<T>::Layout::full) {
+                  , typename GeneratorModule<OutputType, SequenceStorageType>::Layout layout = GeneratorModule<OutputType, SequenceStorageType>::Layout::full) {
 
         auto& parent = mg.get_parameter_handler();
 
@@ -137,21 +137,21 @@ public:
                 mg, OscillatorModule::Layout::generator_internal);
         auto [interpolator_module, interpolator_generatives] = new_interpolator(
                 mg, InterpolationModule::Layout::generator_internal);
-        auto [sequence_module, sequence_generatives] = new_text_sequence<T>(
-                mg, TextSequenceModule<T>::Layout::full);
+        auto [sequence_module, sequence_generatives] = new_text_sequence<OutputType, SequenceStorageType>(
+                mg, TextSequenceModule<OutputType, SequenceStorageType>::Layout::full);
 
         auto oscillator = dynamic_cast<Node<Facet>*>(&oscillator_module->get_generative());
         auto interpolator = dynamic_cast<Node<InterpolationStrategy>*>(&interpolator_module->get_generative());
-        auto sequence = dynamic_cast<Sequence<T>*>(&sequence_module->get_generative());
+        auto sequence = dynamic_cast<Sequence<OutputType, SequenceStorageType>*>(&sequence_module->get_generative());
 
         assert(oscillator && interpolator && sequence);
 
-        auto enabled = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(true));
+        auto enabled = std::make_unique<Variable<Facet, bool>>(mg.next_id(), parent, true);
 
-        auto generator = std::make_unique<Generator<T>>(
+        auto generator = std::make_unique<Generator<OutputType>>(
                 mg.next_id(), parent, oscillator, interpolator, sequence, enabled.get());
 
-        auto generator_module = std::make_unique<GeneratorModule<T>>(
+        auto generator_module = std::make_unique<GeneratorModule<OutputType, SequenceStorageType>>(
                 *generator
                 , std::move(oscillator_module)
                 , std::move(interpolator_module)
@@ -180,14 +180,13 @@ public:
         auto& parent = mg.get_parameter_handler();
 
         auto oscillator = std::make_unique<Oscillator>(mg.next_id(), parent);
-        auto type = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Oscillator::type_to_facet(
-                Oscillator::Type::phasor));
-        auto freq = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(0.25));
-        auto mul = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(1.0));
-        auto add = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(0.0));
-        auto duty = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(0.5));
-        auto curve = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(1.0));
-        auto enabled = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(true));
+        auto type = std::make_unique<Variable<Facet, Oscillator::Type>>(mg.next_id(), parent, Oscillator::Type::phasor);
+        auto freq = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, 0.25f);
+        auto mul = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, 1.0f);
+        auto add = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, 0.0f);
+        auto duty = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, 0.5f);
+        auto curve = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, 1.0f);
+        auto enabled = std::make_unique<Variable<Facet, bool>>(mg.next_id(), parent, true);
 
         oscillator->set_type(type.get());
         oscillator->set_freq(freq.get());
@@ -207,20 +206,19 @@ public:
     }
 
 
-    template<typename T>
-    [[nodiscard]] static ModuleAndGeneratives<TextSequenceModule<T>>
-    new_text_sequence(ModularGenerator& mg
-                      , typename TextSequenceModule<T>::Layout layout = TextSequenceModule<T>::Layout::full) {
+    template<typename OutputType, typename StorageType>
+    [[nodiscard]] static ModuleAndGeneratives<TextSequenceModule<OutputType, StorageType>>
+    new_text_sequence(
+            ModularGenerator& mg
+            , typename TextSequenceModule<OutputType, StorageType>::Layout layout = TextSequenceModule<OutputType, StorageType>::Layout::full) {
+
         auto& parent = mg.get_parameter_handler();
 
-        auto sequence = std::make_unique<Sequence<T>>(mg.next_id(), parent);
+        auto sequence = std::make_unique<Sequence<OutputType, StorageType>>(mg.next_id(), parent);
 
-        auto enabled = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(true));
-        sequence->set_enabled(enabled.get());
+        auto sequence_module = std::make_unique<TextSequenceModule<OutputType, StorageType>>(*sequence, layout);
 
-        auto sequence_module = std::make_unique<TextSequenceModule<T>>(*sequence, *enabled, layout);
-
-        std::vector<std::unique_ptr<Generative>> generatives = collect(std::move(sequence), std::move(enabled));
+        std::vector<std::unique_ptr<Generative>> generatives = collect(std::move(sequence));
 
         return {std::move(sequence_module), std::move(generatives)};
     }
@@ -234,11 +232,11 @@ public:
 
         auto default_strategy = InterpolationStrategy::default_strategy();
         auto interpolation_adapter = std::make_unique<InterpolationAdapter>(mg.next_id(), parent);
-        auto type = std::make_unique<Variable<Facet>>(
+        auto type = std::make_unique<Variable<Facet, InterpolationStrategy::Type>>(
                 mg.next_id()
                 , parent
-                , InterpolationStrategy::type_to_facet(default_strategy.get_type()));
-        auto pivot = std::make_unique<Variable<Facet>>(mg.next_id(), parent, Facet(default_strategy.get_pivot()));
+                , default_strategy.get_type());
+        auto pivot = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, default_strategy.get_pivot());
 
         interpolation_adapter->set_type(type.get());
         interpolation_adapter->set_pivot(pivot.get());

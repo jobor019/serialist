@@ -26,16 +26,6 @@ public:
     };
 
 
-    static Facet type_to_facet(const Oscillator::Type& t) {
-        return Facet::from_enum(t, Type::phasor, Type::random_walk);
-    }
-
-
-    static Oscillator::Type facet_to_type(const Facet& facet) {
-        return facet.as_enum(Type::phasor, Type::random_walk);
-    }
-
-
     class OscillatorKeys {
     public:
         OscillatorKeys() = delete;
@@ -158,7 +148,7 @@ private:
 
     Facet step_oscillator(const TimePoint& t) {
 
-        auto type = facet_to_type(m_type.process_or(t, type_to_facet(Type::phasor)));
+        auto type = static_cast<Type>(m_type.process_or(t, Facet(Type::phasor)));
         switch (type) {
             case Type::phasor:
                 return Facet(phasor(t));

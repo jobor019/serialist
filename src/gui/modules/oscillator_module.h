@@ -18,7 +18,8 @@ class OscillatorModule : public GenerativeComponent {
 public:
 
     using SliderLayout = SliderWidget::Layout;
-    using CbLayout = ComboBoxWidget::Layout;
+    using ComboBoxType = ComboBoxWidget<Oscillator::Type>;
+    using CbLayout = ComboBoxType::Layout;
 
     enum class Layout {
         full
@@ -27,22 +28,22 @@ public:
 
 
     OscillatorModule(Oscillator& oscillator
-                     , Variable<Facet>& internal_type
-                     , Variable<Facet>& internal_freq
-                     , Variable<Facet>& internal_mul
-                     , Variable<Facet>& internal_add
-                     , Variable<Facet>& internal_duty
-                     , Variable<Facet>& internal_curve
-                     , Variable<Facet>& internal_enabled
+                     , Variable<Facet, Oscillator::Type>& internal_type
+                     , Variable<Facet, float>& internal_freq
+                     , Variable<Facet, float>& internal_mul
+                     , Variable<Facet, float>& internal_add
+                     , Variable<Facet, float>& internal_duty
+                     , Variable<Facet, float>& internal_curve
+                     , Variable<Facet, bool>& internal_enabled
                      , Layout layout = Layout::full)
             : m_oscillator(oscillator)
-              , m_type_socket(oscillator.get_type(), std::make_unique<ComboBoxWidget>(
+              , m_type_socket(oscillator.get_type(), std::make_unique<ComboBoxType>(
                     internal_type
-                    , std::vector<ComboBoxWidget::Entry>{
-                            {  "phasor", Oscillator::type_to_facet(Oscillator::Type::phasor)}
-                            , {"sin"   , Oscillator::type_to_facet(Oscillator::Type::sin)}
-                            , {"sqr"   , Oscillator::type_to_facet(Oscillator::Type::square)}
-                            , {"tri"   , Oscillator::type_to_facet(Oscillator::Type::tri)}}
+                    , std::vector<ComboBoxType::Entry>{
+                            {  "phasor", Oscillator::Type::phasor}
+                            , {"sin"   , Oscillator::Type::sin}
+                            , {"sqr"   , Oscillator::Type::square}
+                            , {"tri"   , Oscillator::Type::tri}}
                     , "type"
                     , CbLayout::label_left))
               , m_freq_socket(oscillator.get_freq(), std::make_unique<SliderWidget>(
@@ -101,7 +102,7 @@ public:
                 return HeaderWidget::height_of()
                        + 2 * DC::COMPONENT_UD_MARGINS
                        + OscillatorView::height_of(OscillatorView::Layout::full)
-                       + ComboBoxWidget::height_of(CbLayout::label_left) // type
+                       + ComboBoxType::height_of(CbLayout::label_left) // type
                        + 5 * SliderWidget::height_of(SliderLayout::label_left) // f, m, a, c, d
                        + 7 * DC::OBJECT_Y_MARGINS_COLUMN;
             case Layout::generator_internal:

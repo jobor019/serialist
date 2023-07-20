@@ -23,12 +23,12 @@ public:
 
 
     NoteSourceModule(MidiNoteSource& note_source
-                     , Variable<Facet>& internal_onset
-                     , Variable<Facet>& internal_duration
-                     , Variable<Facet>& internal_pitch
-                     , Variable<Facet>& internal_velocity
-                     , Variable<Facet>& internal_channel
-                     , Variable<Facet>& internal_enabled
+                     , Variable<Facet, float>& internal_onset
+                     , Variable<Facet, float>& internal_duration
+                     , Variable<Facet, float>& internal_pitch
+                     , Variable<Facet, float>& internal_velocity
+                     , Variable<Facet, float>& internal_channel
+                     , Variable<Facet, bool>& internal_enabled
                      , Layout layout = Layout::full)
             : m_midi_source(note_source)
               , m_internal_onset(note_source.get_onset(), std::make_unique<SliderWidget>(

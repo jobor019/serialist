@@ -28,7 +28,7 @@ public:
               , ParameterHandler& parent
               , Node<Facet>* cursor = nullptr
               , Node<InterpolationStrategy>* interp = nullptr
-              , Sequence<T>* sequence = nullptr
+              , DataNode<T>* sequence = nullptr
               , Node<Facet>* enabled = nullptr)
             : m_parameter_handler(id, parent)
               , m_socket_handler("", m_parameter_handler, ParameterKeys::GENERATIVE_SOCKETS_TREE)
@@ -104,7 +104,7 @@ public:
     Socket<InterpolationStrategy>& get_interpolation_strategy() { return m_interpolation_strategy; }
 
 
-    DataSocket<T> get_sequence() { return m_sequence; }
+    DataSocket<T>& get_sequence() { return m_sequence; }
 
 
     Socket<Facet>& get_enabled() { return m_enabled; }

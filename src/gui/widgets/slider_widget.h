@@ -19,19 +19,19 @@ public:
     };
 
 
-    explicit SliderWidget(Variable<Facet>& variable
-                          , double min = 0
-                          , double max = 127.0
-                          , double step = 1
-                                  , bool is_integral = false
+    explicit SliderWidget(Variable<Facet, float>& variable
+                          , double min = 0.0f
+                          , double max = 127.0f
+                          , double step = 1.0f
+                          , bool is_integral = false
                           , const juce::String& label = ""
                           , const Layout layout = Layout::label_below
                           , const int label_width = DimensionConstants::DEFAULT_LABEL_WIDTH)
             : m_variable(variable)
-            , m_is_integral(is_integral)
+              , m_is_integral(is_integral)
               , m_label({}, label)
               , m_layout(layout)
-              , m_label_width(label_width){
+              , m_label_width(label_width) {
 
         setComponentID(variable.get_parameter_handler().get_id());
 
@@ -137,26 +137,25 @@ private:
     void valueTreePropertyChanged(juce::ValueTree& treeWhosePropertyHasChanged
                                   , const juce::Identifier& property) override {
         if (m_variable.get_parameter_obj().equals_property(treeWhosePropertyHasChanged, property)) {
-            m_slider.setValue(m_variable.get_value().get(), juce::dontSendNotification);
+            m_slider.setValue(m_variable.get_value(), juce::dontSendNotification);
         }
     }
 
 
     void on_slider_value_change() {
         if (m_is_integral)
-            m_variable.set_value(Facet(std::round(m_slider.getValue())));
+            m_variable.set_value(static_cast<float>(std::round(m_slider.getValue())));
         else
-            m_variable.set_value(Facet(m_slider.getValue()));
+            m_variable.set_value(static_cast<float>(m_slider.getValue()));
     }
 
 
-    Variable<Facet>& m_variable;
+    Variable<Facet, float>& m_variable;
     bool m_is_integral;
 
     juce::Label m_label;
     Layout m_layout;
     int m_label_width;
-
 
 
     juce::Slider m_slider;

@@ -21,14 +21,17 @@ public:
     explicit Variable(const std::string& id, ParameterHandler& parent, StoredType value)
             : m_parameter_handler(id, parent)
               , m_value(value, PARAMETER_ADDRESS, m_parameter_handler) {
-        static_assert(std::is_constructible_v<OutputType, StoredType>
-                      && std::is_constructible_v<StoredType, OutputType>
+        static_assert((std::is_constructible_v<OutputType, StoredType>
+                       && std::is_constructible_v<StoredType, OutputType>)
+                      || std::is_enum_v<StoredType>
                       , "Cannot create a Variable with incompatible types");
         m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, CLASS_NAME);
     }
 
 
-    std::vector<OutputType> process(const TimePoint&) override { return {static_cast<OutputType>(m_value.get())}; }
+    std::vector<OutputType> process(const TimePoint&) override {
+        return {static_cast<OutputType>(m_value.get())};
+    }
 
 
     void disconnect_if(Generative&) override {}

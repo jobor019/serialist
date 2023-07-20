@@ -11,22 +11,22 @@
 #include "interaction_visualizer.h"
 #include "interaction_visualizations.h"
 
-template<typename T>
-class SocketWidget : public juce::Component
-                     , public Connectable
-                     , public juce::DragAndDropTarget
-                     , private juce::ValueTree::Listener {
+template<typename SocketType>
+class TemplateSocketWidget : public juce::Component
+                             , public Connectable
+                             , public juce::DragAndDropTarget
+                             , private juce::ValueTree::Listener {
 public:
 
     class ConnectionSourceComponent : public juce::Component {
     public:
-        void paint(juce::Graphics &g) override {
+        void paint(juce::Graphics& g) override {
             g.fillAll(juce::Colours::slategrey);
         }
     };
 
 
-    explicit SocketWidget(Socket<T>& socket, std::unique_ptr<GenerativeComponent> default_widget)
+    explicit TemplateSocketWidget(SocketType& socket, std::unique_ptr<GenerativeComponent> default_widget)
             : m_socket(socket)
               , m_default_widget(std::move(default_widget)) {
         if (!m_default_widget) {
@@ -44,19 +44,21 @@ public:
     }
 
 
-    ~SocketWidget() override {
+    ~TemplateSocketWidget() override {
         m_socket.remove_value_tree_listener(*this);
     }
 
 
-    SocketWidget(const SocketWidget&) = delete;
-    SocketWidget& operator=(const SocketWidget&) = delete;
-    SocketWidget(SocketWidget&&) noexcept = default;
-    SocketWidget& operator=(SocketWidget&&) noexcept = default;
+    TemplateSocketWidget(const TemplateSocketWidget&) = delete;
+    TemplateSocketWidget& operator=(const TemplateSocketWidget&) = delete;
+    TemplateSocketWidget(TemplateSocketWidget&&) noexcept = default;
+    TemplateSocketWidget& operator=(TemplateSocketWidget&&) noexcept = default;
+
 
     static bool is_connectable() {
         return GlobalKeyState::is_down_exclusive(ConfigurationLayerKeyboardShortcuts::CONNECTOR_KEY);
     }
+
 
     static bool is_disconnectable() {
         return GlobalKeyState::is_down_exclusive(ConfigurationLayerKeyboardShortcuts::DISCONNECT_KEY);
@@ -95,10 +97,10 @@ public:
 
         if (is_connectable() && parent_drag_component && !parent_drag_component->isDragAndDropActive()) {
             auto img = juce::Image(juce::Image::PixelFormat::RGB, 100, 30, true);
-            juce::Graphics g (img);
-            g.setColour (juce::Colours::steelblue);
+            juce::Graphics g(img);
+            g.setColour(juce::Colours::steelblue);
 //            g.fillRect(img.getBounds());
-            g.setColour (juce::Colours::powderblue);
+            g.setColour(juce::Colours::powderblue);
             img.multiplyAllAlphas(0.5f);
             g.drawFittedText("typename", img.getBounds(), juce::Justification::centred, 1);
 
@@ -106,6 +108,7 @@ public:
             parent_drag_component->startDragging("src", this, juce::ScaledImage(img));
         }
     }
+
 
     void mouseUp(const juce::MouseEvent&) override {
         if (is_disconnectable()) {
@@ -118,17 +121,17 @@ public:
 
     void itemDragEnter(const juce::DragAndDropTarget::SourceDetails&) override {
         if (is_connectable())
-        m_interaction_visualizer.set_drag_and_dropping(true);
+            m_interaction_visualizer.set_drag_and_dropping(true);
     }
 
 
     void itemDragExit(const juce::DragAndDropTarget::SourceDetails&) override {
         if (is_connectable())
-        m_interaction_visualizer.set_drag_and_dropping(false);
+            m_interaction_visualizer.set_drag_and_dropping(false);
     }
 
 
-    Socket<T>& get_socket() {
+    SocketType& get_socket() {
         return m_socket;
     }
 
@@ -179,6 +182,7 @@ private:
         return m_socket.get_connected() == &m_default_widget->get_generative();
     }
 
+
     void connect_internal() {
         m_socket.try_connect(m_default_widget->get_generative());
     }
@@ -208,7 +212,7 @@ private:
     }
 
 
-    Socket<T>& m_socket;
+    SocketType& m_socket;
 
     std::unique_ptr<GenerativeComponent> m_default_widget;
 
@@ -216,7 +220,27 @@ private:
 
     ConnectionSourceComponent m_connection_source_component;
 
-
 };
+
+
+// ==============================================================================================
+
+template<typename OutputType>
+class SocketWidget : public TemplateSocketWidget<Socket<OutputType>> {
+public:
+    explicit SocketWidget(Socket<OutputType>& socket, std::unique_ptr<GenerativeComponent> default_widget)
+            : TemplateSocketWidget<Socket<OutputType>>(socket, std::move(default_widget)) {}
+};
+
+
+// ==============================================================================================
+
+template<typename OutputType>
+class DataSocketWidget : public TemplateSocketWidget<DataSocket<OutputType>> {
+public:
+    explicit DataSocketWidget(DataSocket<OutputType>& socket, std::unique_ptr<GenerativeComponent> default_widget)
+    : TemplateSocketWidget<DataSocket<OutputType>>(socket, std::move(default_widget)) {}
+};
+
 
 #endif //SERIALISTLOOPER_SOCKET_WIDGET_H

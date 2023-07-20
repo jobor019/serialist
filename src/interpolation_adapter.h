@@ -41,9 +41,9 @@ public :
 
     std::vector<InterpolationStrategy> process(const TimePoint& t) override {
         auto default_strategy = InterpolationStrategy::default_strategy();
-        auto strategy_type = m_type.process_or(t, InterpolationStrategy::type_to_facet(default_strategy.get_type()));
+        auto strategy_type = static_cast<InterpolationStrategy::Type>(m_type.process_or(t, Facet(default_strategy.get_type())));
         auto strategy_pivot = m_pivot.process_or(t, Facet(default_strategy.get_pivot()));
-        return {InterpolationStrategy(InterpolationStrategy::facet_to_type(strategy_type)
+        return {InterpolationStrategy(static_cast<InterpolationStrategy::Type>(strategy_type)
                                       , static_cast<float>(strategy_pivot.get()))};
     }
 

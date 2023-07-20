@@ -14,7 +14,8 @@ public:
 
     using InterpType = typename InterpolationStrategy::Type;
     using SliderLayout = SliderWidget::Layout;
-    using CbLayout = ComboBoxWidget::Layout;
+    using ComboBoxType = ComboBoxWidget<InterpType>;
+    using CbLayout = ComboBoxType::Layout;
 
     enum class Layout {
         full = 0
@@ -23,18 +24,18 @@ public:
 
 
     explicit InterpolationModule(InterpolationAdapter& interpolation_adapter
-                                 , Variable<Facet>& internal_type
-                                 , Variable<Facet>& internal_pivot
+                                 , Variable<Facet, InterpType>& internal_type
+                                 , Variable<Facet, float>& internal_pivot
                                  , Layout layout = Layout::full)
             : m_interpolation_adapter(interpolation_adapter)
               , m_type_socket(interpolation_adapter.get_type()
-                              , std::make_unique<ComboBoxWidget>(
+                              , std::make_unique<ComboBoxType>(
                             internal_type
-                            , std::vector<ComboBoxWidget::Entry>{
-                                    {  "cont", InterpolationStrategy::type_to_facet(InterpType::continuation)}
-                                    , {"mod" , InterpolationStrategy::type_to_facet(InterpType::modulo)}
-                                    , {"clip", InterpolationStrategy::type_to_facet(InterpType::clip)}
-                                    , {"pass", InterpolationStrategy::type_to_facet(InterpType::pass)}}
+                            , std::vector<ComboBoxType::Entry>{
+                                    {  "cont", InterpType::continuation}
+                                    , {"mod" , InterpType::modulo}
+                                    , {"clip", InterpType::clip}
+                                    , {"pass", InterpType::pass}}
                             , "type"
                             , CbLayout::label_left))
               , m_pivot_socket(interpolation_adapter.get_pivot(), std::make_unique<SliderWidget>(

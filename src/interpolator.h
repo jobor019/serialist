@@ -26,15 +26,6 @@ public:
         , pass = 4
     };
 
-    static Facet type_to_facet(const InterpolationStrategy::Type& t) {
-        return Facet::from_enum(t, Type::continuation, Type::pass);
-    }
-
-
-    static InterpolationStrategy::Type facet_to_type(const Facet& facet) {
-        return facet.as_enum(Type::continuation, Type::pass);
-    }
-
 
     explicit InterpolationStrategy(Type type = Type::clip, float pivot = 1.0)
             : m_type(type), m_pivot(pivot) {}

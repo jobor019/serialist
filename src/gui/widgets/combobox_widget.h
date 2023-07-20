@@ -7,6 +7,7 @@
 #include "variable.h"
 #include "generative_component.h"
 
+template<typename StoredType>
 class ComboBoxWidget : public GenerativeComponent
                        , private juce::ValueTree::Listener
                        , private juce::ComboBox::Listener {
@@ -14,7 +15,7 @@ public:
 
     struct Entry {
         juce::String display_name;
-        Facet value;
+        StoredType value;
     };
 
     enum class Layout : int {
@@ -23,7 +24,7 @@ public:
     };
 
 
-    ComboBoxWidget(Variable<Facet>& variable
+    ComboBoxWidget(Variable<Facet, StoredType>& variable
                    , std::vector<Entry>&& values
                    , const juce::String& label = ""
                    , const Layout layout = Layout::label_left
@@ -32,6 +33,9 @@ public:
               , m_label({}, label)
               , m_layout(layout)
               , m_label_width(label_width) {
+        static_assert(std::is_enum_v<StoredType> || std::is_integral_v<StoredType>
+                      , "ComboBoxWidget requires an integral value");
+
         setComponentID(variable.get_parameter_handler().get_id());
 
         initialize_combo_box(values);
@@ -132,17 +136,18 @@ private:
     void valueTreePropertyChanged(juce::ValueTree& treeWhosePropertyHasChanged
                                   , const juce::Identifier& property) override {
         if (m_variable.get_parameter_obj().equals_property(treeWhosePropertyHasChanged, property)) {
-            std::cout << "Variable ValueTree: "<< m_variable.get_parameter_handler().get_value_tree().toXmlString() << "\n";
-            std::cout << "Changed ValueTree: "<< treeWhosePropertyHasChanged.toXmlString() << "\n";
+            std::cout << "Variable ValueTree: " << m_variable.get_parameter_handler().get_value_tree().toXmlString()
+                      << "\n";
+            std::cout << "Changed ValueTree: " << treeWhosePropertyHasChanged.toXmlString() << "\n";
 
             m_combo_box.setSelectedId(id_from_value(m_variable.get_value()), juce::dontSendNotification);
         }
     }
 
 
-    int id_from_value(const Facet& value) const {
+    int id_from_value(const StoredType& value) const {
         for (const auto& entry: m_item_map) {
-            if (entry.second.value == static_cast<int>(value))
+            if (entry.second.value == value)
                 return entry.first;
         }
 
@@ -150,12 +155,12 @@ private:
     }
 
 
-    const Facet& value_from_id(int id) const {
+    const StoredType& value_from_id(int id) const {
         return m_item_map.at(id).value;
     }
 
 
-    Variable<Facet>& m_variable;
+    Variable<Facet, StoredType>& m_variable;
 
     juce::Label m_label;
     Layout m_layout;

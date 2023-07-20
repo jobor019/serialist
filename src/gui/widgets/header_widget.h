@@ -23,7 +23,7 @@ public:
 
 
     HeaderWidget(const std::string& public_name
-                 , Variable<Facet>& enabled)
+                 , Variable<Facet, bool>& enabled)
             : m_enabled(enabled)
               , m_label({}, public_name)
               , m_stepped(std::nullopt)
@@ -33,8 +33,8 @@ public:
 
 
     HeaderWidget(const std::string& public_name
-                 , Variable<Facet>& enabled
-                 , Variable<Facet>& stepped)
+                 , Variable<Facet, bool>& enabled
+                 , Variable<Facet, bool>& stepped)
             : m_enabled(enabled)
               , m_label({}, public_name)
               , m_stepped(std::make_optional<ToggleButtonWidget>(stepped))
