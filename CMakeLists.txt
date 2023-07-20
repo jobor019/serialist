@@ -9,6 +9,8 @@ find_package(JUCE CONFIG REQUIRED)        # If you've installed JUCE to your sys
 find_package(Catch2 3 REQUIRED)
 # add_subdirectory(JUCE)                    # If you've put JUCE in a subdirectory called JUCE
 
+
+add_subdirectory(lib)
 add_subdirectory(GuiUtils/src)
 
 set(SOURCES
@@ -181,6 +183,7 @@ target_link_libraries(playground
         # GuiAppData            # If we'd created a binary data target, we'd link to it here
         ${MODULE_DEPENDENCIES_JUCE}
         guiUtils
+        magicEnum
         PUBLIC
         ${FLAGS_JUCE})
 
@@ -204,6 +207,7 @@ target_link_libraries(tests
         ${MODULE_DEPENDENCIES_JUCE}
         PUBLIC
         ${FLAGS_JUCE}
+        magicEnum
         )
 
 target_include_directories(tests PRIVATE
@@ -236,6 +240,9 @@ target_compile_definitions(juceTests
 
 target_include_directories(juceTests PRIVATE ${INCLUDES})
 
-target_link_libraries(juceTests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(juceTests
+        PRIVATE
+        Catch2::Catch2WithMain
+        magicEnum)
 
 

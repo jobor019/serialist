@@ -1,0 +1,6 @@
+[submodule "lib/lib"]
+	path = lib/lib
+	url = git@github.com:Neargye/magic_enum.git
+[submodule "lib/magic_enum"]
+	path = lib/magic_enum/magic_enum
+	url = git@github.com:Neargye/magic_enum.git

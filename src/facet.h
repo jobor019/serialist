@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <optional>
+#include <magic_enum.hpp>
 
 class Facet {
 public:
@@ -16,11 +17,14 @@ public:
     template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
     explicit Facet(const T& v) : m_value(static_cast<double>(v)) {}
 
-
     template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
-    static Facet from_enum(T v, T min_enum_value, T max_enum_value) {
-        return Facet(enum_to_double(v, min_enum_value, max_enum_value));
-    }
+    explicit Facet(const T& v) : m_value(enum_to_double(v)) {}
+
+
+//    template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
+//    static Facet from_enum(const T& v) {
+//        return Facet(enum_to_double<T>(v));
+//    }
 
 
     explicit operator int() const {
@@ -31,6 +35,11 @@ public:
     template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
     explicit operator T() const {
         return static_cast<T>(m_value);
+    }
+
+    template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
+    explicit operator T() const {
+        return double_to_enum<T>(m_value);
     }
 
 
@@ -103,10 +112,10 @@ public:
     }
 
 
-    template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
-    T as_enum(const T& min_enum_value, const T& max_enum_value) const {
-        return double_to_enum(m_value, min_enum_value, max_enum_value);
-    }
+//    template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
+//    T as_enum(const T& min_enum_value, const T& max_enum_value) const {
+//        return double_to_enum(m_value, min_enum_value, max_enum_value);
+//    }
 
 
     double get() const {
@@ -154,26 +163,22 @@ public:
 private:
 
     template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
-    static T double_to_enum(double d, const T& min_enum, const T& max_enum) {
+    static T double_to_enum(double d) {
         d = std::min(1.0, std::max(0.0, d));
-        auto min = static_cast<int>(min_enum);
-        auto max = static_cast<int>(max_enum);
-        int n_values = max - min + 1;
+        constexpr auto n_values = magic_enum::enum_count<T>();
 
-        auto index = std::floor((d + enum_epsilon) * n_values) - min;
+        auto index = std::floor((d + enum_epsilon) * n_values);
 
         return static_cast<T>(index);
     }
 
 
     template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
-    static double enum_to_double(const T& v, const T& min_enum, const T& max_enum) {
-        auto min = static_cast<int>(min_enum);
-        auto max = static_cast<int>(max_enum);
+    static double enum_to_double(const T& v) {
         auto enum_v = static_cast<int>(v);
-        int n_values = max - min + 1;
+        constexpr auto n_values = magic_enum::enum_count<T>();
 
-        return static_cast<double>(enum_v - min) / static_cast<double>(n_values);
+        return static_cast<double>(enum_v) / static_cast<double>(n_values);
     }
 
 

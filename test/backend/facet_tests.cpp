@@ -75,8 +75,6 @@ TEST_CASE("Integer conversion") {
     }
 }
 
-
-
 enum class Enum100 {
     e1, e2, e3, e4, e5, e6, e7, e8, e9, e10,
     e11, e12, e13, e14, e15, e16, e17, e18, e19, e20,
@@ -90,33 +88,73 @@ enum class Enum100 {
     e91, e92, e93, e94, e95, e96, e97, e98, e99, e100
 };
 
+enum class Enum37 {
+    e1, e2, e3, e4, e5, e6, e7, e8, e9, e10,
+    e11, e12, e13, e14, e15, e16, e17, e18, e19, e20,
+    e21, e22, e23, e24, e25, e26, e27, e28, e29, e30,
+    e31, e32, e33, e34, e35, e36, e37
+};
+
+enum class Enum19 {
+    e1, e2, e3, e4, e5, e6, e7, e8, e9, e10,
+    e11, e12, e13, e14, e15, e16, e17, e18, e19
+};
+
+enum class Enum11 {
+    e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11
+};
+
+enum class Enum7 {
+    e1, e2, e3, e4, e5, e6, e7
+};
+
+enum class Enum3 {
+    e1, e2, e3
+};
+
+enum class Enum2 {
+    e1, e2
+};
+
+enum class Enum1 {
+    e1
+};
+
+
+
+template<typename T>
+void assert_enum() {
+    auto count = static_cast<int>(magic_enum::enum_count<T>());
+    REQUIRE(count > 0);
+    for (int i = 0; i < count; ++i) {
+        auto e = static_cast<T>(i);
+        auto f1 = static_cast<Facet>(e);
+        auto f2 = Facet(e);
+        REQUIRE(static_cast<T>(f1) == e);
+        REQUIRE(static_cast<T>(f2) == e);
+    }
+}
+
 
 TEST_CASE("Enum conversion") {
-    auto min_enum = Enum100::e1;
+    // True assertions
+    assert_enum<Enum100>();
+    assert_enum<Enum37>();
+    assert_enum<Enum19>();
+    assert_enum<Enum11>();
+    assert_enum<Enum7>();
+    assert_enum<Enum3>();
+    assert_enum<Enum2>();
+    assert_enum<Enum1>();
 
+
+    // False assertions
     auto max_enum = Enum100::e100;
-
-    for (int i = 0; i < static_cast<int>(max_enum); ++i) {
-        auto e = static_cast<Enum100>(i);
-        auto f = Facet::from_enum(e, min_enum, max_enum);
-        REQUIRE(f.as_enum(min_enum, max_enum) == e);
-    }
-
     auto prev_enum =static_cast<Enum100>(0);
     for (int i = 1; i < static_cast<int>(max_enum); ++i) {
-        auto f = Facet::from_enum(prev_enum, min_enum, max_enum);
+        auto f = Facet(prev_enum);
         prev_enum = static_cast<Enum100>(i);
-        REQUIRE(f.as_enum(min_enum, max_enum) != prev_enum);
-    }
-
-    // Smaller enum ranges:
-    for (int i = 1; i < static_cast<int>(max_enum); ++i) {
-        auto evaluated_max_enum = static_cast<Enum100>(i);
-        for (int j = 0; j < i; ++j) {
-            auto e = static_cast<Enum100>(j);
-            auto f = Facet::from_enum(e, min_enum, evaluated_max_enum);
-            REQUIRE(f.as_enum(min_enum, evaluated_max_enum) == e);
-        }
+        REQUIRE(static_cast<Enum100>(f) != prev_enum);
     }
 }
 
