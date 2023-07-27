@@ -3,6 +3,7 @@
 #define SERIALISTLOOPER_INTERACTION_VISUALIZATIONS_H
 
 #include <interaction_visualizer.h>
+#include "connectable.h"
 
 
 enum class ActionTypes {

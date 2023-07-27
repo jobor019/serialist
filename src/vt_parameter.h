@@ -287,6 +287,7 @@ private:
 template<typename T>
 class AtomicVTParameter : public VTParameter<T> {
 public:
+
     AtomicVTParameter(T initial_value, const std::string& id, VTParameterHandler& parent)
             : VTParameter<T>(initial_value, id, parent), m_value(initial_value) {
         static_assert(std::atomic<T>::is_always_lock_free, "DataType must be lock-free");
@@ -312,6 +313,7 @@ private:
 template<typename T>
 class LockingVTParameter : VTParameter<T> {
 public:
+
     LockingVTParameter(T initial_value, const std::string& id, VTParameterHandler& parent)
             : VTParameter<T>(initial_value, id, parent), m_value(initial_value) {
         static_assert(std::is_copy_constructible_v<T>, "DataType must be copyable");

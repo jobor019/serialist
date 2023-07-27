@@ -52,6 +52,7 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/gui/widgets/toggle_button_widget.h
         ${CMAKE_SOURCE_DIR}/src/gui/configuration_layer_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/connectable.h
+        ${CMAKE_SOURCE_DIR}/src/gui/connectable_dnd_controller.h
         ${CMAKE_SOURCE_DIR}/src/gui/connector_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/generative_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/interaction_visualizations.h

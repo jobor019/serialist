@@ -2,7 +2,6 @@
 #ifndef SERIALISTLOOPER_CONNECTABLE_H
 #define SERIALISTLOOPER_CONNECTABLE_H
 
-
 class Connectable {
 public:
     Connectable() = default;
@@ -17,6 +16,8 @@ public:
     virtual bool connect(Connectable& connectable) = 0;
 
 };
+
+
 
 
 #endif //SERIALISTLOOPER_CONNECTABLE_H

@@ -170,6 +170,7 @@ private:
 
     void mouseDrag(const juce::MouseEvent& event) override {
         if (m_currently_moving_component && GlobalKeyState::is_down_exclusive(KeyCodes::MOVE_KEY)) {
+            std::cout << "Move should be reimplemented with juce::ComponentDragger\n";
 
             auto p = getLocalPoint(event.originalComponent, event.getPosition());
 //            std::cout << "ID: " << event.originalComponent->getWidth() << " pos: "<< event.getPosition().getX() << ", " << event.getPosition().getY() << "\n";

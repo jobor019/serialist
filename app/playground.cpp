@@ -38,7 +38,7 @@ public:
 
     PlaygroundComponent()
             : m_some_handler(m_undo_manager)
-            , m_modular_generator(m_some_handler)
+              , m_modular_generator(m_some_handler)
               , m_config_layer_component(m_modular_generator)
 //              , m_pitch("pitch", m_some_handler)
 //              , s(ScalableSlider::Orientation::vertical)
@@ -160,14 +160,16 @@ public:
 
     }
 
+
     void recurse(juce::Component* component, std::vector<juce::Component*>& components) {
-        for (auto* child : component->getChildren()) {
+        for (auto* child: component->getChildren()) {
             if (child && child->getComponentID().isNotEmpty()) {
                 components.push_back(child);
                 recurse(child, components);
             }
         }
     }
+
 
     juce::Component* find_recursively(juce::Component* component, const juce::String& component_id) {
         if (!component)
@@ -176,7 +178,7 @@ public:
         if (component->getComponentID().equalsIgnoreCase(component_id))
             return component;
 
-        for (auto* child : component->getChildren()) {
+        for (auto* child: component->getChildren()) {
             juce::Component* foundComponent = find_recursively(child, component_id);
             if (foundComponent)
                 return foundComponent;
@@ -268,7 +270,8 @@ public:
         MainKeyboardFocusComponent::globalFocusChanged(focusedComponent);
     }
 
-    void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier &) override {
+
+    void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier&) override {
 //        std::cout << m_some_handler.get_value_tree().toXmlString() << "\n";
     }
 

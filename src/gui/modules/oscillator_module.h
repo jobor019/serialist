@@ -12,9 +12,12 @@
 #include "views/oscillator_view.h"
 #include "socket_widget.h"
 #include "interaction_visualizations.h"
+#include "connectable_dnd_controller.h"
 
 
-class OscillatorModule : public GenerativeComponent {
+class OscillatorModule : public GenerativeComponent
+, public juce::DragAndDropTarget
+                         , public Connectable {
 public:
 
     using SliderLayout = SliderWidget::Layout;
@@ -116,7 +119,6 @@ public:
 
     std::vector<std::unique_ptr<InteractionVisualization>> create_visualizations() {
         std::vector<std::unique_ptr<InteractionVisualization>> visualizations;
-        visualizations.emplace_back(std::make_unique<ConnectVisualization>(*this));
         visualizations.emplace_back(std::make_unique<MoveVisualization>(*this));
         visualizations.emplace_back(std::make_unique<DeleteVisualization>(*this));
         return visualizations;
@@ -131,6 +133,39 @@ public:
 
     Generative& get_generative() override {
         return m_oscillator;
+    }
+
+
+    bool connect(Connectable& connectable) override {
+        if (auto* socket = dynamic_cast<SocketWidget<Facet>*>(&connectable)) {
+            return socket->connect(*this);
+        }
+        return false;
+    }
+
+
+    bool connectable_to(juce::Component& component) override {
+        if (auto* socket = dynamic_cast<SocketWidget<Facet>*>(&component)) {
+            return socket->connectable_to(*this);
+        }
+        return false;
+    }
+
+
+    bool isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails) override {
+        return m_connectable_dnd_controller.is_interested_in(dragSourceDetails);
+    }
+
+    void itemDropped(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails) override {
+        m_connectable_dnd_controller.item_dropped(dragSourceDetails);
+    }
+
+    void itemDragEnter(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails) override {
+        m_connectable_dnd_controller.item_drag_enter(dragSourceDetails);
+    }
+
+    void itemDragExit(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails) override {
+        m_connectable_dnd_controller.item_drag_exit(dragSourceDetails);
     }
 
 
@@ -149,6 +184,8 @@ private:
         } else if (m_layout == Layout::generator_internal) {
             layout_generator_internal();
         }
+
+        m_interaction_visualizer.setBounds(getLocalBounds());
     }
 
 
@@ -181,8 +218,6 @@ private:
         m_duty_socket.setBounds(bounds.removeFromTop(slider_height));
         bounds.removeFromTop(y_margin);
         m_curve_socket.setBounds(bounds.removeFromTop(slider_height));
-
-        m_interaction_visualizer.setBounds(getLocalBounds());
     }
 
 
@@ -250,9 +285,7 @@ private:
     OscillatorView m_oscillator_view;
 
     InteractionVisualizer m_interaction_visualizer{*this, create_visualizations()};
-
-//    ModuleEditState m_edit_state;
-//    EditHighlightManager m_highlight_manager;
+    ConnectableDndController m_connectable_dnd_controller{*this, *this, &m_interaction_visualizer};
 
 };
 
