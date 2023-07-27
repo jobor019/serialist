@@ -16,7 +16,7 @@
 
 
 class OscillatorModule : public GenerativeComponent
-, public juce::DragAndDropTarget
+                         , public juce::DragAndDropTarget
                          , public Connectable {
 public:
 
@@ -152,19 +152,22 @@ public:
     }
 
 
-    bool isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails) override {
+    bool isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
         return m_connectable_dnd_controller.is_interested_in(dragSourceDetails);
     }
 
-    void itemDropped(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails) override {
+
+    void itemDropped(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
         m_connectable_dnd_controller.item_dropped(dragSourceDetails);
     }
 
-    void itemDragEnter(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails) override {
+
+    void itemDragEnter(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
         m_connectable_dnd_controller.item_drag_enter(dragSourceDetails);
     }
 
-    void itemDragExit(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails) override {
+
+    void itemDragExit(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
         m_connectable_dnd_controller.item_drag_exit(dragSourceDetails);
     }
 

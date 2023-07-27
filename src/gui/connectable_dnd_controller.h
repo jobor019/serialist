@@ -23,47 +23,64 @@ public:
     }
 
 
+    static bool is_connectable() {
+        return GlobalKeyState::is_down_exclusive(ConfigurationLayerKeyboardShortcuts::CONNECTOR_KEY);
+    }
+
+
     bool is_interested_in(const juce::DragAndDropTarget::SourceDetails& source_details) {
-        std::cout << "big interest " << (TEMP++) << "\n";
-        if (auto* source = source_details.sourceComponent.get()) {
-            return m_connectable.connectable_to(*source);
+        if (is_connectable()) {
+            if (auto* source = source_details.sourceComponent.get()) {
+                return m_connectable.connectable_to(*source);
+            }
         }
         return false;
     }
 
 
     void item_dropped(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) {
-        if (auto* connectable = dynamic_cast<Connectable*>(dragSourceDetails.sourceComponent.get())) {
-            m_connectable.connect(*connectable);
+        if (is_connectable()) {
+            if (auto* connectable = dynamic_cast<Connectable*>(dragSourceDetails.sourceComponent.get())) {
+                m_connectable.connect(*connectable);
+            }
         }
     }
 
 
     void item_drag_enter(const juce::DragAndDropTarget::SourceDetails&) {
-        std::cout << "big interest\n";
-        if (m_interaction_visualizer)
+        if (is_connectable() && m_interaction_visualizer)
             m_interaction_visualizer->set_drag_and_dropping(true);
     }
 
 
     void item_drag_exit(const juce::DragAndDropTarget::SourceDetails&) {
-        std::cout << "big interest\n";
-        if (m_interaction_visualizer)
+        if (is_connectable() && m_interaction_visualizer)
             m_interaction_visualizer->set_drag_and_dropping(false);
     }
 
 
     void mouseDrag(const juce::MouseEvent&) override {
-        if (GlobalKeyState::is_down_exclusive(ConfigurationLayerKeyboardShortcuts::CONNECTOR_KEY)) {
-            juce::DragAndDropContainer* parent_drag_component =
-                    juce::DragAndDropContainer::findParentDragContainerFor(&m_source_component);
-
-            if (parent_drag_component && !parent_drag_component->isDragAndDropActive()) {
-                std::cout << "draggging\n";
-                parent_drag_component->startDragging("connection", &m_source_component, juce::ScaledImage(
-                        m_source_component.createComponentSnapshot(juce::Rectangle<int>(1, 1))));
-            }
+        if (!is_connectable()) {
+            return;
         }
+
+        juce::DragAndDropContainer* parent_drag_component =
+                juce::DragAndDropContainer::findParentDragContainerFor(&m_source_component);
+
+        if (parent_drag_component && !parent_drag_component->isDragAndDropActive()) {
+            auto img = juce::Image(juce::Image::PixelFormat::RGB, 100, 30, true);
+            juce::Graphics g(img);
+            g.setColour(juce::Colours::steelblue);
+            g.setColour(juce::Colours::powderblue);
+            img.multiplyAllAlphas(0.5f);
+            g.drawFittedText("typename", img.getBounds(), juce::Justification::centred, 1);
+            parent_drag_component->startDragging("src", &m_source_component, juce::ScaledImage(img));
+
+            // Old approach:
+//                parent_drag_component->startDragging("connection", &m_source_component, juce::ScaledImage(
+//                        m_source_component.createComponentSnapshot(juce::Rectangle<int>(1, 1))));
+        }
+
     }
 
 
@@ -72,8 +89,6 @@ private:
     juce::Component& m_source_component;
 
     InteractionVisualizer* m_interaction_visualizer;
-
-    int TEMP = 0;
 
 };
 

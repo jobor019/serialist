@@ -10,6 +10,7 @@
 #include "connectable.h"
 #include "interaction_visualizer.h"
 #include "interaction_visualizations.h"
+#include "connectable_dnd_controller.h"
 
 template<typename SocketType>
 class TemplateSocketWidget : public juce::Component
@@ -55,11 +56,6 @@ public:
     TemplateSocketWidget& operator=(TemplateSocketWidget&&) noexcept = default;
 
 
-    static bool is_connectable() {
-        return GlobalKeyState::is_down_exclusive(ConfigurationLayerKeyboardShortcuts::CONNECTOR_KEY);
-    }
-
-
     static bool is_disconnectable() {
         return GlobalKeyState::is_down_exclusive(ConfigurationLayerKeyboardShortcuts::DISCONNECT_KEY);
     }
@@ -67,46 +63,18 @@ public:
 
     std::vector<std::unique_ptr<InteractionVisualization>> create_visualizations() {
         std::vector<std::unique_ptr<InteractionVisualization>> visualizations;
-        visualizations.emplace_back(std::make_unique<ConnectVisualization>(*this));
         visualizations.emplace_back(std::make_unique<DisconnectVisualization>(*this));
         return visualizations;
     }
 
 
     bool isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
-        if (is_connectable()) {
-            if (auto* source = dragSourceDetails.sourceComponent.get())
-                return connectable_to(*source) && is_connectable();
-        }
-        return false;
+        return m_connectable_dnd_controller.is_interested_in(dragSourceDetails);
     }
 
 
     void itemDropped(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
-        if (is_connectable()) {
-            if (auto* connectable = dynamic_cast<Connectable*>(dragSourceDetails.sourceComponent.get())) {
-                connect(*connectable);
-            }
-        }
-    }
-
-
-    void mouseDrag(const juce::MouseEvent&) override {
-        juce::DragAndDropContainer* parent_drag_component =
-                juce::DragAndDropContainer::findParentDragContainerFor(this);
-
-        if (is_connectable() && parent_drag_component && !parent_drag_component->isDragAndDropActive()) {
-            auto img = juce::Image(juce::Image::PixelFormat::RGB, 100, 30, true);
-            juce::Graphics g(img);
-            g.setColour(juce::Colours::steelblue);
-//            g.fillRect(img.getBounds());
-            g.setColour(juce::Colours::powderblue);
-            img.multiplyAllAlphas(0.5f);
-            g.drawFittedText("typename", img.getBounds(), juce::Justification::centred, 1);
-
-
-            parent_drag_component->startDragging("src", this, juce::ScaledImage(img));
-        }
+        m_connectable_dnd_controller.item_dropped(dragSourceDetails);
     }
 
 
@@ -119,15 +87,13 @@ public:
     }
 
 
-    void itemDragEnter(const juce::DragAndDropTarget::SourceDetails&) override {
-        if (is_connectable())
-            m_interaction_visualizer.set_drag_and_dropping(true);
+    void itemDragEnter(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
+        m_connectable_dnd_controller.item_drag_enter(dragSourceDetails);
     }
 
 
-    void itemDragExit(const juce::DragAndDropTarget::SourceDetails&) override {
-        if (is_connectable())
-            m_interaction_visualizer.set_drag_and_dropping(false);
+    void itemDragExit(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
+        m_connectable_dnd_controller.item_drag_exit(dragSourceDetails);
     }
 
 
@@ -142,21 +108,16 @@ public:
 
 
     bool connectable_to(juce::Component& component) override {
-        if (is_connectable()) {
-            if (auto* generative_component = dynamic_cast<GenerativeComponent*>(&component)) {
-                return m_socket.is_connectable(generative_component->get_generative());
-            }
+        if (auto* generative_component = dynamic_cast<GenerativeComponent*>(&component)) {
+            return m_socket.is_connectable(generative_component->get_generative());
         }
-
         return false;
     }
 
 
     bool connect(Connectable& connectable) override {
-        if (is_connectable()) {
-            if (auto* generative_component = dynamic_cast<GenerativeComponent*>(&connectable)) {
-                return m_socket.try_connect(generative_component->get_generative());
-            }
+        if (auto* generative_component = dynamic_cast<GenerativeComponent*>(&connectable)) {
+            return m_socket.try_connect(generative_component->get_generative());
         }
         return false;
     }
@@ -217,6 +178,8 @@ private:
     std::unique_ptr<GenerativeComponent> m_default_widget;
 
     InteractionVisualizer m_interaction_visualizer{*this, create_visualizations()};
+    ConnectableDndController m_connectable_dnd_controller{*this, *this, &m_interaction_visualizer};
+
 
     ConnectionSourceComponent m_connection_source_component;
 
@@ -239,7 +202,7 @@ template<typename OutputType>
 class DataSocketWidget : public TemplateSocketWidget<DataSocket<OutputType>> {
 public:
     explicit DataSocketWidget(DataSocket<OutputType>& socket, std::unique_ptr<GenerativeComponent> default_widget)
-    : TemplateSocketWidget<DataSocket<OutputType>>(socket, std::move(default_widget)) {}
+            : TemplateSocketWidget<DataSocket<OutputType>>(socket, std::move(default_widget)) {}
 };
 
 

@@ -70,7 +70,6 @@ public:
 
     std::vector<std::unique_ptr<InteractionVisualization>> create_visualizations() {
         std::vector<std::unique_ptr<InteractionVisualization>> visualizations;
-        visualizations.emplace_back(std::make_unique<ConnectVisualization>(*this));
         visualizations.emplace_back(std::make_unique<MoveVisualization>(*this));
         visualizations.emplace_back(std::make_unique<DeleteVisualization>(*this));
         return visualizations;
@@ -106,39 +105,22 @@ public:
 
 
     bool isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
-        if (auto* source = dragSourceDetails.sourceComponent.get()) {
-            std::cout << "isinttres " << (++temp) << "\n";
-            return connectable_to(*source);
-        }
-        return false;
+        return m_connectable_dnd_controller.is_interested_in(dragSourceDetails);
     }
 
 
     void itemDropped(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
-        if (auto* connectable = dynamic_cast<Connectable*>(dragSourceDetails.sourceComponent.get())) {
-            connect(*connectable);
-        }
+        m_connectable_dnd_controller.item_dropped(dragSourceDetails);
     }
 
 
-    void mouseDrag(const juce::MouseEvent&) override {
-        juce::DragAndDropContainer* parent_drag_component =
-                juce::DragAndDropContainer::findParentDragContainerFor(this);
-
-        if (parent_drag_component && !parent_drag_component->isDragAndDropActive()) {
-            parent_drag_component->startDragging("src", this, juce::ScaledImage(
-                    createComponentSnapshot(juce::Rectangle<int>(1, 1))));
-        }
+    void itemDragEnter(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
+        m_connectable_dnd_controller.item_drag_enter(dragSourceDetails);
     }
 
 
-    void itemDragEnter(const juce::DragAndDropTarget::SourceDetails&) override {
-        m_interaction_visualizer.set_drag_and_dropping(true);
-    }
-
-
-    void itemDragExit(const juce::DragAndDropTarget::SourceDetails&) override {
-        m_interaction_visualizer.set_drag_and_dropping(false);
+    void itemDragExit(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
+        m_connectable_dnd_controller.item_drag_exit(dragSourceDetails);
     }
 
 
@@ -194,8 +176,7 @@ private:
     Layout m_layout = Layout::full;
 
     InteractionVisualizer m_interaction_visualizer{*this, create_visualizations()};
-
-    int temp = 0;
+    ConnectableDndController m_connectable_dnd_controller{*this, *this, &m_interaction_visualizer};
 };
 
 #endif //SERIALISTLOOPER_NEW_GENERATOR_COMPONENT_H
