@@ -5,6 +5,7 @@
 
 #include "transport.h"
 #include "parameter_policy.h"
+#include "voice.h"
 
 #include <optional>
 
@@ -22,6 +23,8 @@ public:
     virtual std::vector<Generative*> get_connected() = 0;
     virtual ParameterHandler& get_parameter_handler() = 0;
     virtual void disconnect_if(Generative& connected_to) = 0;
+
+    virtual int num_voices() = 0;
 
 
     template<typename... Args, std::enable_if_t<std::conjunction_v<std::is_base_of<Generative, Args>...>, int> = 0>
@@ -52,7 +55,7 @@ public:
 template<typename T>
 class Node : public Generative {
 public:
-    virtual std::vector<T> process(const TimePoint& t) = 0;
+    virtual const Voices<T>& process(const TimePoint& t) = 0;
 };
 
 

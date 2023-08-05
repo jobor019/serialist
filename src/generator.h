@@ -40,17 +40,18 @@ public:
     }
 
 
-    std::vector<T> process(const TimePoint& t) override {
-        if (!is_enabled(t))
-            return {};
+    const Voices<T>& process(const TimePoint& t) override {
+        if (!is_enabled(t) || !m_cursor.is_connected()) {
+            m_current_output.clear();
+            return m_current_output;
+        }
 
-        if (!m_cursor.is_connected())
-            return {};
-
-        auto y = m_cursor.process_or(t, Facet(0.0)).get();
+//        auto y = m_cursor.process_or(t, Facet(0.0)).get();
+        auto y = m_cursor.process(t);
 
         if (!m_interpolation_strategy.is_connected() || !m_sequence.is_connected()) {
             if constexpr (std::is_same_v<T, Facet>) {
+
                 return {static_cast<T>(y)};
             } else {
                 return {};
@@ -125,6 +126,9 @@ private:
     DataSocket<T> m_sequence;
 
     Socket<Facet> m_enabled;
+    Socket<Facet> m_num_voices;
+
+    Voices<T> m_current_output;
 
 };
 

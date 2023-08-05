@@ -159,7 +159,7 @@ public:
     }
 
 
-    std::vector<T> process(const TimePoint& t) {
+    const Voices<T>& process(const TimePoint& t) {
         std::lock_guard<std::mutex> lock{VTSocketBase<Node<T>>::m_mutex};
         if (VTSocketBase<Node<T>>::m_node == nullptr)
             return {};
@@ -167,18 +167,18 @@ public:
     }
 
 
-    T process_or(const TimePoint& t, T default_value) {
-        std::lock_guard<std::mutex> lock{VTSocketBase<Node<T>>::m_mutex};
-        if (!VTSocketBase<Node<T>>::m_node)
-            return default_value;
-
-        auto values = VTSocketBase<Node<T>>::m_node->process((t));
-
-        if (values.empty())
-            return default_value;
-        else
-            return values.at(0);
-    }
+//    T process_or(const TimePoint& t, T default_value) {
+//        std::lock_guard<std::mutex> lock{VTSocketBase<Node<T>>::m_mutex};
+//        if (!VTSocketBase<Node<T>>::m_node)
+//            return default_value;
+//
+//        auto values = VTSocketBase<Node<T>>::m_node->process((t));
+//
+//        if (values.empty())
+//            return default_value;
+//        else
+//            return values.at(0);
+//    }
 
 };
 
