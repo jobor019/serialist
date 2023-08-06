@@ -159,10 +159,12 @@ public:
     }
 
 
-    const Voices<T>& process(const TimePoint& t) {
+    const Voices<T>& process(const TimePoint& t, std::size_t num_voices) {
         std::lock_guard<std::mutex> lock{VTSocketBase<Node<T>>::m_mutex};
-        if (VTSocketBase<Node<T>>::m_node == nullptr)
-            return {};
+        if (VTSocketBase<Node<T>>::m_node == nullptr) {
+            fallback_value = Voices<T>(num_voices);
+            return fallback_value;
+        }
         return VTSocketBase<Node<T>>::m_node->process(t);
     }
 
@@ -179,6 +181,9 @@ public:
 //        else
 //            return values.at(0);
 //    }
+
+private:
+    Voices<T> fallback_value = Voices<T>(1);
 
 };
 

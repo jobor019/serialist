@@ -24,8 +24,6 @@ public:
     virtual ParameterHandler& get_parameter_handler() = 0;
     virtual void disconnect_if(Generative& connected_to) = 0;
 
-    virtual int num_voices() = 0;
-
 
     template<typename... Args, std::enable_if_t<std::conjunction_v<std::is_base_of<Generative, Args>...>, int> = 0>
     std::vector<Generative*> collect_connected(Args* ... args) {

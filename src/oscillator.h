@@ -49,7 +49,8 @@ public:
                , Node<Facet>* mul = nullptr
                , Node<Facet>* duty = nullptr
                , Node<Facet>* curve = nullptr
-               , Node<Facet>* enabled = nullptr)
+               , Node<Facet>* enabled = nullptr
+               , Node<Facet>* num_voices = nullptr)
             : m_parameter_handler(identifier, parent)
               , m_socket_handler("", m_parameter_handler, ParameterKeys::GENERATIVE_SOCKETS_TREE)
               , m_type(OscillatorKeys::TYPE, m_socket_handler, type)
@@ -59,16 +60,46 @@ public:
               , m_duty(OscillatorKeys::DUTY, m_socket_handler, duty)
               , m_curve(OscillatorKeys::CURVE, m_socket_handler, curve)
               , m_enabled(OscillatorKeys::ENABLED, m_socket_handler, enabled)
-              , m_rng(std::random_device()()), m_distribution(0.0, 1.0)
-              , m_previous_values(100) {
+              , m_num_voices(ParameterKeys::NUM_VOICES, m_socket_handler, num_voices)
+              , m_phasors({Phasor()})
+              , m_rng(std::random_device()())
+              , m_distribution(0.0, 1.0)
+              , m_previous_values(100)
+              {
         m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, OscillatorKeys::CLASS_NAME);
     }
 
 
-    std::vector<Facet> process(const TimePoint& t) override {
-        auto value = step_oscillator(t);
-        m_previous_values.push(static_cast<double>(value));
-        return {value};
+    const Voices<Facet>& process(const TimePoint& t) override {
+        // TODO: Only compute when trigger received!!!!
+        auto num_voices = static_cast<std::size_t>(std::max(1, m_num_voices.process(t, 1).front_or(1)));
+        if (num_voices != m_phasors.size()) {
+            recompute_num_phasors(num_voices);
+        }
+
+        if (!static_cast<bool>(m_enabled.process(t, 1).front_or(true))) {
+            return m_current_value;
+        }
+
+        std::vector<Type> types = m_type.process(t, num_voices).values_or(Type::phasor);
+        std::vector<double> freqs = m_freq.process(t, num_voices).values_or(1.0);
+        std::vector<double> muls = m_mul.process(t, num_voices).values_or(1.0);
+        std::vector<double> adds = m_add.process(t, num_voices).values_or(0.0);
+        std::vector<double> dutys = m_duty.process(t, num_voices).values_or(0.5);
+        std::vector<double> curves = m_duty.process(t, num_voices).values_or(1.0);
+
+        std::vector<Facet> output;
+        output.reserve(num_voices);
+
+        for (std::size_t i = 0; i < num_voices; ++i) {
+            output.emplace_back(step_oscillator(t, i, types.at(i), freqs.at(i), muls.at(i)
+                                                , adds.at(i), dutys.at(i), curves.at(i)));
+        }
+
+        m_previous_values.push(output);
+        m_current_value = Voices<Facet>(output);
+
+        return {m_current_value};
     }
 
 
@@ -79,7 +110,8 @@ public:
                                  , m_mul.get_connected()
                                  , m_duty.get_connected()
                                  , m_curve.get_connected()
-                                 , m_enabled.get_connected());
+                                 , m_enabled.get_connected()
+                                 , m_num_voices.get_connected());
     }
 
 
@@ -96,6 +128,7 @@ public:
         m_duty.disconnect_if(connected_to);
         m_curve.disconnect_if(connected_to);
         m_enabled.disconnect_if(connected_to);
+        m_num_voices.disconnect_if(connected_to);
     }
 
 
@@ -120,6 +153,9 @@ public:
     void set_enabled(Node<Facet>* enabled) { m_enabled = enabled; }
 
 
+    void set_num_voices(Node<Facet>* num_voices) { m_num_voices = num_voices; }
+
+
     Socket<Facet>& get_type() { return m_type; }
 
 
@@ -141,84 +177,88 @@ public:
     Socket<Facet>& get_enabled() { return m_enabled; }
 
 
-    std::vector<double> get_output_history() { return m_previous_values.pop_all(); }
+    Socket<Facet>& get_num_voices() { return m_num_voices; }
+
+
+    std::vector<std::vector<Facet>> get_output_history() { return m_previous_values.pop_all(); }
 
 
 private:
 
-    Facet step_oscillator(const TimePoint& t) {
+    void recompute_num_phasors(std::size_t num_voices) {
+        auto diff = static_cast<long>(num_voices - m_phasors.size());
+        if (diff < 0) {
+            // remove N last phasors
+            m_phasors.erase(m_phasors.end() + diff, m_phasors.end());
+        } else if (diff > 0) {
+            // duplicate last phasor N times
+            auto last = m_phasors.back();
+            m_phasors.resize(m_phasors.size() + static_cast<std::size_t>(diff), last);
+        }
+    }
 
-        auto type = static_cast<Type>(m_type.process_or(t, Facet(Type::phasor)));
+
+    double step_oscillator(const TimePoint& t, std::size_t voice_index
+                           , Type type, double freq, double mul, double add, double duty, double curve) {
+        auto x = phasor_position(t, voice_index, freq);
+        return mul * waveform(x, type, duty, curve) + add;
+    }
+
+
+    double waveform(double x, Type type, double duty, double curve) {
         switch (type) {
             case Type::phasor:
-                return Facet(phasor(t));
+                return x;
             case Type::sin:
-                return Facet(sin(t));
+                return sin(x);
             case Type::square:
-                return Facet(square(t));
+                return square(x, duty);
             case Type::tri:
-                return Facet(tri(t));
+                return tri(x, duty, curve);
             case Type::white_noise:
-                return Facet(white_noise(t));
+                return white_noise();
             case Type::brown_noise:
-                return Facet(brown_noise(t));
+                return brown_noise();
             case Type::random_walk:
-                return Facet(random_walk(t));
+                return random_walk();
             default:
                 throw std::runtime_error("oscillator types not implemented");
         }
     }
 
 
-    double phasor_position(const TimePoint& t) {
-        auto freq = m_freq.process_or(t, Facet(1.0));
-        return m_phasor.process(t.get_tick(), static_cast<double>(freq));
+    double phasor_position(const TimePoint& t, std::size_t voice_index, double freq) {
+        return m_phasors.at(voice_index).process(t.get_tick(), freq);
     }
 
 
-    double phasor(const TimePoint& t) {
-        return m_mul.process_or(t, Facet(1.0)).get() * phasor_position(t) + m_add.process_or(t, Facet(0.0)).get();
+    static double sin(double x) {
+        return 0.5 * -std::cos(2 * M_PI * x) + 0.5;
     }
 
 
-    double sin(const TimePoint& t) {
-        auto y = 0.5 * -std::cos(2 * M_PI * phasor_position(t)) + 0.5;
-        return m_mul.process_or(t, Facet(1.0)).get() * y + m_add.process_or(t, Facet(0.0)).get();
+    static double square(double x, double duty) {
+        return static_cast<double>(x <= duty);
     }
 
 
-    double square(const TimePoint& t) {
-        auto y = static_cast<double>(phasor_position(t) <= m_duty.process_or(t, Facet(0.5)).get());
-        return m_mul.process_or(t, Facet(1.0)).get() * y + m_add.process_or(t, Facet(0.0)).get();
-    }
-
-
-    double tri(const TimePoint& t) {
-        auto duty = m_duty.process_or(t, Facet(0.5)).get();
-        auto curve = m_curve.process_or(t, Facet(1.0)).get();
-        auto x = phasor_position(t);
-
-        double y;
+    static double tri(double x, double duty, double curve) {
         if (duty < 1e-8) {                  // duty = 0 => negative phase only (avoid div0)
-            y = std::pow(1 - x, curve);
+            return std::pow(1 - x, curve);
         } else if (x <= duty) {             // positive phase
-            y = std::pow(x / duty, curve);
+            return std::pow(x / duty, curve);
         } else {                            // negative phase
-            y = std::pow(1 - (x - duty) / (1 - duty), curve);
+            return std::pow(1 - (x - duty) / (1 - duty), curve);
         }
-
-        return m_mul.process_or(t, Facet(1.0)).get() * y + m_add.process_or(t, Facet(0.0)).get();
     }
 
 
-    double white_noise(const TimePoint& t) {
-        (void) t;
+    double white_noise() {
         return m_distribution(m_rng);
     }
 
 
-    double brown_noise(const TimePoint& t) {
-        (void) t;
+    static double brown_noise() {
         throw std::runtime_error("not implemented"); // TODO
 //        double white_noise = distribution_(generator_);
 //        double new_output = last_output_ + (white_noise - last_output_) / 16.0;
@@ -231,8 +271,7 @@ private:
     }
 
 
-    double random_walk(const TimePoint& t) {
-        (void) t;
+    static double random_walk() {
         throw std::runtime_error("not implemented"); // TODO
 //        double next = current_ + distribution_(rng_);
 //        if (next > 1.0) {
@@ -258,13 +297,16 @@ private:
     Socket<Facet> m_curve;
 
     Socket<Facet> m_enabled;
+    Socket<Facet> m_num_voices;
 
-    Phasor m_phasor;
+    std::vector<Phasor> m_phasors;
 
     std::mt19937 m_rng;
     std::uniform_real_distribution<double> m_distribution;
 
-    utils::LockingQueue<double> m_previous_values;
+    utils::LockingQueue<std::vector<Facet>> m_previous_values;
+
+    Voices<Facet> m_current_value = Voices<Facet>(Facet(1));  // NOTE: OBJECT IS NOT THREAD-SAFE!
 
 
 };

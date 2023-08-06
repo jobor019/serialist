@@ -195,7 +195,7 @@ target_link_libraries(playground
 #####################################################################################
 
 add_executable(tests
-#        ${CMAKE_SOURCE_DIR}/test/oscillator_tests.cpp
+        ${CMAKE_SOURCE_DIR}/test/backend/oscillator_tests.cpp
 #        ${CMAKE_SOURCE_DIR}/test/interpolator_tests.cpp
 #        ${CMAKE_SOURCE_DIR}/test/selector_tests.cpp
 #        ${CMAKE_SOURCE_DIR}/test/looper_tests.cpp
@@ -220,14 +220,14 @@ target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
 
 
 #####################################################################################
-## TARGET: VTTESTS TESTS
+## TARGET: VT_TESTS TESTS
 #####################################################################################
 
-add_executable(juceTests
+add_executable(vtTests
         ${CMAKE_SOURCE_DIR}/test/juce/juce_tests.cpp
         )
 
-target_link_libraries(juceTests
+target_link_libraries(vtTests
         PRIVATE
         # GuiAppData            # If we'd created a binary data target, we'd link to it here
         ${MODULE_DEPENDENCIES_JUCE}
@@ -235,14 +235,14 @@ target_link_libraries(juceTests
         ${FLAGS_JUCE}
         )
 
-target_compile_definitions(juceTests
+target_compile_definitions(vtTests
         PRIVATE
         USE_JUCE=1
         )
 
-target_include_directories(juceTests PRIVATE ${INCLUDES})
+target_include_directories(vtTests PRIVATE ${INCLUDES})
 
-target_link_libraries(juceTests
+target_link_libraries(vtTests
         PRIVATE
         Catch2::Catch2WithMain
         magicEnum)

@@ -46,8 +46,10 @@ public:
             return m_current_output;
         }
 
+        m_num_voices.process(t).values_or(Facet(1), 1);
+
 //        auto y = m_cursor.process_or(t, Facet(0.0)).get();
-        auto y = m_cursor.process(t);
+        auto y = m_cursor.process(t).values_or(Facet(0.0), );
 
         if (!m_interpolation_strategy.is_connected() || !m_sequence.is_connected()) {
             if constexpr (std::is_same_v<T, Facet>) {
