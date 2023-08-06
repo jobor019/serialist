@@ -29,8 +29,8 @@ public:
     }
 
 
-    std::vector<OutputType> process(const TimePoint&) override {
-        return {static_cast<OutputType>(m_value.get())};
+    const Voices<OutputType> process(const TimePoint&) override {
+        return Voices<OutputType>(static_cast<OutputType>(m_value.get()));
     }
 
 
