@@ -53,7 +53,7 @@ public:
 template<typename T>
 class Node : public Generative {
 public:
-    virtual const Voices<T> process(const TimePoint& t) = 0;
+    virtual Voices<T> process(const TimePoint& t) = 0;
 };
 
 

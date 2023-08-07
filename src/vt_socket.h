@@ -200,11 +200,11 @@ public:
     }
 
 
-    std::vector<T> process(const TimePoint& t, double y, InterpolationStrategy strategy) {
+    Voice<T> process(const TimePoint& t, double y, InterpolationStrategy strategy) {
         std::lock_guard<std::mutex> lock{VTSocketBase<DataNode<T>>::m_mutex};
         if (VTSocketBase<DataNode<T>>::m_node == nullptr)
-            return {};
-        return VTSocketBase<DataNode<T>>::m_node->process(t, y, strategy);
+            return Voice<T>::create_empty();
+        return Voice<T>(VTSocketBase<DataNode<T>>::m_node->process(t, y, strategy));
     }
 
 

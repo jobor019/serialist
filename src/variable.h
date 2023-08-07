@@ -29,7 +29,7 @@ public:
     }
 
 
-    const Voices<OutputType> process(const TimePoint&) override {
+    Voices<OutputType> process(const TimePoint&) override {
         return Voices<OutputType>(static_cast<OutputType>(m_value.get()));
     }
 

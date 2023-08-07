@@ -15,7 +15,7 @@ public:
     explicit Voice(const T& v) : Voice(std::vector<T>(1, v)) {}
 
 
-    Voice create_empty() { return Voice({}); }
+    static Voice create_empty() { return Voice({}); }
 
 
     bool empty() const { return m_voice.empty(); }
@@ -29,11 +29,17 @@ public:
 
     template<typename U = T>
     U value_or(const U& fallback) const {
-        if (m_voice.empty()) {
+        if (m_voice.empty())
             return fallback;
-        } else {
-            return static_cast<U>(m_voice.at(0));
-        }
+        return static_cast<U>(m_voice.at(0));
+    }
+
+
+    template<typename U = T>
+    std::optional<U> value() const {
+        if (m_voice.empty())
+            return std::nullopt;
+        return m_voice.front();
     }
 
 
@@ -54,7 +60,8 @@ public:
         assert(!m_voices.empty());
     }
 
-    explicit Voices(std::size_t num_voices) : Voices(std::vector<Voice<T>>(num_voices, Voice<T>({}))) {}
+
+    explicit Voices(std::size_t num_voices) : Voices(empty_like(num_voices)) {}
 
 
     explicit Voices(const T& v, std::size_t num_voices = 1) : Voices(std::vector<T>(num_voices, v)) {}
@@ -76,7 +83,7 @@ public:
 //    }
 
 
-    void clear() { m_voices.clear(); }
+    void clear(std::size_t num_voices = 1) { m_voices = empty_like(num_voices); }
 
 
     std::size_t size() const { return m_voices.size(); }
@@ -86,8 +93,32 @@ public:
 
 
     template<typename U = T>
+    const std::vector<std::optional<U>> fronts() const {
+        std::vector<std::optional<U>> output;
+        output.reserve(m_voices.size());
+
+        std::transform(m_voices.begin(), m_voices.end(), std::back_inserter(output)
+                       , [](const Voice<T>& voice) { return voice.value(); });
+
+        return output;
+    }
+
+
+    template<typename U = T>
     U front_or(const U& fallback) const {
         return front().value_or(fallback);
+    }
+
+
+    template<typename U = T>
+    std::vector<U> fronts_or(const U& fallback) const {
+        std::vector<U> output;
+        output.reserve(m_voices.size());
+
+        std::transform(m_voices.begin(), m_voices.end(), std::back_inserter(output)
+                       , [&fallback](const Voice<T>& voice) { return voice.value_or(fallback); });
+
+        return output;
     }
 
 
@@ -106,6 +137,12 @@ public:
 
 
 private:
+    static std::vector<Voice<T>> empty_like(std::size_t num_voices) {
+        assert(num_voices > 0);
+        return std::vector<Voice<T>>(num_voices, Voice<T>({}));
+    }
+
+
     static Voices<T> adapt_to_voice_count(const std::vector<Voice<T>>& v, std::size_t target_num_voices) {
         if (v.size() == target_num_voices) {
             return Voices<T>(v);

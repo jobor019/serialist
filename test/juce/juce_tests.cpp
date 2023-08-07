@@ -2,6 +2,8 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "oscillator.h"
 
+#include "generator.h"
+
 class OscillatorWrapper {
 public:
     OscillatorWrapper()
@@ -49,5 +51,32 @@ TEST_CASE("Oscillator") {
             }
         }
     }
+}
 
+
+// ==============================================================================================
+
+template<typename T>
+class GeneratorWrapper {
+public:
+    GeneratorWrapper()
+            : enabled("", handler, true)
+              ,num_voices("", handler, 1)
+              , generator("", handler) {}
+
+    juce::UndoManager um;
+    ParameterHandler handler{um};
+
+    Variable<Facet, bool> enabled;
+    Variable<Facet, int> num_voices;
+
+    Generator<T> generator;
+};
+
+TEST_CASE("Generator") {
+    auto wrapper = GeneratorWrapper<Facet>();
+    auto& generator = wrapper.generator;
+
+    auto t = TimePoint();
+    generator.process(t);
 }

@@ -29,44 +29,52 @@ public:
               , Node<Facet>* cursor = nullptr
               , Node<InterpolationStrategy>* interp = nullptr
               , DataNode<T>* sequence = nullptr
-              , Node<Facet>* enabled = nullptr)
+              , Node<Facet>* enabled = nullptr
+              , Node<Facet>* num_voices = nullptr)
             : m_parameter_handler(id, parent)
               , m_socket_handler("", m_parameter_handler, ParameterKeys::GENERATIVE_SOCKETS_TREE)
               , m_cursor(GeneratorKeys::CURSOR, m_socket_handler, cursor)
               , m_interpolation_strategy(GeneratorKeys::INTERP, m_socket_handler, interp)
               , m_sequence(GeneratorKeys::SEQUENCE, m_socket_handler, sequence)
-              , m_enabled(GeneratorKeys::ENABLED, m_socket_handler, enabled) {
+              , m_enabled(GeneratorKeys::ENABLED, m_socket_handler, enabled)
+              , m_num_voices(ParameterKeys::NUM_VOICES, m_socket_handler, num_voices) {
         m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, GeneratorKeys::CLASS_NAME);
     }
 
 
-    const Voices<T>& process(const TimePoint& t) override {
+    Voices<T> process(const TimePoint& t) override {
+        auto num_voices = static_cast<std::size_t>(std::max(1, m_num_voices.process(t, 1).front_or(1)));
+
         if (!is_enabled(t) || !m_cursor.is_connected()) {
-            m_current_output.clear();
-            return m_current_output;
+            m_current_value.clear(num_voices);
+            return m_current_value;
         }
 
-        m_num_voices.process(t).values_or(Facet(1), 1);
-
-//        auto y = m_cursor.process_or(t, Facet(0.0)).get();
-        auto y = m_cursor.process(t).values_or(Facet(0.0), );
+        std::vector<double> ys = m_cursor.process(t, num_voices).values_or(0.0);
 
         if (!m_interpolation_strategy.is_connected() || !m_sequence.is_connected()) {
             if constexpr (std::is_same_v<T, Facet>) {
-
-                return {static_cast<T>(y)};
+                m_current_value = Voices<T>(Facet::vector_cast(ys));
             } else {
-                return {};
+                m_current_value =  Voices<T>(num_voices);
+            }
+            return m_current_value;
+        }
+
+        std::vector<Voice<T>> output;
+        output.reserve(num_voices);
+        auto strategies = m_interpolation_strategy.process(t, num_voices).fronts();
+
+        for (std::size_t i = 0; i < num_voices; ++i) {
+            if (strategies.at(i)) {
+                output.emplace_back(m_sequence.process(t, ys.at(i), *strategies.at(i)));
+            } else {
+                output.emplace_back(Voice<T>::create_empty());
             }
         }
 
-        auto strategy = m_interpolation_strategy.process(t);
-
-        if (strategy.empty())
-            return {};
-
-
-        return m_sequence.process(t, y, strategy.at(0));
+        m_current_value = Voices<T>(output);
+        return m_current_value;
     }
 
 
@@ -116,7 +124,7 @@ public:
 private:
 
     bool is_enabled(const TimePoint& t) {
-        return static_cast<bool>(m_enabled.process_or(t, Facet(true)));
+        return m_enabled.process(t, 1).front_or(true);
     }
 
     ParameterHandler m_parameter_handler;
@@ -130,7 +138,7 @@ private:
     Socket<Facet> m_enabled;
     Socket<Facet> m_num_voices;
 
-    Voices<T> m_current_output;
+    Voices<T> m_current_value = Voices<T>(1);
 
 };
 

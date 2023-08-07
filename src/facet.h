@@ -17,6 +17,7 @@ public:
     template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
     explicit Facet(const T& v) : m_value(static_cast<double>(v)) {}
 
+
     template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
     explicit Facet(const T& v) : m_value(enum_to_double(v)) {}
 
@@ -25,6 +26,29 @@ public:
 //    static Facet from_enum(const T& v) {
 //        return Facet(enum_to_double<T>(v));
 //    }
+
+    template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+    static std::vector<Facet> vector_cast(const std::vector<T>& v) {
+        std::vector<Facet> output;
+        output.reserve(v.size());
+
+        std::transform(v.begin(), v.end(), std::back_inserter(output)
+                       , [](const T& t) { return static_cast<Facet>(t); });
+
+        return output;
+    }
+
+
+    template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
+    static std::vector<Facet> vector_cast(const std::vector<T>& v) {
+        std::vector<Facet> output;
+        output.reserve(v.size());
+
+        std::transform(v.begin(), v.end(), std::back_inserter(output)
+                       , [](const T& t) { enum_to_double(t); });
+
+        return output;
+    }
 
 
     explicit operator int() const {
@@ -36,6 +60,7 @@ public:
     explicit operator T() const {
         return static_cast<T>(m_value);
     }
+
 
     template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
     explicit operator T() const {

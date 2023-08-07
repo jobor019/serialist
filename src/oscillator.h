@@ -70,7 +70,7 @@ public:
     }
 
 
-    const Voices<Facet> process(const TimePoint& t) override {
+    Voices<Facet> process(const TimePoint& t) override {
         // TODO: Only compute when trigger received!!!!
         auto num_voices = static_cast<std::size_t>(std::max(1, m_num_voices.process(t, 1).front_or(1)));
         if (num_voices != m_phasors.size()) {
