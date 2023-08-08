@@ -7,14 +7,14 @@
 #include "socket_policy.h"
 #include "generative_component.h"
 #include "keyboard_shortcuts.h"
-#include "connectable.h"
+#include "connectable_module.h"
 #include "interaction_visualizer.h"
 #include "interaction_visualizations.h"
 #include "connectable_dnd_controller.h"
 
 template<typename SocketType>
 class TemplateSocketWidget : public juce::Component
-                             , public Connectable
+                             , public ConnectableModule
                              , public juce::DragAndDropTarget
                              , private juce::ValueTree::Listener {
 public:
@@ -115,7 +115,7 @@ public:
     }
 
 
-    bool connect(Connectable& connectable) override {
+    bool connect(ConnectableModule& connectable) override {
         if (auto* generative_component = dynamic_cast<GenerativeComponent*>(&connectable)) {
             return m_socket.try_connect(generative_component->get_generative());
         }

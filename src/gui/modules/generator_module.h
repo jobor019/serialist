@@ -14,7 +14,7 @@
 
 template<typename OutputType, typename InternalSequenceType = OutputType>
 class GeneratorModule : public GenerativeComponent
-                        , public Connectable
+                        , public ConnectableModule
                         , public juce::DragAndDropTarget {
 public:
     enum class Layout {
@@ -95,7 +95,7 @@ public:
     }
 
 
-    bool connect(Connectable& connectable) override {
+    bool connect(ConnectableModule& connectable) override {
         if (auto* socket = dynamic_cast<SocketWidget<OutputType>*>(&connectable)) {
             return socket->connect(*this);
         }

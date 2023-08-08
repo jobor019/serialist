@@ -3,7 +3,7 @@
 #define SERIALISTLOOPER_INTERACTION_VISUALIZATIONS_H
 
 #include <interaction_visualizer.h>
-#include "connectable.h"
+#include "connectable_module.h"
 
 
 enum class ActionTypes {
@@ -74,7 +74,7 @@ class ConnectVisualization : public InteractionVisualization {
 public:
     explicit ConnectVisualization(juce::Component& source)
             : InteractionVisualization(source)
-              , m_source_if_connectable(dynamic_cast<Connectable*>(&source)) {
+              , m_source_if_connectable(dynamic_cast<ConnectableModule*>(&source)) {
 
         addChildComponent(m_mouseover_highlight);
         addChildComponent(m_source_highlight);
@@ -152,7 +152,7 @@ private:
     BorderAndFillHighlight m_target_highlight{std::nullopt, {juce::Colours::skyblue.withAlpha(0.5f)}};
     BorderHighlight m_potential_target_highlight{juce::Colours::chocolate};
 
-    Connectable* m_source_if_connectable;
+    ConnectableModule* m_source_if_connectable;
 };
 
 

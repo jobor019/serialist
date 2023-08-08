@@ -17,7 +17,7 @@
 
 class OscillatorModule : public GenerativeComponent
                          , public juce::DragAndDropTarget
-                         , public Connectable {
+                         , public ConnectableModule {
 public:
 
     using SliderLayout = SliderWidget::Layout;
@@ -136,7 +136,7 @@ public:
     }
 
 
-    bool connect(Connectable& connectable) override {
+    bool connect(ConnectableModule& connectable) override {
         if (auto* socket = dynamic_cast<SocketWidget<Facet>*>(&connectable)) {
             return socket->connect(*this);
         }

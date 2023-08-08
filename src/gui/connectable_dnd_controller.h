@@ -3,13 +3,13 @@
 #define SERIALISTLOOPER_CONNECTABLE_DND_CONTROLLER_H
 
 #include "interaction_visualizer.h"
-#include "connectable.h"
+#include "connectable_module.h"
 #include "generative.h"
 #include "interaction_visualizations.h"
 
 class ConnectableDndController : public juce::MouseListener {
 public:
-    ConnectableDndController(Connectable& connectable
+    ConnectableDndController(ConnectableModule& connectable
                              , juce::Component& source_component
                              , InteractionVisualizer* parent_interaction_visualizer)
             : m_connectable(connectable)
@@ -40,7 +40,7 @@ public:
 
     void item_dropped(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) {
         if (is_connectable()) {
-            if (auto* connectable = dynamic_cast<Connectable*>(dragSourceDetails.sourceComponent.get())) {
+            if (auto* connectable = dynamic_cast<ConnectableModule*>(dragSourceDetails.sourceComponent.get())) {
                 m_connectable.connect(*connectable);
             }
         }
@@ -85,7 +85,7 @@ public:
 
 
 private:
-    Connectable& m_connectable;
+    ConnectableModule& m_connectable;
     juce::Component& m_source_component;
 
     InteractionVisualizer* m_interaction_visualizer;

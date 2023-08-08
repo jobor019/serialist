@@ -51,6 +51,8 @@ TEST_CASE("Oscillator") {
             }
         }
     }
+
+    std::cout << "size: " << osc.get_connected().size() << "\n";
 }
 
 

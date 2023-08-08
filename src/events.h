@@ -8,9 +8,7 @@
 
 class Event {
 public:
-    explicit Event(double time) : m_time(time) {}
-
-
+    Event() = default;
     virtual ~Event() = default;
     Event(const Event&) = default;
     Event& operator=(const Event&) = default;
@@ -18,26 +16,38 @@ public:
     Event& operator=(Event&&) = default;
 
 
-    [[nodiscard]] double get_time() const { return m_time; }
+    virtual double get_time() = 0;
 
-
-private:
-    double m_time;
 };
 
 
 // ==============================================================================================
 
-class TriggerEvent : public Event {
+class Trigger : public Event {
 public:
-    // TODO: TRIGGER TIME VS TARGET TIME
-    explicit TriggerEvent(double time) : Event(time) {}
+    enum class Type {
+        pulse
+        , pulse_off
+    };
 
 
-    explicit TriggerEvent(const TimePoint& time_point) : Event(time_point.get_tick()) {}
+    Trigger(double time, Type type, int id) : m_time(time), m_type(type), m_id(id) {}
 
+
+    double get_time() override { return m_time; }
+
+
+    int get_id() const { return m_id; }
+
+
+    Type get_type() const { return m_type; }
+
+
+private:
+    double m_time;
+    Type m_type;
+    int m_id;
 };
-
 
 
 // ==============================================================================================
@@ -45,7 +55,7 @@ public:
 class MidiEvent : public Event {
 public:
     MidiEvent(double time, int midi_cents, int velocity, int channel)
-            : Event(time), m_midi_cents(midi_cents), m_velocity(velocity), m_channel(channel) {}
+            : m_trigger_time(time), m_midi_cents(midi_cents), m_velocity(velocity), m_channel(channel) {}
 
 
     static MidiEvent note_on(double time, int midi_cents, int velocity, int channel) {
@@ -58,29 +68,31 @@ public:
     }
 
 
-    static std::pair<MidiEvent, MidiEvent> note(double onset
-                                                , int midi_cents
-                                                , int velocity
-                                                , int channel
-                                                , double duration) {
+    static std::pair<MidiEvent, MidiEvent> note(double onset, int midi_cents
+                                                , int velocity, int channel, double duration) {
         return std::make_pair<MidiEvent, MidiEvent>({onset, midi_cents, velocity, channel}
                                                     , {onset + duration, midi_cents, 0, channel});
     }
 
 
-    [[nodiscard]] int get_midi_cents() const { return m_midi_cents; }
+    double get_time() override { return m_trigger_time; }
 
 
-    [[nodiscard]] int get_note_number() const { return m_midi_cents / 100; }
+    int get_midi_cents() const { return m_midi_cents; }
 
 
-    [[nodiscard]] int get_velocity() const { return m_velocity; }
+    int get_note_number() const { return m_midi_cents / 100; }
 
 
-    [[nodiscard]] int get_channel() const { return m_channel; }
+    int get_velocity() const { return m_velocity; }
+
+
+    int get_channel() const { return m_channel; }
 
 
 private:
+    double m_trigger_time;
+
     int m_midi_cents;
     int m_velocity;
     int m_channel;

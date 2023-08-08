@@ -24,6 +24,9 @@ public:
     const T& at(std::size_t pos) const { return m_voice.at(pos); }
 
 
+    void append(const T& v) { m_voice.push_back(v); }
+
+
     const std::vector<T>& vector() const { return m_voice; }
 
 
@@ -75,6 +78,20 @@ public:
     }
 
 
+    static Voices<T> create_empty_like() { return Voices<T>(1); }
+
+
+    void append(const Voice<T>& voice) {
+        m_voices.push_back(voice);
+    }
+
+
+    /**
+     * @throws std::out_of_range if `voice_index >= size()`
+     */
+    void append_at(std::size_t voice_index, const T& value) {
+        m_voices.at(voice_index).append(value);
+    }
 
 
 
@@ -125,6 +142,22 @@ public:
     template<typename U = T>
     std::vector<U> values_or(const U& fallback_value) const {
         return v_or(m_voices, fallback_value);
+    }
+
+
+    template<typename U = T, std::enable_if_t<std::is_arithmetic_v<U>, int> = 0>
+    std::vector<U> values_or(const U& fallback_value
+                             , const std::optional<U>& low_thresh
+                             , const std::optional<U>& high_thresh) const {
+        auto values = v_or(m_voices, fallback_value);
+        for (auto& v: values) {
+            if (low_thresh)
+                v = std::max(*low_thresh, v);
+            if (high_thresh) {
+                v = std::min(*high_thresh, v);
+            }
+        }
+        return values;
     }
 
 

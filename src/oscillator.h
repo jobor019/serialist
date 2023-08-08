@@ -12,9 +12,13 @@
 #include "socket_policy.h"
 #include "variable.h"
 #include "facet.h"
+#include "socket_handler.h"
 
 class Oscillator : public Node<Facet> {
 public:
+
+    static const int HISTORY_LENGTH = 300;
+
     enum class Type {
         phasor
         , sin
@@ -52,20 +56,19 @@ public:
                , Node<Facet>* enabled = nullptr
                , Node<Facet>* num_voices = nullptr)
             : m_parameter_handler(identifier, parent)
-              , m_socket_handler("", m_parameter_handler, ParameterKeys::GENERATIVE_SOCKETS_TREE)
-              , m_type(OscillatorKeys::TYPE, m_socket_handler, type)
-              , m_freq(OscillatorKeys::FREQ, m_socket_handler, freq)
-              , m_add(OscillatorKeys::ADD, m_socket_handler, add)
-              , m_mul(OscillatorKeys::MUL, m_socket_handler, mul)
-              , m_duty(OscillatorKeys::DUTY, m_socket_handler, duty)
-              , m_curve(OscillatorKeys::CURVE, m_socket_handler, curve)
-              , m_enabled(OscillatorKeys::ENABLED, m_socket_handler, enabled)
-              , m_num_voices(ParameterKeys::NUM_VOICES, m_socket_handler, num_voices)
+              , m_socket_handler(m_parameter_handler)
+              , m_type(m_socket_handler.create_socket(OscillatorKeys::TYPE, type))
+              , m_freq(m_socket_handler.create_socket(OscillatorKeys::FREQ, freq))
+              , m_add(m_socket_handler.create_socket(OscillatorKeys::ADD, add))
+              , m_mul(m_socket_handler.create_socket(OscillatorKeys::MUL, mul))
+              , m_duty(m_socket_handler.create_socket(OscillatorKeys::DUTY, duty))
+              , m_curve(m_socket_handler.create_socket(OscillatorKeys::CURVE, curve))
+              , m_enabled(m_socket_handler.create_socket(OscillatorKeys::ENABLED, enabled))
+              , m_num_voices(m_socket_handler.create_socket(ParameterKeys::NUM_VOICES, num_voices))
               , m_phasors({Phasor()})
               , m_rng(std::random_device()())
               , m_distribution(0.0, 1.0)
-              , m_previous_values(100)
-              {
+              , m_previous_values(HISTORY_LENGTH) {
         m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, OscillatorKeys::CLASS_NAME);
     }
 
@@ -103,15 +106,8 @@ public:
     }
 
 
-    std::vector<Generative*> get_connected() override { // TODO: Generalize
-        return collect_connected(m_type.get_connected()
-                                 , m_freq.get_connected()
-                                 , m_add.get_connected()
-                                 , m_mul.get_connected()
-                                 , m_duty.get_connected()
-                                 , m_curve.get_connected()
-                                 , m_enabled.get_connected()
-                                 , m_num_voices.get_connected());
+    std::vector<Generative*> get_connected() override {
+        return m_socket_handler.get_connected();
     }
 
 
@@ -121,14 +117,7 @@ public:
 
 
     void disconnect_if(Generative& connected_to) override {
-        m_type.disconnect_if(connected_to);
-        m_freq.disconnect_if(connected_to);
-        m_add.disconnect_if(connected_to);
-        m_mul.disconnect_if(connected_to);
-        m_duty.disconnect_if(connected_to);
-        m_curve.disconnect_if(connected_to);
-        m_enabled.disconnect_if(connected_to);
-        m_num_voices.disconnect_if(connected_to);
+        m_socket_handler.disconnect_if(connected_to);
     }
 
 
@@ -286,18 +275,18 @@ private:
 
 
     ParameterHandler m_parameter_handler;
-    ParameterHandler m_socket_handler;
+    SocketHandler m_socket_handler;
 
 
-    Socket<Facet> m_type;
-    Socket<Facet> m_freq;
-    Socket<Facet> m_add;
-    Socket<Facet> m_mul;
-    Socket<Facet> m_duty;
-    Socket<Facet> m_curve;
+    Socket<Facet>& m_type;
+    Socket<Facet>& m_freq;
+    Socket<Facet>& m_add;
+    Socket<Facet>& m_mul;
+    Socket<Facet>& m_duty;
+    Socket<Facet>& m_curve;
 
-    Socket<Facet> m_enabled;
-    Socket<Facet> m_num_voices;
+    Socket<Facet>& m_enabled;
+    Socket<Facet>& m_num_voices;
 
     std::vector<Phasor> m_phasors;
 

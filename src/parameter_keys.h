@@ -18,6 +18,7 @@ public:
     static const inline std::string GENERATIVE_SOCKET = "SOCKET";
 
     static const inline std::string NUM_VOICES = "num_voices";
+    static const inline std::string ENABLED = "enabled";
 
     static const inline std::string MODULES_TREE = "MODULES";
     static const inline std::string MODULE_NAME = "name";

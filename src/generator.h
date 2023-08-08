@@ -3,12 +3,11 @@
 #ifndef SERIALISTLOOPER_GENERATOR_H
 #define SERIALISTLOOPER_GENERATOR_H
 
-#include <iomanip>
-
 #include "generative.h"
 #include "parameter_policy.h"
 #include "sequence.h"
 #include "socket_policy.h"
+#include "socket_handler.h"
 
 template<typename T>
 class Generator : public Node<T> {
@@ -32,12 +31,12 @@ public:
               , Node<Facet>* enabled = nullptr
               , Node<Facet>* num_voices = nullptr)
             : m_parameter_handler(id, parent)
-              , m_socket_handler("", m_parameter_handler, ParameterKeys::GENERATIVE_SOCKETS_TREE)
-              , m_cursor(GeneratorKeys::CURSOR, m_socket_handler, cursor)
-              , m_interpolation_strategy(GeneratorKeys::INTERP, m_socket_handler, interp)
-              , m_sequence(GeneratorKeys::SEQUENCE, m_socket_handler, sequence)
-              , m_enabled(GeneratorKeys::ENABLED, m_socket_handler, enabled)
-              , m_num_voices(ParameterKeys::NUM_VOICES, m_socket_handler, num_voices) {
+              , m_socket_handler(m_parameter_handler)
+              , m_cursor(m_socket_handler.create_socket(GeneratorKeys::CURSOR, cursor))
+              , m_interpolation_strategy(m_socket_handler.create_socket(GeneratorKeys::INTERP, interp))
+              , m_sequence(m_socket_handler.create_data_socket(GeneratorKeys::SEQUENCE, sequence))
+              , m_enabled(m_socket_handler.create_socket(GeneratorKeys::ENABLED, enabled))
+              , m_num_voices(m_socket_handler.create_socket(ParameterKeys::NUM_VOICES, num_voices)) {
         m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, GeneratorKeys::CLASS_NAME);
     }
 
@@ -79,15 +78,11 @@ public:
 
 
     std::vector<Generative*> get_connected() override {
-        return Generative::collect_connected(m_cursor.get_connected()
-                                             , m_interpolation_strategy.get_connected()
-                                             , m_sequence.get_connected());
+        return m_socket_handler.get_connected();
     }
 
     void disconnect_if(Generative& connected_to) override {
-        m_cursor.disconnect_if(connected_to);
-        m_interpolation_strategy.disconnect_if(connected_to);
-        m_sequence.disconnect_if(connected_to);
+        m_socket_handler.disconnect_if(connected_to);
     }
 
     ParameterHandler & get_parameter_handler() override {
@@ -98,15 +93,15 @@ public:
     void set_cursor(Node<Facet>* cursor) { m_cursor = cursor; }
 
 
-    void set_interpolation_strategy(Node<InterpolationStrategy>* interpolation_strategy) {
-        m_interpolation_strategy = interpolation_strategy;
-    }
+    void set_interpolation_strategy(Node<InterpolationStrategy>* is) { m_interpolation_strategy = is; }
 
 
     void set_sequence(Sequence<T>* sequence) { m_sequence = sequence; }
 
 
     void set_enabled(Node<Facet>* enabled) { m_enabled = enabled; }
+
+    void set_num_voices(Node<Facet>* num_voices) { m_num_voices = num_voices; }
 
 
     Socket<Facet>& get_cursor() { return m_cursor; }
@@ -120,6 +115,8 @@ public:
 
     Socket<Facet>& get_enabled() { return m_enabled; }
 
+    Socket<Facet>& get_num_voices() { return m_num_voices; }
+
 
 private:
 
@@ -128,15 +125,15 @@ private:
     }
 
     ParameterHandler m_parameter_handler;
-    ParameterHandler m_socket_handler;
+    SocketHandler m_socket_handler;
 
 
-    Socket<Facet> m_cursor;
-    Socket<InterpolationStrategy> m_interpolation_strategy;
-    DataSocket<T> m_sequence;
+    Socket<Facet>& m_cursor;
+    Socket<InterpolationStrategy>& m_interpolation_strategy;
+    DataSocket<T>& m_sequence;
 
-    Socket<Facet> m_enabled;
-    Socket<Facet> m_num_voices;
+    Socket<Facet>& m_enabled;
+    Socket<Facet>& m_num_voices;
 
     Voices<T> m_current_value = Voices<T>(1);
 

@@ -16,7 +16,7 @@
 class MidiNoteSource : public Source {
 public:
 
-    static const int HISTORY_LENGTH = 50;
+    static const int HISTORY_LENGTH = 300;
 
     class NoteSourceKeys {
     public:
@@ -38,7 +38,8 @@ public:
                    , Node<Facet>* pitch = nullptr
                    , Node<Facet>* velocity = nullptr
                    , Node<Facet>* channel = nullptr
-                   , Node<Facet>* enabled = nullptr)
+                   , Node<Facet>* enabled = nullptr
+                   , Node<Facet>* num_voices = nullptr)
             : m_parameter_handler(id, parent)
               , m_socket_handler("", m_parameter_handler, ParameterKeys::GENERATIVE_SOCKETS_TREE)
               , m_onset(NoteSourceKeys::ONSET, m_socket_handler, onset)
@@ -47,6 +48,7 @@ public:
               , m_velocity(NoteSourceKeys::VELOCITY, m_socket_handler, velocity)
               , m_channel(NoteSourceKeys::CHANNEL, m_socket_handler, channel)
               , m_enabled(NoteSourceKeys::ENABLED, m_socket_handler, enabled)
+              , m_num_voices(ParameterKeys::NUM_VOICES, m_socket_handler, num_voices)
               , m_played_notes(HISTORY_LENGTH) {
         m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, NoteSourceKeys::CLASS_NAME);
     }
@@ -95,6 +97,7 @@ public:
         m_channel.disconnect_if(connected_to);
         m_onset.disconnect_if(connected_to);
         m_enabled.disconnect_if(connected_to);
+        m_num_voices.disconnect_if(connected_to);
     }
 
 
@@ -104,7 +107,8 @@ public:
                                  , m_pitch.get_connected()
                                  , m_velocity.get_connected()
                                  , m_channel.get_connected()
-                                 , m_enabled.get_connected());
+                                 , m_enabled.get_connected()
+                                 , m_num_voices.get_connected());
     }
 
 
@@ -124,6 +128,7 @@ public:
     void set_velocity(Node<Facet>* velocity) { m_velocity = velocity; }
     void set_channel(Node<Facet>* channel) { m_channel = channel; }
     void set_enabled(Node<Facet>* enabled) { m_enabled = enabled; }
+    void set_num_voices(Node<Facet>* num_voices) { m_num_voices = num_voices; }
 
 
     Socket<Facet>& get_onset() { return m_onset; }
@@ -132,6 +137,7 @@ public:
     Socket<Facet>& get_velocity() { return m_velocity; }
     Socket<Facet>& get_channel() { return m_channel; }
     Socket<Facet>& get_enabled() { return m_enabled; }
+    Socket<Facet>& get_num_voices() { return m_num_voices; }
 
 
     void set_midi_device(const std::string& device_name, bool override = true) {
@@ -176,7 +182,7 @@ private:
 
 
     bool is_enabled(const TimePoint& t) {
-        return static_cast<bool>(m_enabled.process_or(t, Facet(false)));
+        return m_enabled.process(t, 1).front_or(false);
     }
 
 
@@ -203,7 +209,7 @@ private:
 
 
     ParameterHandler m_parameter_handler;
-    ParameterHandler m_socket_handler;
+    SocketHandler m_socket_handler;
 
     Scheduler m_scheduler;
     MidiRenderer m_midi_renderer;
@@ -215,6 +221,7 @@ private:
     Socket<Facet> m_channel;
 
     Socket<Facet> m_enabled;
+    Socket<Facet> m_num_voices;
 
     utils::LockingQueue<MidiEvent> m_played_notes;
 

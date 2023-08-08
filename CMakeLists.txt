@@ -15,6 +15,7 @@ add_subdirectory(GuiUtils/src)
 
 set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/collection.h
+        ${CMAKE_SOURCE_DIR}/src/connectable.h
         ${CMAKE_SOURCE_DIR}/src/events.h
         ${CMAKE_SOURCE_DIR}/src/exceptions.h
         ${CMAKE_SOURCE_DIR}/src/facet.h
@@ -27,11 +28,13 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/oscillator.h
         ${CMAKE_SOURCE_DIR}/src/parameter_policy.h
         ${CMAKE_SOURCE_DIR}/src/phasor.h
+        ${CMAKE_SOURCE_DIR}/src/pulsator.h
         ${CMAKE_SOURCE_DIR}/src/scheduler.h
         ${CMAKE_SOURCE_DIR}/src/transport.h
         ${CMAKE_SOURCE_DIR}/src/sequence.h
         ${CMAKE_SOURCE_DIR}/src/serializable.h
         ${CMAKE_SOURCE_DIR}/src/selector.h
+        ${CMAKE_SOURCE_DIR}/src/socket_handler.h
         ${CMAKE_SOURCE_DIR}/src/socket_policy.h
         ${CMAKE_SOURCE_DIR}/src/transform.h
         ${CMAKE_SOURCE_DIR}/src/vt_socket.h
@@ -52,7 +55,7 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/gui/widgets/slider_widget.h
         ${CMAKE_SOURCE_DIR}/src/gui/widgets/toggle_button_widget.h
         ${CMAKE_SOURCE_DIR}/src/gui/configuration_layer_component.h
-        ${CMAKE_SOURCE_DIR}/src/gui/connectable.h
+        ${CMAKE_SOURCE_DIR}/src/gui/connectable_module.h
         ${CMAKE_SOURCE_DIR}/src/gui/connectable_dnd_controller.h
         ${CMAKE_SOURCE_DIR}/src/gui/connector_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/generative_component.h

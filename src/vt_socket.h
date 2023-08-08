@@ -4,11 +4,14 @@
 #define SERIALISTLOOPER_VT_SOCKET_H
 
 #include <string>
+#include <thread>
 
 #include "generative.h"
+#include "connectable.h"
 
 template<typename SocketType>
-class VTSocketBase : private juce::ValueTree::Listener {
+class VTSocketBase : public Connectable
+                     , private juce::ValueTree::Listener {
 public:
     static const inline std::string CONNECTED_PROPERTY = "connected";
 
@@ -34,19 +37,41 @@ public:
         m_parent.get_value_tree().removeChild(m_value_tree, &m_parent.get_undo_manager());
     }
 
+    VTSocketBase(const VTSocketBase&) = delete;
+    VTSocketBase& operator=(const VTSocketBase&) = delete;
+    VTSocketBase(VTSocketBase&&)  noexcept = default;
+    VTSocketBase& operator=(VTSocketBase&&)  noexcept = default;
 
-    bool is_connectable(Generative& generative) {
-        std::lock_guard<std::mutex> lock{m_mutex};
+
+    Generative* get_connected() const override {
+        return dynamic_cast<Generative*>(m_node);
+    }
+
+
+    bool is_connected() const override {
+        return m_node;
+    }
+
+
+    bool is_connectable(Generative& generative) const override {
         return static_cast<bool>(dynamic_cast<SocketType*>(&generative));
     }
 
 
-    bool try_connect(Generative& generative) {
+    bool try_connect(Generative& generative) override {
         if (auto* node = dynamic_cast<SocketType*>(&generative)) {
             set_connection_internal(node);
             return true;
         }
         return false;
+    }
+
+
+    void disconnect_if(Generative& connected_to) override {
+        if (get_connected() == &connected_to) {
+            std::cout << "\nDISCONNECTING !!!!!\n";
+            set_connection_internal(nullptr);
+        }
     }
 
 
@@ -60,25 +85,6 @@ public:
         std::lock_guard<std::mutex> lock{m_mutex};
         set_connection_internal(nullptr);
 
-    }
-
-
-    void disconnect_if(Generative& connected_to){
-        std::lock_guard<std::mutex> lock{m_mutex};
-        if (get_connected() == &connected_to) {
-            std::cout << "\nDISCONNECTING !!!!!\n";
-            set_connection_internal(nullptr);
-        }
-    }
-
-
-    [[nodiscard]] Generative* get_connected() const {
-        return dynamic_cast<Generative*>(m_node);
-    }
-
-
-    [[nodiscard]] bool is_connected() const {
-        return m_node;
     }
 
 
@@ -147,7 +153,6 @@ protected:
 template<typename T>
 class VTSocket : public VTSocketBase<Node<T>> {
 public:
-
     VTSocket(const std::string& id, ParameterHandler& parent, Node<T>* initial = nullptr)
             : VTSocketBase<Node<T>>(id, parent, initial) {}
 
@@ -166,20 +171,6 @@ public:
         }
         return VTSocketBase<Node<T>>::m_node->process(t).adapted_to(num_voices);
     }
-
-
-//    T process_or(const TimePoint& t, T default_value) {
-//        std::lock_guard<std::mutex> lock{VTSocketBase<Node<T>>::m_mutex};
-//        if (!VTSocketBase<Node<T>>::m_node)
-//            return default_value;
-//
-//        auto values = VTSocketBase<Node<T>>::m_node->process((t));
-//
-//        if (values.empty())
-//            return default_value;
-//        else
-//            return values.at(0);
-//    }
 
 };
 
@@ -209,5 +200,6 @@ public:
 
 
 };
+
 
 #endif //SERIALISTLOOPER_VT_SOCKET_H
