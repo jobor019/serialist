@@ -42,6 +42,12 @@ public:
         return passed_events;
     }
 
+    std::vector<std::unique_ptr<EventType>> flush() {
+        std::vector<std::unique_ptr<EventType>> v;
+        std::swap(m_events, v);
+        return v;
+    }
+
 
     bool is_empty() {
         return m_events.empty();
@@ -55,6 +61,8 @@ public:
                     return (dynamic_cast<T*>(event.get()) != nullptr);
                 });
     }
+
+
 
 
     std::vector<EventType*> peek() const {

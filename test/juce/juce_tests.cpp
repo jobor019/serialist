@@ -3,6 +3,7 @@
 #include "oscillator.h"
 
 #include "generator.h"
+#include "pulsator.h"
 
 class OscillatorWrapper {
 public:
@@ -16,6 +17,7 @@ public:
               , enabled("", handler, true)
               , num_voices("", handler, 1)
               , oscillator("", handler, &osc_type, &freq, &add, &mul, &duty, &curve, &enabled, &num_voices) {}
+
 
     juce::UndoManager um;
     ParameterHandler handler{um};
@@ -45,8 +47,8 @@ TEST_CASE("Oscillator") {
         std::cout << "- step " << i << "\n";
         auto s = osc.process(t);
 
-        for (auto& e : s.vector()) {
-            for (auto& ee : e.vector()) {
+        for (auto& e: s.vector()) {
+            for (auto& ee: e.vector()) {
                 std::cout << "    " << ee << "\n";
             }
         }
@@ -63,8 +65,9 @@ class GeneratorWrapper {
 public:
     GeneratorWrapper()
             : enabled("", handler, true)
-              ,num_voices("", handler, 1)
+              , num_voices("", handler, 1)
               , generator("", handler) {}
+
 
     juce::UndoManager um;
     ParameterHandler handler{um};
@@ -81,4 +84,60 @@ TEST_CASE("Generator") {
 
     auto t = TimePoint();
     generator.process(t);
+}
+
+
+class PulsatorWrapper {
+public:
+    PulsatorWrapper()
+            : interval("", handler, 1.0)
+              , duty_cycle("", handler, 1.0)
+              , enabled("", handler, true)
+              , num_voices("", handler, 1)
+              , pulsator("", handler, &interval, &duty_cycle, &enabled, &num_voices) {}
+
+
+    juce::UndoManager um;
+    ParameterHandler handler{um};
+
+
+    Variable<Facet, float> interval;
+    Variable<Facet, float> duty_cycle;
+    Variable<Facet, float> enabled;
+    Variable<Facet, float> num_voices;
+
+    Pulsator pulsator;
+};
+
+TEST_CASE("Pulsator") {
+    auto wrapper = PulsatorWrapper();
+    auto& pulsator = wrapper.pulsator;
+    wrapper.num_voices.set_value(3);
+    wrapper.interval.set_value(1);
+    wrapper.duty_cycle.set_value(0.5f);
+
+    for (int i = 0; i < 10000; ++i) {
+        auto t = i / 1000.0;
+
+        auto v = pulsator.process(TimePoint(t));
+
+        if (!v.empty_like()) {
+            std::cout << "TICK " << t << ":  ";
+        }
+
+
+        for (auto& vv: v.vector()) {
+            for (auto& val : vv.vector()) {
+                if (val.get_type() == Trigger::Type::pulse) {
+                    std::cout << "PULSE(" << val.get_id() << "), ";
+                } else {
+                    std::cout << "off(" << val.get_id() << "), ";
+                }
+            }
+        }
+        if (!v.empty_like())
+            std::cout << "\n";
+    }
+
+
 }

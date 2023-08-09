@@ -89,7 +89,7 @@ public:
     /**
      * @throws std::out_of_range if `voice_index >= size()`
      */
-    void append_at(std::size_t voice_index, const T& value) {
+    void append_to(std::size_t voice_index, const T& value) {
         m_voices.at(voice_index).append(value);
     }
 
@@ -104,6 +104,15 @@ public:
 
 
     std::size_t size() const { return m_voices.size(); }
+
+    bool empty_like() const {
+        for (auto& voice : m_voices) {
+            if (!voice.empty()) {
+                return false;
+            }
+        }
+        return true;
+    }
 
 
     const Voice<T>& front() const { return m_voices.front(); }

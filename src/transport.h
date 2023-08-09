@@ -6,26 +6,40 @@
 #include <chrono>
 #include <cmath>
 
-class Meter {
+class Fraction {
 public:
-    explicit Meter(int numerator = 4, int denominator = 4)
-            : m_numerator(numerator), m_denominator(denominator) {}
+    Fraction(int num, int denom) : n(num), d(denom) {}
 
 
-    [[nodiscard]]
-    double duration() const {
-        return m_numerator / static_cast<double>(m_denominator);
+    explicit operator double() const {
+        return n / static_cast<double>(d);
     }
 
 
-    [[nodiscard]] int get_numerator() const { return m_numerator; }
+    int n;
+    int d;
+};
 
-    [[nodiscard]] int get_denominator() const { return m_denominator; }
+class Meter {
+public:
+    explicit Meter(int numerator = 4, int denominator = 4) : m_fraction(numerator, denominator) {}
+
+
+    double duration() const { return static_cast<double>(m_fraction); }
+
+
+    int get_numerator() const { return m_fraction.n; }
+
+
+    int get_denominator() const { return m_fraction.d; }
+
+    double subdivision_duration() const {
+        return 1.0 / static_cast<double>(m_fraction.d);
+    }
 
 
 private:
-    int m_numerator;
-    int m_denominator;
+    Fraction m_fraction;
 };
 
 
@@ -38,7 +52,6 @@ public:
 
 
     void increment(int64_t delta_nanos) {
-//        std::cout << "problematic truncation due to int64_t (change to ns or float_ms)\n";
         double tick_increment = static_cast<double>(delta_nanos) * 1e-9 * m_tempo / 60.0;
         m_tick += tick_increment;
         m_beat = fmod(m_beat + tick_increment, m_meter.duration());
@@ -46,11 +59,20 @@ public:
     }
 
 
+    double next_tick_of(const Fraction& quantization_level = {1, 4}) const {
+        auto q = static_cast<double>(quantization_level);
+        return m_tick - fmod(m_beat, q) + q;
+    }
+
+
     [[nodiscard]] double get_tick() const { return m_tick; }
+
 
     [[nodiscard]] double get_tempo() const { return m_tempo; }
 
+
     [[nodiscard]] double get_beat() const { return m_beat; }
+
 
     [[nodiscard]] const Meter& get_meter() const { return m_meter; }
 
