@@ -110,10 +110,11 @@ public:
 };
 
 TEST_CASE("Pulsator") {
+
     auto wrapper = PulsatorWrapper();
     auto& pulsator = wrapper.pulsator;
-    wrapper.num_voices.set_value(3);
-    wrapper.interval.set_value(1);
+    wrapper.num_voices.set_value(10);
+    wrapper.interval.set_value(0.5);
     wrapper.duty_cycle.set_value(0.5f);
 
     for (int i = 0; i < 10000; ++i) {
@@ -121,13 +122,13 @@ TEST_CASE("Pulsator") {
 
         auto v = pulsator.process(TimePoint(t));
 
-        if (!v.empty_like()) {
+        if (!v.is_empty_like()) {
             std::cout << "TICK " << t << ":  ";
         }
 
 
         for (auto& vv: v.vector()) {
-            for (auto& val : vv.vector()) {
+            for (auto& val: vv.vector()) {
                 if (val.get_type() == Trigger::Type::pulse) {
                     std::cout << "PULSE(" << val.get_id() << "), ";
                 } else {
@@ -135,7 +136,7 @@ TEST_CASE("Pulsator") {
                 }
             }
         }
-        if (!v.empty_like())
+        if (!v.is_empty_like())
             std::cout << "\n";
     }
 

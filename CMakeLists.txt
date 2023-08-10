@@ -21,6 +21,7 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/facet.h
         ${CMAKE_SOURCE_DIR}/src/generative.h
         ${CMAKE_SOURCE_DIR}/src/generator.h
+        ${CMAKE_SOURCE_DIR}/src/held_notes.h
         ${CMAKE_SOURCE_DIR}/src/interpolation_adapter.h
         ${CMAKE_SOURCE_DIR}/src/interpolator.h
         ${CMAKE_SOURCE_DIR}/src/modular_generator.h

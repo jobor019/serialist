@@ -18,6 +18,11 @@ public:
     static Voice create_empty() { return Voice({}); }
 
 
+    std::size_t size() const {
+        return m_voice.size();
+    }
+
+
     bool empty() const { return m_voice.empty(); }
 
 
@@ -105,8 +110,19 @@ public:
 
     std::size_t size() const { return m_voices.size(); }
 
-    bool empty_like() const {
-        for (auto& voice : m_voices) {
+    /**
+     * @throw std::out_of_range if `voice_index >= size()`
+     */
+    const Voice<T>& at(std::size_t voice_index) const {
+        return m_voices.at(voice_index);
+    }
+
+
+    /**
+    * @return true if every Voice is empty
+    */
+    bool is_empty_like() const {
+        for (auto& voice: m_voices) {
             if (!voice.empty()) {
                 return false;
             }
@@ -115,9 +131,15 @@ public:
     }
 
 
+    /**
+    * @return The first value in the the first Voice or std::nulllopt if the first voice is empty
+    */
     const Voice<T>& front() const { return m_voices.front(); }
 
 
+    /**
+    * @return The first value in the each Voice or std::nulllopt if voice is empty
+    */
     template<typename U = T>
     const std::vector<std::optional<U>> fronts() const {
         std::vector<std::optional<U>> output;
@@ -130,30 +152,42 @@ public:
     }
 
 
+    /**
+     * @return The first value in the first Voice or `fallback_value` if the first Voice is empty
+     */
     template<typename U = T>
     U front_or(const U& fallback) const {
         return front().value_or(fallback);
     }
 
 
-    template<typename U = T>
-    std::vector<U> fronts_or(const U& fallback) const {
-        std::vector<U> output;
-        output.reserve(m_voices.size());
+    /**
+     * @return duplicate of values_or?
+     */
+//    template<typename U = T>
+//    std::vector<U> fronts_or(const U& fallback) const {
+//        std::vector<U> output;
+//        output.reserve(m_voices.size());
+//
+//        std::transform(m_voices.begin(), m_voices.end(), std::back_inserter(output)
+//                       , [&fallback](const Voice<T>& voice) { return voice.value_or(fallback); });
+//
+//        return output;
+//    }
 
-        std::transform(m_voices.begin(), m_voices.end(), std::back_inserter(output)
-                       , [&fallback](const Voice<T>& voice) { return voice.value_or(fallback); });
 
-        return output;
-    }
-
-
+    /**
+     * @return The first value in each Voice or `fallback_value` if voice is empty
+     */
     template<typename U = T>
     std::vector<U> values_or(const U& fallback_value) const {
         return v_or(m_voices, fallback_value);
     }
 
 
+    /**
+     * @return The first value in each Voice or `fallback_value` if voice is empty
+     */
     template<typename U = T, std::enable_if_t<std::is_arithmetic_v<U>, int> = 0>
     std::vector<U> values_or(const U& fallback_value
                              , const std::optional<U>& low_thresh
@@ -172,6 +206,16 @@ public:
 
     Voices<T> adapted_to(std::size_t target_num_voices) const {
         return adapt_to_voice_count(m_voices, target_num_voices);
+    }
+
+
+    std::vector<T> flatten() const {
+        std::vector<T> flattened;
+
+        for (auto& voice: m_voices) {
+            flattened.insert(flattened.end(), voice.begin(), voice.end());
+        }
+        return flattened;
     }
 
 

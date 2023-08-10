@@ -89,6 +89,16 @@ public:
 
     int get_channel() const { return m_channel; }
 
+    bool is_note_on() const { return m_velocity > 0; }
+
+    bool matches(const MidiEvent& other) const {
+        return matches(other.m_midi_cents, other.m_channel);
+    }
+
+    bool matches(int midi_cents, int channel) const {
+        return m_midi_cents == midi_cents && m_channel == channel
+    }
+
 
 private:
     double m_trigger_time;

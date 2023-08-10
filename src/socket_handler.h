@@ -18,6 +18,7 @@ public:
         return dynamic_cast<Socket<T>&>(*m_sockets.back());
     }
 
+
     template<typename T>
     DataSocket<T>& create_data_socket(const std::string& id, DataNode<T>* initial = nullptr) {
         m_sockets.emplace_back(std::make_unique<DataSocket<T>>(id, m_socket_parameter_handler, initial));
@@ -38,7 +39,7 @@ public:
 
 
     void disconnect_if(Generative& connected_to) {
-        for (auto& socket : m_sockets) {
+        for (auto& socket: m_sockets) {
             socket->disconnect_if(connected_to);
         }
     }
