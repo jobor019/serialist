@@ -1,7 +1,7 @@
 
 
-#ifndef SERIALISTLOOPER_SOURCE_H
-#define SERIALISTLOOPER_SOURCE_H
+#ifndef SERIALISTLOOPER_NOTE_SOURCE_H
+#define SERIALISTLOOPER_NOTE_SOURCE_H
 
 #include <vector>
 #include "events.h"
@@ -14,7 +14,7 @@
 #include "held_notes.h"
 
 
-class MidiNoteSource : public Source {
+class NoteSource : public Source {
 public:
 
     static const int HISTORY_LENGTH = 300;
@@ -31,14 +31,14 @@ public:
     };
 
 
-    MidiNoteSource(const std::string& id
-                   , ParameterHandler& parent
-                   , Node<Trigger>* trigger_pulse = nullptr
-                   , Node<Facet>* pitch = nullptr
-                   , Node<Facet>* velocity = nullptr
-                   , Node<Facet>* channel = nullptr
-                   , Node<Facet>* enabled = nullptr
-                   , Node<Facet>* num_voices = nullptr)
+    NoteSource(const std::string& id
+               , ParameterHandler& parent
+               , Node<Trigger>* trigger_pulse = nullptr
+               , Node<Facet>* pitch = nullptr
+               , Node<Facet>* velocity = nullptr
+               , Node<Facet>* channel = nullptr
+               , Node<Facet>* enabled = nullptr
+               , Node<Facet>* num_voices = nullptr)
             : m_parameter_handler(id, parent)
               , m_socket_handler(m_parameter_handler)
               , m_trigger_pulse(m_socket_handler.create_socket(NoteSourceKeys::PULSE, trigger_pulse))
@@ -57,7 +57,7 @@ public:
 
         if (!is_enabled(t) || !is_valid()) {
             if (m_previous_enabled_state) {
-                for (auto& note_off: flush_all()) {
+                for (auto& note_off: flush_all(t)) {
                     m_midi_renderer.render(note_off);
                 }
             }
@@ -65,7 +65,7 @@ public:
         }
 
         if (m_held_notes.size() != num_voices) {
-            for (auto& note_off: recompute_num_voices(num_voices)) {
+            for (auto& note_off: recompute_num_voices(t, num_voices)) {
                 m_midi_renderer.render(note_off);
             }
         }
@@ -80,7 +80,7 @@ public:
         auto channels = m_channel.process(t, num_voices);
 
         for (std::size_t i = 0; i < num_voices; ++i) {
-            for (auto& event: process_voice(t, triggers.at(i), pitches.at(i), velocities.at(i), channels.at(i))) {
+            for (auto& event: process_voice(t, i, triggers.at(i), pitches.at(i), velocities.at(i), channels.at(i))) {
                 m_midi_renderer.render(event);
                 m_played_notes.push(event);
             }
@@ -150,7 +150,7 @@ public:
 
 
 private:
-    std::vector<MidiEvent> recompute_num_voices(std::size_t num_voices) {
+    [[nodiscard]] std::vector<MidiEvent> recompute_num_voices(const TimePoint& t, std::size_t num_voices) {
         auto surplus_count = static_cast<long>(m_held_notes.size() - num_voices);
 
         std::vector<MidiEvent> note_offs;
@@ -158,7 +158,7 @@ private:
         if (surplus_count > 0) {
             // remove surplus voices, flushing any held notes
             for (std::size_t i = num_voices; i < static_cast<std::size_t>(surplus_count); ++i) {
-                auto flushed = m_held_notes.at(i).flush();
+                auto flushed = m_held_notes.at(i).flush(t);
                 note_offs.insert(note_offs.end(), flushed.begin(), flushed.end());
             }
 
@@ -169,10 +169,12 @@ private:
             m_held_notes.resize(m_held_notes.size() - static_cast<std::size_t>(surplus_count), {});
         }
 
+        return note_offs;
+
     }
 
 
-    std::vector<MidiEvent> process_voice(const TimePoint& t
+    [[nodiscard]] std::vector<MidiEvent> process_voice(const TimePoint& t
                                          , std::size_t voice_index
                                          , const Voice<Trigger>& triggers
                                          , const Voice<Facet>& midi_cents
@@ -184,20 +186,22 @@ private:
         std::vector<MidiEvent> midi_events;
 
         if (contains_pulse_off(triggers)) {
-            auto note_offs = m_held_notes.at(voice_index).flush();
+            auto note_offs = m_held_notes.at(voice_index).flush(t);
             midi_events.insert(midi_events.end(), note_offs.begin(), note_offs.end());
         }
 
         if (contains_pulse_on(triggers)) {
-            auto note_ons = create_chord(midi_cents, velocities, channels);
+            auto note_ons = create_chord(t, midi_cents, velocities, channels);
             midi_events.insert(midi_events.end(), note_ons.begin(), note_ons.end());
+            m_held_notes.at(voice_index).extend(note_ons);
         }
 
         return midi_events;
     }
 
 
-    static std::vector<MidiEvent> create_chord(const Voice<Facet>& midi_cents
+    static std::vector<MidiEvent> create_chord(const TimePoint& t
+                                               , const Voice<Facet>& midi_cents
                                                , const Voice<Facet>& velocities
                                                , const Voice<Facet>& channels) {
         if (midi_cents.empty() || velocities.empty() || channels.empty()) {
@@ -206,16 +210,14 @@ private:
 
         auto num_notes = std::max(midi_cents.size(), channels.size());
 
-        std::vector<int> mcs = midi_cents.adapted_to<int>(
-                num_notes); // TODO: Implement tjt adapted_to similar to Voices
+        std::vector<int> mcs = midi_cents.adapted_to<int>(num_notes);
         std::vector<int> vs = velocities.adapted_to<int>(num_notes);
         std::vector<int> cs = channels.adapted_to<int>(num_notes);
 
         std::vector<MidiEvent> notes;
 
         for (std::size_t i = 0; i < num_notes; ++i) {
-            notes.emplace_back( ?, mcs.at(i), vs.at(i), cs.at(
-                    i)); // TODO: Rewrite MidiEvent: HAS A MidiNoteData{nn, ch, vel}
+            notes.emplace_back(t.get_tick(), mcs.at(i), vs.at(i), cs.at(i));
         }
 
         return notes;
@@ -224,10 +226,10 @@ private:
     }
 
 
-    std::vector<MidiEvent> flush_all() {
+    std::vector<MidiEvent> flush_all(const TimePoint& t) {
         std::vector<MidiEvent> note_offs;
         for (auto& held_notes_container: m_held_notes) {
-            auto flushed = held_notes_container.flush();
+            auto flushed = held_notes_container.flush(t);
             note_offs.insert(note_offs.end(), flushed.begin(), flushed.end());
         }
         return note_offs;
@@ -289,4 +291,4 @@ private:
 };
 
 
-#endif //SERIALISTLOOPER_SOURCE_H
+#endif //SERIALISTLOOPER_NOTE_SOURCE_H

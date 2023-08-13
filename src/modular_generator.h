@@ -5,7 +5,7 @@
 
 #include <mutex>
 #include <regex>
-#include "source.h"
+#include "note_source.h"
 
 class ModularGenerator {
 public:

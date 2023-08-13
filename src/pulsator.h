@@ -66,6 +66,7 @@ public:
 
         m_current_value = process_triggers(t, num_voices);
         m_previous_enabled_state = enabled;
+
         return m_current_value;
     }
 

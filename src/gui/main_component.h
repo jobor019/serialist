@@ -3,7 +3,7 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "generative_component.h"
-#include "source.h"
+#include "note_source.h"
 #include "connector_component.h"
 #include "transport.h"
 #include "scheduler.h"

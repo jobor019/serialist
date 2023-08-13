@@ -7,7 +7,7 @@
 #include "parameter_policy.h"
 #include "generative_component.h"
 #include "connector_component.h"
-#include "source.h"
+#include "note_source.h"
 #include "modular_generator.h"
 #include "key_state.h"
 #include "keyboard_shortcuts.h"

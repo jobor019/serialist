@@ -5,7 +5,7 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "look_and_feel.h"
-#include "source.h"
+#include "note_source.h"
 
 class NoteView : public juce::Component
                  , private juce::Timer {
@@ -33,7 +33,7 @@ public:
     };
 
 
-    explicit NoteView(MidiNoteSource& midi_source)
+    explicit NoteView(NoteSource& midi_source)
             : m_midi_source(midi_source) {
         m_label.setText("0 0 0", juce::dontSendNotification);
         m_label.setJustificationType(juce::Justification::centred);
@@ -89,7 +89,7 @@ private:
     }
 
 
-    MidiNoteSource& m_midi_source;
+    NoteSource& m_midi_source;
 
     juce::Label m_label;
     SimpleBlink m_note_on;

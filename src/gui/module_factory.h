@@ -98,7 +98,7 @@ public:
 
         auto& parent = mg.get_parameter_handler();
 
-        auto note_source = std::make_unique<MidiNoteSource>(mg.next_id(), mg.get_parameter_handler());
+        auto note_source = std::make_unique<NoteSource>(mg.next_id(), mg.get_parameter_handler());
 
         note_source->set_midi_device(MidiConfig::get_instance().get_default_device_name());
 

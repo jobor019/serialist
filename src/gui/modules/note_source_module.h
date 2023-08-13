@@ -3,7 +3,7 @@
 #ifndef SERIALISTLOOPER_NOTE_SOURCE_MODULE_H
 #define SERIALISTLOOPER_NOTE_SOURCE_MODULE_H
 
-#include "source.h"
+#include "note_source.h"
 #include "generative_component.h"
 #include "midi_config.h"
 #include "widgets/slider_widget.h"
@@ -22,7 +22,7 @@ public:
     };
 
 
-    NoteSourceModule(MidiNoteSource& note_source
+    NoteSourceModule(NoteSource& note_source
                      , Variable<Facet, float>& internal_onset
                      , Variable<Facet, float>& internal_duration
                      , Variable<Facet, float>& internal_pitch
@@ -134,7 +134,7 @@ public:
 
 private:
 
-    MidiNoteSource& m_midi_source;
+    NoteSource& m_midi_source;
 
     SocketWidget<Facet> m_internal_onset;
     SocketWidget<Facet> m_internal_duration;

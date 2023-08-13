@@ -15,11 +15,24 @@ public:
         }
     }
 
+    void extend(const std::vector<MidiEvent>& note_ons_or_offs) {
+        for (auto& event : note_ons_or_offs) {
+            append(event);
+        }
+    }
 
-    std::vector<MidiEvent> flush() {
-        std::vector<MidiEvent> output;
-        std::swap(m_held_notes, output);
-        return m_held_notes;
+
+    std::vector<MidiEvent> flush(const TimePoint& t) {
+        std::vector<MidiEvent> note_offs;
+        note_offs.reserve(m_held_notes.size());
+
+        for (auto& note_on : m_held_notes) {
+            note_offs.emplace_back(MidiEvent::note_off(t.get_tick(), note_on.get_midi_cents(), note_on.get_channel()));
+        }
+
+        m_held_notes.clear();
+
+        return note_offs;
     }
 
 

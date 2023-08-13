@@ -86,7 +86,7 @@ public:
         addAndMakeVisible(m_config_layer_component);
 
 //        auto* generator = dynamic_cast<Node<int>*>(m_modular_generator.find("pitchg1"));
-//        auto* midi_source = dynamic_cast<MidiNoteSource*>(m_modular_generator.find("src1"));
+//        auto* midi_source = dynamic_cast<NoteSource*>(m_modular_generator.find("src1"));
 //        if (!generator || !midi_source) {
 //            throw std::runtime_error("Failed to convert");
 //        }

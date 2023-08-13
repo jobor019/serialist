@@ -96,7 +96,14 @@ public:
     }
 
     bool matches(int midi_cents, int channel) const {
-        return m_midi_cents == midi_cents && m_channel == channel
+        return m_midi_cents == midi_cents && m_channel == channel;
+    }
+
+    void print() const {
+        std::cout << "MidiEvent(t=" << m_trigger_time
+        << ", cents=" << m_midi_cents
+        << ", vel=" << m_velocity
+        << ", ch=" << m_channel << ")\n";
     }
 
 

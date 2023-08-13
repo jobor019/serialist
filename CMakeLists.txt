@@ -25,6 +25,7 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/interpolation_adapter.h
         ${CMAKE_SOURCE_DIR}/src/interpolator.h
         ${CMAKE_SOURCE_DIR}/src/modular_generator.h
+        ${CMAKE_SOURCE_DIR}/src/note_source.h
         ${CMAKE_SOURCE_DIR}/src/nop_parameter.h
         ${CMAKE_SOURCE_DIR}/src/oscillator.h
         ${CMAKE_SOURCE_DIR}/src/parameter_policy.h
@@ -39,7 +40,6 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/socket_policy.h
         ${CMAKE_SOURCE_DIR}/src/transform.h
         ${CMAKE_SOURCE_DIR}/src/vt_socket.h
-        ${CMAKE_SOURCE_DIR}/src/source.h
         ${CMAKE_SOURCE_DIR}/src/utils.h
         ${CMAKE_SOURCE_DIR}/src/variable.h
         ${CMAKE_SOURCE_DIR}/src/voice.h

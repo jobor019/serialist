@@ -4,6 +4,8 @@
 
 #include "generator.h"
 #include "pulsator.h"
+#include "note_source.h"
+#include "midi_config.h"
 
 class OscillatorWrapper {
 public:
@@ -103,8 +105,8 @@ public:
 
     Variable<Facet, float> interval;
     Variable<Facet, float> duty_cycle;
-    Variable<Facet, float> enabled;
-    Variable<Facet, float> num_voices;
+    Variable<Facet, bool> enabled;
+    Variable<Facet, int> num_voices;
 
     Pulsator pulsator;
 };
@@ -115,7 +117,7 @@ TEST_CASE("Pulsator") {
     auto& pulsator = wrapper.pulsator;
     wrapper.num_voices.set_value(10);
     wrapper.interval.set_value(0.5);
-    wrapper.duty_cycle.set_value(0.5f);
+//    wrapper.duty_cycle.set_value(0.5f);
 
     for (int i = 0; i < 10000; ++i) {
         auto t = i / 1000.0;
@@ -138,6 +140,57 @@ TEST_CASE("Pulsator") {
         }
         if (!v.is_empty_like())
             std::cout << "\n";
+    }
+}
+
+class NoteSourceWrapper {
+public:
+    NoteSourceWrapper()
+            : pitch("", handler, 6000)
+              , velocity("", handler, 100)
+              , channel("", handler, 1)
+              , enabled("", handler, true)
+              , num_voices("", handler, 1)
+              , note_source("", handler, &pulsator_wrapper.pulsator, &pitch, &velocity, &channel, &enabled, &num_voices) {}
+
+
+    juce::UndoManager um;
+    ParameterHandler handler{um};
+
+
+    PulsatorWrapper pulsator_wrapper;
+    Variable<Facet, float> pitch;
+    Variable<Facet, float> velocity;
+    Variable<Facet, float> channel;
+    Variable<Facet, bool> enabled;
+    Variable<Facet, float> num_voices;
+
+    NoteSource note_source;
+};
+
+
+TEST_CASE("Note Source") {
+    auto wrapper = NoteSourceWrapper();
+
+
+
+    auto& note_source = wrapper.note_source;
+    note_source.set_midi_device(MidiConfig::get_instance().get_default_device_name());
+
+    auto& pulsator_wrapper = wrapper.pulsator_wrapper;
+    pulsator_wrapper.interval.set_value(1.0);
+    pulsator_wrapper.interval.set_value(1.0);
+
+
+
+    for (int i = 0; i < 10000; ++i) {
+        auto t = i / 1000.0;
+
+        note_source.process(TimePoint(t));
+    }
+
+    for (auto& note : note_source.get_played_notes()) {
+        note.print();
     }
 
 

@@ -4,6 +4,42 @@
 
 #include <vector>
 
+class VoiceUtils {
+public:
+    VoiceUtils() = delete;
+
+
+    template<typename OutputType, typename InputType, std::enable_if_t<!std::is_same_v<InputType, OutputType>, int> = 0>
+    static std::vector<OutputType> adapted_to(const std::vector<InputType>& v, std::size_t target_num_voices) {
+        std::vector<OutputType> voices;
+        voices.reserve(target_num_voices);
+
+        for (std::size_t i = 0; i < target_num_voices; ++i) {
+            voices.push_back(static_cast<OutputType>(v.at(i % v.size())));
+        }
+
+        return voices;
+    }
+
+
+    template<typename OutputType>
+    static std::vector<OutputType>
+    adapted_to(const std::vector<OutputType>& v, std::size_t target_num_voices) {
+        if (v.size() == target_num_voices) {
+            return v;
+        } else {
+            std::vector<OutputType> voices;
+            voices.reserve(target_num_voices);
+
+            for (std::size_t i = 0; i < target_num_voices; ++i) {
+                voices.push_back(v.at(i % v.size()));
+            }
+
+            return voices;
+        }
+    }
+};
+
 
 template<typename T>
 class Voice {
@@ -40,6 +76,12 @@ public:
         if (m_voice.empty())
             return fallback;
         return static_cast<U>(m_voice.at(0));
+    }
+
+
+    template<typename U = T>
+    std::vector<U> adapted_to(std::size_t target_num_voices) const {
+        return VoiceUtils::adapted_to<U, T>(m_voice, target_num_voices);
     }
 
 
@@ -110,6 +152,7 @@ public:
 
     std::size_t size() const { return m_voices.size(); }
 
+
     /**
      * @throw std::out_of_range if `voice_index >= size()`
      */
@@ -141,7 +184,7 @@ public:
     * @return The first value in the each Voice or std::nulllopt if voice is empty
     */
     template<typename U = T>
-    const std::vector<std::optional<U>> fronts() const {
+    std::vector<std::optional<U>> fronts() const {
         std::vector<std::optional<U>> output;
         output.reserve(m_voices.size());
 
@@ -205,7 +248,7 @@ public:
 
 
     Voices<T> adapted_to(std::size_t target_num_voices) const {
-        return adapt_to_voice_count(m_voices, target_num_voices);
+        return Voices<T>(VoiceUtils::adapted_to<Voice<T>>(m_voices, target_num_voices));
     }
 
 
@@ -229,15 +272,6 @@ private:
     }
 
 
-    static Voices<T> adapt_to_voice_count(const std::vector<Voice<T>>& v, std::size_t target_num_voices) {
-        if (v.size() == target_num_voices) {
-            return Voices<T>(v);
-        } else {
-            return distribute(v, target_num_voices);
-        }
-    }
-
-
     template<typename U = T>
     static std::vector<U> v_or(const std::vector<Voice<T>>& v, const U& fallback) {
         std::vector<U> output;
@@ -252,18 +286,6 @@ private:
         }
 
         return output;
-    }
-
-
-    static Voices<T> distribute(const std::vector<Voice<T>>& v, std::size_t target_num_voices) {
-        std::vector<Voice<T>> voices;
-        voices.reserve(target_num_voices);
-
-        for (std::size_t i = 0; i < target_num_voices; ++i) {
-            voices.push_back(v.at(i % v.size()));
-        }
-
-        return Voices<T>(voices);
     }
 
 
