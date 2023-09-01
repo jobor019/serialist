@@ -7,6 +7,8 @@
 #include "scheduler.h"
 #include "socket_policy.h"
 #include "socket_handler.h"
+#include "time_gate.h"
+#include "variable.h"
 
 class Pulsator : public Node<Trigger> {
 public:
@@ -41,10 +43,19 @@ public:
     }
 
 
-    Voices<Trigger> process(const TimePoint& t) override {
+    void update_time(const TimePoint& t) override { m_time_gate.push_time(t); }
+
+
+    Voices<Trigger> process() override {
         // TODO: Pausing is not implemented intelligently: triggers should probably be removed when disabled
         //    and requeued when enabled again. Also need to account for changes in voices that occurred during this time
-        bool enabled = is_enabled(t);
+
+        auto t = m_time_gate.pop_time();
+        if (!t) // process has already been called this cycle
+            return m_current_value;
+
+
+        bool enabled = is_enabled();
         if (!enabled) {
             if (m_previous_enabled_state) {
                 m_current_value = flush(m_current_value.size()); // flush based on old voice count
@@ -56,15 +67,15 @@ public:
         }
 
 
-        auto num_voices = static_cast<std::size_t>(std::max(1, m_num_voices.process(t, 1).front_or(1)));
+        auto num_voices = get_voice_count(m_num_voices.process());
         if (!m_previous_enabled_state                   // was just enabled: no triggers should exist
             || m_current_value.size() != num_voices) {  // voice count changed since last callback
 
-            schedule_missing_triggers(t, num_voices);
+            schedule_missing_triggers(*t, num_voices);
         }
 
 
-        m_current_value = process_triggers(t, num_voices);
+        m_current_value = process_triggers(*t, num_voices);
         m_previous_enabled_state = enabled;
 
         return m_current_value;
@@ -78,9 +89,6 @@ public:
 
 
     ParameterHandler& get_parameter_handler() override { return m_parameter_handler; }
-
-
-    bool is_enabled(const TimePoint& t) { return m_enabled.process(t, 1).front_or(true); }
 
 
     void set_trigger_interval(Node<Facet>* trigger_interval) { m_trigger_interval = trigger_interval; }
@@ -115,6 +123,9 @@ public:
 
 
 private:
+    bool is_enabled() { return m_enabled.process(1).front_or(true); }
+
+
     void schedule_missing_triggers(const TimePoint& t, std::size_t new_voice_count) {
         auto next_trigger_time = t.next_tick_of({1, 4}); // TODO: Should be a user parameter / Variable<Facet>
         auto voice_has_trigger = has_triggers(new_voice_count);
@@ -150,8 +161,8 @@ private:
             return Voices<Trigger>::create_empty_like();
         }
 
-        auto trigger_intervals = m_trigger_interval.process(t, num_voices).values_or(1.0);
-        auto duty_cycles = m_duty_cycle.process(t, num_voices).values_or(1.0, {0.0}, {1.0});
+        auto trigger_intervals = m_trigger_interval.process(num_voices).values_or(1.0);
+        auto duty_cycles = m_duty_cycle.process(num_voices).values_or(1.0, {0.0}, {1.0});
 
         auto output = Voices<Trigger>(num_voices);
 
@@ -215,6 +226,8 @@ private:
     Voices<Trigger> m_current_value = Voices<Trigger>::create_empty_like();
 
     bool m_previous_enabled_state = false; // enforce trigger queueing on first process call
+
+    TimeGate m_time_gate;
 
 
 };

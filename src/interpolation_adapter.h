@@ -18,13 +18,13 @@ public :
                          , Node<Facet>* type = nullptr
                          , Node<Facet>* pivot = nullptr)
             : m_parameter_handler(identifier, parent)
-              , m_socket_handler("", m_parameter_handler, ParameterKeys::GENERATIVE_SOCKETS_TREE)
-              , m_type(TYPE, m_socket_handler, type)
-              , m_pivot(PIVOT, m_socket_handler, pivot) {}
+              , m_socket_handler(m_parameter_handler)
+              , m_type(m_socket_handler.create_socket(TYPE, type))
+              , m_pivot(m_socket_handler.create_socket(PIVOT, pivot)) {}
 
 
     std::vector<Generative*> get_connected() override {
-        return collect_connected(m_type.get_connected(), m_pivot.get_connected());
+        return m_socket_handler.get_connected();
     }
 
 
@@ -34,17 +34,38 @@ public :
 
 
     void disconnect_if(Generative& connected_to) override {
-        m_type.disconnect_if(connected_to);
-        m_pivot.disconnect_if(connected_to);
+        m_socket_handler.disconnect_if(connected_to);
     }
 
 
-    std::vector<InterpolationStrategy> process(const TimePoint& t) override {
+    Voices<InterpolationStrategy> process(const TimePoint& t) override {
+        // TODO: Can be optimized to avoid unnecessary computations
+
         auto default_strategy = InterpolationStrategy::default_strategy();
-        auto strategy_type = static_cast<InterpolationStrategy::Type>(m_type.process_or(t, Facet(default_strategy.get_type())));
-        auto strategy_pivot = m_pivot.process_or(t, Facet(default_strategy.get_pivot()));
-        return {InterpolationStrategy(static_cast<InterpolationStrategy::Type>(strategy_type)
-                                      , static_cast<float>(strategy_pivot.get()))};
+        if (!m_type.is_connected() && !m_pivot.is_connected()) {
+            return Voices<InterpolationStrategy>(default_strategy);
+        }
+
+        auto strategy_type = m_type.process(t);
+        auto strategy_pivot = m_pivot.process(t);
+
+        if (strategy_type.size() > strategy_pivot.size()) {
+            strategy_pivot = strategy_pivot.adapted_to(strategy_type.size());
+        } else {
+            strategy_type = strategy_type.adapted_to(strategy_pivot.size());
+        }
+
+        auto pivots = strategy_pivot.fronts_or(default_strategy.get_pivot());
+        auto types = strategy_pivot.fronts_or(default_strategy.get_type());
+
+        std::vector<InterpolationStrategy> output;
+        output.reserve(pivots.size());
+
+        for (std::size_t i = 0; i < pivots.size(); ++i) {
+            output.emplace_back(types.at(i), pivots.at(i));
+        }
+
+        return Voices<InterpolationStrategy>(output);
     }
 
 
@@ -62,10 +83,10 @@ public :
 
 private:
     ParameterHandler m_parameter_handler;
-    ParameterHandler m_socket_handler;
+    SocketHandler m_socket_handler;
 
-    Socket<Facet> m_type;
-    Socket<Facet> m_pivot;
+    Socket<Facet>& m_type;
+    Socket<Facet>& m_pivot;
 
 };
 

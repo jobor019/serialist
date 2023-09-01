@@ -41,6 +41,8 @@ public:
 };
 
 
+// ==============================================================================================
+
 template<typename T>
 class Voice {
 public:
@@ -54,9 +56,7 @@ public:
     static Voice create_empty() { return Voice({}); }
 
 
-    std::size_t size() const {
-        return m_voice.size();
-    }
+    std::size_t size() const { return m_voice.size(); }
 
 
     bool empty() const { return m_voice.empty(); }
@@ -190,6 +190,18 @@ public:
 
         std::transform(m_voices.begin(), m_voices.end(), std::back_inserter(output)
                        , [](const Voice<T>& voice) { return voice.value(); });
+
+        return output;
+    }
+
+
+    template<typename U = T>
+    std::vector<U> fronts_or(const U& fallback) const {
+        std::vector<U> output;
+        output.reserve(m_voices.size());
+
+        std::transform(m_voices.begin(), m_voices.end(), std::back_inserter(output)
+                       , [&fallback](const Voice<T>& voice) { return voice.value_or(fallback); });
 
         return output;
     }

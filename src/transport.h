@@ -61,7 +61,12 @@ public:
 
     double next_tick_of(const Fraction& quantization_level = {1, 4}) const {
         auto q = static_cast<double>(quantization_level);
-        return m_tick - fmod(m_beat, q) + q;
+        auto diff = fmod(m_beat, q);
+
+        if (diff < 1e-4)
+            return m_tick - diff; // schedule up to 0.0001 ticks in the past
+
+        return m_tick - diff + q;   // schedule on next quantization level
     }
 
 

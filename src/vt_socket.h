@@ -163,13 +163,17 @@ public:
         return *this;
     }
 
-
-    const Voices<T> process(const TimePoint& t, std::size_t num_voices) {
+    Voices<T> process() {
         std::lock_guard<std::mutex> lock{VTSocketBase<Node<T>>::m_mutex};
         if (VTSocketBase<Node<T>>::m_node == nullptr) {
-            return Voices<T>(num_voices);
+            return Voices<T>::create_empty_like();
         }
-        return VTSocketBase<Node<T>>::m_node->process(t).adapted_to(num_voices);
+        return VTSocketBase<Node<T>>::m_node->process();
+    }
+
+
+    Voices<T> process(std::size_t num_voices) {
+        return process().adapted_to(num_voices);
     }
 
 };

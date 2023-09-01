@@ -38,6 +38,7 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/selector.h
         ${CMAKE_SOURCE_DIR}/src/socket_handler.h
         ${CMAKE_SOURCE_DIR}/src/socket_policy.h
+        ${CMAKE_SOURCE_DIR}/src/time_gate.h
         ${CMAKE_SOURCE_DIR}/src/transform.h
         ${CMAKE_SOURCE_DIR}/src/vt_socket.h
         ${CMAKE_SOURCE_DIR}/src/utils.h

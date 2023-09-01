@@ -40,7 +40,34 @@ public:
 template<typename T>
 class Node : public Generative {
 public:
-    virtual Voices<T> process(const TimePoint& t) = 0;
+    const static inline std::size_t AUTO_VOICES = 0;
+
+    virtual void update_time(const TimePoint& t) = 0;
+    virtual Voices<T> process() = 0;
+
+
+    static std::size_t get_voice_count(const Voices<Facet>& voices, std::size_t max_voice_count = 128) {
+        if (voices.is_empty_like())
+            return AUTO_VOICES;
+
+        auto num_voices = static_cast<long>(voices.adapted_to(1).front_or(0));
+        if (num_voices <= 0) {
+            return AUTO_VOICES;
+        }
+        return std::min(max_voice_count, static_cast<std::size_t>(num_voices));
+    }
+};
+
+
+// ==============================================================================================
+
+/**
+ * Interface for Generatives manipulating temporality (e.g. a delay)
+ */
+class Temporal : public Generative {
+
+public:
+    virtual void step() = 0;
 };
 
 

@@ -13,6 +13,8 @@
 #include "variable.h"
 #include "facet.h"
 #include "socket_handler.h"
+#include "events.h"
+#include "time_gate.h"
 
 class Oscillator : public Node<Facet> {
 public:
@@ -33,6 +35,7 @@ public:
     class OscillatorKeys {
     public:
         OscillatorKeys() = delete;
+        static const inline std::string TRIGGER = "trigger";
         static const inline std::string TYPE = "type";
         static const inline std::string FREQ = "freq";
         static const inline std::string ADD = "add";
@@ -47,6 +50,7 @@ public:
 
     Oscillator(const std::string& identifier
                , ParameterHandler& parent
+               , Node<Trigger>* trigger = nullptr
                , Node<Facet>* type = nullptr
                , Node<Facet>* freq = nullptr
                , Node<Facet>* add = nullptr
@@ -57,6 +61,7 @@ public:
                , Node<Facet>* num_voices = nullptr)
             : m_parameter_handler(identifier, parent)
               , m_socket_handler(m_parameter_handler)
+              , m_trigger(m_socket_handler.create_socket(OscillatorKeys::TRIGGER, trigger))
               , m_type(m_socket_handler.create_socket(OscillatorKeys::TYPE, type))
               , m_freq(m_socket_handler.create_socket(OscillatorKeys::FREQ, freq))
               , m_add(m_socket_handler.create_socket(OscillatorKeys::ADD, add))
@@ -73,30 +78,57 @@ public:
     }
 
 
-    Voices<Facet> process(const TimePoint& t) override {
-        // TODO: Only compute when trigger received!!!!
-        auto num_voices = static_cast<std::size_t>(std::max(1, m_num_voices.process(t, 1).front_or(1)));
+    void update_time(const TimePoint& t) override { m_time_gate.push_time(t); }
+
+
+    Voices<Facet> process() override {
+        auto t = m_time_gate.pop_time();
+        if (!t) // process has already been called this cycle
+            return m_current_value;
+
+        if (!static_cast<bool>(m_enabled.process(1).front_or(true)) || !m_trigger.is_connected()) {
+            m_current_value = Voices<Facet>::create_empty_like();
+            return m_current_value;
+        }
+
+        auto num_voices = get_voice_count(m_num_voices.process());
+
+        auto trigger = m_trigger.process();
+        if (trigger.is_empty_like())
+            return m_current_value;
+
+        auto type = m_type.process();
+        auto freq = m_freq.process();
+        auto mul = m_mul.process();
+        auto add = m_add.process();
+        auto duty = m_duty.process();
+        auto curve = m_curve.process();
+
+        if (num_voices == AUTO_VOICES) {
+            num_voices = std::max(
+                    {trigger.size(), type.size(), freq.size(), mul.size(), add.size(), duty.size(), curve.size()});
+        }
+
         if (num_voices != m_phasors.size()) {
             recompute_num_phasors(num_voices);
         }
 
-        if (!static_cast<bool>(m_enabled.process(t, 1).front_or(true))) {
-            return m_current_value;
-        }
+        Voices<Trigger> triggers = trigger.adapted_to(num_voices);
+        std::vector<Type> types = type.adapted_to(num_voices).values_or(Type::phasor);
+        std::vector<double> freqs = freq.adapted_to(num_voices).values_or(1.0);
+        std::vector<double> muls = mul.adapted_to(num_voices).values_or(1.0);
+        std::vector<double> adds = add.adapted_to(num_voices).values_or(0.0);
+        std::vector<double> dutys = duty.adapted_to(num_voices).values_or(0.5);
+        std::vector<double> curves = curve.adapted_to(num_voices).values_or(1.0);
 
-        std::vector<Type> types = m_type.process(t, num_voices).values_or(Type::phasor);
-        std::vector<double> freqs = m_freq.process(t, num_voices).values_or(1.0);
-        std::vector<double> muls = m_mul.process(t, num_voices).values_or(1.0);
-        std::vector<double> adds = m_add.process(t, num_voices).values_or(0.0);
-        std::vector<double> dutys = m_duty.process(t, num_voices).values_or(0.5);
-        std::vector<double> curves = m_duty.process(t, num_voices).values_or(1.0);
-
-        std::vector<Facet> output;
-        output.reserve(num_voices);
+        std::vector<Facet> output = m_current_value.adapted_to(num_voices).fronts_or(Facet(0.0));
 
         for (std::size_t i = 0; i < num_voices; ++i) {
-            output.emplace_back(step_oscillator(t, i, types.at(i), freqs.at(i), muls.at(i)
-                                                , adds.at(i), dutys.at(i), curves.at(i)));
+            if (Trigger::contains(triggers.at(i), Trigger::Type::pulse)) {
+                double position = step_oscillator(*t, i, types.at(i), freqs.at(i), muls.at(i)
+                                                  , adds.at(i), dutys.at(i), curves.at(i));
+                output.at(i) = static_cast<Facet>(position);
+            }
         }
 
         m_previous_values.push(output);
@@ -121,6 +153,9 @@ public:
     }
 
 
+    void set_trigger(Node<Trigger>* trigger) { m_trigger = trigger; }
+
+
     void set_type(Node<Facet>* type) { m_type = type; }
 
 
@@ -143,6 +178,9 @@ public:
 
 
     void set_num_voices(Node<Facet>* num_voices) { m_num_voices = num_voices; }
+
+
+    Socket<Trigger>& get_trigger() { return m_trigger; }
 
 
     Socket<Facet>& get_type() { return m_type; }
@@ -278,6 +316,7 @@ private:
     SocketHandler m_socket_handler;
 
 
+    Socket<Trigger>& m_trigger;
     Socket<Facet>& m_type;
     Socket<Facet>& m_freq;
     Socket<Facet>& m_add;
@@ -296,6 +335,7 @@ private:
     utils::LockingQueue<std::vector<Facet>> m_previous_values;
 
     Voices<Facet> m_current_value = Voices<Facet>(Facet(1));  // NOTE: OBJECT IS NOT THREAD-SAFE!
+    TimeGate m_time_gate;
 
 
 };

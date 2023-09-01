@@ -28,8 +28,10 @@ public:
         m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, CLASS_NAME);
     }
 
+    void update_time(const TimePoint&) override {}
 
-    Voices<OutputType> process(const TimePoint&) override {
+
+    Voices<OutputType> process() override {
         return Voices<OutputType>(static_cast<OutputType>(m_value.get()));
     }
 
