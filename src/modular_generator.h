@@ -35,7 +35,7 @@ public:
         if (std::find(m_generatives.begin(), m_generatives.end(), generative) != m_generatives.end())
             throw std::runtime_error("Cannot add a generative twice");
 
-        if (auto* source = dynamic_cast<Source*>(generative.get())) {
+        if (auto* source = dynamic_cast<Root*>(generative.get())) {
             m_sources.emplace_back(source);
         }
 
@@ -174,7 +174,7 @@ private:
 
 
     void remove_internal(Generative& generative) {
-        if (auto source = dynamic_cast<Source*>(&generative)) {
+        if (auto source = dynamic_cast<Root*>(&generative)) {
             m_sources.erase(std::remove(m_sources.begin(), m_sources.end(), source), m_sources.end());
         }
 
@@ -201,7 +201,7 @@ private:
     std::mutex process_mutex;
 
     std::vector<std::unique_ptr<Generative>> m_generatives;
-    std::vector<Source*> m_sources;
+    std::vector<Root*> m_sources;
 
     int m_last_id = 0;
 

@@ -10,7 +10,7 @@
 #include "parameter_keys.h"
 
 template<typename OutputType, typename StoredType = OutputType>
-class Sequence : public DataNode<OutputType> {
+class Sequence : public Leaf<OutputType> {
 public:
 
     inline static const std::string SEQUENCE_TREE = "SEQUENCE";

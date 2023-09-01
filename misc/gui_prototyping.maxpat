@@ -2171,7 +2171,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 0,
 					"patching_rect" : [ 765.0, 524.0, 88.0, 20.0 ],
-					"text" : "Midi Source"
+					"text" : "Midi Root"
 				}
 
 			}
@@ -2555,7 +2555,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 0,
 					"patching_rect" : [ 208.0, 944.861518671452927, 75.0, 18.0 ],
-					"text" : "Midi Source"
+					"text" : "Midi Root"
 				}
 
 			}
@@ -3052,7 +3052,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 0,
 					"patching_rect" : [ 288.75, 524.0, 88.0, 20.0 ],
-					"text" : "Midi Source"
+					"text" : "Midi Root"
 				}
 
 			}
@@ -3292,7 +3292,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 0,
 					"patching_rect" : [ 117.0, 524.5, 75.0, 18.0 ],
-					"text" : "Midi Source"
+					"text" : "Midi Root"
 				}
 
 			}
@@ -3509,7 +3509,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 0,
 					"patching_rect" : [ 252.0, 205.5, 88.0, 20.0 ],
-					"text" : "Midi Source"
+					"text" : "Midi Root"
 				}
 
 			}
@@ -3970,7 +3970,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 0,
 					"patching_rect" : [ 454.0, 415.0, 75.0, 18.0 ],
-					"text" : "Midi Source"
+					"text" : "Midi Root"
 				}
 
 			}
@@ -4038,7 +4038,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 0,
 					"patching_rect" : [ 117.0, 415.0, 75.0, 18.0 ],
-					"text" : "Midi Source"
+					"text" : "Midi Root"
 				}
 
 			}
@@ -4255,7 +4255,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 0,
 					"patching_rect" : [ 117.0, 205.5, 88.0, 20.0 ],
-					"text" : "Midi Source"
+					"text" : "Midi Root"
 				}
 
 			}
@@ -4697,7 +4697,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 0,
 					"patching_rect" : [ 454.0, 196.0, 88.0, 20.0 ],
-					"text" : "Midi Source"
+					"text" : "Midi Root"
 				}
 
 			}
@@ -4994,7 +4994,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 0,
 					"patching_rect" : [ 454.0, 111.0, 88.0, 20.0 ],
-					"text" : "Midi Source"
+					"text" : "Midi Root"
 				}
 
 			}
@@ -5061,7 +5061,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 0,
 					"patching_rect" : [ 123.0, 111.0, 88.0, 20.0 ],
-					"text" : "Midi Source"
+					"text" : "Midi Root"
 				}
 
 			}

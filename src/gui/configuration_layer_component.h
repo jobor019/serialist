@@ -92,7 +92,7 @@ public:
 //        if (std::find(m_nodes.begin(), m_nodes.end(), component) != m_nodes.end())
 //            throw std::runtime_error("Cannot add a component twice");
 //
-//        if (auto* source = dynamic_cast<Source*>(&component->get_generative())) {
+//        if (auto* source = dynamic_cast<Root*>(&component->get_generative())) {
 //            m_sources.emplace_back(source);
 //        }
 //

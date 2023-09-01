@@ -86,17 +86,16 @@ public:
         if (!t) // process has already been called this cycle
             return m_current_value;
 
-        if (!static_cast<bool>(m_enabled.process(1).front_or(true)) || !m_trigger.is_connected()) {
+        if (!is_enabled() || !m_trigger.is_connected()) {
             m_current_value = Voices<Facet>::create_empty_like();
             return m_current_value;
         }
-
-        auto num_voices = get_voice_count(m_num_voices.process());
 
         auto trigger = m_trigger.process();
         if (trigger.is_empty_like())
             return m_current_value;
 
+        auto voices = m_num_voices.process();
         auto type = m_type.process();
         auto freq = m_freq.process();
         auto mul = m_mul.process();
@@ -104,10 +103,8 @@ public:
         auto duty = m_duty.process();
         auto curve = m_curve.process();
 
-        if (num_voices == AUTO_VOICES) {
-            num_voices = std::max(
-                    {trigger.size(), type.size(), freq.size(), mul.size(), add.size(), duty.size(), curve.size()});
-        }
+        auto num_voices = compute_voice_count(voices, type.size(), freq.size(), mul.size(), add.size(), duty.size()
+                                              , curve.size());
 
         if (num_voices != m_phasors.size()) {
             recompute_num_phasors(num_voices);
@@ -211,6 +208,8 @@ public:
 
 
 private:
+
+    bool is_enabled() { return m_enabled.process(1).front_or(true); }
 
     void recompute_num_phasors(std::size_t num_voices) {
         auto diff = static_cast<long>(num_voices - m_phasors.size());

@@ -15,6 +15,7 @@ public:
 
     class GeneratorKeys {
     public:
+        static const inline std::string TRIGGER = "trigger";
         static const inline std::string CURSOR = "cursor";
         static const inline std::string INTERP = "interpolator";
         static const inline std::string SEQUENCE = "sequence";
@@ -23,15 +24,18 @@ public:
         static const inline std::string CLASS_NAME = "generator";
     };
 
+
     Generator(const std::string& id
               , ParameterHandler& parent
+//              , Node<Trigger>* trigger = nullptr
               , Node<Facet>* cursor = nullptr
               , Node<InterpolationStrategy>* interp = nullptr
-              , DataNode<T>* sequence = nullptr
+              , Leaf<T>* sequence = nullptr
               , Node<Facet>* enabled = nullptr
               , Node<Facet>* num_voices = nullptr)
             : m_parameter_handler(id, parent)
               , m_socket_handler(m_parameter_handler)
+//              , m_trigger(m_socket_handler.create_socket(GeneratorKeys::TRIGGER, trigger))
               , m_cursor(m_socket_handler.create_socket(GeneratorKeys::CURSOR, cursor))
               , m_interpolation_strategy(m_socket_handler.create_socket(GeneratorKeys::INTERP, interp))
               , m_sequence(m_socket_handler.create_data_socket(GeneratorKeys::SEQUENCE, sequence))
@@ -41,32 +45,61 @@ public:
     }
 
 
-    Voices<T> process(const TimePoint& t) override {
-        auto num_voices = static_cast<std::size_t>(std::max(1, m_num_voices.process(t, 1).front_or(1)));
+    void update_time(const TimePoint& t) override { m_time_gate.push_time(t); }
 
-        if (!is_enabled(t) || !m_cursor.is_connected()) {
-            m_current_value.clear(num_voices);
+
+    Voices<T> process() override {
+        auto t = m_time_gate.pop_time();
+        if (!t) // process has already been called this cycle
+            return m_current_value;
+
+        if (!is_enabled() /* || !m_trigger.is_connected() */) {
+            m_current_value = Voices<Facet>::create_empty_like();
             return m_current_value;
         }
-
-        std::vector<double> ys = m_cursor.process(t, num_voices).values_or(0.0);
 
         if (!m_interpolation_strategy.is_connected() || !m_sequence.is_connected()) {
-            if constexpr (std::is_same_v<T, Facet>) {
-                m_current_value = Voices<T>(Facet::vector_cast(ys));
-            } else {
-                m_current_value =  Voices<T>(num_voices);
-            }
+            m_current_value = process_without_sequence();
             return m_current_value;
         }
+
+        m_current_value = process_with_sequence();
+        return m_current_value;
+    }
+
+
+    Voices<T> process_without_sequence() {
+        auto voices = m_num_voices.process();
+        auto y = m_cursor.process();
+
+        auto num_voices = Generative::compute_voice_count(voices, y.size());
+
+        std::vector<double> ys = m_cursor.process(num_voices).values_or(0.0);
+
+        if constexpr (std::is_same_v<T, Facet>) {
+            m_current_value = Voices<T>(Facet::vector_cast(ys));
+        } else {
+            m_current_value = Voices<T>(num_voices);
+        }
+        return m_current_value;
+    }
+
+
+    Voices<T> process_with_sequence() {
+        auto voices = m_num_voices.process();
+        auto cursor = m_cursor.process();
+        auto strategy = m_interpolation_strategy.process();
+
+        auto num_voices = Node<T>::compute_voice_count(voices, cursor.size(), strategy.size());
+        std::vector<double> ys = cursor.adapted_to(num_voices).values_or(0.0);
+        auto strategies = strategy.adapted_to(num_voices).fronts();
 
         std::vector<Voice<T>> output;
         output.reserve(num_voices);
-        auto strategies = m_interpolation_strategy.process(t, num_voices).fronts();
 
         for (std::size_t i = 0; i < num_voices; ++i) {
             if (strategies.at(i)) {
-                output.emplace_back(m_sequence.process(t, ys.at(i), *strategies.at(i)));
+                output.emplace_back(m_sequence.process(ys.at(i), *strategies.at(i)));
             } else {
                 output.emplace_back(Voice<T>::create_empty());
             }
@@ -74,6 +107,7 @@ public:
 
         m_current_value = Voices<T>(output);
         return m_current_value;
+
     }
 
 
@@ -81,11 +115,13 @@ public:
         return m_socket_handler.get_connected();
     }
 
+
     void disconnect_if(Generative& connected_to) override {
         m_socket_handler.disconnect_if(connected_to);
     }
 
-    ParameterHandler & get_parameter_handler() override {
+
+    ParameterHandler& get_parameter_handler() override {
         return m_parameter_handler;
     }
 
@@ -101,6 +137,7 @@ public:
 
     void set_enabled(Node<Facet>* enabled) { m_enabled = enabled; }
 
+
     void set_num_voices(Node<Facet>* num_voices) { m_num_voices = num_voices; }
 
 
@@ -115,19 +152,20 @@ public:
 
     Socket<Facet>& get_enabled() { return m_enabled; }
 
+
     Socket<Facet>& get_num_voices() { return m_num_voices; }
 
 
 private:
 
-    bool is_enabled(const TimePoint& t) {
-        return m_enabled.process(t, 1).front_or(true);
-    }
+    bool is_enabled() { return m_enabled.process(1).front_or(true); }
+
 
     ParameterHandler m_parameter_handler;
     SocketHandler m_socket_handler;
 
 
+//    Socket<Trigger>& m_trigger;
     Socket<Facet>& m_cursor;
     Socket<InterpolationStrategy>& m_interpolation_strategy;
     DataSocket<T>& m_sequence;
@@ -136,6 +174,7 @@ private:
     Socket<Facet>& m_num_voices;
 
     Voices<T> m_current_value = Voices<T>(1);
+    TimeGate m_time_gate;
 
 };
 

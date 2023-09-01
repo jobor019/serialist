@@ -14,7 +14,7 @@
 #include "held_notes.h"
 
 
-class NoteSource : public Source {
+class NoteSource : public Root {
 public:
 
     static const int HISTORY_LENGTH = 300;
@@ -53,9 +53,7 @@ public:
 
 
     void process(const TimePoint& t) override {
-        auto num_voices = static_cast<std::size_t>(std::max(1, m_num_voices.process(t, 1).front_or(1)));
-
-        if (!is_enabled(t) || !is_valid()) {
+        if (!is_enabled() || !is_valid()) {
             if (m_previous_enabled_state) {
                 for (auto& note_off: flush_all(t)) {
                     m_midi_renderer.render(note_off);
@@ -64,20 +62,28 @@ public:
             return;
         }
 
+        auto voices = m_num_voices.process();
+
+        auto trigger = m_trigger_pulse.process();
+        auto pitch = m_pitch.process();
+        auto velocity = m_velocity.process();
+        auto channel = m_channel.process();
+
+        auto num_voices = compute_voice_count(voices, trigger.size(), pitch.size(), velocity.size(), channel.size());
+
         if (m_held_notes.size() != num_voices) {
             for (auto& note_off: recompute_num_voices(t, num_voices)) {
                 m_midi_renderer.render(note_off);
             }
         }
 
-        auto triggers = m_trigger_pulse.process(t, num_voices);
-
-        if (triggers.is_empty_like())
+        if (trigger.is_empty_like())
             return;
 
-        auto pitches = m_pitch.process(t, num_voices);
-        auto velocities = m_velocity.process(t, num_voices);
-        auto channels = m_channel.process(t, num_voices);
+        auto triggers = trigger.adapted_to(num_voices);
+        auto pitches = pitch.adapted_to(num_voices);
+        auto velocities = velocity.adapted_to(num_voices);
+        auto channels = channel.adapted_to(num_voices);
 
         for (std::size_t i = 0; i < num_voices; ++i) {
             for (auto& event: process_voice(t, i, triggers.at(i), pitches.at(i), velocities.at(i), channels.at(i))) {
@@ -175,11 +181,11 @@ private:
 
 
     [[nodiscard]] std::vector<MidiEvent> process_voice(const TimePoint& t
-                                         , std::size_t voice_index
-                                         , const Voice<Trigger>& triggers
-                                         , const Voice<Facet>& midi_cents
-                                         , const Voice<Facet>& velocities
-                                         , const Voice<Facet>& channels) {
+                                                       , std::size_t voice_index
+                                                       , const Voice<Trigger>& triggers
+                                                       , const Voice<Facet>& midi_cents
+                                                       , const Voice<Facet>& velocities
+                                                       , const Voice<Facet>& channels) {
         if (triggers.empty())
             return {};
 
@@ -255,8 +261,9 @@ private:
     }
 
 
-    bool is_enabled(const TimePoint& t) {
-        return m_enabled.process(t, 1).front_or(false);
+    bool is_enabled() {
+        // Unlike most other modules, NoteSource is disabled by default to avoid unnecessary output on creation
+        return m_enabled.process(1).front_or(false);
     }
 
 

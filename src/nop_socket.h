@@ -89,25 +89,25 @@ public:
 // ==============================================================================================
 
 template<typename T>
-class NopDataSocket : public NopSocketBase<DataNode<T>> {
+class NopDataSocket : public NopSocketBase<Leaf<T>> {
 public:
-    NopDataSocket(const std::string& id, ParameterHandler& parent, DataNode<T>* initial = nullptr)
-            : NopSocketBase<DataNode<T>>(id, parent, initial) {}
+    NopDataSocket(const std::string& id, ParameterHandler& parent, Leaf<T>* initial = nullptr)
+            : NopSocketBase<Leaf<T>>(id, parent, initial) {}
 
 
-    NopDataSocket& operator=(DataNode<T>* node) {
+    NopDataSocket& operator=(Leaf<T>* node) {
         if (node)
-            NopSocketBase<DataNode<T>>::connect(*node);
+            NopSocketBase<Leaf<T>>::connect(*node);
         else
-            NopSocketBase<DataNode<T>>::disconnect();
+            NopSocketBase<Leaf<T>>::disconnect();
         return *this;
     }
 
 
     std::vector<T> process(const TimePoint& t, double y, InterpolationStrategy strategy) {
-        if (NopSocketBase<DataNode<T>>::m_node == nullptr)
+        if (NopSocketBase<Leaf<T>>::m_node == nullptr)
             return {};
-        return NopSocketBase<DataNode<T>>::m_node->process(t, y, strategy);
+        return NopSocketBase<Leaf<T>>::m_node->process(t, y, strategy);
     }
 
 

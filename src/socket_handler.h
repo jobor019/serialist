@@ -20,7 +20,7 @@ public:
 
 
     template<typename T>
-    DataSocket<T>& create_data_socket(const std::string& id, DataNode<T>* initial = nullptr) {
+    DataSocket<T>& create_data_socket(const std::string& id, Leaf<T>* initial = nullptr) {
         m_sockets.emplace_back(std::make_unique<DataSocket<T>>(id, m_socket_parameter_handler, initial));
         return dynamic_cast<DataSocket<T>&>(*m_sockets.back());
     }

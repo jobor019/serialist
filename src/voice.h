@@ -6,11 +6,17 @@
 
 class VoiceUtils {
 public:
+    const static inline std::size_t AUTO_VOICES = 0;
+
     VoiceUtils() = delete;
 
 
     template<typename OutputType, typename InputType, std::enable_if_t<!std::is_same_v<InputType, OutputType>, int> = 0>
     static std::vector<OutputType> adapted_to(const std::vector<InputType>& v, std::size_t target_num_voices) {
+        if (target_num_voices == AUTO_VOICES) {
+            target_num_voices = v.size();
+        }
+
         std::vector<OutputType> voices;
         voices.reserve(target_num_voices);
 
@@ -25,7 +31,7 @@ public:
     template<typename OutputType>
     static std::vector<OutputType>
     adapted_to(const std::vector<OutputType>& v, std::size_t target_num_voices) {
-        if (v.size() == target_num_voices) {
+        if (v.size() == target_num_voices || target_num_voices == AUTO_VOICES) {
             return v;
         } else {
             std::vector<OutputType> voices;
@@ -46,7 +52,6 @@ public:
 template<typename T>
 class Voice {
 public:
-
     explicit Voice(std::vector<T> v) : m_voice(std::move(v)) {}
 
 

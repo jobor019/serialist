@@ -67,15 +67,21 @@ public:
         }
 
 
-        auto num_voices = get_voice_count(m_num_voices.process());
-        if (!m_previous_enabled_state                   // was just enabled: no triggers should exist
-            || m_current_value.size() != num_voices) {  // voice count changed since last callback
+        auto voices = m_num_voices.process();
+        auto trigger_intervals = m_trigger_interval.process();
+        auto duty_cycles = m_duty_cycle.process();
 
+        auto num_voices = compute_voice_count(voices, trigger_intervals.size(), duty_cycles.size());
+
+        auto intervals = trigger_intervals.adapted_to(num_voices).values_or(1.0);
+        auto dutys = duty_cycles.adapted_to(num_voices).values_or(1.0, {0.0}, {1.0});
+
+        if (!m_previous_enabled_state || m_current_value.size() != num_voices) {
             schedule_missing_triggers(*t, num_voices);
         }
 
 
-        m_current_value = process_triggers(*t, num_voices);
+        m_current_value = process_triggers(*t, num_voices, intervals, dutys);
         m_previous_enabled_state = enabled;
 
         return m_current_value;
@@ -154,15 +160,15 @@ private:
     }
 
 
-    Voices<Trigger> process_triggers(const TimePoint& t, std::size_t num_voices) {
+    Voices<Trigger> process_triggers(const TimePoint& t
+                                     , std::size_t num_voices
+                                     , std::vector<double> trigger_intervals
+                                     , std::vector<double> duty_cycles) {
         auto triggers = m_scheduler.poll(t);
 
         if (triggers.empty()) {
             return Voices<Trigger>::create_empty_like();
         }
-
-        auto trigger_intervals = m_trigger_interval.process(num_voices).values_or(1.0);
-        auto duty_cycles = m_duty_cycle.process(num_voices).values_or(1.0, {0.0}, {1.0});
 
         auto output = Voices<Trigger>(num_voices);
 

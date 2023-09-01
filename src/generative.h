@@ -24,12 +24,22 @@ public:
     virtual ParameterHandler& get_parameter_handler() = 0;
     virtual void disconnect_if(Generative& connected_to) = 0;
 
+    template<std::size_t max_count = 128, typename... Args>
+    static std::size_t compute_voice_count(const Voices<Facet>& voices, Args... args) {
+        auto num_voices = static_cast<long>(voices.adapted_to(1).front_or(0));
+        if (num_voices <= 0) {
+            return std::min(max_count, std::max({static_cast<std::size_t>(1), args...}));
+        }
+
+        return std::min(max_count, static_cast<std::size_t>(num_voices));
+    }
+
 };
 
 
 // ==============================================================================================
 
-class Source : public Generative {
+class Root : public Generative {
 public:
     virtual void process(const TimePoint& t) = 0;
 };
@@ -40,26 +50,23 @@ public:
 template<typename T>
 class Node : public Generative {
 public:
-    const static inline std::size_t AUTO_VOICES = 0;
-
     virtual void update_time(const TimePoint& t) = 0;
     virtual Voices<T> process() = 0;
-
-
-    static std::size_t get_voice_count(const Voices<Facet>& voices, std::size_t max_voice_count = 128) {
-        if (voices.is_empty_like())
-            return AUTO_VOICES;
-
-        auto num_voices = static_cast<long>(voices.adapted_to(1).front_or(0));
-        if (num_voices <= 0) {
-            return AUTO_VOICES;
-        }
-        return std::min(max_voice_count, static_cast<std::size_t>(num_voices));
-    }
 };
 
 
 // ==============================================================================================
+
+class InterpolationStrategy;
+
+template<typename T>
+class Leaf : public Generative {
+public:
+    virtual std::vector<T> process(double y, InterpolationStrategy strategy) = 0;
+};
+
+// ==============================================================================================
+
 
 /**
  * Interface for Generatives manipulating temporality (e.g. a delay)
@@ -70,16 +77,6 @@ public:
     virtual void step() = 0;
 };
 
-
-// ==============================================================================================
-
-class InterpolationStrategy;
-
-template<typename T>
-class DataNode : public Generative {
-public:
-    virtual std::vector<T> process(const TimePoint&, double y, InterpolationStrategy strategy) = 0;
-};
 
 
 #endif //SERIALIST_LOOPER_GENERATIVE_H

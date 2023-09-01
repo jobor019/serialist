@@ -182,24 +182,24 @@ public:
 // ==============================================================================================
 
 template<typename T>
-class VTDataSocket : public VTSocketBase<DataNode<T>> {
+class VTDataSocket : public VTSocketBase<Leaf<T>> {
 public:
-    VTDataSocket(const std::string& id, ParameterHandler& parent, DataNode<T>* initial = nullptr)
-            : VTSocketBase<DataNode<T>>(id, parent, initial) {}
+    VTDataSocket(const std::string& id, ParameterHandler& parent, Leaf<T>* initial = nullptr)
+            : VTSocketBase<Leaf<T>>(id, parent, initial) {}
 
 
-    VTDataSocket& operator=(DataNode<T>* node) {
-        std::lock_guard<std::mutex> lock{VTSocketBase<DataNode<T>>::m_mutex};
-        VTSocketBase<DataNode<T>>::set_connection_internal(node);
+    VTDataSocket& operator=(Leaf<T>* node) {
+        std::lock_guard<std::mutex> lock{VTSocketBase<Leaf<T>>::m_mutex};
+        VTSocketBase<Leaf<T>>::set_connection_internal(node);
         return *this;
     }
 
 
-    Voice<T> process(const TimePoint& t, double y, InterpolationStrategy strategy) {
-        std::lock_guard<std::mutex> lock{VTSocketBase<DataNode<T>>::m_mutex};
-        if (VTSocketBase<DataNode<T>>::m_node == nullptr)
+    Voice<T> process(double y, InterpolationStrategy strategy) {
+        std::lock_guard<std::mutex> lock{VTSocketBase<Leaf<T>>::m_mutex};
+        if (VTSocketBase<Leaf<T>>::m_node == nullptr)
             return Voice<T>::create_empty();
-        return Voice<T>(VTSocketBase<DataNode<T>>::m_node->process(t, y, strategy));
+        return Voice<T>(VTSocketBase<Leaf<T>>::m_node->process(y, strategy));
     }
 
 
