@@ -7,7 +7,7 @@
 #include "parameter_policy.h"
 #include "generative_component.h"
 #include "oscillator.h"
-#include "modular_generator.h"
+#include "generation_graph.h"
 #include "slider_widget.h"
 //#include "modules/oscillator_module.h"
 //#include "modular_generator.h"
@@ -286,7 +286,7 @@ private:
 
     ParameterHandler m_some_handler;
 
-    ModularGenerator m_modular_generator;
+    GenerationGraph m_modular_generator;
 //
 //    std::unique_ptr<OscillatorModule> m_oscillator;
 //    std::unique_ptr<TextSequenceModule<int>> m_sequence;

@@ -10,7 +10,8 @@
 #include "socket_handler.h"
 
 template<typename T>
-class Generator : public Node<T> {
+class Generator : public Node<T>
+                  , public Stateful {
 public:
 
     class GeneratorKeys {

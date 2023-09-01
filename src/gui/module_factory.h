@@ -12,7 +12,7 @@
 #include "interpolation_module.h"
 #include "note_source_module.h"
 #include "generator_module.h"
-#include "modular_generator.h"
+#include "generation_graph.h"
 
 template<typename ModuleType>
 using ModuleAndGeneratives = std::pair<std::unique_ptr<ModuleType>, std::vector<std::unique_ptr<Generative>>>;
@@ -76,7 +76,7 @@ public:
      *  managing the value tree is deleted before the module listening to the value tree)
      */
     [[nodiscard]] static std::optional<ComponentAndGeneratives>
-    new_from_key(int key, ModularGenerator& modular_generator) {
+    new_from_key(int key, GenerationGraph& modular_generator) {
         if (key == KeyCodes::NEW_GENERATOR_KEY) {
             auto mng = new_generator<Facet, float>(modular_generator);
             return {ComponentAndGeneratives::from_internal(std::move(mng))};
@@ -93,7 +93,7 @@ public:
 
 
     [[nodiscard]] static ModuleAndGeneratives<NoteSourceModule>
-    new_midi_note_source(ModularGenerator& mg
+    new_midi_note_source(GenerationGraph& mg
                          , NoteSourceModule::Layout layout = NoteSourceModule::Layout::full) {
 
         auto& parent = mg.get_parameter_handler();
@@ -128,7 +128,7 @@ public:
 
     template<typename OutputType, typename SequenceStorageType>
     [[nodiscard]] static ModuleAndGeneratives<GeneratorModule<OutputType, SequenceStorageType>>
-    new_generator(ModularGenerator& mg
+    new_generator(GenerationGraph& mg
                   , typename GeneratorModule<OutputType, SequenceStorageType>::Layout layout = GeneratorModule<OutputType, SequenceStorageType>::Layout::full) {
 
         auto& parent = mg.get_parameter_handler();
@@ -174,7 +174,7 @@ public:
 
 
     [[nodiscard]] static ModuleAndGeneratives<OscillatorModule>
-    new_oscillator(ModularGenerator& mg
+    new_oscillator(GenerationGraph& mg
                    , OscillatorModule::Layout layout = OscillatorModule::Layout::full) {
 
         auto& parent = mg.get_parameter_handler();
@@ -209,7 +209,7 @@ public:
     template<typename OutputType, typename StorageType>
     [[nodiscard]] static ModuleAndGeneratives<TextSequenceModule<OutputType, StorageType>>
     new_text_sequence(
-            ModularGenerator& mg
+            GenerationGraph& mg
             , typename TextSequenceModule<OutputType, StorageType>::Layout layout = TextSequenceModule<OutputType, StorageType>::Layout::full) {
 
         auto& parent = mg.get_parameter_handler();
@@ -225,7 +225,7 @@ public:
 
 
     [[nodiscard]] static ModuleAndGeneratives<InterpolationModule>
-    new_interpolator(ModularGenerator& mg
+    new_interpolator(GenerationGraph& mg
                      , typename InterpolationModule::Layout layout = InterpolationModule::Layout::full) {
         auto& parent = mg.get_parameter_handler();
 

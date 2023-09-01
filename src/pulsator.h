@@ -10,7 +10,8 @@
 #include "time_gate.h"
 #include "variable.h"
 
-class Pulsator : public Node<Trigger> {
+class Pulsator : public Node<Trigger>
+                 , public Stateful {
 public:
 
     static inline constexpr double JUMP_THRESHOLD_TICKS = 1.0;

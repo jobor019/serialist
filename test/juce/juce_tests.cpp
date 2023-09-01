@@ -8,7 +8,7 @@
 #include "generator.h"
 #include "note_source.h"
 #include "midi_config.h"
-//#include "note_source.h"
+#include "note_source.h"
 //#include "midi_config.h"
 
 class PulsatorWrapper {

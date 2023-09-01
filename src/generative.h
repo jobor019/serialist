@@ -50,8 +50,15 @@ public:
 template<typename T>
 class Node : public Generative {
 public:
-    virtual void update_time(const TimePoint& t) = 0;
     virtual Voices<T> process() = 0;
+};
+
+
+// ==============================================================================================
+
+class Stateful : public Generative {
+public:
+    virtual void update_time(const TimePoint& t) = 0;
 };
 
 

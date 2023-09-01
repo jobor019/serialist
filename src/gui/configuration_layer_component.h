@@ -8,7 +8,7 @@
 #include "generative_component.h"
 #include "connector_component.h"
 #include "note_source.h"
-#include "modular_generator.h"
+#include "generation_graph.h"
 #include "key_state.h"
 #include "keyboard_shortcuts.h"
 
@@ -46,7 +46,7 @@ public:
     };
 
 
-    explicit ConfigurationLayerComponent(ModularGenerator& modular_generator)
+    explicit ConfigurationLayerComponent(GenerationGraph& modular_generator)
             : m_modular_generator(modular_generator)
               , m_connector_manager(*this, modular_generator.get_parameter_handler()) {
         addAndMakeVisible(m_connector_manager);
@@ -332,7 +332,7 @@ private:
     }
 
 
-    ModularGenerator& m_modular_generator;
+    GenerationGraph& m_modular_generator;
 
     std::vector<ComponentAndBounds> m_generative_components;
     ConnectionComponentManager m_connector_manager;

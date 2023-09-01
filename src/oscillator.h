@@ -16,7 +16,8 @@
 #include "events.h"
 #include "time_gate.h"
 
-class Oscillator : public Node<Facet> {
+class Oscillator : public Node<Facet>
+                   , public Stateful {
 public:
 
     static const int HISTORY_LENGTH = 300;
@@ -103,8 +104,8 @@ public:
         auto duty = m_duty.process();
         auto curve = m_curve.process();
 
-        auto num_voices = compute_voice_count(voices, type.size(), freq.size(), mul.size(), add.size(), duty.size()
-                                              , curve.size());
+        auto num_voices = compute_voice_count(voices, type.size(), freq.size()
+                                              , mul.size(), add.size(), duty.size(), curve.size());
 
         if (num_voices != m_phasors.size()) {
             recompute_num_phasors(num_voices);
@@ -210,6 +211,7 @@ public:
 private:
 
     bool is_enabled() { return m_enabled.process(1).front_or(true); }
+
 
     void recompute_num_phasors(std::size_t num_voices) {
         auto diff = static_cast<long>(num_voices - m_phasors.size());

@@ -1,24 +1,144 @@
 
 
-#ifndef SERIALISTLOOPER_MODULAR_GENERATOR_H
-#define SERIALISTLOOPER_MODULAR_GENERATOR_H
+#ifndef SERIALISTLOOPER_GENERATION_GRAPH_H
+#define SERIALISTLOOPER_GENERATION_GRAPH_H
 
 #include <mutex>
 #include <regex>
 #include "note_source.h"
+#include "parameter_policy.h"
+#include "parameter_keys.h"
 
-class ModularGenerator {
+class GraphUtils {
+public:
+    using IndexGraph = std::unordered_map<std::size_t, std::vector<std::size_t>>;
+
+    GraphUtils() = delete;
+
+
+    std::vector<std::vector<Generative*>> find_cycles(const std::vector<std::unique_ptr<Generative>>& generatives) {
+        auto dependency_graph = compute_dependency_graph(generatives);
+
+        auto cycles_as_indices = find_circular_dependencies(dependency_graph);
+
+        std::vector<std::vector<Generative*>> cycles_as_generatives;
+        for (auto& cycle: cycles_as_indices) {
+            std::vector<Generative*> generative_cycle;
+            for (auto& index: cycle) {
+                generative_cycle.push_back(generatives.at(index).get());
+            }
+            cycles_as_generatives.push_back(generative_cycle);
+        }
+
+        return cycles_as_generatives;
+    }
+
+
+private:
+    static IndexGraph compute_dependency_graph(const std::vector<std::unique_ptr<Generative>>& generatives) {
+        IndexGraph dependency_graph;
+
+        for (std::size_t i = 0; i < generatives.size(); ++i) {
+            auto dependencies = indices_of(generatives.at(i)->get_connected(), generatives);
+            dependency_graph.insert({i, dependencies});
+        }
+
+        return dependency_graph;
+    }
+
+
+    std::vector<std::vector<std::size_t>> find_circular_dependencies(IndexGraph& graph) {
+        std::unordered_map<std::size_t, bool> visited;
+        std::vector<std::vector<std::size_t>> circular_dependencies;
+
+        for (const auto& pair: graph) {
+            std::size_t node = pair.first;
+            if (!visited[node]) {
+                std::vector<std::size_t> path;
+                std::vector<std::vector<std::size_t>> cycle = cycles_from(node, graph, visited, path);
+                circular_dependencies.insert(circular_dependencies.end(), cycle.begin(), cycle.end());
+            }
+        }
+
+        return circular_dependencies;
+    }
+
+
+    /**
+     *
+     * @throw std::runtime_error if `generative` is not in `generatives`
+     */
+    static std::size_t index_of(Generative& generative, const std::vector<std::unique_ptr<Generative>>& generatives) {
+        for (std::size_t i = 0; i < generatives.size(); ++i) {
+            if (generatives.at(i).get() == &generative) {
+                return i;
+            }
+        }
+        throw std::runtime_error("unregistered generative encountered in index_of");
+    }
+
+
+    /**
+     *
+     * @throw std::runtime_error if `generative` is not in `generatives`
+     */
+    static std::vector<std::size_t> indices_of(const std::vector<Generative*> subset
+                                               , const std::vector<std::unique_ptr<Generative>>& full_set) {
+        std::vector<std::size_t> output;
+        output.reserve(subset.size());
+
+        for (auto* generative: subset) {
+            output.emplace_back(index_of(*generative, full_set));
+        }
+
+        return output;
+    }
+
+
+    std::vector<std::vector<std::size_t>> cycles_from(std::size_t node
+                                                      , IndexGraph& graph
+                                                      , std::unordered_map<std::size_t, bool>& visited
+                                                      , std::vector<std::size_t>& path) {
+        visited[node] = true;
+        path.push_back(node);
+
+        std::vector<std::vector<std::size_t>> cycles;
+        for (std::size_t neighbor: graph[node]) {
+            if (!visited[neighbor]) {
+                std::vector<std::vector<std::size_t>> cycle = cycles_from(neighbor, graph, visited, path);
+                cycles.insert(cycles.end(), cycle.begin(), cycle.end());
+            } else if (std::find(path.begin(), path.end(), neighbor) != path.end()) {
+                auto cycle_start = std::find(path.begin(), path.end(), neighbor) - path.begin();
+                std::vector<std::size_t> cycle(path.begin() + cycle_start, path.end());
+                cycles.push_back(cycle);
+            }
+        }
+
+        path.pop_back();
+        return cycles;
+    }
+
+};
+
+
+// ==============================================================================================
+
+class GenerationGraph {
 public:
     static const int N_DIGITS_ID = 6;
 
 
-    explicit ModularGenerator(ParameterHandler& root)
+    explicit GenerationGraph(ParameterHandler& root)
             : m_parameter_handler("", root, ParameterKeys::GENERATIVES_TREE) {}
 
 
     void process(const TimePoint& time) {
         std::lock_guard<std::mutex> lock(process_mutex);
-        for (auto& source: m_sources) {
+        for (auto* stateful: m_statefuls) {
+            stateful->update_time(time);
+        }
+
+        for (auto* source: m_sources) {
             source->process(time);
         }
     }
@@ -37,6 +157,10 @@ public:
 
         if (auto* source = dynamic_cast<Root*>(generative.get())) {
             m_sources.emplace_back(source);
+        }
+
+        if (auto* stateful = dynamic_cast<Stateful*>(generative.get())) {
+            m_statefuls.emplace_back(stateful);
         }
 
         m_generatives.emplace_back(std::move(generative));
@@ -60,7 +184,6 @@ public:
     void remove(const std::vector<Generative*>& generatives) {
         std::lock_guard<std::mutex> lock(process_mutex);
         remove_internal(generatives);
-
     }
 
 
@@ -158,7 +281,7 @@ public:
 
 private:
 
-    void disconnect_if(std::vector<Generative*> connected_to) {
+    void disconnect_if(const std::vector<Generative*>& connected_to) {
         for (auto* connected: connected_to) {
             if (connected)
                 disconnect_if(*connected);
@@ -174,8 +297,12 @@ private:
 
 
     void remove_internal(Generative& generative) {
-        if (auto source = dynamic_cast<Root*>(&generative)) {
+        if (auto* source = dynamic_cast<Root*>(&generative)) {
             m_sources.erase(std::remove(m_sources.begin(), m_sources.end(), source), m_sources.end());
+        }
+
+        if (auto* stateful = dynamic_cast<Stateful*>(&generative)) {
+            m_statefuls.erase(std::remove(m_statefuls.begin(), m_statefuls.end(), stateful), m_statefuls.end());
         }
 
         m_generatives.erase(
@@ -202,10 +329,11 @@ private:
 
     std::vector<std::unique_ptr<Generative>> m_generatives;
     std::vector<Root*> m_sources;
+    std::vector<Stateful*> m_statefuls;
 
     int m_last_id = 0;
 
 
 };
 
-#endif //SERIALISTLOOPER_MODULAR_GENERATOR_H
+#endif //SERIALISTLOOPER_GENERATION_GRAPH_H
