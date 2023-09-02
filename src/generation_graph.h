@@ -16,7 +16,7 @@ public:
     GraphUtils() = delete;
 
 
-    std::vector<std::vector<Generative*>> find_cycles(const std::vector<std::unique_ptr<Generative>>& generatives) {
+    static std::vector<std::vector<Generative*>> find_cycles(const std::vector<std::unique_ptr<Generative>>& generatives) {
         auto dependency_graph = compute_dependency_graph(generatives);
 
         auto cycles_as_indices = find_circular_dependencies(dependency_graph);
@@ -47,7 +47,7 @@ private:
     }
 
 
-    std::vector<std::vector<std::size_t>> find_circular_dependencies(IndexGraph& graph) {
+    static std::vector<std::vector<std::size_t>> find_circular_dependencies(IndexGraph& graph) {
         std::unordered_map<std::size_t, bool> visited;
         std::vector<std::vector<std::size_t>> circular_dependencies;
 
@@ -133,7 +133,7 @@ public:
 
 
     void process(const TimePoint& time) {
-        std::lock_guard<std::mutex> lock(process_mutex);
+        std::lock_guard<std::mutex> lock(m_process_mutex);
         for (auto* stateful: m_statefuls) {
             stateful->update_time(time);
         }
@@ -150,45 +150,37 @@ public:
 
 
     void add(std::unique_ptr<Generative> generative) {
-        std::lock_guard<std::mutex> lock(process_mutex);
+        std::lock_guard<std::mutex> lock(m_process_mutex);
+        add_internal(std::move(generative));
 
-        if (std::find(m_generatives.begin(), m_generatives.end(), generative) != m_generatives.end())
-            throw std::runtime_error("Cannot add a generative twice");
-
-        if (auto* source = dynamic_cast<Root*>(generative.get())) {
-            m_sources.emplace_back(source);
-        }
-
-        if (auto* stateful = dynamic_cast<Stateful*>(generative.get())) {
-            m_statefuls.emplace_back(stateful);
-        }
-
-        m_generatives.emplace_back(std::move(generative));
+        print_cycles();
     }
 
 
     void add(std::vector<std::unique_ptr<Generative>> generatives) {
+        std::lock_guard<std::mutex> lock{m_process_mutex};
         for (auto& generative: generatives) {
-            add(std::move(generative));
+            add_internal(std::move(generative));
         }
+        print_cycles();
     }
 
 
     void remove(Generative& generative) {
-        std::lock_guard<std::mutex> lock(process_mutex);
+        std::lock_guard<std::mutex> lock(m_process_mutex);
         remove_internal(generative);
 
     }
 
 
     void remove(const std::vector<Generative*>& generatives) {
-        std::lock_guard<std::mutex> lock(process_mutex);
+        std::lock_guard<std::mutex> lock(m_process_mutex);
         remove_internal(generatives);
     }
 
 
     void remove_generative_and_children(Generative& generative) {
-        std::lock_guard<std::mutex> lock{process_mutex};
+        std::lock_guard<std::mutex> lock{m_process_mutex};
 
         auto generative_and_children = find_generatives_matching(
                 generative.get_parameter_handler().get_id());
@@ -212,14 +204,13 @@ public:
     }
 
 
-    void print_names() {
+    void print_names() const {
         std::cout << "names: ";
         for (const auto& g: m_generatives) {
             std::cout << g->get_parameter_handler().get_id() << ", ";
         }
         std::cout << "\n";
     }
-
 
     std::vector<Generative*> find_generatives_matching(const std::string& base_name) {
         std::vector<Generative*> matching_generatives;
@@ -243,7 +234,7 @@ public:
 
 
     std::string next_id() {
-        std::lock_guard<std::mutex> lock{process_mutex};
+        std::lock_guard<std::mutex> lock{m_process_mutex};
         std::string str = std::to_string(++m_last_id);
         str = std::string(N_DIGITS_ID - str.length(), '0') + str;
         return str;
@@ -251,7 +242,7 @@ public:
 
 
 //    std::string next_free_name(const std::string& suggested_name) {
-//        std::lock_guard<std::mutex> lock{process_mutex};
+//        std::lock_guard<std::mutex> lock{m_process_mutex};
 //
 //
 //        if (std::find_if(m_generatives.begin()
@@ -280,6 +271,32 @@ public:
 
 
 private:
+    void print_cycles() const {
+        for (auto& cycle : GraphUtils::find_cycles(m_generatives)) {
+            // TODO: Temp: find better solution to indicate cycles
+            std::cout << "Cycle detected: ";
+            for (auto* node : cycle) {
+                std::cout << node->get_parameter_handler().get_id() << " ";
+            }
+            std::cout << "\n";
+        }
+    }
+
+    void add_internal(std::unique_ptr<Generative> generative) {
+        if (std::find(m_generatives.begin(), m_generatives.end(), generative) != m_generatives.end())
+            throw std::runtime_error("Cannot add a generative twice");
+
+        if (auto* source = dynamic_cast<Root*>(generative.get())) {
+            m_sources.emplace_back(source);
+        }
+
+        if (auto* stateful = dynamic_cast<Stateful*>(generative.get())) {
+            m_statefuls.emplace_back(stateful);
+        }
+
+        m_generatives.emplace_back(std::move(generative));
+    }
+
 
     void disconnect_if(const std::vector<Generative*>& connected_to) {
         for (auto* connected: connected_to) {
@@ -325,7 +342,7 @@ private:
 
     ParameterHandler m_parameter_handler;
 
-    std::mutex process_mutex;
+    std::mutex m_process_mutex;
 
     std::vector<std::unique_ptr<Generative>> m_generatives;
     std::vector<Root*> m_sources;

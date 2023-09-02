@@ -41,21 +41,27 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/time_gate.h
         ${CMAKE_SOURCE_DIR}/src/transform.h
         ${CMAKE_SOURCE_DIR}/src/vt_socket.h
+        ${CMAKE_SOURCE_DIR}/src/unit_pulse.h
         ${CMAKE_SOURCE_DIR}/src/utils.h
         ${CMAKE_SOURCE_DIR}/src/variable.h
         ${CMAKE_SOURCE_DIR}/src/voice.h
         ${CMAKE_SOURCE_DIR}/src/vt_parameter.h
+
         ${CMAKE_SOURCE_DIR}/src/gui/modules/generator_module.h
         ${CMAKE_SOURCE_DIR}/src/gui/modules/interpolation_module.h
         ${CMAKE_SOURCE_DIR}/src/gui/modules/note_source_module.h
         ${CMAKE_SOURCE_DIR}/src/gui/modules/oscillator_module.h
+        ${CMAKE_SOURCE_DIR}/src/gui/modules/pulsator_module.h
         ${CMAKE_SOURCE_DIR}/src/gui/modules/text_sequence_module.h
+
         ${CMAKE_SOURCE_DIR}/src/gui/views/note_view.h
         ${CMAKE_SOURCE_DIR}/src/gui/views/oscillator_view.h
+
         ${CMAKE_SOURCE_DIR}/src/gui/widgets/combobox_widget.h
         ${CMAKE_SOURCE_DIR}/src/gui/widgets/header_widget.h
         ${CMAKE_SOURCE_DIR}/src/gui/widgets/slider_widget.h
         ${CMAKE_SOURCE_DIR}/src/gui/widgets/toggle_button_widget.h
+
         ${CMAKE_SOURCE_DIR}/src/gui/configuration_layer_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/connectable_module.h
         ${CMAKE_SOURCE_DIR}/src/gui/connectable_dnd_controller.h
@@ -65,6 +71,7 @@ set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/gui/look_and_feel.h
         ${CMAKE_SOURCE_DIR}/src/gui/main_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/module_factory.h
+
         ${CMAKE_SOURCE_DIR}/src/io/keyboard_shortcuts.h
         ${CMAKE_SOURCE_DIR}/src/io/midi_config.h
         ${CMAKE_SOURCE_DIR}/src/io/renderers.h

@@ -87,7 +87,7 @@ public:
         (void) location;
 
 
-//        std::lock_guard<std::mutex> lock(process_mutex);
+//        std::lock_guard<std::mutex> lock(m_process_mutex);
 //
 //        if (std::find(m_nodes.begin(), m_nodes.end(), component) != m_nodes.end())
 //            throw std::runtime_error("Cannot add a component twice");
@@ -105,7 +105,7 @@ public:
 
     void remove(GenerativeComponent* component) {
         (void) component;
-//        std::lock_guard<std::mutex> lock(process_mutex);
+//        std::lock_guard<std::mutex> lock(m_process_mutex);
         throw std::runtime_error("remove is not implemented"); // TODO
     }
 
