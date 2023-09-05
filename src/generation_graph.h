@@ -95,7 +95,7 @@ private:
     }
 
 
-    std::vector<std::vector<std::size_t>> cycles_from(std::size_t node
+    static std::vector<std::vector<std::size_t>> cycles_from(std::size_t node
                                                       , IndexGraph& graph
                                                       , std::unordered_map<std::size_t, bool>& visited
                                                       , std::vector<std::size_t>& path) {
@@ -134,12 +134,12 @@ public:
 
     void process(const TimePoint& time) {
         std::lock_guard<std::mutex> lock(m_process_mutex);
-        for (auto* stateful: m_statefuls) {
-            stateful->update_time(time);
+        for (auto& generative: m_generatives) {
+            generative->update_time(time);
         }
 
         for (auto* source: m_sources) {
-            source->process(time);
+            source->process();
         }
     }
 
@@ -290,10 +290,6 @@ private:
             m_sources.emplace_back(source);
         }
 
-        if (auto* stateful = dynamic_cast<Stateful*>(generative.get())) {
-            m_statefuls.emplace_back(stateful);
-        }
-
         m_generatives.emplace_back(std::move(generative));
     }
 
@@ -316,10 +312,6 @@ private:
     void remove_internal(Generative& generative) {
         if (auto* source = dynamic_cast<Root*>(&generative)) {
             m_sources.erase(std::remove(m_sources.begin(), m_sources.end(), source), m_sources.end());
-        }
-
-        if (auto* stateful = dynamic_cast<Stateful*>(&generative)) {
-            m_statefuls.erase(std::remove(m_statefuls.begin(), m_statefuls.end(), stateful), m_statefuls.end());
         }
 
         m_generatives.erase(
@@ -346,7 +338,6 @@ private:
 
     std::vector<std::unique_ptr<Generative>> m_generatives;
     std::vector<Root*> m_sources;
-    std::vector<Stateful*> m_statefuls;
 
     int m_last_id = 0;
 

@@ -4,6 +4,7 @@
 
 #include <interaction_visualizer.h>
 #include "connectable_module.h"
+#include "keyboard_shortcuts.h"
 
 
 enum class ActionTypes {

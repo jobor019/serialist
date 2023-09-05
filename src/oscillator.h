@@ -16,8 +16,7 @@
 #include "events.h"
 #include "time_gate.h"
 
-class Oscillator : public Node<Facet>
-                   , public Stateful {
+class Oscillator : public Node<Facet> {
 public:
 
     static const int HISTORY_LENGTH = 300;

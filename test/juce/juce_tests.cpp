@@ -206,7 +206,8 @@ TEST_CASE("Note Root") {
     for (int i = 0; i < 10000; ++i) {
         auto t = i / 1000.0;
 
-        note_source.process(TimePoint(t));
+        note_source.update_time(TimePoint(t));
+        note_source.process();
     }
 
     for (auto& note : note_source.get_played_notes()) {

@@ -8,10 +8,10 @@
 #include "sequence.h"
 #include "socket_policy.h"
 #include "socket_handler.h"
+#include "time_gate.h"
 
 template<typename T>
-class Generator : public Node<T>
-                  , public Stateful {
+class Generator : public Node<T> {
 public:
 
     class GeneratorKeys {

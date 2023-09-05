@@ -11,6 +11,8 @@
 #include "generation_graph.h"
 #include "key_state.h"
 #include "keyboard_shortcuts.h"
+#include "global_action_handler.h"
+#include "generator_module.h"
 
 class ConfigurationLayerComponent : public juce::Component
                                     , public GlobalKeyState::Listener

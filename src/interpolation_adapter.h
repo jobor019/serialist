@@ -37,8 +37,7 @@ public :
         m_socket_handler.disconnect_if(connected_to);
     }
 
-
-    Voices<InterpolationStrategy> process(const TimePoint& t) override {
+    Voices<InterpolationStrategy> process() override {
         // TODO: Can be optimized to avoid unnecessary computations
 
         auto default_strategy = InterpolationStrategy::default_strategy();
@@ -46,8 +45,8 @@ public :
             return Voices<InterpolationStrategy>(default_strategy);
         }
 
-        auto strategy_type = m_type.process(t);
-        auto strategy_pivot = m_pivot.process(t);
+        auto strategy_type = m_type.process();
+        auto strategy_pivot = m_pivot.process();
 
         if (strategy_type.size() > strategy_pivot.size()) {
             strategy_pivot = strategy_pivot.adapted_to(strategy_type.size());

@@ -24,6 +24,8 @@ public:
     virtual ParameterHandler& get_parameter_handler() = 0;
     virtual void disconnect_if(Generative& connected_to) = 0;
 
+    virtual void update_time(const TimePoint&) {}
+
     template<std::size_t max_count = 128, typename... Args>
     static std::size_t compute_voice_count(const Voices<Facet>& voices, Args... args) {
         auto num_voices = static_cast<long>(voices.adapted_to(1).front_or(0));
@@ -41,7 +43,7 @@ public:
 
 class Root : public Generative {
 public:
-    virtual void process(const TimePoint& t) = 0;
+    virtual void process() = 0;
 };
 
 
@@ -56,14 +58,6 @@ public:
 
 // ==============================================================================================
 
-class Stateful : public Generative {
-public:
-    virtual void update_time(const TimePoint& t) = 0;
-};
-
-
-// ==============================================================================================
-
 class InterpolationStrategy;
 
 template<typename T>
@@ -73,16 +67,6 @@ public:
 };
 
 // ==============================================================================================
-
-
-/**
- * Interface for Generatives manipulating temporality (e.g. a delay)
- */
-class Temporal : public Generative {
-
-public:
-    virtual void step() = 0;
-};
 
 
 

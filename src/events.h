@@ -5,6 +5,7 @@
 
 #include <vector>
 #include "transport.h"
+#include "voice.h"
 
 class Event {
 public:

@@ -12,32 +12,14 @@ class HeaderWidget : public juce::Component
                      , private juce::Button::Listener {
 public:
 
-    explicit HeaderWidget(const std::string& public_name)
-            : m_enabled(std::nullopt)
-              , m_label({}, public_name)
-              , m_stepped(std::nullopt)
-              , m_minimized("-") {
-        initialize_widgets();
-
-    }
-
-
-    HeaderWidget(const std::string& public_name
-                 , Variable<Facet, bool>& enabled)
-            : m_enabled(enabled)
-              , m_label({}, public_name)
-              , m_stepped(std::nullopt)
-              , m_minimized("-") {
-        initialize_widgets();
-    }
-
-
-    HeaderWidget(const std::string& public_name
-                 , Variable<Facet, bool>& enabled
-                 , Variable<Facet, bool>& stepped)
-            : m_enabled(enabled)
-              , m_label({}, public_name)
-              , m_stepped(std::make_optional<ToggleButtonWidget>(stepped))
+    explicit HeaderWidget(const std::string& public_name
+                          , Variable<Facet, bool>* enabled = nullptr
+                          , Variable<Facet, bool>* stepped = nullptr
+                          , Variable<Facet, float>* num_voices = nullptr)
+            : m_label({}, public_name)
+              , m_enabled(enabled ? std::make_optional<ToggleButtonWidget>(*enabled) : std::nullopt)
+              , m_stepped(stepped ? std::make_optional<ToggleButtonWidget>(*stepped) : std::nullopt)
+              , m_num_voices(num_voices ? std::make_optional<SliderWidget>(*num_voices) : std::nullopt)
               , m_minimized("-") {
         initialize_widgets();
     }
@@ -71,6 +53,11 @@ public:
             m_stepped->setBounds(bounds.removeFromRight(4 + font.getStringWidth(m_stepped->get_text())));
         }
 
+        if (m_num_voices) {
+            bounds.removeFromRight(DimensionConstants::HEADER_INTERNAL_MARGINS);
+            m_num_voices->setBounds(bounds.removeFromRight(DimensionConstants::SLIDER_DEFAULT_WIDTH));
+        }
+
         m_label.setBounds(bounds);
     }
 
@@ -79,6 +66,9 @@ public:
 
 
     std::optional<ToggleButtonWidget>& get_stepped() { return m_stepped; }
+
+
+    std::optional<SliderWidget>& get_num_voices() { return m_num_voices; }
 
 
 private:
@@ -94,6 +84,9 @@ private:
         if (m_stepped)
             addAndMakeVisible(*m_stepped);
 
+        if (m_num_voices)
+            addAndMakeVisible(*m_num_voices);
+
         addAndMakeVisible(m_minimized);
         m_minimized.addListener(this);
     }
@@ -104,9 +97,12 @@ private:
     }
 
 
-    std::optional<ToggleButtonWidget> m_enabled;
     juce::Label m_label;
+
+    std::optional<ToggleButtonWidget> m_enabled;
     std::optional<ToggleButtonWidget> m_stepped;
+    std::optional<SliderWidget> m_num_voices;
+
     juce::ToggleButton m_minimized;
 
 };

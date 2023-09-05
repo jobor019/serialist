@@ -12,6 +12,7 @@
 #include "parameter_policy.h"
 #include "socket_policy.h"
 #include "held_notes.h"
+#include "socket_handler.h"
 
 
 class NoteSource : public Root {
@@ -51,16 +52,21 @@ public:
         m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, NoteSourceKeys::CLASS_NAME);
     }
 
+    void update_time(const TimePoint &t) override {
+        m_time_point = t;
+    }
 
-    void process(const TimePoint& t) override {
+    void process() override {
         if (!is_enabled() || !is_valid()) {
             if (m_previous_enabled_state) {
-                for (auto& note_off: flush_all(t)) {
+                for (auto& note_off: flush_all(m_time_point)) {
                     m_midi_renderer.render(note_off);
                 }
             }
             return;
         }
+
+        auto& t = m_time_point;
 
         auto voices = m_num_voices.process();
 
@@ -293,6 +299,8 @@ private:
     std::vector<HeldNotes> m_held_notes;
 
     bool m_previous_enabled_state = false;
+
+    TimePoint m_time_point;
 
 
 };

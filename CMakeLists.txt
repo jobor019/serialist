@@ -64,6 +64,7 @@ set(SOURCES
 
         ${CMAKE_SOURCE_DIR}/src/gui/configuration_layer_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/connectable_module.h
+        ${CMAKE_SOURCE_DIR}/src/gui/connectable_module_base.h
         ${CMAKE_SOURCE_DIR}/src/gui/connectable_dnd_controller.h
         ${CMAKE_SOURCE_DIR}/src/gui/connector_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/generative_component.h
