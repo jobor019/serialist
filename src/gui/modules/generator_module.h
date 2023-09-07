@@ -10,11 +10,11 @@
 #include "oscillator_module.h"
 #include "text_sequence_module.h"
 #include "interpolation_module.h"
-#include "connectable_module_base.h"
+#include "module_bases.h"
 
 
 template<typename OutputType, typename InternalSequenceType = OutputType>
-class GeneratorModule : public ConnectableModuleBase<OutputType> {
+class GeneratorModule : public NodeBase<OutputType> {
 public:
     enum class Layout {
         full
@@ -28,18 +28,14 @@ public:
                     , Variable<Facet, bool>& internal_enabled
                     , Variable<Facet, float>& internal_num_voices
                     , Layout layout = Layout::full)
-            : ConnectableModuleBase<OutputType>(generator, internal_enabled, internal_num_voices)
+            : NodeBase<OutputType>(generator, internal_enabled, internal_num_voices)
               , m_oscillator_socket(generator.get_cursor(), std::move(oscillator))
               , m_interpolator(generator.get_interpolation_strategy(), std::move(interpolator))
-              , m_sequence_socket(generator.get_sequence(), std::move(sequence)) {
-        (void) layout;
-
-        setComponentID(generator.get_parameter_handler().get_id());
-
-
-        ConnectableModuleBase<OutputType>::addAndMakeVisible(m_oscillator_socket);
-        ConnectableModuleBase<OutputType>::addAndMakeVisible(m_interpolator);
-        ConnectableModuleBase<OutputType>::addAndMakeVisible(m_sequence_socket);
+              , m_sequence_socket(generator.get_sequence(), std::move(sequence))
+              , m_layout(layout) {
+        NodeBase<OutputType>::addAndMakeVisible(m_oscillator_socket);
+        NodeBase<OutputType>::addAndMakeVisible(m_interpolator);
+        NodeBase<OutputType>::addAndMakeVisible(m_sequence_socket);
 
     }
 
@@ -62,7 +58,7 @@ public:
 
     void set_layout(int layout_id) override {
         m_layout = static_cast<Layout>(layout_id);
-        ConnectableModuleBase<OutputType>::resized();
+        NodeBase<OutputType>::resized();
     }
 
 
@@ -74,6 +70,8 @@ private:
     }
 
     void full_layout(juce::Rectangle<int> bounds) {
+        NodeBase<OutputType>::set_header_visibility(true);
+
         auto oscillator_layout = OscillatorModule::Layout::generator_internal;
         auto sequence_layout = TextSequenceModule<OutputType>::Layout::generator_internal;
         auto interpolator_layout = InterpolationModule::Layout::generator_internal;

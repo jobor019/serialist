@@ -9,7 +9,7 @@
 #include "generative_component.h"
 #include "interpolation_adapter.h"
 
-class InterpolationModule : public GenerativeComponent {
+class InterpolationModule : public NodeBase<InterpolationStrategy> {
 public:
 
     using InterpType = typename InterpolationStrategy::Type;
@@ -27,7 +27,7 @@ public:
                                  , Variable<Facet, InterpType>& internal_type
                                  , Variable<Facet, float>& internal_pivot
                                  , Layout layout = Layout::full)
-            : m_interpolation_adapter(interpolation_adapter)
+            : NodeBase<InterpolationStrategy>(interpolation_adapter)
               , m_type_socket(interpolation_adapter.get_type()
                               , std::make_unique<ComboBoxType>(
                             internal_type
@@ -40,18 +40,10 @@ public:
                             , CbLayout::label_left))
               , m_pivot_socket(interpolation_adapter.get_pivot(), std::make_unique<SliderWidget>(
                     internal_pivot, 0.0, 20.0, 0.01, false, "pivot", SliderLayout::label_left))
-              , m_header(interpolation_adapter.get_parameter_handler().get_id())
               , m_layout(layout) {
-
-        setComponentID(interpolation_adapter.get_parameter_handler().get_id());
 
         addAndMakeVisible(m_type_socket);
         addAndMakeVisible(m_pivot_socket);
-
-        addAndMakeVisible(m_header);
-
-        addAndMakeVisible(m_interaction_visualizer);
-
     }
 
 
@@ -75,53 +67,22 @@ public:
     }
 
 
-    std::vector<std::unique_ptr<InteractionVisualization>> create_visualizations() {
-        std::vector<std::unique_ptr<InteractionVisualization>> visualizations;
-        visualizations.emplace_back(std::make_unique<ConnectVisualization>(*this));
-        visualizations.emplace_back(std::make_unique<MoveVisualization>(*this));
-        visualizations.emplace_back(std::make_unique<DeleteVisualization>(*this));
-        return visualizations;
-    }
-
-
     void set_layout(int layout_id) override {
         m_layout = static_cast<Layout>(layout_id);
         resized();
     }
 
 
-    void paint(juce::Graphics& g) override {
-        g.fillAll(getLookAndFeel().findColour(juce::DocumentWindow::backgroundColourId));
-        g.setColour(juce::Colours::grey);
-        g.drawRect(getLocalBounds(), 2);
-    }
-
-
-    void resized() override {
-        auto bounds = getLocalBounds();
-
-        if (m_layout == Layout::full) {
-            m_header.setBounds(bounds.removeFromTop(HeaderWidget::height_of()));
-            bounds.reduce(DC::COMPONENT_LR_MARGINS, DC::COMPONENT_UD_MARGINS);
-        }
-
+private:
+    void on_resized(juce::Rectangle<int>& bounds) override {
         m_pivot_socket.setBounds(bounds.removeFromLeft(DC::SLIDER_DEFAULT_WIDTH));
         bounds.removeFromLeft(DC::OBJECT_X_MARGINS_ROW);
         m_type_socket.setBounds(bounds);
     }
 
 
-    Generative& get_generative() override { return m_interpolation_adapter; }
-
-
-private:
-
-    InterpolationAdapter& m_interpolation_adapter;
-
     SocketWidget<Facet> m_type_socket;
     SocketWidget<Facet> m_pivot_socket;
-
-    HeaderWidget m_header;
 
     Layout m_layout;
 

@@ -7,6 +7,9 @@
 //#include "generation_graph.h"
 //#include "configuration_layer_component.h"
 #include "generator_module.h"
+#include "pulsator_module.h"
+#include "interpolation_module.h"
+#include "note_source_module.h"
 
 class SomeObject : public ParameterHandler {
 public:
@@ -224,7 +227,10 @@ public:
 private:
     std::unique_ptr<MainWindow> mainWindow;
 
-    std::unique_ptr<GeneratorModule<int>> m_m;
+    std::unique_ptr<GeneratorModule<int>> m_generator;
+    std::unique_ptr<PulsatorModule> m_pulsator;
+    std::unique_ptr<OscillatorModule> m_oscillator;
+    std::unique_ptr<NoteSourceModule> m_note_source;
 
 };
 

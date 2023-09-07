@@ -2,13 +2,13 @@
 #ifndef SERIALISTLOOPER_PULSATOR_MODULE_H
 #define SERIALISTLOOPER_PULSATOR_MODULE_H
 
-#include "connectable_module_base.h"
+#include "module_bases.h"
 #include "slider_widget.h"
 #include "pulsator.h"
 #include "socket_widget.h"
 #include "header_widget.h"
 
-class PulsatorModule : public ConnectableModuleBase {
+class PulsatorModule : public NodeBase<Trigger> {
 public:
 
     using SliderLayout = SliderWidget::Layout;
@@ -25,7 +25,7 @@ public:
                    , Variable<Facet, bool>& internal_enabled
                    , Variable<Facet, float>& internal_num_voices
                    , Layout layout = Layout::full)
-            : m_pulsator(pulsator)
+            : NodeBase<Trigger>(pulsator, &internal_enabled, &internal_num_voices)
               , m_interval_socket(pulsator.get_trigger_interval()
                                   , std::make_unique<SliderWidget>(internal_trigger_interval
                                                                    , 0.125, 4.0, 0.125, false
@@ -34,12 +34,7 @@ public:
                               , std::make_unique<SliderWidget>(internal_duty_cycle
                                                                , 0.1, 1.1, 0.1, false
                                                                , "dur", SliderWidget::Layout::label_below))
-              , m_header(pulsator.get_parameter_handler().get_id()
-                         , &internal_enabled
-                         , nullptr
-                         , &internal_num_voices)
               , m_layout(layout) {
-        (void) layout;
 
         addAndMakeVisible(m_interval_socket);
         addAndMakeVisible(m_duty_socket);
@@ -68,15 +63,14 @@ public:
         m_layout = static_cast<Layout>(layout_id);
         resized();
     }
-    
 
 
 private:
-
-    void on_resized(juce::Rectangle<int> bounds) override {
+    void on_resized(juce::Rectangle<int>& bounds) override {
+        (void) bounds;
         if (m_layout == Layout::full) {
             throw std::runtime_error("Not implementedPulsator bounds"); // TODO
-            
+
         }
     }
 

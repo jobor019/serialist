@@ -13,11 +13,10 @@
 #include "socket_widget.h"
 #include "interaction_visualizations.h"
 #include "connectable_dnd_controller.h"
+#include "module_bases.h"
 
 
-class OscillatorModule : public GenerativeComponent
-                         , public juce::DragAndDropTarget
-                         , public ConnectableModule {
+class OscillatorModule : public NodeBase<Facet> {
 public:
 
     using SliderLayout = SliderWidget::Layout;
@@ -38,8 +37,9 @@ public:
                      , Variable<Facet, float>& internal_duty
                      , Variable<Facet, float>& internal_curve
                      , Variable<Facet, bool>& internal_enabled
+                     , Variable<Facet, float>& internal_num_voices
                      , Layout layout = Layout::full)
-            : m_oscillator(oscillator)
+            : NodeBase<Facet>(oscillator, &internal_enabled, &internal_num_voices)
               , m_type_socket(oscillator.get_type(), std::make_unique<ComboBoxType>(
                     internal_type
                     , std::vector<ComboBoxType::Entry>{
@@ -59,12 +59,8 @@ public:
                     internal_duty, 0.0, 1.0, 0.01, false, "duty", SliderLayout::label_left))
               , m_curve_socket(oscillator.get_curve(), std::make_unique<SliderWidget>(
                     internal_curve, 0.0, 1.0, 0.01, false, "curve", SliderLayout::label_left))
-              , m_header(oscillator.get_parameter_handler().get_id(), &internal_enabled)
               , m_layout(layout)
               , m_oscillator_view(oscillator) {
-
-        setComponentID(oscillator.get_parameter_handler().get_id());
-
         addAndMakeVisible(m_oscillator_view);
 
         addAndMakeVisible(m_type_socket);
@@ -73,15 +69,6 @@ public:
         addAndMakeVisible(m_add_socket);
         addAndMakeVisible(m_duty_socket);
         addAndMakeVisible(m_curve_socket);
-
-        addAndMakeVisible(m_header);
-
-        addAndMakeVisible(m_interaction_visualizer);
-    }
-
-
-    static std::string default_name() {
-        return "oscillator";
     }
 
 
@@ -117,90 +104,28 @@ public:
     }
 
 
-    std::vector<std::unique_ptr<InteractionVisualization>> create_visualizations() {
-        std::vector<std::unique_ptr<InteractionVisualization>> visualizations;
-        visualizations.emplace_back(std::make_unique<MoveVisualization>(*this));
-        visualizations.emplace_back(std::make_unique<DeleteVisualization>(*this));
-        return visualizations;
-    }
-
-
     void set_layout(int layout_id) override {
         m_layout = static_cast<Layout>(layout_id);
         resized();
     }
 
 
-    Generative& get_generative() override {
-        return m_oscillator;
-    }
-
-
-    bool connect(ConnectableModule& connectable) override {
-        if (auto* socket = dynamic_cast<SocketWidget<Facet>*>(&connectable)) {
-            return socket->connect(*this);
-        }
-        return false;
-    }
-
-
-    bool connectable_to(juce::Component& component) override {
-        if (auto* socket = dynamic_cast<SocketWidget<Facet>*>(&component)) {
-            return socket->connectable_to(*this);
-        }
-        return false;
-    }
-
-
-    bool isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
-        return m_connectable_dnd_controller.is_interested_in(dragSourceDetails);
-    }
-
-
-    void itemDropped(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
-        m_connectable_dnd_controller.item_dropped(dragSourceDetails);
-    }
-
-
-    void itemDragEnter(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
-        m_connectable_dnd_controller.item_drag_enter(dragSourceDetails);
-    }
-
-
-    void itemDragExit(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
-        m_connectable_dnd_controller.item_drag_exit(dragSourceDetails);
-    }
-
-
 private:
-    void paint(juce::Graphics& g) override {
-        g.setColour(getLookAndFeel().findColour(Colors::component_background_color));
-        g.fillRoundedRectangle(getLocalBounds().toFloat(), 4.0f);
-        g.setColour(getLookAndFeel().findColour(Colors::component_border_color));
-        g.drawRoundedRectangle(getLocalBounds().toFloat(), 4.0f, 1.0f);
-    }
 
-
-    void resized() override {
+    void on_resized(juce::Rectangle<int>& bounds) override {
         if (m_layout == Layout::full) {
-            full_layout();
+            full_layout(bounds);
         } else if (m_layout == Layout::generator_internal) {
-            layout_generator_internal();
+            layout_generator_internal(bounds);
         }
-
-        m_interaction_visualizer.setBounds(getLocalBounds());
     }
 
 
-    void full_layout() {
+    void full_layout(juce::Rectangle<int>& bounds) {
         auto slider_height = SliderWidget::height_of(SliderLayout::label_left);
         auto y_margin = DC::OBJECT_Y_MARGINS_COLUMN;
 
-        auto bounds = getLocalBounds();
-
-        // header
-        m_header.setBounds(bounds.removeFromTop(HeaderWidget::height_of()));
-        bounds.reduce(DC::COMPONENT_LR_MARGINS, DC::COMPONENT_UD_MARGINS);
+        set_header_visibility(true);
 
         // layout
         m_oscillator_view.set_layout(OscillatorView::Layout::full);
@@ -234,14 +159,14 @@ private:
     }
 
 
-    void layout_generator_internal() {
+    void layout_generator_internal(juce::Rectangle<int>& bounds) {
+        set_header_visibility(false);
+
         auto label_position = SliderLayout::label_below;
         auto slider_width = SliderWidget::default_width(SliderLayout::label_below, true);
         auto x_margins = DC::OBJECT_X_MARGINS_ROW;
         auto y_margins = DC::OBJECT_Y_MARGINS_ROW;
         auto slider_height = SliderWidget::height_of(label_position);
-
-        auto bounds = getLocalBounds();
 
         // layout
         m_oscillator_view.set_layout(OscillatorView::Layout::compact);
@@ -271,9 +196,6 @@ private:
     }
 
 
-    Oscillator& m_oscillator;
-
-
     SocketWidget<Facet> m_type_socket;
     SocketWidget<Facet> m_freq_socket;
     SocketWidget<Facet> m_mul_socket;
@@ -281,15 +203,9 @@ private:
     SocketWidget<Facet> m_duty_socket;
     SocketWidget<Facet> m_curve_socket;
 
-    HeaderWidget m_header;
-
     Layout m_layout;
 
     OscillatorView m_oscillator_view;
-
-    InteractionVisualizer m_interaction_visualizer{*this, create_visualizations()};
-    ConnectableDndController m_connectable_dnd_controller{*this, *this, &m_interaction_visualizer};
-
 };
 
 #endif //SERIALIST_LOOPER_OSCILLATOR_COMPONENT_H
