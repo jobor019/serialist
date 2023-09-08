@@ -31,8 +31,8 @@ public:
     }
 
 
-    std::vector<OutputType> process(const TimePoint&, double y, InterpolationStrategy strategy) override {
-        auto values = m_sequence.interpolate(y, std::move(strategy));
+    std::vector<OutputType> process(double y, InterpolationStrategy strategy) override {
+        auto values = m_sequence.interpolate(y, strategy);
         if constexpr (std::is_same_v<OutputType, StoredType>) {
             return values;
 

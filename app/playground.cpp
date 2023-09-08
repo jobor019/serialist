@@ -4,8 +4,8 @@
 #include "parameter_policy.h"
 #include "key_state.h"
 #include "transport.h"
-//#include "generation_graph.h"
-//#include "configuration_layer_component.h"
+#include "generation_graph.h"
+#include "configuration_layer_component.h"
 #include "generator_module.h"
 #include "pulsator_module.h"
 #include "interpolation_module.h"
@@ -13,7 +13,7 @@
 
 class SomeObject : public ParameterHandler {
 public:
-    SomeObject(ParameterHandler&& handler) : ParameterHandler(std::move(handler)) {}
+    explicit SomeObject(ParameterHandler&& handler) : ParameterHandler(std::move(handler)) {}
 };
 
 class PlaygroundComponent : public MainKeyboardFocusComponent
@@ -24,8 +24,8 @@ public:
 
     PlaygroundComponent()
             : m_some_handler(m_undo_manager)
-//              , m_modular_generator(m_some_handler)
-//              , m_config_layer_component(m_modular_generator)
+              , m_modular_generator(m_some_handler)
+              , m_config_layer_component(m_modular_generator)
 
     {
 
@@ -33,13 +33,23 @@ public:
         SerialistLookAndFeel::setup_look_and_feel_colors(*m_lnf);
         juce::Desktop::getInstance().setDefaultLookAndFeel(m_lnf.get());
 
-//        addAndMakeVisible(m_config_layer_component);
+        addAndMakeVisible(m_config_layer_component);
 
         m_transport.start();
         startTimer(1);
         setSize(1000, 400);
 
-//        m_modular_generator.get_parameter_handler().get_value_tree().addListener(this);
+        m_modular_generator.get_parameter_handler().get_value_tree().addListener(this);
+
+//        auto [pulsator_module, pulsator_generatives] = ModuleFactory::new_pulsator(m_modular_generator, PulsatorModule::Layout::note_source_internal);
+//        auto& generative = pulsator_module->get_generative();
+//        if (generative) {
+//            auto* pulsator = dynamic_cast<Node<Trigger>*>(&generative);
+//            std::cout << "dc worked\n";
+//        } else {
+//            std::cout << "generative not set\n";
+//        }
+
     }
 
 
@@ -53,7 +63,7 @@ public:
 
 
     void resized() override {
-//        m_config_layer_component.setBounds(getLocalBounds().reduced(10));
+        m_config_layer_component.setBounds(getLocalBounds().reduced(10));
 
     }
 
@@ -123,24 +133,9 @@ private:
 
     ParameterHandler m_some_handler;
 
-//    GenerationGraph m_modular_generator;
-//
-//    std::unique_ptr<OscillatorModule> m_oscillator;
-//    std::unique_ptr<TextSequenceModule<int>> m_sequence;
-//    std::unique_ptr<InterpolationModule<int>> m_interpolator;
-//    std::unique_ptr<GeneratorModule<int>> m_pitch_generator;
-//
-//    std::unique_ptr<NoteSourceModule> m_source;
+    GenerationGraph m_modular_generator;
 
-//    ConfigurationLayerComponent m_config_layer_component;
-
-//    juce::ToggleButton tb;
-
-//    ScalableSlider s;
-
-//    HeaderWidget hc;
-
-//    ComboBoxWidget<Oscillator::Type> my_cb;
+    ConfigurationLayerComponent m_config_layer_component;
 
     int callback_count = 0;
 
@@ -226,11 +221,6 @@ public:
 
 private:
     std::unique_ptr<MainWindow> mainWindow;
-
-    std::unique_ptr<GeneratorModule<int>> m_generator;
-    std::unique_ptr<PulsatorModule> m_pulsator;
-    std::unique_ptr<OscillatorModule> m_oscillator;
-    std::unique_ptr<NoteSourceModule> m_note_source;
 
 };
 

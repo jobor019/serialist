@@ -16,8 +16,6 @@
 class NoteSourceModule : public RootBase {
 public:
 
-    static const int SLIDER_WIDTH = static_cast<int>(DC::SLIDER_DEFAULT_WIDTH * 0.8);
-
     enum class Layout {
         full = 0
     };
@@ -55,7 +53,7 @@ public:
         (void) layout;
 
         return DC::COMPONENT_LR_MARGINS
-               + 5 * SLIDER_WIDTH
+               + 5 * DC::SLIDER_COMPACT_WIDTH
                + 4 * DC::OBJECT_X_MARGINS_ROW;
     }
 
@@ -79,13 +77,13 @@ public:
 
         bounds.removeFromTop(DC::OBJECT_Y_MARGINS_COLUMN);
 
-        m_internal_trigger.setBounds(bounds.removeFromLeft(2 * SLIDER_WIDTH + DC::OBJECT_X_MARGINS_ROW));
+        m_internal_trigger.setBounds(bounds.removeFromLeft(2 * DC::SLIDER_COMPACT_WIDTH + DC::OBJECT_X_MARGINS_ROW));
         bounds.removeFromLeft(DC::OBJECT_X_MARGINS_ROW);
-        m_internal_pitch.setBounds(bounds.removeFromLeft(SLIDER_WIDTH));
+        m_internal_pitch.setBounds(bounds.removeFromLeft(DC::SLIDER_COMPACT_WIDTH));
         bounds.removeFromLeft(DC::OBJECT_X_MARGINS_ROW);
-        m_internal_velocity.setBounds(bounds.removeFromLeft(SLIDER_WIDTH));
+        m_internal_velocity.setBounds(bounds.removeFromLeft(DC::SLIDER_COMPACT_WIDTH));
         bounds.removeFromLeft(DC::OBJECT_X_MARGINS_ROW);
-        m_internal_channel.setBounds(bounds.removeFromLeft(SLIDER_WIDTH));
+        m_internal_channel.setBounds(bounds.removeFromLeft(DC::SLIDER_COMPACT_WIDTH));
 
     }
 

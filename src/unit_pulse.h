@@ -6,8 +6,7 @@
 #include "events.h"
 #include "generative.h"
 
-class UnitPulse : public Node<Trigger>
-                  , public Stateful {
+class UnitPulse : public Node<Trigger> {
 public:
     static const inline std::string CLASS_NAME = "pulsator";
 

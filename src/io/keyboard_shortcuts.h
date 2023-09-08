@@ -17,6 +17,7 @@ public:
     static const int NEW_GENERATOR_KEY = static_cast<int>('Q');
     static const int NEW_OSCILLATOR_KEY = static_cast<int>('W');
     static const int NEW_MIDI_SOURCE_KEY = static_cast<int>('E');
+    static const int NEW_PULSATOR_KEY = static_cast<int>('A');
 
     static const int CONNECTOR_KEY = static_cast<int>('R');
     static const int DISCONNECT_KEY = static_cast<int>('T');

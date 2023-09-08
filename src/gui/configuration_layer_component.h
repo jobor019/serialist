@@ -13,6 +13,7 @@
 #include "keyboard_shortcuts.h"
 #include "global_action_handler.h"
 #include "generator_module.h"
+#include "module_factory.h"
 
 class ConfigurationLayerComponent : public juce::Component
                                     , public GlobalKeyState::Listener
@@ -280,7 +281,8 @@ private:
 
         if (GlobalKeyState::any_is_down_exclusive(KeyCodes::NEW_GENERATOR_KEY
                                                   , KeyCodes::NEW_OSCILLATOR_KEY
-                                                  , KeyCodes::NEW_MIDI_SOURCE_KEY)) {
+                                                  , KeyCodes::NEW_MIDI_SOURCE_KEY
+                                                  , KeyCodes::NEW_PULSATOR_KEY)) {
             auto cng = ModuleFactory::new_from_key(GlobalKeyState::get_held_keys()[0], m_modular_generator);
 
             if (!cng)

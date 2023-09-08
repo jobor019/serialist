@@ -12,6 +12,7 @@ class DimensionConstants {
 public:
     static inline const int SLIDER_DEFAULT_HEIGHT = 14;
     static inline const int SLIDER_DEFAULT_WIDTH = 50;
+    static inline const int SLIDER_COMPACT_WIDTH = 40;
     static inline const int FONT_HEIGHT = SerialistLookAndFeel::FONT_SIZE;
     static inline const int DEFAULT_LABEL_WIDTH = 40;
 

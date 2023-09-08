@@ -76,15 +76,18 @@ public:
      *  managing the value tree is deleted before the module listening to the value tree)
      */
     [[nodiscard]] static std::optional<ComponentAndGeneratives>
-    new_from_key(int key, GenerationGraph& modular_generator) {
+    new_from_key(int key, GenerationGraph& graph) {
         if (key == KeyCodes::NEW_GENERATOR_KEY) {
-            auto mng = new_generator<Facet, float>(modular_generator);
+            auto mng = new_generator<Facet, float>(graph);
             return {ComponentAndGeneratives::from_internal(std::move(mng))};
         } else if (key == KeyCodes::NEW_MIDI_SOURCE_KEY) {
-            auto mng = new_midi_note_source(modular_generator);
+            auto mng = new_midi_note_source(graph);
             return {ComponentAndGeneratives::from_internal(std::move(mng))};
         } else if (key == KeyCodes::NEW_OSCILLATOR_KEY) {
-            auto mng = new_oscillator(modular_generator);
+            auto mng = new_oscillator(graph);
+            return {ComponentAndGeneratives::from_internal(std::move(mng))};
+        } else if (key == KeyCodes::NEW_PULSATOR_KEY) {
+            auto mng = new_pulsator(graph);
             return {ComponentAndGeneratives::from_internal(std::move(mng))};
         }
 
@@ -93,34 +96,34 @@ public:
 
 
     [[nodiscard]] static ModuleAndGeneratives<NoteSourceModule>
-    new_midi_note_source(GenerationGraph& mg
+    new_midi_note_source(GenerationGraph& graph
                          , NoteSourceModule::Layout layout = NoteSourceModule::Layout::full) {
 
-        auto& parent = mg.get_parameter_handler();
+        auto& parent = graph.get_parameter_handler();
 
-        auto note_source = std::make_unique<NoteSource>(mg.next_id(), mg.get_parameter_handler());
+        auto [pulsator_module, pulsator_generatives] = new_pulsator(graph, PulsatorModule::Layout::note_source_internal);
+        auto* pulsator = dynamic_cast<Node<Trigger>*>(&pulsator_module->get_generative());
+
+        assert(pulsator);
+
+        auto pitch = std::make_unique<Variable<Facet, float>>(graph.next_id(), parent, 6000.0f);
+        auto velocity = std::make_unique<Variable<Facet, float>>(graph.next_id(), parent, 100.0f);
+        auto channel = std::make_unique<Variable<Facet, float>>(graph.next_id(), parent, 1.0f);
+        auto enabled = std::make_unique<Variable<Facet, bool>>(graph.next_id(), parent, true);
+        auto num_voices = std::make_unique<Variable<Facet, float>>(graph.next_id(), parent, 1.0f);
+
+        auto note_source = std::make_unique<NoteSource>(graph.next_id(), parent, pulsator
+                                                        , pitch.get(), velocity.get(), channel.get()
+                                                        , enabled.get(), num_voices.get());
 
         note_source->set_midi_device(MidiConfig::get_instance().get_default_device_name());
 
-        auto onset = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, 1.0f);
-        auto duration = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, 1.0f);
-        auto pitch = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, 6000.0f);
-        auto velocity = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, 100.0f);
-        auto channel = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, 1.0f);
-        auto enabled = std::make_unique<Variable<Facet, bool>>(mg.next_id(), parent, true);
-
-        note_source->set_onset(onset.get());
-        note_source->set_duration(duration.get());
-        note_source->set_pitch(pitch.get());
-        note_source->set_velocity(velocity.get());
-        note_source->set_channel(channel.get());
-        note_source->set_enabled(enabled.get());
-
         auto note_source_module = std::make_unique<NoteSourceModule>(
-                *note_source, *onset, *duration, *pitch, *velocity, *channel, *enabled, layout);
+                *note_source, std::move(pulsator_module), *pitch, *velocity, *channel, *enabled, *num_voices, layout);
 
-        auto generatives = collect(std::move(note_source), std::move(onset), std::move(duration), std::move(pitch)
-                                   , std::move(velocity), std::move(channel), std::move(enabled));
+        auto generatives = collect(std::move(note_source), std::move(pitch), std::move(velocity)
+                                   , std::move(channel), std::move(enabled), std::move(num_voices));
+        std::move(pulsator_generatives.begin(), pulsator_generatives.end(), std::back_inserter(generatives));
 
         return {std::move(note_source_module), std::move(generatives)};
     }
@@ -128,17 +131,18 @@ public:
 
     template<typename OutputType, typename SequenceStorageType>
     [[nodiscard]] static ModuleAndGeneratives<GeneratorModule<OutputType, SequenceStorageType>>
-    new_generator(GenerationGraph& mg
-                  , typename GeneratorModule<OutputType, SequenceStorageType>::Layout layout = GeneratorModule<OutputType, SequenceStorageType>::Layout::full) {
+    new_generator(GenerationGraph& graph
+                  , typename GeneratorModule<OutputType, SequenceStorageType>::Layout layout = GeneratorModule<
+            OutputType, SequenceStorageType>::Layout::full) {
 
-        auto& parent = mg.get_parameter_handler();
+        auto& parent = graph.get_parameter_handler();
 
         auto [oscillator_module, oscillator_generatives] = new_oscillator(
-                mg, OscillatorModule::Layout::generator_internal);
+                graph, OscillatorModule::Layout::generator_internal);
         auto [interpolator_module, interpolator_generatives] = new_interpolator(
-                mg, InterpolationModule::Layout::generator_internal);
+                graph, InterpolationModule::Layout::generator_internal);
         auto [sequence_module, sequence_generatives] = new_text_sequence<OutputType, SequenceStorageType>(
-                mg, TextSequenceModule<OutputType, SequenceStorageType>::Layout::full);
+                graph, TextSequenceModule<OutputType, SequenceStorageType>::Layout::full);
 
         auto oscillator = dynamic_cast<Node<Facet>*>(&oscillator_module->get_generative());
         auto interpolator = dynamic_cast<Node<InterpolationStrategy>*>(&interpolator_module->get_generative());
@@ -146,10 +150,11 @@ public:
 
         assert(oscillator && interpolator && sequence);
 
-        auto enabled = std::make_unique<Variable<Facet, bool>>(mg.next_id(), parent, true);
+        auto enabled = std::make_unique<Variable<Facet, bool>>(graph.next_id(), parent, true);
+        auto num_voices = std::make_unique<Variable<Facet, float>>(graph.next_id(), parent, 1.0f);
 
         auto generator = std::make_unique<Generator<OutputType>>(
-                mg.next_id(), parent, oscillator, interpolator, sequence, enabled.get());
+                graph.next_id(), parent, oscillator, interpolator, sequence, enabled.get());
 
         auto generator_module = std::make_unique<GeneratorModule<OutputType, SequenceStorageType>>(
                 *generator
@@ -157,15 +162,11 @@ public:
                 , std::move(interpolator_module)
                 , std::move(sequence_module)
                 , *enabled
+                , *num_voices
                 , layout);
 
-        std::vector<std::unique_ptr<Generative>> generatives;
-        // TODO: Generalize with `collect`
-        generatives.push_back(std::move(generator));
-        generatives.push_back(std::move(enabled));
-
+        auto generatives = collect(std::move(generator), std::move(enabled), std::move(num_voices));
         std::move(oscillator_generatives.begin(), oscillator_generatives.end(), std::back_inserter(generatives));
-
         std::move(interpolator_generatives.begin(), interpolator_generatives.end(), std::back_inserter(generatives));
         std::move(sequence_generatives.begin(), sequence_generatives.end(), std::back_inserter(generatives));
 
@@ -174,20 +175,26 @@ public:
 
 
     [[nodiscard]] static ModuleAndGeneratives<OscillatorModule>
-    new_oscillator(GenerationGraph& mg
+    new_oscillator(GenerationGraph& graph
                    , OscillatorModule::Layout layout = OscillatorModule::Layout::full) {
 
-        auto& parent = mg.get_parameter_handler();
+        auto& parent = graph.get_parameter_handler();
 
-        auto oscillator = std::make_unique<Oscillator>(mg.next_id(), parent);
-        auto type = std::make_unique<Variable<Facet, Oscillator::Type>>(mg.next_id(), parent, Oscillator::Type::phasor);
-        auto freq = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, 0.25f);
-        auto mul = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, 1.0f);
-        auto add = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, 0.0f);
-        auto duty = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, 0.5f);
-        auto curve = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, 1.0f);
-        auto enabled = std::make_unique<Variable<Facet, bool>>(mg.next_id(), parent, true);
+        auto oscillator = std::make_unique<Oscillator>(graph.next_id(), parent);
 
+        // TODO: Need to implement a module for the pulse to be able to replace/connect it
+        auto internal_trigger = std::make_unique<UnitPulse>(graph.next_id(), parent);
+
+        auto type = std::make_unique<Variable<Facet, Oscillator::Type>>(graph.next_id(), parent, Oscillator::Type::phasor);
+        auto freq = std::make_unique<Variable<Facet, float>>(graph.next_id(), parent, 0.25f);
+        auto mul = std::make_unique<Variable<Facet, float>>(graph.next_id(), parent, 1.0f);
+        auto add = std::make_unique<Variable<Facet, float>>(graph.next_id(), parent, 0.0f);
+        auto duty = std::make_unique<Variable<Facet, float>>(graph.next_id(), parent, 0.5f);
+        auto curve = std::make_unique<Variable<Facet, float>>(graph.next_id(), parent, 1.0f);
+        auto enabled = std::make_unique<Variable<Facet, bool>>(graph.next_id(), parent, true);
+        auto num_voices = std::make_unique<Variable<Facet, float>>(graph.next_id(), parent, 1.0f);
+
+        oscillator->set_trigger(internal_trigger.get());
         oscillator->set_type(type.get());
         oscillator->set_freq(freq.get());
         oscillator->set_mul(mul.get());
@@ -197,10 +204,11 @@ public:
         oscillator->set_enabled(enabled.get());
 
         auto oscillator_module = std::make_unique<OscillatorModule>(
-                *oscillator, *type, *freq, *mul, *add, *duty, *curve, *enabled, layout);
+                *oscillator, *type, *freq, *mul, *add, *duty, *curve, *enabled, *num_voices, layout);
 
-        auto generatives = collect(std::move(oscillator), std::move(type), std::move(freq), std::move(mul)
-                                   , std::move(add), std::move(duty), std::move(curve), std::move(enabled));
+        auto generatives = collect(std::move(oscillator), std::move(internal_trigger), std::move(type)
+                                   , std::move(freq), std::move(mul), std::move(add), std::move(duty)
+                                   , std::move(curve), std::move(enabled), std::move(num_voices));
 
         return {std::move(oscillator_module), std::move(generatives)};
     }
@@ -209,12 +217,13 @@ public:
     template<typename OutputType, typename StorageType>
     [[nodiscard]] static ModuleAndGeneratives<TextSequenceModule<OutputType, StorageType>>
     new_text_sequence(
-            GenerationGraph& mg
-            , typename TextSequenceModule<OutputType, StorageType>::Layout layout = TextSequenceModule<OutputType, StorageType>::Layout::full) {
+            GenerationGraph& graph
+            , typename TextSequenceModule<OutputType, StorageType>::Layout layout = TextSequenceModule<OutputType
+                                                                                                       , StorageType>::Layout::full) {
 
-        auto& parent = mg.get_parameter_handler();
+        auto& parent = graph.get_parameter_handler();
 
-        auto sequence = std::make_unique<Sequence<OutputType, StorageType>>(mg.next_id(), parent);
+        auto sequence = std::make_unique<Sequence<OutputType, StorageType>>(graph.next_id(), parent);
 
         auto sequence_module = std::make_unique<TextSequenceModule<OutputType, StorageType>>(*sequence, layout);
 
@@ -225,18 +234,18 @@ public:
 
 
     [[nodiscard]] static ModuleAndGeneratives<InterpolationModule>
-    new_interpolator(GenerationGraph& mg
-                     , typename InterpolationModule::Layout layout = InterpolationModule::Layout::full) {
-        auto& parent = mg.get_parameter_handler();
+    new_interpolator(GenerationGraph& graph
+                     , InterpolationModule::Layout layout = InterpolationModule::Layout::full) {
+        auto& parent = graph.get_parameter_handler();
 
 
         auto default_strategy = InterpolationStrategy::default_strategy();
-        auto interpolation_adapter = std::make_unique<InterpolationAdapter>(mg.next_id(), parent);
+        auto interpolation_adapter = std::make_unique<InterpolationAdapter>(graph.next_id(), parent);
         auto type = std::make_unique<Variable<Facet, InterpolationStrategy::Type>>(
-                mg.next_id()
+                graph.next_id()
                 , parent
                 , default_strategy.get_type());
-        auto pivot = std::make_unique<Variable<Facet, float>>(mg.next_id(), parent, default_strategy.get_pivot());
+        auto pivot = std::make_unique<Variable<Facet, float>>(graph.next_id(), parent, default_strategy.get_pivot());
 
         interpolation_adapter->set_type(type.get());
         interpolation_adapter->set_pivot(pivot.get());
@@ -249,6 +258,32 @@ public:
 
         return {std::move(interpolator_module), std::move(generatives)};
 
+    }
+
+    [[nodiscard]]
+    static ModuleAndGeneratives<PulsatorModule> new_pulsator(GenerationGraph& graph
+                                                             , PulsatorModule::Layout layout = PulsatorModule::Layout::full) {
+
+        auto& parent = graph.get_parameter_handler();
+
+        auto pulsator = std::make_unique<Pulsator>(graph.next_id(), parent);
+
+        auto interval = std::make_unique<Variable<Facet, float>>(graph.next_id(), parent, 1.0f);
+        auto duty = std::make_unique<Variable<Facet, float>>(graph.next_id(), parent, 1.0f);
+        auto enabled = std::make_unique<Variable<Facet, bool>>(graph.next_id(), parent, true);
+        auto num_voices = std::make_unique<Variable<Facet, float>>(graph.next_id(), parent, 1.0f);
+
+        pulsator->set_trigger_interval(interval.get());
+        pulsator->set_duty_cycle(interval.get());
+        pulsator->set_enabled(enabled.get());
+        pulsator->set_num_voices(num_voices.get());
+
+        auto pulsator_module = std::make_unique<PulsatorModule>(*pulsator, *interval, *duty, *enabled, *num_voices, layout);
+
+        auto generatives = collect(std::move(pulsator), std::move(interval), std::move(duty)
+                                   , std::move(enabled), std::move(num_voices));
+
+        return {std::move(pulsator_module), std::move(generatives)};
     }
 
 

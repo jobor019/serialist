@@ -28,7 +28,7 @@ public:
                     , Variable<Facet, bool>& internal_enabled
                     , Variable<Facet, float>& internal_num_voices
                     , Layout layout = Layout::full)
-            : NodeBase<OutputType>(generator, internal_enabled, internal_num_voices)
+            : NodeBase<OutputType>(generator, &internal_enabled, &internal_num_voices)
               , m_oscillator_socket(generator.get_cursor(), std::move(oscillator))
               , m_interpolator(generator.get_interpolation_strategy(), std::move(interpolator))
               , m_sequence_socket(generator.get_sequence(), std::move(sequence))
@@ -70,8 +70,6 @@ private:
     }
 
     void full_layout(juce::Rectangle<int> bounds) {
-        NodeBase<OutputType>::set_header_visibility(true);
-
         auto oscillator_layout = OscillatorModule::Layout::generator_internal;
         auto sequence_layout = TextSequenceModule<OutputType>::Layout::generator_internal;
         auto interpolator_layout = InterpolationModule::Layout::generator_internal;

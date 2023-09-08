@@ -105,16 +105,20 @@ class NodeBase : public GenerativeComponent
 public:
     explicit NodeBase(Node<OutputType>& main_generative
                       , Variable<Facet, bool>* internal_enabled = nullptr
-                      , Variable<Facet, float>* internal_num_voices = nullptr)
+                      , Variable<Facet, float>* internal_num_voices = nullptr
+                              , bool header_visible = true)
             : m_main_generative(main_generative)
               , m_header(m_main_generative.get_parameter_handler().get_id()
                          , internal_enabled
                          , nullptr
-                         , internal_num_voices) {
+                         , internal_num_voices)
+             , m_header_visible(header_visible) {
 
         setComponentID(m_main_generative.get_parameter_handler().get_id());
 
-        addAndMakeVisible(m_header);
+        if (m_header_visible)
+            addAndMakeVisible(m_header);
+
         addAndMakeVisible(m_interaction_visualizer);
     }
 
@@ -189,6 +193,7 @@ protected:
 
     void set_header_visibility(bool visible) {
         m_header_visible = visible;
+        resized();
     }
 
 

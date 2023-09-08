@@ -12,6 +12,8 @@ class HeaderWidget : public juce::Component
                      , private juce::Button::Listener {
 public:
 
+    static inline int NUM_VOICES_WIDTH = static_cast<int>(DC::SLIDER_DEFAULT_WIDTH * 0.45);
+
     explicit HeaderWidget(const std::string& public_name
                           , Variable<Facet, bool>* enabled = nullptr
                           , Variable<Facet, bool>* stepped = nullptr
@@ -19,13 +21,13 @@ public:
             : m_label({}, public_name)
               , m_enabled(enabled ? std::make_optional<ToggleButtonWidget>(*enabled) : std::nullopt)
               , m_stepped(stepped ? std::make_optional<ToggleButtonWidget>(*stepped) : std::nullopt)
-              , m_num_voices(num_voices ? std::make_optional<SliderWidget>(*num_voices) : std::nullopt)
+              , m_num_voices(num_voices ? std::make_optional<SliderWidget>(*num_voices, 0.0f, 64.0f, 1.0f, true) : std::nullopt)
               , m_minimized("-") {
         initialize_widgets();
     }
 
 
-    static int height_of() { return DimensionConstants::COMPONENT_HEADER_HEIGHT; }
+    static int height_of() { return DC::COMPONENT_HEADER_HEIGHT; }
 
 
     void paint(juce::Graphics& g) override {
@@ -37,7 +39,7 @@ public:
 
 
     void resized() override {
-        auto bounds = getLocalBounds().reduced(DimensionConstants::HEADER_INTERNAL_MARGINS);
+        auto bounds = getLocalBounds().reduced(DC::HEADER_INTERNAL_MARGINS);
 
         auto enabled_bounds = bounds.removeFromLeft(bounds.getHeight());
         if (m_enabled) {
@@ -49,13 +51,13 @@ public:
         auto font = m_label.getFont();
 
         if (m_stepped) {
-            bounds.removeFromRight(DimensionConstants::HEADER_INTERNAL_MARGINS);
+            bounds.removeFromRight(DC::HEADER_INTERNAL_MARGINS);
             m_stepped->setBounds(bounds.removeFromRight(4 + font.getStringWidth(m_stepped->get_text())));
         }
 
         if (m_num_voices) {
-            bounds.removeFromRight(DimensionConstants::HEADER_INTERNAL_MARGINS);
-            m_num_voices->setBounds(bounds.removeFromRight(DimensionConstants::SLIDER_DEFAULT_WIDTH));
+            bounds.removeFromRight(DC::HEADER_INTERNAL_MARGINS);
+            m_num_voices->setBounds(bounds.removeFromRight(NUM_VOICES_WIDTH));
         }
 
         m_label.setBounds(bounds);

@@ -14,6 +14,7 @@
 #include "interaction_visualizations.h"
 #include "connectable_dnd_controller.h"
 #include "module_bases.h"
+#include "unit_pulse.h"
 
 
 class OscillatorModule : public NodeBase<Facet> {
@@ -39,7 +40,7 @@ public:
                      , Variable<Facet, bool>& internal_enabled
                      , Variable<Facet, float>& internal_num_voices
                      , Layout layout = Layout::full)
-            : NodeBase<Facet>(oscillator, &internal_enabled, &internal_num_voices)
+            : NodeBase<Facet>(oscillator, &internal_enabled, &internal_num_voices, layout == Layout::full)
               , m_type_socket(oscillator.get_type(), std::make_unique<ComboBoxType>(
                     internal_type
                     , std::vector<ComboBoxType::Entry>{
@@ -125,8 +126,6 @@ private:
         auto slider_height = SliderWidget::height_of(SliderLayout::label_left);
         auto y_margin = DC::OBJECT_Y_MARGINS_COLUMN;
 
-        set_header_visibility(true);
-
         // layout
         m_oscillator_view.set_layout(OscillatorView::Layout::full);
         m_type_socket.set_layout(static_cast<int>(CbLayout::label_left));
@@ -160,8 +159,6 @@ private:
 
 
     void layout_generator_internal(juce::Rectangle<int>& bounds) {
-        set_header_visibility(false);
-
         auto label_position = SliderLayout::label_below;
         auto slider_width = SliderWidget::default_width(SliderLayout::label_below, true);
         auto x_margins = DC::OBJECT_X_MARGINS_ROW;
