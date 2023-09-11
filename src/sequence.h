@@ -7,48 +7,72 @@
 #include "socket_policy.h"
 #include "generative.h"
 #include "interpolator.h"
+#include "parameter_keys.h"
 
-template<typename T>
-class Sequence : public DataNode<T> {
+template<typename OutputType, typename StoredType = OutputType>
+class Sequence : public Leaf<OutputType> {
 public:
 
-    inline static const std::string PARAMETER_ADDRESS = "sequence";
+    inline static const std::string SEQUENCE_TREE = "SEQUENCE";
+    inline static const std::string CLASS_NAME = "sequence";
 
 
     explicit Sequence(const std::string& id
                       , ParameterHandler& parent
-                      , const std::vector<T>& initial_values = {}
-                      , Node<bool>* enabled = nullptr)
-            : DataNode<T>(id, parent)
-              , m_sequence(PARAMETER_ADDRESS, *this, initial_values)
-              , m_enabled("enabled", *this, enabled) {}
+                      , const std::vector<StoredType>& initial_values = {})
+            : m_parameter_handler(id, parent)
+              , m_socket_handler(ParameterKeys::GENERATIVE_SOCKETS_TREE, m_parameter_handler)
+              , m_sequence(SEQUENCE_TREE, m_parameter_handler, initial_values) {
+        static_assert(std::is_constructible_v<OutputType, StoredType>
+                      && std::is_constructible_v<StoredType, OutputType>
+                      , "Cannot create a Sequence with incompatible types");
 
-
-    std::vector<T> process(const TimePoint&, double y, InterpolationStrategy<T> strategy) override {
-        return m_sequence.interpolate(y, std::move(strategy));
+        m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, CLASS_NAME);
     }
 
 
-    ParametrizedSequence<T>& get_parameter_obj() {
+    std::vector<OutputType> process(double y, InterpolationStrategy strategy) override {
+        auto values = m_sequence.interpolate(y, strategy);
+        if constexpr (std::is_same_v<OutputType, StoredType>) {
+            return values;
+
+        } else {
+            std::vector<OutputType> output;
+            output.reserve(values.size());
+            std::transform(values.begin(), values.end()
+                           , std::back_inserter(output)
+                           , [](const StoredType& element) { return static_cast<OutputType>(element); }
+            );
+            return output;
+        }
+    }
+
+
+    void disconnect_if(Generative&) override {}
+
+
+    ParameterHandler& get_parameter_handler() override {
+        return m_parameter_handler;
+    }
+
+
+    ParametrizedSequence<StoredType>& get_parameter_obj() {
         return m_sequence;
     }
 
 
     std::vector<Generative*> get_connected() override {
-        return {m_enabled.get_connected()};
+        return {};
     }
 
 
-    void set_enabled(Node<bool>* enabled) { m_enabled = enabled; }
-
-
-    Socket<bool>& get_enabled() { return m_enabled; }
 
 
 private:
-    ParametrizedSequence<T> m_sequence;
+    ParameterHandler m_parameter_handler;
+    ParameterHandler m_socket_handler;
 
-    Socket<bool> m_enabled;
+    ParametrizedSequence<StoredType> m_sequence;
 
 };
 

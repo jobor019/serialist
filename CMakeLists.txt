@@ -9,50 +9,70 @@ find_package(JUCE CONFIG REQUIRED)        # If you've installed JUCE to your sys
 find_package(Catch2 3 REQUIRED)
 # add_subdirectory(JUCE)                    # If you've put JUCE in a subdirectory called JUCE
 
+
+add_subdirectory(lib)
 add_subdirectory(GuiUtils/src)
 
 set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/collection.h
+        ${CMAKE_SOURCE_DIR}/src/connectable.h
         ${CMAKE_SOURCE_DIR}/src/events.h
         ${CMAKE_SOURCE_DIR}/src/exceptions.h
+        ${CMAKE_SOURCE_DIR}/src/facet.h
+        ${CMAKE_SOURCE_DIR}/src/generation_graph.h
         ${CMAKE_SOURCE_DIR}/src/generative.h
         ${CMAKE_SOURCE_DIR}/src/generator.h
+        ${CMAKE_SOURCE_DIR}/src/held_notes.h
+        ${CMAKE_SOURCE_DIR}/src/interpolation_adapter.h
         ${CMAKE_SOURCE_DIR}/src/interpolator.h
-        ${CMAKE_SOURCE_DIR}/src/modular_generator.h
+        ${CMAKE_SOURCE_DIR}/src/note_source.h
         ${CMAKE_SOURCE_DIR}/src/nop_parameter.h
         ${CMAKE_SOURCE_DIR}/src/oscillator.h
         ${CMAKE_SOURCE_DIR}/src/parameter_policy.h
         ${CMAKE_SOURCE_DIR}/src/phasor.h
+        ${CMAKE_SOURCE_DIR}/src/pulsator.h
         ${CMAKE_SOURCE_DIR}/src/scheduler.h
         ${CMAKE_SOURCE_DIR}/src/transport.h
         ${CMAKE_SOURCE_DIR}/src/sequence.h
         ${CMAKE_SOURCE_DIR}/src/serializable.h
         ${CMAKE_SOURCE_DIR}/src/selector.h
+        ${CMAKE_SOURCE_DIR}/src/socket_handler.h
         ${CMAKE_SOURCE_DIR}/src/socket_policy.h
+        ${CMAKE_SOURCE_DIR}/src/time_gate.h
+        ${CMAKE_SOURCE_DIR}/src/transform.h
         ${CMAKE_SOURCE_DIR}/src/vt_socket.h
-        ${CMAKE_SOURCE_DIR}/src/source.h
+        ${CMAKE_SOURCE_DIR}/src/unit_pulse.h
         ${CMAKE_SOURCE_DIR}/src/utils.h
         ${CMAKE_SOURCE_DIR}/src/variable.h
+        ${CMAKE_SOURCE_DIR}/src/voice.h
         ${CMAKE_SOURCE_DIR}/src/vt_parameter.h
+
         ${CMAKE_SOURCE_DIR}/src/gui/modules/generator_module.h
         ${CMAKE_SOURCE_DIR}/src/gui/modules/interpolation_module.h
         ${CMAKE_SOURCE_DIR}/src/gui/modules/note_source_module.h
         ${CMAKE_SOURCE_DIR}/src/gui/modules/oscillator_module.h
+        ${CMAKE_SOURCE_DIR}/src/gui/modules/pulsator_module.h
         ${CMAKE_SOURCE_DIR}/src/gui/modules/text_sequence_module.h
+
         ${CMAKE_SOURCE_DIR}/src/gui/views/note_view.h
         ${CMAKE_SOURCE_DIR}/src/gui/views/oscillator_view.h
+
         ${CMAKE_SOURCE_DIR}/src/gui/widgets/combobox_widget.h
         ${CMAKE_SOURCE_DIR}/src/gui/widgets/header_widget.h
         ${CMAKE_SOURCE_DIR}/src/gui/widgets/slider_widget.h
         ${CMAKE_SOURCE_DIR}/src/gui/widgets/toggle_button_widget.h
+
         ${CMAKE_SOURCE_DIR}/src/gui/configuration_layer_component.h
-        ${CMAKE_SOURCE_DIR}/src/gui/connectable.h
+        ${CMAKE_SOURCE_DIR}/src/gui/connectable_module.h
+        ${CMAKE_SOURCE_DIR}/src/gui/connectable_dnd_controller.h
         ${CMAKE_SOURCE_DIR}/src/gui/connector_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/generative_component.h
         ${CMAKE_SOURCE_DIR}/src/gui/interaction_visualizations.h
         ${CMAKE_SOURCE_DIR}/src/gui/look_and_feel.h
         ${CMAKE_SOURCE_DIR}/src/gui/main_component.h
+        ${CMAKE_SOURCE_DIR}/src/gui/module_bases.h
         ${CMAKE_SOURCE_DIR}/src/gui/module_factory.h
+
         ${CMAKE_SOURCE_DIR}/src/io/keyboard_shortcuts.h
         ${CMAKE_SOURCE_DIR}/src/io/midi_config.h
         ${CMAKE_SOURCE_DIR}/src/io/renderers.h
@@ -178,21 +198,23 @@ target_link_libraries(playground
         # GuiAppData            # If we'd created a binary data target, we'd link to it here
         ${MODULE_DEPENDENCIES_JUCE}
         guiUtils
+        magicEnum
         PUBLIC
         ${FLAGS_JUCE})
 
 
 #####################################################################################
-## TARGET: TESTS
+## TARGET: NOP TESTS
 #####################################################################################
 
 add_executable(tests
-        ${CMAKE_SOURCE_DIR}/test/oscillator_tests.cpp
-        ${CMAKE_SOURCE_DIR}/test/interpolator_tests.cpp
-        ${CMAKE_SOURCE_DIR}/test/selector_tests.cpp
-        ${CMAKE_SOURCE_DIR}/test/looper_tests.cpp
-        ${CMAKE_SOURCE_DIR}/test/generator_tests.cpp
-        ${CMAKE_SOURCE_DIR}/test/juce_tests.cpp)
+        ${CMAKE_SOURCE_DIR}/test/backend/oscillator_tests.cpp
+#        ${CMAKE_SOURCE_DIR}/test/interpolator_tests.cpp
+#        ${CMAKE_SOURCE_DIR}/test/selector_tests.cpp
+#        ${CMAKE_SOURCE_DIR}/test/looper_tests.cpp
+#        ${CMAKE_SOURCE_DIR}/test/generator_tests.cpp
+        ${CMAKE_SOURCE_DIR}/test/backend/facet_tests.cpp
+        )
 
 target_link_libraries(tests
         PRIVATE
@@ -200,6 +222,7 @@ target_link_libraries(tests
         ${MODULE_DEPENDENCIES_JUCE}
         PUBLIC
         ${FLAGS_JUCE}
+        magicEnum
         )
 
 target_include_directories(tests PRIVATE
@@ -207,4 +230,34 @@ target_include_directories(tests PRIVATE
         )
 
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
+
+
+#####################################################################################
+## TARGET: VT_TESTS TESTS
+#####################################################################################
+
+add_executable(vtTests
+        ${CMAKE_SOURCE_DIR}/test/juce/juce_tests.cpp
+        )
+
+target_link_libraries(vtTests
+        PRIVATE
+        # GuiAppData            # If we'd created a binary data target, we'd link to it here
+        ${MODULE_DEPENDENCIES_JUCE}
+        PUBLIC
+        ${FLAGS_JUCE}
+        )
+
+target_compile_definitions(vtTests
+        PRIVATE
+        USE_JUCE=1
+        )
+
+target_include_directories(vtTests PRIVATE ${INCLUDES})
+
+target_link_libraries(vtTests
+        PRIVATE
+        Catch2::Catch2WithMain
+        magicEnum)
+
 

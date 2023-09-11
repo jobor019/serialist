@@ -55,7 +55,10 @@ private:
     void timerCallback() override {
         auto queue = m_oscillator.get_output_history();
         if (!queue.empty()) {
-            m_view.setValue(queue.back(), juce::dontSendNotification);
+            auto last_entry = queue.back();
+            if (!last_entry.empty()) {
+                m_view.setValue(static_cast<double>(last_entry.back()), juce::dontSendNotification);
+            }
         }
     }
 

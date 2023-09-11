@@ -5,13 +5,13 @@
 
 #include "transport.h"
 #include "parameter_policy.h"
-#include "interpolator.h"
+#include "voice.h"
 
 #include <optional>
 
-class Generative : public ParameterHandler {
+class Generative {
 public:
-    Generative(const std::string& identifier, ParameterHandler& parent) : ParameterHandler(identifier, parent) {}
+    Generative() = default;
 
 
     virtual ~Generative() = default;
@@ -21,18 +21,19 @@ public:
     Generative& operator=(Generative&&) noexcept = delete;
 
     virtual std::vector<Generative*> get_connected() = 0;
+    virtual ParameterHandler& get_parameter_handler() = 0;
+    virtual void disconnect_if(Generative& connected_to) = 0;
 
+    virtual void update_time(const TimePoint&) {}
 
-    template<typename... Args, std::enable_if_t<std::conjunction_v<std::is_base_of<Generative, Args>...>, int> = 0>
-    std::vector<Generative*> collect_connected(Args* ... args) {
-        std::vector<Generative*> connected_generatives;
+    template<std::size_t max_count = 128, typename... Args>
+    static std::size_t compute_voice_count(const Voices<Facet>& voices, Args... args) {
+        auto num_voices = static_cast<long>(voices.adapted_to(1).front_or(0));
+        if (num_voices <= 0) {
+            return std::min(max_count, std::max({static_cast<std::size_t>(1), args...}));
+        }
 
-        ([&] {
-            if (auto* elem = dynamic_cast<Generative*>(args)) {
-                connected_generatives.emplace_back(elem);
-            }
-        }(), ...);
-        return connected_generatives;
+        return std::min(max_count, static_cast<std::size_t>(num_voices));
     }
 
 };
@@ -40,12 +41,9 @@ public:
 
 // ==============================================================================================
 
-class Source : public Generative {
+class Root : public Generative {
 public:
-    Source(const std::string& identifier, ParameterHandler& parent) : Generative(identifier, parent) {}
-
-
-    virtual void process(const TimePoint& t) = 0;
+    virtual void process() = 0;
 };
 
 
@@ -54,24 +52,22 @@ public:
 template<typename T>
 class Node : public Generative {
 public:
-    Node(const std::string& identifier, ParameterHandler& parent) : Generative(identifier, parent) {}
-
-
-    virtual std::vector<T> process(const TimePoint& t) = 0;
+    virtual Voices<T> process() = 0;
 };
 
 
 // ==============================================================================================
 
+class InterpolationStrategy;
 
 template<typename T>
-class DataNode : public Generative {
+class Leaf : public Generative {
 public:
-    DataNode(const std::string& identifier, ParameterHandler& parent) : Generative(identifier, parent) {}
-
-
-    virtual std::vector<T> process(const TimePoint&, double y, InterpolationStrategy<T> strategy) = 0;
+    virtual std::vector<T> process(double y, InterpolationStrategy strategy) = 0;
 };
+
+// ==============================================================================================
+
 
 
 #endif //SERIALIST_LOOPER_GENERATIVE_H

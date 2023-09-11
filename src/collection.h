@@ -12,14 +12,19 @@ class Collection : public Node<T> {
 public:
 
     inline static const std::string PARAMETER_ADDRESS = "collection";
+    inline static const std::string CLASS_NAME = "collection";
 
 
     explicit Collection(const std::string& id, VTParameterHandler& parent, const std::vector<T>& initial_values = {})
-            : Node<T>(id, parent)
-              , m_collection(PARAMETER_ADDRESS, *this, initial_values) {}
+            : m_parameter_handler(id, parent)
+              , m_collection(PARAMETER_ADDRESS, m_parameter_handler, initial_values) {
+        m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, CLASS_NAME);
+    }
 
 
-    std::vector<T> process(const TimePoint&, double y, const InterpolationStrategy<T> strategy) {
+    void disconnect_if(Generative&) override{}
+
+    std::vector<T> process(const TimePoint&, double y, const InterpolationStrategy strategy) {
         return m_collection.clone_values();
     }
 
@@ -35,7 +40,9 @@ public:
 
 
 private:
+    ParameterHandler m_parameter_handler;
     ParametrizedCollection<T> m_collection;
+
 
 };
 

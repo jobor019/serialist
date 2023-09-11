@@ -1,0 +1,1 @@
+add_subdirectory(magic_enum EXCLUDE_FROM_ALL)

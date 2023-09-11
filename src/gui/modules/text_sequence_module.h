@@ -6,13 +6,10 @@
 #include "generative_component.h"
 #include "sequence.h"
 
-template<typename T>
+template<typename OutputType, typename StoredType = OutputType>
 class TextSequenceModule : public GenerativeComponent
                            , private juce::Label::Listener {
 public:
-
-    static const int INPUT_BOX_HEIGHT = static_cast<const int>(DC::SLIDER_DEFAULT_HEIGHT * 1.6);
-
 
     enum class Layout {
         full = 0
@@ -20,9 +17,10 @@ public:
     };
 
 
-    explicit TextSequenceModule(Sequence<T>& sequence, Variable<bool>& enabled, Layout layout = Layout::full)
+    explicit TextSequenceModule(Sequence<OutputType, StoredType>& sequence
+                                , Layout layout = Layout::full)
             : m_sequence(sequence)
-              , m_header(sequence.get_identifier_as_string(), enabled)
+              , m_header(sequence.get_parameter_handler().get_id())
               , m_layout(layout) {
         initialize_components();
     }
@@ -39,9 +37,9 @@ public:
             case Layout::full:
                 return HeaderWidget::height_of()
                        + 2 * DC::COMPONENT_UD_MARGINS
-                       + INPUT_BOX_HEIGHT;
+                       + DC::DEFAULT_SEQUENCE_HEIGHT;
             case Layout::generator_internal:
-                return INPUT_BOX_HEIGHT;
+                return DC::DEFAULT_SEQUENCE_HEIGHT;
         }
     }
 
@@ -51,7 +49,6 @@ public:
 
     void set_layout(int layout_id) override {
         m_layout = static_cast<Layout>(layout_id);
-        std::cout << "layout set to " << layout_id << "\n";
         resized();
     }
 
@@ -110,10 +107,10 @@ private:
     }
 
 
-    std::pair<bool, std::vector<T>> parse_input(const std::string& input) {
+    std::pair<bool, std::vector<StoredType>> parse_input(const std::string& input) {
         std::istringstream iss(input);
-        std::vector<T> v;
-        T d;
+        std::vector<StoredType> v;
+        StoredType d;
         while (iss >> d) {
             v.push_back(d);
         }
@@ -126,7 +123,7 @@ private:
 
     std::string format_values() {
         std::stringstream ss;
-        std::vector<T> values = m_sequence.get_parameter_obj().clone_values();
+        std::vector<StoredType> values = m_sequence.get_parameter_obj().clone_values();
         for (auto& value: values) {
             ss << value << " ";
         }
@@ -134,7 +131,7 @@ private:
     }
 
 
-    Sequence<T>& m_sequence;
+    Sequence<OutputType, StoredType>& m_sequence;
 
     HeaderWidget m_header;
 

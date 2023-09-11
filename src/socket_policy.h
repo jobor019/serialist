@@ -18,11 +18,11 @@ using DataSocket = VTDataSocket<T>;
 
 #include "nop_socket.h"
 
-template<typename T>
-using Socket = NopSocket<T>;
+template<typename OutputType>
+using Socket = NopSocket<OutputType>;
 
-template<typename T>
-using DataSocket = NopDataSocket<T>;
+template<typename OutputType>
+using DataSocket = NopDataSocket<OutputType>;
 
 #endif
 

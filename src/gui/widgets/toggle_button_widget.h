@@ -10,13 +10,14 @@
 class ToggleButtonWidget : public GenerativeComponent
                            , private juce::ValueTree::Listener {
 public:
-    explicit ToggleButtonWidget(Variable<bool>& variable
+    explicit ToggleButtonWidget(Variable<Facet, bool>& variable
                                 , const std::string& on_text = ""
                                 , const std::string& off_text = "")
             : m_variable(variable)
               , m_on_text(on_text)
               , m_off_text(off_text) {
 
+        setComponentID(variable.get_parameter_handler().get_id());
         initialize_button();
 
         m_variable.get_parameter_obj().add_value_tree_listener(*this);
@@ -52,7 +53,7 @@ public:
 
 private:
     void initialize_button() {
-        bool is_on = m_variable.get_value();
+        bool is_on = static_cast<bool>(m_variable.get_value());
 
         m_button.setToggleState(is_on, juce::dontSendNotification);
         m_button.setButtonText(is_on ? m_on_text : m_off_text);
@@ -65,7 +66,10 @@ private:
     void valueTreePropertyChanged(juce::ValueTree& treeWhosePropertyHasChanged
                                   , const juce::Identifier& property) override {
         if (m_variable.get_parameter_obj().equals_property(treeWhosePropertyHasChanged, property)) {
-            m_button.setToggleState(m_variable.get_value(), juce::dontSendNotification);
+            std::cout << "TREE    : " << treeWhosePropertyHasChanged.toXmlString() << std::endl;
+            std::cout << "PROPERTY: " << property.toString() << std::endl;
+            std::cout << "VALUE   : " << treeWhosePropertyHasChanged.getProperty(property).toString() << std::endl;
+            m_button.setToggleState(static_cast<bool>(m_variable.get_value()), juce::dontSendNotification);
         }
     }
 
@@ -76,7 +80,7 @@ private:
     }
 
 
-    Variable<bool>& m_variable;
+    Variable<Facet, bool>& m_variable;
 
     juce::ToggleButton m_button;
 

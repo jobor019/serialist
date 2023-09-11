@@ -7,44 +7,56 @@
 #include "generative.h"
 #include "parameter_policy.h"
 
-template<typename T>
-class Variable : public Node<T> {
+template<typename OutputType, typename StoredType = OutputType>
+class Variable : public Node<OutputType> {
 public:
-    template<typename U>
-    using ParameterType = typename std::conditional<std::atomic<T>::is_always_lock_free
-                                                    , AtomicParameter<U>
-                                                    , ComplexParameter<U>>::type;
+    using ParameterType = typename std::conditional<std::atomic<StoredType>::is_always_lock_free
+                                                    , AtomicParameter<StoredType>
+                                                    , ComplexParameter<StoredType>>::type;
 
     inline static const std::string PARAMETER_ADDRESS = "value";
+    inline static const std::string CLASS_NAME = "variable";
 
 
-    explicit Variable(const std::string& id, ParameterHandler& parent, T value)
-            : Node<T>(id, parent)
-              , m_value(value, PARAMETER_ADDRESS, *this) {}
-
-
-    std::vector<T> process(const TimePoint&) override { return {m_value.get()}; }
-
-
-    T get_value() { return m_value.get(); }
-
-
-    void set_value(T value) { m_value.set(value); }
-
-
-    ParameterType<T>& get_parameter_obj() {
-        return m_value;
+    explicit Variable(const std::string& id, ParameterHandler& parent, StoredType value)
+            : m_parameter_handler(id, parent)
+              , m_value(value, PARAMETER_ADDRESS, m_parameter_handler) {
+        static_assert((std::is_constructible_v<OutputType, StoredType>
+                       && std::is_constructible_v<StoredType, OutputType>)
+                      || std::is_enum_v<StoredType>
+                      , "Cannot create a Variable with incompatible types");
+        m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, CLASS_NAME);
     }
 
 
-    std::vector<Generative*> get_connected() override {
-        return {};
+    Voices<OutputType> process() override {
+        return Voices<OutputType>(static_cast<OutputType>(m_value.get()));
     }
+
+
+    void disconnect_if(Generative&) override {}
+
+
+    StoredType get_value() { return m_value.get(); }
+
+
+    void set_value(StoredType value) { m_value.set(value); }
+
+
+    ParameterType& get_parameter_obj() { return m_value; }
+
+
+    ParameterHandler& get_parameter_handler() override { return m_parameter_handler; }
+
+
+    std::vector<Generative*> get_connected() override { return {}; }
 
 
 private:
 
-    ParameterType<T> m_value;
+    ParameterHandler m_parameter_handler;
+
+    ParameterType m_value;
 
 };
 

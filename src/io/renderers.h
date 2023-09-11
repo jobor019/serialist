@@ -14,7 +14,7 @@
 class Renderer {
 public:
 
-    virtual void render(Event* event) = 0;
+    virtual void render(Event& event) = 0;
 
 
 // Note: Problematic! What if one of the call fails?
@@ -78,14 +78,12 @@ public:
     /**
      * @throws: IOError if device isn't initialized or if the event is of an invalid type
      */
-    void render(Event* event) override {
+    void render(Event& event) override {
         if (m_midi_output == nullptr) {
             throw IOError("Device is not initialized");
         }
 
-        auto* midi_event = dynamic_cast<MidiEvent*>(event);
-
-        if (midi_event) {
+        if (auto* midi_event = dynamic_cast<MidiEvent*>(&event)) {
             m_midi_output->sendMessageNow(juce::MidiMessage::noteOn(midi_event->get_channel()
                                                                     , midi_event->get_note_number()
                                                                     , (juce::uint8) midi_event->get_velocity()));

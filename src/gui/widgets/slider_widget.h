@@ -9,14 +9,9 @@
 #include "variable.h"
 #include "look_and_feel.h"
 
-
-template<typename T>
 class SliderWidget : public GenerativeComponent
                      , private juce::ValueTree::Listener {
 public:
-
-
-
 
     enum class Layout : int {
         label_left = 0
@@ -24,19 +19,22 @@ public:
     };
 
 
-    explicit SliderWidget(Variable<T>& variable
-                          , T min = static_cast<T>(0)
-                          , T max = static_cast<T>(127)
-                          , T step = static_cast<T>(1)
+    explicit SliderWidget(Variable<Facet, float>& variable
+                          , double min = 0.0f
+                          , double max = 127.0f
+                          , double step = 1.0f
+                          , bool is_integral = false
                           , const juce::String& label = ""
                           , const Layout layout = Layout::label_below
                           , const int label_width = DimensionConstants::DEFAULT_LABEL_WIDTH)
             : m_variable(variable)
+              , m_is_integral(is_integral)
               , m_label({}, label)
               , m_layout(layout)
-              , m_label_width(label_width){
+              , m_label_width(label_width) {
 
-        static_assert(std::is_arithmetic_v<T>, "DataType must be arithmetic");
+        setComponentID(variable.get_parameter_handler().get_id());
+
         initialize_slider(min, max, step);
         initialize_label();
 
@@ -51,8 +49,8 @@ public:
 
     SliderWidget(const SliderWidget&) = delete;
     SliderWidget& operator=(const SliderWidget&) = delete;
-    SliderWidget(SliderWidget&&) noexcept = default;
-    SliderWidget& operator=(SliderWidget&&) noexcept = default;
+    SliderWidget(SliderWidget&&) noexcept = delete;
+    SliderWidget& operator=(SliderWidget&&) noexcept = delete;
 
 
     static int height_of(Layout layout) {
@@ -122,13 +120,13 @@ private:
     }
 
 
-    void initialize_slider(T min, T max, T step) {
+    void initialize_slider(double min, double max, double step) {
         m_slider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
         m_slider.onValueChange = [this]() { on_slider_value_change(); };
         m_slider.setRange(min, max, step);
         m_slider.setValue(static_cast<double>(m_variable.get_value()), juce::dontSendNotification);
         m_slider.setTextBoxIsEditable(false);
-        if (!std::is_integral_v<T>) {
+        if (!m_is_integral) {
             m_slider.setNumDecimalPlacesToDisplay(2);
         }
 
@@ -144,23 +142,21 @@ private:
     }
 
 
-    template<typename U = T, std::enable_if_t<std::is_integral_v<U>, int> = 0>
     void on_slider_value_change() {
-        m_variable.set_value(static_cast<T>(std::round(m_slider.getValue())));
+        if (m_is_integral)
+            m_variable.set_value(static_cast<float>(std::round(m_slider.getValue())));
+        else
+            m_variable.set_value(static_cast<float>(m_slider.getValue()));
     }
 
 
-    template<typename U = T, std::enable_if_t<!std::is_integral_v<U>, int> = 0>
-    void on_slider_value_change() {
-        m_variable.set_value(static_cast<T>(m_slider.getValue()));
-    }
-
-
-    Variable<T>& m_variable;
+    Variable<Facet, float>& m_variable;
+    bool m_is_integral;
 
     juce::Label m_label;
     Layout m_layout;
     int m_label_width;
+
 
     juce::Slider m_slider;
 

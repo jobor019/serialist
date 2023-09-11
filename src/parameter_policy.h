@@ -33,11 +33,11 @@ using AtomicParameter = NopParameter<DataType>;
 template<typename DataType>
 using ComplexParameter = NopParameter<DataType>;
 
-template<typename T>
-using ParametrizedCollection = NopParametrizedSequence<T>; // TODO: Temp, until VTParametrizedSequence is handling lists of lists
+template<typename OutputType>
+using ParametrizedCollection = NopParametrizedSequence<OutputType>; // TODO: Temp, until VTParametrizedSequence is handling lists of lists
 
-template<typename T>
-using ParametrizedSequence = NopParametrizedSequence<T>;
+template<typename OutputType>
+using ParametrizedSequence = NopParametrizedSequence<OutputType>;
 
 
 #endif

@@ -9,25 +9,31 @@
 #include "exceptions.h"
 #include "interpolator.h"
 #include "serializable.h"
+#include "parameter_keys.h"
+#include "facet.h"
 
 
 class VTParameterHandler {
 public:
-    static const inline juce::Identifier ROOT = "root";
-
 
     // Public ctor, same template as NopParameterHandler
-    VTParameterHandler(const std::string& identifier, VTParameterHandler& parent)
-            : m_value_tree({identifier})
+    VTParameterHandler(const std::string& id_property
+                       , VTParameterHandler& parent
+                       , const std::string& value_tree_id = ParameterKeys::GENERATIVE)
+            : m_value_tree({value_tree_id})
               , m_undo_manager(parent.get_undo_manager())
               , m_parent(&parent) {
+        if (!id_property.empty()) {
+            m_value_tree.setProperty({ParameterKeys::ID_PROPERTY}, {id_property}, &m_undo_manager);
+        }
+
         m_parent->add_child(*this);
     }
 
 
     // create root
     explicit VTParameterHandler(juce::UndoManager& um)
-            : m_value_tree(ROOT), m_undo_manager(um), m_parent(nullptr) {}
+            : m_value_tree({ParameterKeys::ROOT_TREE}), m_undo_manager(um), m_parent(nullptr) {}
 
 
     ~VTParameterHandler() {
@@ -47,13 +53,20 @@ public:
     }
 
 
-    [[nodiscard]] juce::Identifier get_identifier() const {
-        return m_value_tree.getType();
+    [[nodiscard]] std::string get_id() const {
+        return m_value_tree.getProperty({ParameterKeys::ID_PROPERTY}).toString().toStdString();
     }
 
 
-    [[nodiscard]] std::string get_identifier_as_string() const {
-        return get_identifier().toString().toStdString();
+    /**
+     * @throws: RuntimeError if property_value already exists
+     */
+    template<typename T>
+    void add_static_property(const std::string& property_name, T property_value) {
+        if (m_value_tree.hasProperty({property_name}))
+            throw std::runtime_error("A property_value with the name '" + property_value + "' already exists");
+
+        m_value_tree.setProperty({property_name}, {property_value}, &m_undo_manager);
     }
 
 
@@ -66,7 +79,7 @@ public:
 
 
     [[nodiscard]] bool identifier_matches(const std::regex& base_name_regex) const {
-        return std::regex_match(get_identifier_as_string(), base_name_regex);
+        return std::regex_match(get_id(), base_name_regex);
     }
 
 
@@ -74,7 +87,7 @@ public:
      * equals, e.g. `exact_name` "osc" only state_equals the exact identifier "osc"
      */
     [[nodiscard]] bool identifier_equals(const std::string& exact_name) const {
-        return get_identifier_as_string() == exact_name;
+        return get_id() == exact_name;
     }
 
 
@@ -210,6 +223,12 @@ private:
     }
 
 
+//    template<typename U = OutputType, std::enable_if_t<std::is_same_v<U, Facet>, int> = 0>
+//    juce::var serialize(const OutputType& value) {
+//        return {value.get()};
+//    }
+
+
     template<typename U =T, std::enable_if_t<is_serializable<U>::value, int> = 0>
     juce::var serialize(const T& value) {
         return {value.to_string()};
@@ -222,7 +241,9 @@ private:
     }
 
 
-    template<typename U = T, std::enable_if_t<!is_serializable<U>::value && !std::is_enum_v<U>, int> = 0>
+    template<typename U = T, std::enable_if_t<!std::is_same_v<U, Facet>
+                                              && !is_serializable<U>::value
+                                              && !std::is_enum_v<U>, int> = 0>
     juce::var serialize(const T& value) {
         return value;
     }
@@ -239,8 +260,15 @@ private:
         return T(static_cast<int>(obj));
     }
 
+//    template<typename U = OutputType, std::enable_if_t<std::is_same_v<U, Facet>, int> = 0>
+//    OutputType deserialize(const juce::var& obj) {
+//        return Facet(obj);
+//    }
 
-    template<typename U = T, std::enable_if_t<!is_serializable<U>::value && !std::is_enum_v<U>, int> = 0>
+
+    template<typename U = T, std::enable_if_t<!std::is_same_v<U, Facet>
+                                              && !is_serializable<U>::value
+                                              && !std::is_enum_v<U>, int> = 0>
     T deserialize(const juce::var& obj) {
         return obj;
     }
@@ -259,6 +287,7 @@ private:
 template<typename T>
 class AtomicVTParameter : public VTParameter<T> {
 public:
+
     AtomicVTParameter(T initial_value, const std::string& id, VTParameterHandler& parent)
             : VTParameter<T>(initial_value, id, parent), m_value(initial_value) {
         static_assert(std::atomic<T>::is_always_lock_free, "DataType must be lock-free");
@@ -284,6 +313,7 @@ private:
 template<typename T>
 class LockingVTParameter : VTParameter<T> {
 public:
+
     LockingVTParameter(T initial_value, const std::string& id, VTParameterHandler& parent)
             : VTParameter<T>(initial_value, id, parent), m_value(initial_value) {
         static_assert(std::is_copy_constructible_v<T>, "DataType must be copyable");
@@ -402,7 +432,7 @@ public:
     }
 
 
-    std::vector<T> interpolate(double position, const InterpolationStrategy<T>& strategy) {
+    std::vector<T> interpolate(double position, const InterpolationStrategy& strategy) {
         std::lock_guard<std::mutex> lock{m_values_mutex};
         return Interpolator<T>::interpolate(position, strategy, m_values);
     }

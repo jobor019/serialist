@@ -7,10 +7,13 @@
 #include "parameter_policy.h"
 #include "generative_component.h"
 #include "connector_component.h"
-#include "source.h"
-#include "modular_generator.h"
+#include "note_source.h"
+#include "generation_graph.h"
 #include "key_state.h"
 #include "keyboard_shortcuts.h"
+#include "global_action_handler.h"
+#include "generator_module.h"
+#include "module_factory.h"
 
 class ConfigurationLayerComponent : public juce::Component
                                     , public GlobalKeyState::Listener
@@ -46,8 +49,11 @@ public:
     };
 
 
-    explicit ConfigurationLayerComponent(ModularGenerator& modular_generator)
-            : m_modular_generator(modular_generator) {
+    explicit ConfigurationLayerComponent(GenerationGraph& modular_generator)
+            : m_modular_generator(modular_generator)
+              , m_connector_manager(*this, modular_generator.get_parameter_handler()) {
+        addAndMakeVisible(m_connector_manager);
+
         GlobalKeyState::add_listener(*this);
         setWantsKeyboardFocus(false);
         setInterceptsMouseClicks(true, false);
@@ -74,6 +80,8 @@ public:
             m_creation_highlight->setBounds(pos.getX(), pos.getY(), GeneratorModule<int>::width_of(), GeneratorModule<
                     int>::height_of());
         }
+
+        m_connector_manager.setBounds(getLocalBounds());
     }
 
 
@@ -82,12 +90,12 @@ public:
         (void) location;
 
 
-//        std::lock_guard<std::mutex> lock(process_mutex);
+//        std::lock_guard<std::mutex> lock(m_process_mutex);
 //
 //        if (std::find(m_nodes.begin(), m_nodes.end(), component) != m_nodes.end())
 //            throw std::runtime_error("Cannot add a component twice");
 //
-//        if (auto* source = dynamic_cast<Source*>(&component->get_generative())) {
+//        if (auto* source = dynamic_cast<Root*>(&component->get_generative())) {
 //            m_sources.emplace_back(source);
 //        }
 //
@@ -100,7 +108,7 @@ public:
 
     void remove(GenerativeComponent* component) {
         (void) component;
-//        std::lock_guard<std::mutex> lock(process_mutex);
+//        std::lock_guard<std::mutex> lock(m_process_mutex);
         throw std::runtime_error("remove is not implemented"); // TODO
     }
 
@@ -117,7 +125,6 @@ public:
 
     void dragOperationStarted(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
         if (auto* source = dragSourceDetails.sourceComponent.get()) {
-            std::cout << "DRAGDARG\n";
             GlobalActionHandler::register_action(std::make_unique<Action>(static_cast<int>(ActionTypes::connect)
                                                                           , *source));
         }
@@ -125,7 +132,6 @@ public:
 
 
     void dragOperationEnded(const juce::DragAndDropTarget::SourceDetails&) override {
-        std::cout << "DARGENDDD\n";
         GlobalActionHandler::terminate_ongoing_action();
     }
 
@@ -156,6 +162,45 @@ private:
     }
 
 
+    void mouseDown(const juce::MouseEvent& event) override {
+        if (GlobalKeyState::is_down_exclusive(KeyCodes::MOVE_KEY)) {
+            auto* component_and_bounds = get_component_under_mouse(event);
+            m_currently_moving_component = component_and_bounds;
+            GlobalActionHandler::register_action(std::make_unique<Action>(static_cast<int>(ActionTypes::move), *this));
+        }
+    }
+
+
+    void mouseDrag(const juce::MouseEvent& event) override {
+        if (m_currently_moving_component && GlobalKeyState::is_down_exclusive(KeyCodes::MOVE_KEY)) {
+            std::cout << "Move should be reimplemented with juce::ComponentDragger\n";
+
+            auto p = getLocalPoint(event.originalComponent, event.getPosition());
+//            std::cout << "ID: " << event.originalComponent->getWidth() << " pos: "<< event.getPosition().getX() << ", " << event.getPosition().getY() << "\n";
+            m_currently_moving_component->position.setPosition(p);
+            resized();
+        }
+    }
+
+
+    void mouseUp(const juce::MouseEvent& event) override {
+        if (m_currently_moving_component) {
+            m_currently_moving_component = nullptr;
+            GlobalActionHandler::terminate_ongoing_action();
+            resized();
+        }
+//        if (GlobalKeyState::is_down_exclusive(KeyCodes::CONNECTOR_KEY)) {
+//            connect_component(event);
+
+        if (GlobalKeyState::is_down(KeyCodes::DELETE_KEY)) {
+            try_remove_component(event);
+
+        } else {
+            create_component(event);
+        }
+    }
+
+
     void key_pressed() override {
         process_mouse_highlights();
     }
@@ -163,6 +208,11 @@ private:
 
     void key_released() override {
         process_mouse_highlights();
+        if (m_currently_moving_component && !GlobalKeyState::is_down_exclusive(KeyCodes::MOVE_KEY)) {
+            m_currently_moving_component = nullptr;
+            GlobalActionHandler::terminate_ongoing_action();
+            resized();
+        }
     }
 
 
@@ -189,22 +239,6 @@ private:
     }
 
 
-    void mouseDown(const juce::MouseEvent& event) override {
-        (void) event;
-    }
-
-
-    void mouseUp(const juce::MouseEvent& event) override {
-//        if (GlobalKeyState::is_down_exclusive(KeyCodes::CONNECTOR_KEY)) {
-//            connect_component(event);
-
-        if (GlobalKeyState::is_down(KeyCodes::DELETE_KEY)) {
-            try_remove_component(event);
-
-        } else {
-            create_component(event);
-        }
-    }
 
 
 //    void connect_component(const juce::MouseEvent& event) {
@@ -217,7 +251,9 @@ private:
         auto* component_and_bounds = get_component_under_mouse(event);
         if (component_and_bounds != nullptr) {
             std::cout << "COMPONENT FOUND HEHE:: "
-                      << component_and_bounds->component->get_generative().get_identifier_as_string() << "\n";
+                      << component_and_bounds->component->get_generative().get_parameter_handler().get_id() << "\n";
+
+            m_connector_manager.remove_connections_associated_with(*component_and_bounds->component);
 
             auto& generative = component_and_bounds->component->get_generative();
 
@@ -245,7 +281,8 @@ private:
 
         if (GlobalKeyState::any_is_down_exclusive(KeyCodes::NEW_GENERATOR_KEY
                                                   , KeyCodes::NEW_OSCILLATOR_KEY
-                                                  , KeyCodes::NEW_MIDI_SOURCE_KEY)) {
+                                                  , KeyCodes::NEW_MIDI_SOURCE_KEY
+                                                  , KeyCodes::NEW_PULSATOR_KEY)) {
             auto cng = ModuleFactory::new_from_key(GlobalKeyState::get_held_keys()[0], m_modular_generator);
 
             if (!cng)
@@ -254,7 +291,7 @@ private:
             auto component = std::move(cng.value().component);
             auto generatives = std::move(cng.value().generatives);
 
-            addAndMakeVisible(*component);
+            addAndMakeVisible(*component, 0);
             component->addMouseListener(this, true);
             m_generative_components.push_back(
                     {std::move(component)
@@ -262,7 +299,7 @@ private:
             );
 
             m_modular_generator.add(std::move(generatives));
-            std::cout << m_generative_components.size() << "\n\n\n";
+            std::cout << "Num modules: " << m_generative_components.size() << "\n";
             resized();
 
             m_modular_generator.print_names();
@@ -299,15 +336,17 @@ private:
     }
 
 
-    ModularGenerator& m_modular_generator;
+    GenerationGraph& m_modular_generator;
 
     std::vector<ComponentAndBounds> m_generative_components;
+    ConnectionComponentManager m_connector_manager;
+
     std::vector<ConnectorComponent> m_connectors;
 
     std::unique_ptr<juce::Point<int>> m_last_mouse_position = nullptr;
     std::unique_ptr<DummyMidiSourceHighlight> m_creation_highlight = nullptr;
 
-
+    ComponentAndBounds* m_currently_moving_component = nullptr;
 
 
 };

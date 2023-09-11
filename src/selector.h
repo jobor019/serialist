@@ -43,6 +43,13 @@ public:
 
     }
 
+    void disconnect_if(Generative& connected_to) override {
+        m_type->disconnect_if(connected_to);
+        m_selection_mask->disconnect_if(connected_to);
+        m_select_from_end->disconnect_if(connected_to);
+        m_selection_material->disconnect_if(connected_to);
+    }
+
 
     std::vector<Generative*> get_connected() override {
         return Generative::collect_connected(m_type, m_selection_mask, m_select_from_end, m_selection_material);
