@@ -278,6 +278,19 @@ public:
         return flattened;
     }
 
+    template<typename U = T, std::enable_if_t<utils::is_printable_v<U>, int> = 0>
+    void print() {
+        std::cout << "{ ";
+        for (auto& voice : m_voices) {
+            std::cout << "{";
+            for (auto& elem : voice.vector()) {
+                std::cout << elem << ", ";
+            }
+            std::cout << "}";
+        }
+        std::cout << " }\n";
+    }
+
 
     const std::vector<Voice<T>>& vector() const { return m_voices; }
 

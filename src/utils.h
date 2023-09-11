@@ -10,8 +10,20 @@
 
 namespace utils {
 
+template <typename T>
+struct is_printable {
+    template <typename U>
+    static auto test(int) -> decltype(std::cout << std::declval<U>(), std::true_type{});
+
+    template <typename U>
+    static std::false_type test(...);
+
+    static constexpr bool value = decltype(test<T>(0))::value;
+};
 
 
+template <typename T>
+constexpr bool is_printable_v = is_printable<T>::value;
 
 // ==============================================================================================
 

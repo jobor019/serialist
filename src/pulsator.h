@@ -211,6 +211,7 @@ private:
     void schedule_pulse(double now, double interval, double duty, int id) {
         auto next_pulse_on = now + interval;
         auto next_pulse_off = now + interval * duty;
+
         // if simultaneous: place pulse_off before pulse in scheduler's internal vector
         m_scheduler.add_event(std::make_unique<Trigger>(next_pulse_off, Trigger::Type::pulse_off, id));
         m_scheduler.add_event(std::make_unique<Trigger>(next_pulse_on, Trigger::Type::pulse, id));

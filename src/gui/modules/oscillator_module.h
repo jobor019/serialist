@@ -47,7 +47,8 @@ public:
                             {  "phasor", Oscillator::Type::phasor}
                             , {"sin"   , Oscillator::Type::sin}
                             , {"sqr"   , Oscillator::Type::square}
-                            , {"tri"   , Oscillator::Type::tri}}
+                            , {"tri"   , Oscillator::Type::tri}
+                            , {"rnd"   , Oscillator::Type::white_noise}}
                     , "type"
                     , CbLayout::label_left))
               , m_freq_socket(oscillator.get_freq(), std::make_unique<SliderWidget>(

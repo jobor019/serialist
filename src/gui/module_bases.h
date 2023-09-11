@@ -75,6 +75,8 @@ public:
         bounds.reduce(DimensionConstants::COMPONENT_LR_MARGINS, DimensionConstants::COMPONENT_UD_MARGINS);
 
         on_resized(bounds);
+
+        m_interaction_visualizer.setBounds(getLocalBounds());
     }
 
 
@@ -179,6 +181,8 @@ public:
         }
 
         on_resized(bounds);
+
+        m_interaction_visualizer.setBounds(getLocalBounds());
     }
 
 

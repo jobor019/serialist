@@ -106,6 +106,15 @@ public:
     template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
     bool operator<(const T& t) const { return static_cast<T>(*this) < t; }
 
+    friend std::ostream& operator<<(std::ostream& os, const Facet& facet) {
+        auto original_precision = os.precision();
+        os << std::fixed << std::setprecision(3);
+        os << facet.m_value;
+        os << std::setprecision(static_cast<int>(original_precision));
+
+        return os;
+    }
+
 
 //    template<typename OutputType, std::enable_if_t<std::is_arithmetic_v<OutputType>, int> = 0>
 //    Facet operator+(const OutputType& t) {
@@ -130,11 +139,6 @@ public:
 //        return Facet(m_value / t);
 //    }
 
-
-    friend std::ostream& operator<<(std::ostream& os, const Facet& obj) {
-        os << obj.m_value;
-        return os;
-    }
 
 
 //    template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0>

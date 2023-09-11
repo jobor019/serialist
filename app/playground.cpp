@@ -96,12 +96,12 @@ public:
 
 
     void hiResTimerCallback() override {
-//        m_modular_generator.process(m_transport.update_time());
+        m_modular_generator.process(m_transport.update_time());
 
         ++callback_count;
 
         if (callback_count % 1000 == 0) {
-//            std::cout << m_modular_generator.get_value_tree().toXmlString() << "\n";
+            std::cout << m_modular_generator.get_parameter_handler().get_value_tree().toXmlString() << "\n";
         }
 
     }
