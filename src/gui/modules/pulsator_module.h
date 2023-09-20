@@ -4,7 +4,7 @@
 
 #include "module_bases.h"
 #include "slider_widget.h"
-#include "pulsator.h"
+#include "core/pulsator.h"
 #include "socket_widget.h"
 #include "header_widget.h"
 

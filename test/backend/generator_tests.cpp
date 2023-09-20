@@ -3,9 +3,9 @@
 
 #include <iostream>
 
-#include "generator.h"
-#include "variable.h"
-#include "oscillator.h"
+#include "core/generator.h"
+#include "core/variable.h"
+#include "core/oscillator.h"
 
 class BasicGenerator {
 public:

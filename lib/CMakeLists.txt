@@ -1,1 +1,1 @@
-add_subdirectory(magic_enum EXCLUDE_FROM_ALL)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/magic_enum EXCLUDE_FROM_ALL)

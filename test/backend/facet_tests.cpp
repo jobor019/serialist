@@ -3,7 +3,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <iostream>
-#include "facet.h"
+#include "core/facet.h"
 
 
 TEST_CASE("Boolean conversion") {

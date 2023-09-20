@@ -6,7 +6,7 @@
 #include <type_traits>
 #include <cmath>
 #include <deque>
-#include <magic_enum.hpp>
+#include "magic_enum.hpp"
 
 namespace utils {
 

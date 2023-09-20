@@ -6,7 +6,7 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 
 #include "generative_component.h"
-#include "variable.h"
+#include "core/variable.h"
 #include "look_and_feel.h"
 
 class SliderWidget : public GenerativeComponent

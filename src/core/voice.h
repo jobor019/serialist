@@ -3,6 +3,10 @@
 #define SERIALISTLOOPER_VOICE_H
 
 #include <vector>
+#include <optional>
+#include <iostream>
+#include "utils.h"
+
 
 class VoiceUtils {
 public:

@@ -2,9 +2,10 @@
 #ifndef SERIALISTLOOPER_FACET_H
 #define SERIALISTLOOPER_FACET_H
 
+#include <iomanip>
 #include <vector>
 #include <optional>
-#include <magic_enum.hpp>
+#include "magic_enum.hpp"
 
 class Facet {
 public:

@@ -1,11 +1,11 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include <memory>
-#include "../src/scheduler.h"
+#include "../src/core/scheduler.h"
 #include "../src/io/renderers.h"
-#include "../src/transport.h"
-#include "../src/generation_graph.h"
-#include "../src/generator.h"
+#include "../src/core/transport.h"
+#include "../src/core/generation_graph.h"
+#include "../src/core/generator.h"
 #include "../src/gui/looper_component.h"
 #include "../src/gui/mapping_component.h"
 #include "../src/gui/old_generator_component.h"

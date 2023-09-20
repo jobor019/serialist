@@ -5,8 +5,8 @@
 
 #include "interaction_visualizations.h"
 #include "generative_component.h"
-#include "parameter_policy.h"
-#include "generator.h"
+#include "core/parameter_policy.h"
+#include "core/generator.h"
 #include "oscillator_module.h"
 #include "text_sequence_module.h"
 #include "interpolation_module.h"

@@ -5,14 +5,14 @@
 
 #include <vector>
 #include "generative_component.h"
-#include "oscillator.h"
-#include "variable.h"
+#include "core/oscillator.h"
+#include "core/variable.h"
 #include "modules/oscillator_module.h"
 #include "text_sequence_module.h"
 #include "interpolation_module.h"
 #include "note_source_module.h"
 #include "generator_module.h"
-#include "generation_graph.h"
+#include "core/generation_graph.h"
 
 template<typename ModuleType>
 using ModuleAndGeneratives = std::pair<std::unique_ptr<ModuleType>, std::vector<std::unique_ptr<Generative>>>;

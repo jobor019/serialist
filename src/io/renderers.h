@@ -5,8 +5,8 @@
 
 #include <vector>
 
-#include "../events.h"
-#include "../exceptions.h"
+#include "core/events.h"
+#include "core/exceptions.h"
 
 #include <juce_audio_devices/juce_audio_devices.h>
 

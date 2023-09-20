@@ -1,8 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include "sequence.h"
-#include "interpolator.h"
-#include "variable.h"
+#include "core/sequence.h"
+#include "core/interpolator.h"
+#include "core/variable.h"
 
 class BasicSequence {
 public:

@@ -4,7 +4,7 @@
 #define SERIALISTLOOPER_TEXT_SEQUENCE_MODULE_H
 
 #include "generative_component.h"
-#include "sequence.h"
+#include "core/sequence.h"
 
 template<typename OutputType, typename StoredType = OutputType>
 class TextSequenceModule : public GenerativeComponent

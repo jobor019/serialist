@@ -4,7 +4,7 @@
 #define SERIALISTLOOPER_OSCILLATOR_VIEW_H
 
 #include <juce_gui_extra/juce_gui_extra.h>
-#include "oscillator.h"
+#include "core/oscillator.h"
 
 class OscillatorView : public juce::Component
                        , private juce::Timer {

@@ -4,7 +4,7 @@
 
 #include "interaction_visualizer.h"
 #include "connectable_module.h"
-#include "generative.h"
+#include "core/generative.h"
 #include "interaction_visualizations.h"
 
 class ConnectableDndController : public juce::MouseListener {

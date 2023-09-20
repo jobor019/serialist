@@ -1,10 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "phasor.h"
-#include "variable.h"
-#include "oscillator.h"
-#include "parameter_policy.h"
+#include "core/phasor.h"
+#include "core/variable.h"
+#include "core/oscillator.h"
+#include "core/parameter_policy.h"
 
 #include <thread>
 #include <cmath>

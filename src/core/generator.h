@@ -69,49 +69,6 @@ public:
     }
 
 
-    Voices<T> process_without_sequence() {
-        auto voices = m_num_voices.process();
-        auto y = m_cursor.process();
-
-        auto num_voices = Generative::compute_voice_count(voices, y.size());
-
-        std::vector<double> ys = m_cursor.process(num_voices).values_or(0.0);
-
-        if constexpr (std::is_same_v<T, Facet>) {
-            m_current_value = Voices<T>(Facet::vector_cast(ys));
-        } else {
-            m_current_value = Voices<T>(num_voices);
-        }
-        return m_current_value;
-    }
-
-
-    Voices<T> process_with_sequence() {
-        auto voices = m_num_voices.process();
-        auto cursor = m_cursor.process();
-        auto strategy = m_interpolation_strategy.process();
-
-        auto num_voices = Node<T>::compute_voice_count(voices, cursor.size(), strategy.size());
-        std::vector<double> ys = cursor.adapted_to(num_voices).values_or(0.0);
-        auto strategies = strategy.adapted_to(num_voices).fronts();
-
-        std::vector<Voice<T>> output;
-        output.reserve(num_voices);
-
-        for (std::size_t i = 0; i < num_voices; ++i) {
-            if (strategies.at(i)) {
-                output.emplace_back(m_sequence.process(ys.at(i), *strategies.at(i)));
-            } else {
-                output.emplace_back(Voice<T>::create_empty());
-            }
-        }
-
-        m_current_value = Voices<T>(output);
-        return m_current_value;
-
-    }
-
-
     std::vector<Generative*> get_connected() override {
         return m_socket_handler.get_connected();
     }
@@ -160,6 +117,49 @@ public:
 private:
 
     bool is_enabled() { return m_enabled.process(1).front_or(true); }
+
+
+    Voices<T> process_without_sequence() {
+        auto voices = m_num_voices.process();
+        auto y = m_cursor.process();
+
+        auto num_voices = Generative::compute_voice_count(voices, y.size());
+
+        std::vector<double> ys = m_cursor.process(num_voices).values_or(0.0);
+
+        if constexpr (std::is_same_v<T, Facet>) {
+            m_current_value = Voices<T>(Facet::vector_cast(ys));
+        } else {
+            m_current_value = Voices<T>(num_voices);
+        }
+        return m_current_value;
+    }
+
+
+    Voices<T> process_with_sequence() {
+        auto voices = m_num_voices.process();
+        auto cursor = m_cursor.process();
+        auto strategy = m_interpolation_strategy.process();
+
+        auto num_voices = Node<T>::compute_voice_count(voices, cursor.size(), strategy.size());
+        std::vector<double> ys = cursor.adapted_to(num_voices).values_or(0.0);
+        auto strategies = strategy.adapted_to(num_voices).fronts();
+
+        std::vector<Voice<T>> output;
+        output.reserve(num_voices);
+
+        for (std::size_t i = 0; i < num_voices; ++i) {
+            if (strategies.at(i)) {
+                output.emplace_back(m_sequence.process(ys.at(i), *strategies.at(i)));
+            } else {
+                output.emplace_back(Voice<T>::create_empty());
+            }
+        }
+
+        m_current_value = Voices<T>(output);
+        return m_current_value;
+
+    }
 
 
     ParameterHandler m_parameter_handler;

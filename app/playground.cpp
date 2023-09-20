@@ -1,10 +1,10 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 #include <memory>
 #include "look_and_feel.h"
-#include "parameter_policy.h"
+#include "core/parameter_policy.h"
 #include "key_state.h"
-#include "transport.h"
-#include "generation_graph.h"
+#include "core/transport.h"
+#include "core/generation_graph.h"
 #include "configuration_layer_component.h"
 #include "generator_module.h"
 #include "pulsator_module.h"
@@ -24,8 +24,8 @@ public:
 
     PlaygroundComponent()
             : m_some_handler(m_undo_manager)
-              , m_modular_generator(m_some_handler)
-              , m_config_layer_component(m_modular_generator)
+              , m_generation_graph(m_some_handler)
+              , m_config_layer_component(m_generation_graph)
 
     {
 
@@ -39,9 +39,9 @@ public:
         startTimer(1);
         setSize(1000, 400);
 
-        m_modular_generator.get_parameter_handler().get_value_tree().addListener(this);
+        m_generation_graph.get_parameter_handler().get_value_tree().addListener(this);
 
-//        auto [pulsator_module, pulsator_generatives] = ModuleFactory::new_pulsator(m_modular_generator, PulsatorModule::Layout::note_source_internal);
+//        auto [pulsator_module, pulsator_generatives] = ModuleFactory::new_pulsator(m_generation_graph, PulsatorModule::Layout::note_source_internal);
 //        auto& generative = pulsator_module->get_generative();
 //        if (generative) {
 //            auto* pulsator = dynamic_cast<Node<Trigger>*>(&generative);
@@ -50,6 +50,29 @@ public:
 //            std::cout << "generative not set\n";
 //        }
 
+    }
+
+    ~PlaygroundComponent() override {
+        std::cout << "dtor\n";
+        auto vt = m_generation_graph.get_parameter_handler().get_value_tree();
+        auto xmlElement = vt.createXml();
+
+        std::cout << xmlElement->toString() << "\n";
+
+        juce::File xml_file("../../../playground.xml");
+
+        if (xml_file.existsAsFile()) {
+            xml_file.deleteFile();
+        }
+
+        juce::FileOutputStream os(xml_file);
+
+        if (os.openedOk()) {
+            xmlElement->writeTo(os);
+            std::cout << "written to file\n";
+        } else {
+            std::cout << "Error opening the output file.";
+        }
     }
 
 
@@ -96,12 +119,12 @@ public:
 
 
     void hiResTimerCallback() override {
-        m_modular_generator.process(m_transport.update_time());
+        m_generation_graph.process(m_transport.update_time());
 
         ++callback_count;
 
         if (callback_count % 1000 == 0) {
-            std::cout << m_modular_generator.get_parameter_handler().get_value_tree().toXmlString() << "\n";
+//            std::cout << m_generation_graph.get_parameter_handler().get_value_tree().toXmlString() << "\n";
         }
 
     }
@@ -133,7 +156,7 @@ private:
 
     ParameterHandler m_some_handler;
 
-    GenerationGraph m_modular_generator;
+    GenerationGraph m_generation_graph;
 
     ConfigurationLayerComponent m_config_layer_component;
 
@@ -174,8 +197,6 @@ public:
 
 
     void systemRequestedQuit() override {
-        // This is called when the app is being asked to quit: you can ignore this
-        // request and let the app carry on running, or call quit() to allow the app to close.
         quit();
     }
 
@@ -208,9 +229,6 @@ public:
 
 
         void closeButtonPressed() override {
-            // This is called when the user tries to close this window. Here, we'll just
-            // ask the app to quit when this happens, but you can change this to do
-            // whatever you need.
             JUCEApplication::getInstance()->systemRequestedQuit();
         }
 

@@ -3,7 +3,7 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 
-#include "oscillator.h"
+#include "core/oscillator.h"
 #include "generative_component.h"
 #include "widgets/slider_widget.h"
 #include "widgets/toggle_button_widget.h"
@@ -14,7 +14,7 @@
 #include "interaction_visualizations.h"
 #include "connectable_dnd_controller.h"
 #include "module_bases.h"
-#include "unit_pulse.h"
+#include "core/unit_pulse.h"
 
 
 class OscillatorModule : public NodeBase<Facet> {

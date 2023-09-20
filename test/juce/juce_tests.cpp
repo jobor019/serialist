@@ -3,12 +3,12 @@
 
 
 
-#include "pulsator.h"
-#include "oscillator.h"
-#include "generator.h"
-#include "note_source.h"
+#include "core/pulsator.h"
+#include "core/oscillator.h"
+#include "core/generator.h"
+#include "core/note_source.h"
 #include "midi_config.h"
-#include "note_source.h"
+#include "core/note_source.h"
 //#include "midi_config.h"
 
 class PulsatorWrapper {
