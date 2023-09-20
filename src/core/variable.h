@@ -6,6 +6,7 @@
 
 #include "generative.h"
 #include "parameter_policy.h"
+#include "parameter_keys.h"
 
 template<typename OutputType, typename StoredType = OutputType>
 class Variable : public Node<OutputType> {

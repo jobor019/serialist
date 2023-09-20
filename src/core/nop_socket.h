@@ -6,38 +6,67 @@
 #include <string>
 
 #include "generative.h"
+#include "connectable.h"
 
 template<typename SocketType>
-class NopSocketBase {
+class NopSocketBase : public Connectable {
 public:
-    NopSocketBase(const std::string& id, ParameterHandler& parent, SocketType* initial = nullptr) {
-        (void) id;
-        (void) parent;
-
+    NopSocketBase(const std::string&, ParameterHandler&, SocketType* initial = nullptr) {
         static_assert(std::is_base_of_v<Generative, SocketType>, "SocketType must inherit from Generative");
 
         m_node = initial;
     }
 
 
-    void connect(SocketType& node) {
-        m_node = &node;
-    }
-
-
-    void disconnect() {
-        m_node = nullptr;
-
-    }
-
-
-    Generative* get_connected() const {
+    Generative* get_connected() const override {
         return dynamic_cast<Generative*>(m_node);
     }
 
 
-    bool is_connected() const {
+    bool is_connected() const override {
         return m_node;
+    }
+
+
+    bool is_connectable(Generative& generative) const override {
+        return static_cast<bool>(dynamic_cast<SocketType*>(&generative));
+    }
+
+
+    bool try_connect(Generative& generative) override {
+        if (auto* node = dynamic_cast<SocketType*>(&generative)) {
+            set_connection_internal(node);
+            return true;
+        }
+        return false;
+    }
+
+
+    void disconnect_if(Generative& connected_to) override {
+        if (get_connected() == &connected_to) {
+            set_connection_internal(nullptr);
+        }
+    }
+
+
+    void connect(SocketType& node) {
+        set_connection_internal(&node);
+    }
+
+
+    void disconnect() {
+        set_connection_internal(nullptr);
+
+    }
+
+
+protected:
+    void set_connection_internal(SocketType* node) {
+        if (node) {
+            m_node = node;
+        } else {
+            m_node = nullptr;
+        }
     }
 
 
@@ -64,23 +93,15 @@ public:
     }
 
 
-    std::vector<T> process(const TimePoint& t) {
+    Voices<T> process() {
         if (NopSocketBase<Node<T>>::m_node == nullptr)
-            return {};
-        return NopSocketBase<Node<T>>::m_node->process(t);
+            return Voices<T>::create_empty_like();
+        return NopSocketBase<Node<T>>::m_node->process();
     }
 
 
-    T process_or(const TimePoint& t, T default_value) {
-        if (!NopSocketBase<Node<T>>::m_node)
-            return default_value;
-
-        auto values = NopSocketBase<Node<T>>::m_node->process((t));
-
-        if (values.empty())
-            return default_value;
-        else
-            return values.at(0);
+    Voices<T> process(std::size_t num_voices) {
+        return process().adapted_to(num_voices);
     }
 
 };
@@ -104,10 +125,10 @@ public:
     }
 
 
-    std::vector<T> process(const TimePoint& t, double y, InterpolationStrategy strategy) {
+    std::vector<T> process(double y, InterpolationStrategy strategy) {
         if (NopSocketBase<Leaf<T>>::m_node == nullptr)
             return {};
-        return NopSocketBase<Leaf<T>>::m_node->process(t, y, strategy);
+        return NopSocketBase<Leaf<T>>::m_node->process(y, strategy);
     }
 
 

@@ -11,9 +11,14 @@
 class NopParameterHandler {
 public:
     // Public ctor, same template as VTParameterHandler
-    explicit NopParameterHandler(const std::string&, NopParameterHandler&) {}
+    explicit NopParameterHandler(const std::string&, NopParameterHandler&, const std::string& = "") {}
 
     NopParameterHandler() = default;
+
+    template<typename T>
+    void add_static_property(const std::string&, T) {}
+
+
 };
 
 
@@ -43,9 +48,7 @@ template<typename T>
 class NopParametrizedSequence {
 public:
 
-    NopParametrizedSequence(const std::string& id, NopParameterHandler& parent, const std::vector<T>& initial) {
-        (void) id;
-        (void) parent;
+    NopParametrizedSequence(const std::string&, NopParameterHandler&, const std::vector<T>& initial) {
         for (auto& v: initial) {
             insert(v, -1);
         }

@@ -204,6 +204,12 @@ public:
     }
 
 
+protected:
+    virtual T get_internal_value() = 0;
+    virtual void set_internal_value(T new_value) = 0;
+
+
+private:
     void valueTreePropertyChanged(juce::ValueTree& treeWhosePropertyHasChanged
                                   , const juce::Identifier& property) override {
         if (equals_property(treeWhosePropertyHasChanged, property)) {
@@ -211,13 +217,6 @@ public:
         }
     }
 
-
-protected:
-    virtual T get_internal_value() = 0;
-    virtual void set_internal_value(T new_value) = 0;
-
-
-private:
     void update_value_tree(T new_value) {
         m_parent.get_value_tree().setProperty(m_identifier, serialize(new_value), &m_parent.get_undo_manager());
     }

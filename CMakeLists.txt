@@ -216,6 +216,26 @@ target_link_libraries(playground
 
 
 #####################################################################################
+## TARGET: NOP PLAYGROUND
+#####################################################################################
+
+add_executable(nopPlayground EXCLUDE_FROM_ALL
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/nop_playground.cpp
+        )
+
+target_link_libraries(nopPlayground
+        INTERFACE
+        serialistCore
+        PUBLIC
+        magicEnum
+        )
+
+target_include_directories(nopPlayground
+        PRIVATE
+        ${INCLUDES}
+        )
+
+#####################################################################################
 ## TARGET: NOP TESTS
 #####################################################################################
 

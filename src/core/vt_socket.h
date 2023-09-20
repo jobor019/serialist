@@ -37,10 +37,11 @@ public:
         m_parent.get_value_tree().removeChild(m_value_tree, &m_parent.get_undo_manager());
     }
 
+
     VTSocketBase(const VTSocketBase&) = delete;
     VTSocketBase& operator=(const VTSocketBase&) = delete;
-    VTSocketBase(VTSocketBase&&)  noexcept = default;
-    VTSocketBase& operator=(VTSocketBase&&)  noexcept = default;
+    VTSocketBase(VTSocketBase&&) noexcept = default;
+    VTSocketBase& operator=(VTSocketBase&&) noexcept = default;
 
 
     Generative* get_connected() const override {
@@ -163,11 +164,11 @@ public:
         return *this;
     }
 
+
     Voices<T> process() {
         std::lock_guard<std::mutex> lock{VTSocketBase<Node<T>>::m_mutex};
-        if (VTSocketBase<Node<T>>::m_node == nullptr) {
+        if (VTSocketBase<Node<T>>::m_node == nullptr)
             return Voices<T>::create_empty_like();
-        }
         return VTSocketBase<Node<T>>::m_node->process();
     }
 
