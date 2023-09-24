@@ -13,10 +13,12 @@ public:
     // Public ctor, same template as VTParameterHandler
     explicit NopParameterHandler(const std::string&, NopParameterHandler&, const std::string& = "") {}
 
+
     NopParameterHandler() = default;
 
+
     template<typename T>
-    void add_static_property(const std::string&, T) {}
+    void add_static_property(const std::string&, T) { /* unused*/}
 
 
 };

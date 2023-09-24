@@ -7,7 +7,7 @@
 
 class IOError : public std::runtime_error {
 public:
-    explicit IOError(const char* err) : std::runtime_error(err) {}
+    using runtime_error::runtime_error;
 };
 
 
@@ -15,7 +15,7 @@ public:
 
 class ParameterError : public std::runtime_error {
 public:
-    explicit ParameterError(const char* err) : std::runtime_error(err) {}
+    using runtime_error::runtime_error;
 };
 
 #endif //SERIALIST_LOOPER_EXCEPTIONS_H

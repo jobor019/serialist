@@ -46,7 +46,8 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/variable.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/voice.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/vt_parameter.h
-        )
+        src/core/socket_base.h
+)
 
 target_link_libraries(serialistCore INTERFACE magicEnum)
 

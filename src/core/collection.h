@@ -6,6 +6,7 @@
 
 #include "parameter_policy.h"
 #include "generative.h"
+#include "parameter_keys.h"
 
 template<typename T>
 class Collection : public Node<T> {
@@ -15,7 +16,7 @@ public:
     inline static const std::string CLASS_NAME = "collection";
 
 
-    explicit Collection(const std::string& id, VTParameterHandler& parent, const std::vector<T>& initial_values = {})
+    explicit Collection(const std::string& id, ParameterHandler& parent, const std::vector<T>& initial_values = {})
             : m_parameter_handler(id, parent)
               , m_collection(PARAMETER_ADDRESS, m_parameter_handler, initial_values) {
         m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, CLASS_NAME);

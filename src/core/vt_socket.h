@@ -5,21 +5,21 @@
 
 #include <string>
 #include <thread>
+#include <utility>
 
 #include "generative.h"
 #include "connectable.h"
+#include "socket_base.h"
 
-template<typename SocketType>
-class VTSocketBase : public Connectable
-                     , private juce::ValueTree::Listener {
+template<typename T>
+class VTSocket : public SocketBase<T>
+                 , private juce::ValueTree::Listener {
 public:
     static const inline std::string CONNECTED_PROPERTY = "connected";
 
 
-    VTSocketBase(const std::string& id, ParameterHandler& parent, SocketType* initial = nullptr)
-            : m_id(id), m_parent(parent) {
-
-        static_assert(std::is_base_of_v<Generative, SocketType>, "SocketType must inherit from Generative");
+    VTSocket(std::string id, ParameterHandler& parent, Node<T>* initial = nullptr)
+            : m_id(std::move(id)), m_parent(parent) {
 
         if (!m_parent.get_value_tree().isValid())
             throw ParameterError("Cannot register VTParameter for invalid tree");
@@ -33,59 +33,22 @@ public:
     }
 
 
-    ~VTSocketBase() override {
+    ~VTSocket() override {
         m_parent.get_value_tree().removeChild(m_value_tree, &m_parent.get_undo_manager());
     }
 
 
-    VTSocketBase(const VTSocketBase&) = delete;
-    VTSocketBase& operator=(const VTSocketBase&) = delete;
-    VTSocketBase(VTSocketBase&&) noexcept = default;
-    VTSocketBase& operator=(VTSocketBase&&) noexcept = default;
+    VTSocket(const VTSocket&) = delete;
+    VTSocket& operator=(const VTSocket&) = delete;
+    VTSocket(VTSocket&&) noexcept = default;
+    VTSocket& operator=(VTSocket&&) noexcept = default;
 
-
-    Generative* get_connected() const override {
-        return dynamic_cast<Generative*>(m_node);
-    }
-
-
-    bool is_connected() const override {
-        return m_node;
-    }
-
-
-    bool is_connectable(Generative& generative) const override {
-        return static_cast<bool>(dynamic_cast<SocketType*>(&generative));
-    }
-
-
-    bool try_connect(Generative& generative) override {
-        if (auto* node = dynamic_cast<SocketType*>(&generative)) {
-            set_connection_internal(node);
-            return true;
-        }
-        return false;
-    }
-
-
-    void disconnect_if(Generative& connected_to) override {
-        if (get_connected() == &connected_to) {
-            std::cout << "\nDISCONNECTING !!!!!\n";
-            set_connection_internal(nullptr);
-        }
-    }
-
-
-    void connect(SocketType& node) {
-        std::lock_guard<std::mutex> lock{m_mutex};
-        set_connection_internal(&node);
-    }
-
-
-    void disconnect() {
-        std::lock_guard<std::mutex> lock{m_mutex};
-        set_connection_internal(nullptr);
-
+    VTSocket<T>& operator=(Node<T>* node) {
+        if (node)
+            SocketBase<T>::connect(*node);
+        else
+            SocketBase<T>::disconnect();
+        return *this;
     }
 
 
@@ -114,13 +77,13 @@ public:
     }
 
 
-protected:
-    void set_connection_internal(SocketType* node) {
+private:
+    void set_connection_internal(Node<T>* node) override {
         if (node) {
-            m_node = node;
+            SocketBase<T>::set_node(node);
             update_value_tree(node->get_parameter_handler().get_id());
         } else {
-            m_node = nullptr;
+            SocketBase<T>::set_node(nullptr);
             update_value_tree("");
         }
     }
@@ -138,72 +101,10 @@ protected:
     }
 
 
-    std::mutex m_mutex;
-
     std::string m_id;
     VTParameterHandler& m_parent;
 
     juce::ValueTree m_value_tree;
-
-    SocketType* m_node = nullptr;
-};
-
-
-// ==============================================================================================
-
-template<typename T>
-class VTSocket : public VTSocketBase<Node<T>> {
-public:
-    VTSocket(const std::string& id, ParameterHandler& parent, Node<T>* initial = nullptr)
-            : VTSocketBase<Node<T>>(id, parent, initial) {}
-
-
-    VTSocket& operator=(Node<T>* node) {
-        std::lock_guard<std::mutex> lock{VTSocketBase<Node<T>>::m_mutex};
-        VTSocketBase<Node<T>>::set_connection_internal(node);
-        return *this;
-    }
-
-
-    Voices<T> process() {
-        std::lock_guard<std::mutex> lock{VTSocketBase<Node<T>>::m_mutex};
-        if (VTSocketBase<Node<T>>::m_node == nullptr)
-            return Voices<T>::create_empty_like();
-        return VTSocketBase<Node<T>>::m_node->process();
-    }
-
-
-    Voices<T> process(std::size_t num_voices) {
-        return process().adapted_to(num_voices);
-    }
-
-};
-
-
-// ==============================================================================================
-
-template<typename T>
-class VTDataSocket : public VTSocketBase<Leaf<T>> {
-public:
-    VTDataSocket(const std::string& id, ParameterHandler& parent, Leaf<T>* initial = nullptr)
-            : VTSocketBase<Leaf<T>>(id, parent, initial) {}
-
-
-    VTDataSocket& operator=(Leaf<T>* node) {
-        std::lock_guard<std::mutex> lock{VTSocketBase<Leaf<T>>::m_mutex};
-        VTSocketBase<Leaf<T>>::set_connection_internal(node);
-        return *this;
-    }
-
-
-    Voice<T> process(double y, InterpolationStrategy strategy) {
-        std::lock_guard<std::mutex> lock{VTSocketBase<Leaf<T>>::m_mutex};
-        if (VTSocketBase<Leaf<T>>::m_node == nullptr)
-            return Voice<T>::create_empty();
-        return Voice<T>(VTSocketBase<Leaf<T>>::m_node->process(y, strategy));
-    }
-
-
 };
 
 

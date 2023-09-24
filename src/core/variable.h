@@ -11,9 +11,9 @@
 template<typename OutputType, typename StoredType = OutputType>
 class Variable : public Node<OutputType> {
 public:
-    using ParameterType = typename std::conditional<std::atomic<StoredType>::is_always_lock_free
+    using ParameterType = typename std::conditional_t<std::atomic<StoredType>::is_always_lock_free
                                                     , AtomicParameter<StoredType>
-                                                    , ComplexParameter<StoredType>>::type;
+                                                    , ComplexParameter<StoredType>>;
 
     inline static const std::string PARAMETER_ADDRESS = "value";
     inline static const std::string CLASS_NAME = "variable";
@@ -35,7 +35,7 @@ public:
     }
 
 
-    void disconnect_if(Generative&) override {}
+    void disconnect_if(Generative&) override { /* unused */ }
 
 
     StoredType get_value() { return m_value.get(); }

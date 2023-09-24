@@ -24,7 +24,9 @@ public:
     virtual ParameterHandler& get_parameter_handler() = 0;
     virtual void disconnect_if(Generative& connected_to) = 0;
 
+
     virtual void update_time(const TimePoint&) {}
+
 
     template<std::size_t max_count = 128, typename... Args>
     static std::size_t compute_voice_count(const Voices<Facet>& voices, Args... args) {
@@ -54,20 +56,6 @@ class Node : public Generative {
 public:
     virtual Voices<T> process() = 0;
 };
-
-
-// ==============================================================================================
-
-class InterpolationStrategy;
-
-template<typename T>
-class Leaf : public Generative {
-public:
-    virtual std::vector<T> process(double y, InterpolationStrategy strategy) = 0;
-};
-
-// ==============================================================================================
-
 
 
 #endif //SERIALIST_LOOPER_GENERATIVE_H

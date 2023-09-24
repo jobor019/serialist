@@ -106,7 +106,7 @@ public:
 
 
 private:
-    void add_child(VTParameterHandler& child) {
+    void add_child(VTParameterHandler const& child) {
         if (!m_value_tree.isValid())
             throw ParameterError("VTParameterHandler needs to have a valid root");
 

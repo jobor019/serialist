@@ -186,7 +186,24 @@ public:
     /**
     * @return The first value in the the first Voice or std::nulllopt if the first voice is empty
     */
-    const Voice<T>& front() const { return m_voices.front(); }
+    std::optional<T> front() const {
+        if (m_voices.empty())
+            return std::nullopt;
+
+        return m_voices.front().value();
+    }
+
+
+    /**
+    * @return The first value in the first Voice or `fallback_value` if the first Voice is empty
+    */
+    template<typename U = T>
+    U front_or(const U& fallback) const {
+        if (m_voices.empty())
+            return fallback;
+
+        return m_voices.front().value_or(fallback);
+    }
 
 
     /**
@@ -217,15 +234,6 @@ public:
 
 
     /**
-     * @return The first value in the first Voice or `fallback_value` if the first Voice is empty
-     */
-    template<typename U = T>
-    U front_or(const U& fallback) const {
-        return front().value_or(fallback);
-    }
-
-
-    /**
      * @return duplicate of values_or?
      */
 //    template<typename U = T>
@@ -238,7 +246,6 @@ public:
 //
 //        return output;
 //    }
-
 
     /**
      * @return The first value in each Voice or `fallback_value` if voice is empty
@@ -282,17 +289,18 @@ public:
         return flattened;
     }
 
+
     template<typename U = T, std::enable_if_t<utils::is_printable_v<U>, int> = 0>
     void print() {
         std::cout << "{ ";
-        for (auto& voice : m_voices) {
+        for (auto& voice: m_voices) {
             std::cout << "{";
-            for (auto& elem : voice.vector()) {
+            for (auto& elem: voice.vector()) {
                 std::cout << elem << ", ";
             }
             std::cout << "}";
         }
-        std::cout << " }\n";
+        std::cout << " }" << std::endl;
     }
 
 

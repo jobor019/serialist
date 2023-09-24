@@ -19,13 +19,6 @@ public:
     }
 
 
-    template<typename T>
-    DataSocket<T>& create_data_socket(const std::string& id, Leaf<T>* initial = nullptr) {
-        m_sockets.emplace_back(std::make_unique<DataSocket<T>>(id, m_socket_parameter_handler, initial));
-        return dynamic_cast<DataSocket<T>&>(*m_sockets.back());
-    }
-
-
     std::vector<Generative*> get_connected() const {
         std::vector<Generative*> generatives;
 
@@ -39,7 +32,7 @@ public:
 
 
     void disconnect_if(Generative& connected_to) {
-        for (auto& socket: m_sockets) {
+        for (const auto& socket: m_sockets) {
             socket->disconnect_if(connected_to);
         }
     }

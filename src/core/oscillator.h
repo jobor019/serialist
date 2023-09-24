@@ -43,6 +43,7 @@ public:
         static const inline std::string DUTY = "duty";
         static const inline std::string CURVE = "curve";
         static const inline std::string ENABLED = "enabled";
+        static const inline std::string STEPPED = "stepped";
 
         static const inline std::string CLASS_NAME = "oscillator";
     };
@@ -58,6 +59,7 @@ public:
                , Node<Facet>* duty = nullptr
                , Node<Facet>* curve = nullptr
                , Node<Facet>* enabled = nullptr
+               , Node<Facet>* stepped = nullptr
                , Node<Facet>* num_voices = nullptr)
             : m_parameter_handler(identifier, parent)
               , m_socket_handler(m_parameter_handler)
@@ -69,11 +71,8 @@ public:
               , m_duty(m_socket_handler.create_socket(OscillatorKeys::DUTY, duty))
               , m_curve(m_socket_handler.create_socket(OscillatorKeys::CURVE, curve))
               , m_enabled(m_socket_handler.create_socket(OscillatorKeys::ENABLED, enabled))
-              , m_num_voices(m_socket_handler.create_socket(ParameterKeys::NUM_VOICES, num_voices))
-              , m_phasors({Phasor()})
-              , m_rng(std::random_device()())
-              , m_distribution(0.0, 1.0)
-              , m_previous_values(HISTORY_LENGTH) {
+              , m_stepped(m_socket_handler.create_socket(OscillatorKeys::STEPPED, stepped))
+              , m_num_voices(m_socket_handler.create_socket(ParameterKeys::NUM_VOICES, num_voices)) {
         m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, OscillatorKeys::CLASS_NAME);
     }
 
@@ -102,6 +101,7 @@ public:
         auto add = m_add.process();
         auto duty = m_duty.process();
         auto curve = m_curve.process();
+        auto stepped = m_stepped.process();
 
         auto num_voices = compute_voice_count(voices, type.size(), freq.size()
                                               , mul.size(), add.size(), duty.size(), curve.size());
@@ -117,13 +117,14 @@ public:
         std::vector<double> adds = add.adapted_to(num_voices).values_or(0.0);
         std::vector<double> dutys = duty.adapted_to(num_voices).values_or(0.5);
         std::vector<double> curves = curve.adapted_to(num_voices).values_or(1.0);
+        std::vector<bool> steppeds = stepped.adapted_to(num_voices).values_or(false);
 
         std::vector<Facet> output = m_current_value.adapted_to(num_voices).fronts_or(Facet(0.0));
 
         for (std::size_t i = 0; i < num_voices; ++i) {
             if (Trigger::contains(triggers.at(i), Trigger::Type::pulse)) {
                 double position = step_oscillator(*t, i, types.at(i), freqs.at(i), muls.at(i)
-                                                  , adds.at(i), dutys.at(i), curves.at(i));
+                                                  , adds.at(i), dutys.at(i), curves.at(i), steppeds.at(i));
                 output.at(i) = static_cast<Facet>(position);
             }
         }
@@ -225,9 +226,9 @@ private:
     }
 
 
-    double step_oscillator(const TimePoint& t, std::size_t voice_index
-                           , Type type, double freq, double mul, double add, double duty, double curve) {
-        auto x = phasor_position(t, voice_index, freq);
+    double step_oscillator(const TimePoint& t, std::size_t voice_index, Type type
+                           , double freq, double mul, double add, double duty, double curve, bool stepped) {
+        auto x = phasor_position(t, voice_index, freq, stepped);
         return mul * waveform(x, type, duty, curve) + add;
     }
 
@@ -254,8 +255,12 @@ private:
     }
 
 
-    double phasor_position(const TimePoint& t, std::size_t voice_index, double freq) {
-        return m_phasors.at(voice_index).process(t.get_tick(), freq);
+    double phasor_position(const TimePoint& t, std::size_t voice_index, double freq, bool stepped) {
+        return m_phasors.at(voice_index).process(t.get_tick(), freq, stepped);
+//        if (std::abs(freq) > 0.0) {
+//            return m_phasors.at(voice_index).process(t.get_tick(), 1.0 / freq, stepped);
+//        }
+//        return m_phasors.at(voice_index).process(t.get_tick(), 0.0, stepped);
     }
 
 
@@ -325,14 +330,15 @@ private:
     Socket<Facet>& m_curve;
 
     Socket<Facet>& m_enabled;
+    Socket<Facet>& m_stepped;
     Socket<Facet>& m_num_voices;
 
-    std::vector<Phasor> m_phasors;
+    std::vector<Phasor> m_phasors = std::vector<Phasor>{Phasor()};
 
-    std::mt19937 m_rng;
-    std::uniform_real_distribution<double> m_distribution;
+    std::mt19937 m_rng{std::random_device()()};
+    std::uniform_real_distribution<double> m_distribution{0.0, 1.0};
 
-    utils::LockingQueue<std::vector<Facet>> m_previous_values;
+    utils::LockingQueue<std::vector<Facet>> m_previous_values{HISTORY_LENGTH};
 
     Voices<Facet> m_current_value = Voices<Facet>(Facet(1));  // NOTE: OBJECT IS NOT THREAD-SAFE!
     TimeGate m_time_gate;

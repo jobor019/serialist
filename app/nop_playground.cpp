@@ -22,10 +22,12 @@ private:
     Oscillator m_oscillator{"", m_parameter_handler, &m_trigger, &m_type, &m_freq, &m_add, &m_mul
                             , &m_duty, &m_curve, &m_enabled, &m_num_voices};
 
+    Variable<Facet, int> m_index{"", m_parameter_handler, 0};
+
 };
 
 
 int main() {
-    std::cout << "t5rolol\n";
+    OscillatorWrapper w;
     return 0;
 }
