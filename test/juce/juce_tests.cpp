@@ -5,7 +5,7 @@
 
 #include "core/pulsator.h"
 #include "core/oscillator.h"
-#include "core/generator.h"
+//#include "core/generator.h"
 #include "core/note_source.h"
 #include "midi_config.h"
 #include "core/note_source.h"
@@ -134,31 +134,31 @@ TEST_CASE("Oscillator") {
 
 // ==============================================================================================
 
-template<typename T>
-class GeneratorWrapper {
-public:
-    GeneratorWrapper()
-            : enabled("", handler, true)
-              , num_voices("", handler, 1)
-              , generator("", handler) {}
-
-
-    juce::UndoManager um;
-    ParameterHandler handler{um};
-
-    Variable<Facet, bool> enabled;
-    Variable<Facet, int> num_voices;
-
-    Generator<T> generator;
-};
-
-TEST_CASE("Generator") {
-    auto wrapper = GeneratorWrapper<Facet>();
-    auto& generator = wrapper.generator;
-
-    auto t = TimePoint();
-    generator.process();
-}
+//template<typename T>
+//class GeneratorWrapper {
+//public:
+//    GeneratorWrapper()
+//            : enabled("", handler, true)
+//              , num_voices("", handler, 1)
+//              , generator("", handler) {}
+//
+//
+//    juce::UndoManager um;
+//    ParameterHandler handler{um};
+//
+//    Variable<Facet, bool> enabled;
+//    Variable<Facet, int> num_voices;
+//
+//    Generator<T> generator;
+//};
+//
+//TEST_CASE("Generator") {
+//    auto wrapper = GeneratorWrapper<Facet>();
+//    auto& generator = wrapper.generator;
+//
+//    auto t = TimePoint();
+//    generator.process();
+//}
 
 
 

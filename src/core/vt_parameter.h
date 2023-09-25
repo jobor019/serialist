@@ -11,6 +11,40 @@
 #include "serializable.h"
 #include "parameter_keys.h"
 #include "facet.h"
+#include "voice.h"
+
+class VTSerialization {
+public:
+    VTSerialization() = delete;
+
+    template<typename T>
+    static juce::var serialize(const T& value)  {
+        static_assert(!std::is_same_v<T, Facet>, "Facet type is not serializable.");
+
+        if constexpr (is_serializable<T>::value) {
+            return {value.to_string()};
+        } else if constexpr (std::is_enum_v<T>) {
+            return static_cast<int>(value);
+        } else {
+            return value;
+        }
+    }
+
+
+    template<typename T>
+    static T deserialize(const juce::var& obj) {
+        static_assert(!std::is_same_v<T, Facet>, "Facet type is not serializable.");
+
+        if constexpr (is_serializable<T>::value) {
+            return T::from_string(obj.toString().toStdString());
+        } else if constexpr (std::is_enum_v<T>) {
+            return T(static_cast<int>(obj));
+        } else {
+            return obj;
+        }
+    }
+};
+
 
 
 class VTParameterHandler {
@@ -138,30 +172,30 @@ public:
 // ==============================================================================================
 
 template<typename T>
-class VTParameter : private juce::ValueTree::Listener {
+class VTParameterBase : private juce::ValueTree::Listener {
 public:
-    VTParameter(T initial_value, const std::string& id, VTParameterHandler& parent)
+    VTParameterBase(T initial_value, const std::string& id, VTParameterHandler& parent)
             : m_identifier(id), m_parent(parent) {
 
         auto& value_tree = m_parent.get_value_tree();
         if (!value_tree.isValid())
-            throw ParameterError("Cannot register VTParameter for invalid tree");
+            throw ParameterError("Cannot register VTParameterBase for invalid tree");
 
         update_value_tree(initial_value);
         value_tree.addListener(this);
     }
 
 
-    ~VTParameter() override {
+    ~VTParameterBase() override {
         m_parent.get_value_tree().removeListener(this);
         m_parent.get_value_tree().removeProperty(m_identifier, &m_parent.get_undo_manager());
     }
 
 
-    VTParameter(const VTParameter&) = delete;
-    VTParameter& operator=(const VTParameter&) = delete;
-    VTParameter(VTParameter&&) noexcept = default;
-    VTParameter& operator=(VTParameter&&) noexcept = default;
+    VTParameterBase(const VTParameterBase&) = delete;
+    VTParameterBase& operator=(const VTParameterBase&) = delete;
+    VTParameterBase(VTParameterBase&&) noexcept = default;
+    VTParameterBase& operator=(VTParameterBase&&) noexcept = default;
 
 
     void add_parameter_listener(VTParameterListener& listener) {
@@ -184,7 +218,7 @@ public:
     }
 
 
-    bool equals_property(juce::ValueTree& treeWhosePropertyHasChanged, const juce::Identifier& property) {
+    bool equals_property(const juce::ValueTree& treeWhosePropertyHasChanged, const juce::Identifier& property) {
         return treeWhosePropertyHasChanged == m_parent.get_value_tree() && property == m_identifier;
     }
 
@@ -213,63 +247,15 @@ private:
     void valueTreePropertyChanged(juce::ValueTree& treeWhosePropertyHasChanged
                                   , const juce::Identifier& property) override {
         if (equals_property(treeWhosePropertyHasChanged, property)) {
-            set_internal_value(deserialize(treeWhosePropertyHasChanged.getProperty(property)));
+            set_internal_value(VTSerialization::deserialize<T>(treeWhosePropertyHasChanged.getProperty(property)));
         }
     }
 
+
     void update_value_tree(T new_value) {
-        m_parent.get_value_tree().setProperty(m_identifier, serialize(new_value), &m_parent.get_undo_manager());
-    }
-
-
-//    template<typename U = OutputType, std::enable_if_t<std::is_same_v<U, Facet>, int> = 0>
-//    juce::var serialize(const OutputType& value) {
-//        return {value.get()};
-//    }
-
-
-    template<typename U =T, std::enable_if_t<is_serializable<U>::value, int> = 0>
-    juce::var serialize(const T& value) {
-        return {value.to_string()};
-    }
-
-
-    template<typename U = T, std::enable_if_t<std::is_enum_v<U>, int> = 0>
-    juce::var serialize(const T& value) {
-        return static_cast<int>(value);
-    }
-
-
-    template<typename U = T, std::enable_if_t<!std::is_same_v<U, Facet>
-                                              && !is_serializable<U>::value
-                                              && !std::is_enum_v<U>, int> = 0>
-    juce::var serialize(const T& value) {
-        return value;
-    }
-
-
-    template<typename U = T, std::enable_if_t<is_serializable<U>::value, int> = 0>
-    T deserialize(const juce::var& obj) {
-        return T::from_string(obj.toString().toStdString());
-    }
-
-
-    template<typename U = T, std::enable_if_t<std::is_enum_v<U>, int> = 0>
-    T deserialize(const juce::var& obj) {
-        return T(static_cast<int>(obj));
-    }
-
-//    template<typename U = OutputType, std::enable_if_t<std::is_same_v<U, Facet>, int> = 0>
-//    OutputType deserialize(const juce::var& obj) {
-//        return Facet(obj);
-//    }
-
-
-    template<typename U = T, std::enable_if_t<!std::is_same_v<U, Facet>
-                                              && !is_serializable<U>::value
-                                              && !std::is_enum_v<U>, int> = 0>
-    T deserialize(const juce::var& obj) {
-        return obj;
+        m_parent.get_value_tree().setProperty(m_identifier
+                                              , VTSerialization::serialize(new_value)
+                                              , &m_parent.get_undo_manager());
     }
 
 
@@ -284,11 +270,11 @@ private:
 // ==============================================================================================
 
 template<typename T>
-class AtomicVTParameter : public VTParameter<T> {
+class AtomicVTParameter : public VTParameterBase<T> {
 public:
 
     AtomicVTParameter(T initial_value, const std::string& id, VTParameterHandler& parent)
-            : VTParameter<T>(initial_value, id, parent), m_value(initial_value) {
+            : VTParameterBase<T>(initial_value, id, parent), m_value(initial_value) {
         static_assert(std::atomic<T>::is_always_lock_free, "DataType must be lock-free");
     }
 
@@ -310,25 +296,25 @@ private:
 // ==============================================================================================
 
 template<typename T>
-class LockingVTParameter : VTParameter<T> {
+class LockingVTParameter : public VTParameterBase<T> {
 public:
 
     LockingVTParameter(T initial_value, const std::string& id, VTParameterHandler& parent)
-            : VTParameter<T>(initial_value, id, parent), m_value(initial_value) {
+            : VTParameterBase<T>(initial_value, id, parent), m_value(initial_value) {
         static_assert(std::is_copy_constructible_v<T>, "DataType must be copyable");
     }
 
 
 private:
     T get_internal_value() override {
-        std::lock_guard<std::mutex> lock{m_mutex};
+        std::lock_guard lock{m_mutex};
         return m_value;
 
     }
 
 
     void set_internal_value(T new_value) override {
-        std::lock_guard<std::mutex> lock{m_mutex};
+        std::lock_guard lock{m_mutex};
 
         if constexpr (std::is_move_constructible_v<T> && !std::is_trivially_copyable_v<T>) {
             m_value = std::move(new_value);
@@ -346,44 +332,99 @@ private:
 
 // ==============================================================================================
 
+//template<typename T>
+//class VTSequenceParameter : private juce::ValueTree::Listener {
+//public:
+//    VTSequenceParameter(const std::vector<T>& initial, const std::string& id, VTParameterHandler& parent)
+//    :
+//};
+
+
 template<typename T>
-class CollectionVTParameter {
-}; // TODO: Current VTParametrizedSequence should rather be ParametrizedCollection
-//       and VTParametrizedSequence should be std::vector<std::vector<DataType>>
+class ValueTreeList {
+public:
+    ValueTreeList(const std::vector<T>& initial
+                  , const std::string& id
+                  , juce::ValueTree& parent_tree
+                  , juce::UndoManager& undo_manager)
+            : m_value_tree({id})
+              , m_parent_tree(parent_tree)
+              , m_undo_manager(undo_manager) {
+
+        m_parent_tree.addChild(m_value_tree, -1, &m_undo_manager);
+        reset(initial);
+    }
+
+
+    virtual ~ValueTreeList() {
+        m_parent_tree.removeChild(m_value_tree, &m_undo_manager);
+    }
+
+
+    ValueTreeList(const ValueTreeList&) = delete;
+    ValueTreeList& operator=(const ValueTreeList&) = delete;
+    ValueTreeList(ValueTreeList&&) noexcept = default;
+    ValueTreeList& operator=(ValueTreeList&&) noexcept = default;
+
+
+    void reset(const std::vector<T>& new_values = {}) {
+        m_next_vt_name = 0;
+        for (const auto& v: new_values) {
+            auto name = "v" + std::to_string(m_next_vt_name);
+            ++m_next_vt_name;
+            m_value_tree.setProperty({name}, VTSerialization::serialize<T>(v), &m_undo_manager);
+        }
+    }
+
+
+private:
+    juce::ValueTree m_value_tree;
+    juce::ValueTree& m_parent_tree;
+    juce::UndoManager& m_undo_manager;
+
+    unsigned long m_next_vt_name = 0;
+};
 
 
 // ==============================================================================================
 
-template<typename T>
-class VTParametrizedSequence : private juce::ValueTree::Listener {
+template<typename OutputType, typename StoredType = OutputType>
+class VTSequenceParameter : private juce::ValueTree::Listener {
 public:
 
-    VTParametrizedSequence(const std::string& id, VTParameterHandler& parent, const std::vector<T>& initial)
-            : m_value_tree({id}), m_parent(parent) {
+    VTSequenceParameter(const std::string& id
+                        , VTParameterHandler& parent
+                        , const std::vector<std::vector<StoredType>>& initial)
+            : m_value_tree({id})
+              , m_parent(parent) {
         auto& parent_tree = m_parent.get_value_tree();
         if (!parent_tree.isValid())
-            throw ParameterError("Cannot register VTParameter for invalid tree");
+            throw ParameterError("Cannot register VTSequenceParameter for invalid tree");
 
         parent_tree.addChild(m_value_tree, -1, &m_parent.get_undo_manager());
 
-        for (auto& v: initial) {
-            insert(v, -1);
-        }
+        set(initial);
 
         parent_tree.addListener(this);
     }
 
 
-    ~VTParametrizedSequence() override {
+//    VTSequenceParameter(const std::string& id
+//                        , VTParameterHandler& parent
+//                        , const Voices<OutputType>& initial)
+//            : VTSequenceParameter(id, parent, initial.vectors_as()) {}
+
+
+    ~VTSequenceParameter() override {
         m_parent.get_value_tree().removeListener(this);
         m_parent.get_value_tree().removeChild(m_value_tree, &m_parent.get_undo_manager());
     }
 
 
-    VTParametrizedSequence(const VTParametrizedSequence&) = delete;
-    VTParametrizedSequence& operator=(const VTParametrizedSequence&) = delete;
-    VTParametrizedSequence(VTParametrizedSequence&&) noexcept = default;
-    VTParametrizedSequence& operator=(VTParametrizedSequence&&) noexcept = default;
+    VTSequenceParameter(const VTSequenceParameter&) = delete;
+    VTSequenceParameter& operator=(const VTSequenceParameter&) = delete;
+    VTSequenceParameter(VTSequenceParameter&&) noexcept = default;
+    VTSequenceParameter& operator=(VTSequenceParameter&&) noexcept = default;
 
 
     void add_parameter_listener(VTParameterListener& listener) {
@@ -406,108 +447,140 @@ public:
     }
 
 
-    T at(int index) {
-        std::lock_guard<std::mutex> lock{m_values_mutex};
+//    void set(const Voices<OutputType>& v) {
+//        std::lock_guard lock{m_values_mutex};
+//        m_voices = v;
+//        reset_value_tree(v.vectors_as());
+//    }
 
-        index = adjust_index_range(index, false);
-        return m_values.at(static_cast<std::size_t>(index));
+
+    void set(const std::vector<std::vector<StoredType>>& v) {
+        std::lock_guard lock{m_values_mutex};
+        m_voices = Voices<OutputType>(v);
+        reset_value_tree(v);
+    }
+
+    void set_transposed(const std::vector<StoredType>& v) {
+        std::lock_guard lock{m_value_tree};
+        auto v_transposed = VoiceUtils::transpose(v);
+        m_voices = Voices<OutputType>(v_transposed);
+        reset_value_tree(v_transposed);
     }
 
 
-    std::vector<T> clone_values() {
-        std::lock_guard<std::mutex> lock{m_values_mutex};
-
-        return std::vector<T>(m_values);
+    const Voices<OutputType>& get_voices() {
+        std::lock_guard lock{m_values_mutex};
+        return m_voices;
     }
 
 
-    void reset_values(std::vector<T> new_values) {
-        std::lock_guard<std::mutex> lock{m_values_mutex};
-        m_value_tree.removeAllChildren(&m_parent.get_undo_manager());
-        std::cout << "warning: missing CLEAR of vector / REMOVE\n";
-        for (auto& value: new_values) {
-            internal_insert(value, -1);
+    const std::vector<std::vector<StoredType>>& get_values() {
+        std::lock_guard lock{m_values_mutex};
+    }
+
+
+//    void reset_values(Voice<T> new_values = {}) {
+//        std::lock_guard lock{m_values_mutex};
+//        m_value_tree.removeAllChildren(&m_parent.get_undo_manager());
+//        std::cout << "warning: missing CLEAR of vector / REMOVE\n";
+//        for (auto& value: new_values) {
+//            internal_insert(value, -1);
+//        }
+//    }
+//
+//
+//    std::vector<T> interpolate(double position, const InterpolationStrategy& strategy) {
+//        std::lock_guard lock{m_values_mutex};
+//        return Interpolator<T>::interpolate(position, strategy, m_voices);
+//    }
+//
+//
+//    void insert(T value, int index) {
+//        std::lock_guard lock{m_values_mutex};
+//        internal_insert(value, index);
+//
+//    }
+//
+//
+//    void move(int index_from, int index_to) {
+//        std::lock_guard lock{m_values_mutex};
+//
+//        index_from = adjust_index_range(index_from, false);
+//        index_to = adjust_index_range(index_to, true);
+//
+//        std::rotate(m_voices.begin() + index_from, m_voices.begin() + index_from + 1, m_voices.begin() + index_to);
+//
+//        m_value_tree.moveChild(index_from, index_to, &m_parent.get_undo_manager());
+//    }
+//
+//
+//    void remove(int index) {
+//        std::lock_guard lock{m_values_mutex};
+//
+//        index = adjust_index_range(index, false);
+//
+//        m_voices.erase(m_voices.begin() + index);
+//
+//        m_value_tree.removeChild(index, &m_parent.get_undo_manager());
+//    }
+//
+//
+//    const std::size_t& size() {
+//        std::lock_guard lock{m_values_mutex};
+//        return m_voices.size();
+//    }
+//
+//
+//    bool empty() {
+//        std::lock_guard lock{m_values_mutex};
+//        return m_voices.empty();
+//    }
+
+
+private:
+    void reset_value_tree(const std::vector<std::vector<StoredType>>& values) {
+        m_vt_list.clear();
+        m_next_vt_name = 0;
+
+        m_vt_list.reserve(values.size());
+        for (const auto& v: values) {
+            auto name = "c" + std::to_string(m_next_vt_name);
+            ++m_next_vt_name;
+            m_vt_list.emplace_back(v, name, m_value_tree, m_parent.get_undo_manager());
         }
     }
 
 
-    std::vector<T> interpolate(double position, const InterpolationStrategy& strategy) {
-        std::lock_guard<std::mutex> lock{m_values_mutex};
-        return Interpolator<T>::interpolate(position, strategy, m_values);
-    }
-
-
-    void insert(T value, int index) {
-        std::lock_guard<std::mutex> lock{m_values_mutex};
-        internal_insert(value, index);
-
-    }
-
-
-    void move(int index_from, int index_to) {
-        std::lock_guard<std::mutex> lock{m_values_mutex};
-
-        index_from = adjust_index_range(index_from, false);
-        index_to = adjust_index_range(index_to, true);
-
-        std::rotate(m_values.begin() + index_from, m_values.begin() + index_from + 1, m_values.begin() + index_to);
-
-        m_value_tree.moveChild(index_from, index_to, &m_parent.get_undo_manager());
-    }
-
-
-    void remove(int index) {
-        std::lock_guard<std::mutex> lock{m_values_mutex};
-
-        index = adjust_index_range(index, false);
-
-        m_values.erase(m_values.begin() + index);
-
-        m_value_tree.removeChild(index, &m_parent.get_undo_manager());
-    }
-
-
-    const std::size_t& size() {
-        std::lock_guard<std::mutex> lock{m_values_mutex};
-        return m_values.size();
-    }
-
-
-    bool empty() {
-        std::lock_guard<std::mutex> lock{m_values_mutex};
-        return m_values.empty();
-    }
-
-
-private:
-
-    int adjust_index_range(int index, bool for_insertion) {
-
-        // negative indices: insert/access from back
-        if (index < 0)
-            index += static_cast<int>(m_values.size()) + static_cast<int>(for_insertion);
-
-        return std::clamp(index, 0, static_cast<int>(m_values.size()) - static_cast<int>(!for_insertion));
-    }
-
-
-    void internal_insert(const T& value, int index) {
-        index = adjust_index_range(index, true);
-
-        m_values.insert(m_values.begin() + index, value);
-
-        juce::ValueTree child({"c" + std::to_string(used_vt_names++)});
-        child.setProperty("v1", value, nullptr); // TODO: Generalize for trees with multiple properties
-        m_value_tree.addChild(child, index, &m_parent.get_undo_manager());
-    }
+//    int adjust_index_range(int index, bool for_insertion) {
+//
+//        // negative indices: insert/access from back
+//        if (index < 0)
+//            index += static_cast<int>(m_voices.size()) + static_cast<int>(for_insertion);
+//
+//        return std::clamp(index, 0, static_cast<int>(m_voices.size()) - static_cast<int>(!for_insertion));
+//    }
+//
+//
+//    void internal_insert(const T& value, int index) {
+//        index = adjust_index_range(index, true);
+//
+//        m_voices.insert(m_voices.begin() + index, value);
+//
+//        juce::ValueTree child({"c" + std::to_string(used_vt_names++)});
+//        child.setProperty("v1", value, nullptr); // TODO: Generalize for trees with multiple properties
+//        m_value_tree.addChild(child, index, &m_parent.get_undo_manager());
+//    }
 
 
     std::mutex m_values_mutex;
-    std::vector<T> m_values;
 
-    long used_vt_names = 0;
-
+    Voices<OutputType> m_voices = Voices<OutputType>::create_empty_like();
     juce::ValueTree m_value_tree;
+
+    std::vector<ValueTreeList<StoredType>> m_vt_list;
+
+    unsigned long m_next_vt_name = 0;
+
     VTParameterHandler& m_parent;
 
     std::vector<VTParameterListener*> m_listeners;

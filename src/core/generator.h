@@ -31,7 +31,7 @@ public:
 //              , Node<Trigger>* trigger = nullptr
               , Node<Facet>* cursor = nullptr
               , Node<InterpolationStrategy>* interp = nullptr
-              , Leaf<T>* sequence = nullptr
+              , Node<T>* sequence = nullptr
               , Node<Facet>* enabled = nullptr
               , Node<Facet>* num_voices = nullptr)
             : m_parameter_handler(id, parent)
@@ -39,7 +39,7 @@ public:
 //              , m_trigger(m_socket_handler.create_socket(GeneratorKeys::TRIGGER, trigger))
               , m_cursor(m_socket_handler.create_socket(GeneratorKeys::CURSOR, cursor))
               , m_interpolation_strategy(m_socket_handler.create_socket(GeneratorKeys::INTERP, interp))
-              , m_sequence(m_socket_handler.create_data_socket(GeneratorKeys::SEQUENCE, sequence))
+              , m_sequence(m_socket_handler.create_socket(GeneratorKeys::SEQUENCE, sequence))
               , m_enabled(m_socket_handler.create_socket(GeneratorKeys::ENABLED, enabled))
               , m_num_voices(m_socket_handler.create_socket(ParameterKeys::NUM_VOICES, num_voices)) {
         m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, GeneratorKeys::CLASS_NAME);
@@ -105,7 +105,7 @@ public:
     Socket<InterpolationStrategy>& get_interpolation_strategy() { return m_interpolation_strategy; }
 
 
-    DataSocket<T>& get_sequence() { return m_sequence; }
+    Socket<T>& get_sequence() { return m_sequence; }
 
 
     Socket<Facet>& get_enabled() { return m_enabled; }
@@ -169,7 +169,7 @@ private:
 //    Socket<Trigger>& m_trigger;
     Socket<Facet>& m_cursor;
     Socket<InterpolationStrategy>& m_interpolation_strategy;
-    DataSocket<T>& m_sequence;
+    Socket<T>& m_sequence;
 
     Socket<Facet>& m_enabled;
     Socket<Facet>& m_num_voices;

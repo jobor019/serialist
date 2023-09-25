@@ -6,11 +6,10 @@
 #include "parameter_policy.h"
 #include "socket_policy.h"
 #include "generative.h"
-#include "interpolator.h"
 #include "parameter_keys.h"
 
 template<typename OutputType, typename StoredType = OutputType>
-class Sequence : public Leaf<OutputType> {
+class Sequence : public Node<OutputType> {
 public:
 
     inline static const std::string SEQUENCE_TREE = "SEQUENCE";
@@ -19,9 +18,8 @@ public:
 
     explicit Sequence(const std::string& id
                       , ParameterHandler& parent
-                      , const std::vector<StoredType>& initial_values = {})
+                      , const std::vector<std::vector<StoredType>>& initial_values = {})
             : m_parameter_handler(id, parent)
-              , m_socket_handler(ParameterKeys::GENERATIVE_SOCKETS_TREE, m_parameter_handler)
               , m_sequence(SEQUENCE_TREE, m_parameter_handler, initial_values) {
         static_assert(std::is_constructible_v<OutputType, StoredType>
                       && std::is_constructible_v<StoredType, OutputType>
@@ -31,33 +29,16 @@ public:
     }
 
 
-    std::vector<OutputType> process(double y, InterpolationStrategy strategy) override {
-        auto values = m_sequence.interpolate(y, strategy);
-        if constexpr (std::is_same_v<OutputType, StoredType>) {
-            return values;
-
-        } else {
-            std::vector<OutputType> output;
-            output.reserve(values.size());
-            std::transform(values.begin(), values.end()
-                           , std::back_inserter(output)
-                           , [](const StoredType& element) { return static_cast<OutputType>(element); }
-            );
-            return output;
-        }
-    }
+    explicit Sequence(const std::string& id, ParameterHandler& parent, const std::vector<StoredType>& initial_values)
+            : Sequence(id, parent, std::vector<std::vector<StoredType>>{initial_values}) {}
 
 
-    void disconnect_if(Generative&) override {}
+    explicit Sequence(const std::string& id, ParameterHandler& parent, const StoredType& initial_values)
+            : Sequence(id, parent, std::vector<std::vector<StoredType>>{{initial_values}}) {}
 
 
-    ParameterHandler& get_parameter_handler() override {
-        return m_parameter_handler;
-    }
-
-
-    ParametrizedSequence<StoredType>& get_parameter_obj() {
-        return m_sequence;
+    Voices<OutputType> process() override {
+        return m_sequence.get_voices();
     }
 
 
@@ -66,13 +47,39 @@ public:
     }
 
 
+    ParameterHandler& get_parameter_handler() override {
+        return m_parameter_handler;
+    }
+
+
+    void disconnect_if(Generative&) override { /* unused */ }
+
+
+    std::vector<std::vector<StoredType>> get_values() {
+        return m_sequence.get();
+    }
+
+
+    void set_values(const std::vector<std::vector<StoredType>>& values) {
+        m_sequence.set(values);
+    }
+
+
+
+    void set_transposed(const std::vector<StoredType>& values) {
+        m_sequence.set(VoiceUtils::transpose(values));
+    }
+
+
+    SequenceParameter<OutputType, StoredType>& get_parameter_obj() {
+        return m_sequence;
+    }
 
 
 private:
     ParameterHandler m_parameter_handler;
-    ParameterHandler m_socket_handler;
 
-    ParametrizedSequence<StoredType> m_sequence;
+    SequenceParameter<OutputType, StoredType> m_sequence;
 
 };
 

@@ -9,17 +9,15 @@
 
 using ParameterHandler = VTParameterHandler;
 
-template<typename T>
-using AtomicParameter = AtomicVTParameter<T>;
+template<typename DataType>
+using AtomicParameter = AtomicVTParameter<DataType>;
 
-template<typename T>
-using ComplexParameter = LockingVTParameter<T>;
+template<typename DataType>
+using ComplexParameter = LockingVTParameter<DataType>;
 
-template<typename T>
-using ParametrizedCollection = VTParametrizedSequence<T>; // TODO: Temp, until VTParametrizedSequence is handling lists of lists
+template<typename OutputType, typename StoredType = OutputType>
+using SequenceParameter = VTSequenceParameter<OutputType, StoredType>;
 
-template<typename T>
-using ParametrizedSequence = VTParametrizedSequence<T>;
 
 #else
 
@@ -33,11 +31,9 @@ using AtomicParameter = NopParameter<DataType>;
 template<typename DataType>
 using ComplexParameter = NopParameter<DataType>;
 
-template<typename OutputType>
-using ParametrizedCollection = NopParametrizedSequence<OutputType>; // TODO: Temp, until VTParametrizedSequence is handling lists of lists
 
-template<typename OutputType>
-using ParametrizedSequence = NopParametrizedSequence<OutputType>;
+template<typename OutputType, typename StoredType = OutputType>
+using SequenceParameter = NopSequenceParameter<OutputType, StoredType>;
 
 
 #endif

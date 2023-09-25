@@ -76,7 +76,7 @@ protected:
         } else {
             m_node = nullptr;
         }
-    };
+    }
 
 
     Node<T>* get_node() const { return m_node; }

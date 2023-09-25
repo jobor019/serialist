@@ -22,7 +22,7 @@ public:
             : m_id(std::move(id)), m_parent(parent) {
 
         if (!m_parent.get_value_tree().isValid())
-            throw ParameterError("Cannot register VTParameter for invalid tree");
+            throw ParameterError("Cannot register VTParameterBase for invalid tree");
 
         m_value_tree = juce::ValueTree({ParameterKeys::GENERATIVE_SOCKET});
         m_value_tree.setProperty({ParameterKeys::ID_PROPERTY}, {m_id}, &m_parent.get_undo_manager());

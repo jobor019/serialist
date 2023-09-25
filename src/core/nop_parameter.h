@@ -7,6 +7,7 @@
 #include <iostream>
 #include "exceptions.h"
 #include "interpolator.h"
+#include "voice.h"
 
 class NopParameterHandler {
 public:
@@ -46,91 +47,40 @@ private:
 
 // ==============================================================================================
 
-template<typename T>
-class NopParametrizedSequence {
+template<typename OutputType, typename StoredType = OutputType>
+class NopSequenceParameter {
 public:
 
-    NopParametrizedSequence(const std::string&, NopParameterHandler&, const std::vector<T>& initial) {
-        for (auto& v: initial) {
-            insert(v, -1);
-        }
+    NopSequenceParameter(const std::string&, NopParameterHandler&
+                         , const std::vector<std::vector<StoredType>>& initial) {
+        set(initial);
     }
 
 
-    T at(int index) {
-        index = adjust_index_range(index, false);
-        return m_values.at(static_cast<std::size_t>(index));
+    void set(const std::vector<std::vector<StoredType>>& v) {
+        m_voices = Voices<OutputType>(v);
     }
 
 
-    std::vector<T> clone_values() {
-        return std::vector<T>(m_values);
+    void set_transposed(const std::vector<StoredType>& v) {
+        auto v_transposed = VoiceUtils::transpose(v);
+        m_voices = Voices<OutputType>(v_transposed);
     }
 
 
-    void reset_values(std::vector<T> new_values) {
-        m_values.clear();
-        for (auto& value: new_values) {
-            internal_insert(value, -1);
-        }
+    const Voices<OutputType>& get_voices() {
+        return m_voices;
     }
 
 
-    std::vector<T> interpolate(double position, const InterpolationStrategy& strategy) {
-        return Interpolator<T>::interpolate(position, strategy, m_values);
-    }
-
-
-    void insert(T value, int index) {
-        internal_insert(value, index);
-
-    }
-
-
-    void move(int index_from, int index_to) {
-        index_from = adjust_index_range(index_from, false);
-        index_to = adjust_index_range(index_to, true);
-
-        std::rotate(m_values.begin() + index_from, m_values.begin() + index_from + 1, m_values.begin() + index_to);
-
-    }
-
-
-    void remove(int index) {
-        index = adjust_index_range(index, false);
-        m_values.erase(m_values.begin() + index);
-    }
-
-
-    const std::size_t& size() {
-        return m_values.size();
-    }
-
-
-    bool empty() {
-        return m_values.empty();
+    const std::vector<std::vector<StoredType>>& get_values() {
+        m_voices.vectors_as();
     }
 
 
 private:
 
-    int adjust_index_range(int index, bool for_insertion) {
-
-        // negative indices: insert/access from back
-        if (index < 0)
-            index += static_cast<int>(m_values.size()) + static_cast<int>(for_insertion);
-
-        return std::clamp(index, 0, static_cast<int>(m_values.size()) - static_cast<int>(!for_insertion));
-    }
-
-
-    void internal_insert(const T& value, int index) {
-        index = adjust_index_range(index, true);
-        m_values.insert(m_values.begin() + index, value);
-    }
-
-
-    std::vector<T> m_values;
+    Voices<OutputType> m_voices = Voices<OutputType>::create_empty_like();
 
 };
 

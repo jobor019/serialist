@@ -247,7 +247,8 @@ add_executable(tests EXCLUDE_FROM_ALL
 #        ${CMAKE_CURRENT_SOURCE_DIR}/test/looper_tests.cpp
 #        ${CMAKE_CURRENT_SOURCE_DIR}/test/generator_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/backend/facet_tests.cpp
-        )
+        test/backend/nop_tests.cpp
+)
 
 target_link_libraries(tests
         PRIVATE
@@ -271,7 +272,8 @@ target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
 
 add_executable(vtTests EXCLUDE_FROM_ALL
         ${CMAKE_CURRENT_SOURCE_DIR}/test/juce/juce_tests.cpp
-        )
+        test/juce/value_tree_tests.cpp
+)
 
 target_link_libraries(vtTests
         PRIVATE

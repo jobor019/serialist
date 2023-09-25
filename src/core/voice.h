@@ -33,8 +33,7 @@ public:
 
 
     template<typename OutputType>
-    static std::vector<OutputType>
-    adapted_to(const std::vector<OutputType>& v, std::size_t target_num_voices) {
+    static std::vector<OutputType> adapted_to(const std::vector<OutputType>& v, std::size_t target_num_voices) {
         if (v.size() == target_num_voices || target_num_voices == AUTO_VOICES) {
             return v;
         } else {
@@ -48,7 +47,21 @@ public:
             return voices;
         }
     }
+
+
+    template<typename T>
+    static std::vector<std::vector<T>> transpose(const std::vector<T>& v) {
+        std::vector<std::vector<T>> output;
+        output.reserve(v.size());
+
+        for (const T& t: v) {
+            output.push_back({t});
+        }
+        return output;
+    }
 };
+
+
 
 
 // ==============================================================================================
@@ -60,6 +73,10 @@ public:
 
 
     explicit Voice(const T& v) : Voice(std::vector<T>(1, v)) {}
+
+
+    template<typename U = T>
+    explicit Voice(const std::vector<U>& v) : m_voice(VoiceUtils::adapted_to<T, U>(v, v.size())) {}
 
 
     static Voice create_empty() { return Voice({}); }
@@ -78,6 +95,10 @@ public:
 
 
     const std::vector<T>& vector() const { return m_voice; }
+
+
+    template<typename U = T>
+    std::vector<U> vector_as() const { return adapted_to<U>(m_voice.size()); }
 
 
     template<typename U = T>
@@ -134,7 +155,24 @@ public:
     }
 
 
-    static Voices<T> create_empty_like() { return Voices<T>(1); }
+    template<typename U = T>
+    explicit Voices(const std::vector<std::vector<U>>& voices) {
+        if (voices.empty()) {
+            m_voices = empty_like(1);
+        } else {
+            for (auto& e: voices) {
+                m_voices.emplace_back(Voice<T>(e));
+            }
+        }
+    }
+
+
+    static Voices<T> create_empty_like() { return Voices<T>(empty_like(1)); }
+
+
+    static Voices<T> transposed(const Voice<T>& voice) {
+        return Voices{voice.vector()};
+    }
 
 
     void append(const Voice<T>& voice) {
@@ -305,6 +343,17 @@ public:
 
 
     const std::vector<Voice<T>>& vector() const { return m_voices; }
+
+
+    template<typename U = T>
+    std::vector<std::vector<U>> vectors_as() const {
+        std::vector<std::vector<U>> output;
+        output.reserve(m_voices.size());
+        for (auto& voice: m_voices) {
+            output.push_back(voice.vector_as());
+        }
+        return output;
+    }
 
 
 private:
