@@ -50,6 +50,6 @@ TEST_CASE("VTSequenceParameter") {
     seq3.set_transposed({true, false, true});
 //    std::cout << seq3.get_parameter_handler().get_value_tree().toXmlString() << "\n";
 
-    Sequence<Facet, Oscillator::Type> seq4("test4", handler, Oscillator::Type::sin);
+    Sequence<Facet, OscillatorNode::Type> seq4("test4", handler, OscillatorNode::Type::sin);
 
 }

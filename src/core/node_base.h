@@ -1,0 +1,109 @@
+
+#ifndef SERIALISTLOOPER_NODE_BASE_H
+#define SERIALISTLOOPER_NODE_BASE_H
+
+#include "generative.h"
+#include "socket_handler.h"
+#include "parameter_keys.h"
+#include "time_gate.h"
+
+template<typename T>
+class NodeBase : public Node<T> {
+public:
+    NodeBase(const std::string& id
+             , ParameterHandler& parent
+             , Node<Facet>* enabled
+             , Node<Facet>* num_voices
+             , const std::string& class_name)
+            : m_parameter_handler(id, parent)
+              , m_socket_handler(m_parameter_handler)
+              , m_enabled(m_socket_handler.create_socket(ParameterKeys::ENABLED, enabled))
+              , m_num_voices(m_socket_handler.create_socket(ParameterKeys::NUM_VOICES, num_voices)) {
+        m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, class_name);
+    }
+
+
+    void update_time(const TimePoint& t) override { m_time_gate.push_time(t); }
+
+
+    std::vector<Generative*> get_connected() override { return m_socket_handler.get_connected(); }
+
+
+    ParameterHandler& get_parameter_handler() override { return m_parameter_handler; }
+
+
+    void disconnect_if(Generative& connected_to) override { m_socket_handler.disconnect_if(connected_to); }
+
+
+    void set_enabled(Node<Facet>* enabled) { m_enabled = enabled; }
+
+
+    void set_num_voices(Node<Facet>* num_voices) { m_num_voices = num_voices; }
+
+
+    Socket<Facet>& get_enabled() { return m_enabled; }
+
+
+    Socket<Facet>& get_num_voices() { return m_num_voices; }
+
+
+protected:
+
+    template<typename ObjectType>
+    static void resize(std::vector<ObjectType>& objects, std::size_t new_count) {
+        auto diff = static_cast<long>(new_count - objects.size());
+        if (diff < 0) {
+            // remove N last objects
+            objects.erase(objects.end() + diff, objects.end());
+        } else if (diff > 0) {
+            // duplicate last object N times
+            auto last = objects.back();
+            objects.resize(objects.size() + static_cast<std::size_t>(diff), last);
+        }
+    }
+
+
+    template<typename OutputType>
+    std::vector<OutputType> adapt(const Voices<Facet>& values
+                                  , std::size_t num_voices
+                                  , const OutputType& default_value) {
+        return values.adapted_to(num_voices).values_or(default_value);
+    }
+
+
+    template<typename OutputType>
+    Socket<OutputType>& add_socket(const std::string& id, Node<OutputType>* initial = nullptr) {
+        return m_socket_handler.create_socket(id, initial);
+    }
+
+
+    std::optional<TimePoint> pop_time() { return m_time_gate.pop_time(); }
+
+
+    bool is_enabled() { return m_enabled.process(1).front_or(true); }
+
+
+    template<std::size_t max_count = 128, typename... Args>
+    std::size_t voice_count(Args... args) {
+        auto num_voices = static_cast<long>(m_num_voices.process().adapted_to(1).front_or(0));
+        if (num_voices <= 0) {
+            return std::min(max_count, std::max({static_cast<std::size_t>(1), args...}));
+        }
+
+        return std::min(max_count, static_cast<std::size_t>(num_voices));
+    }
+
+
+private:
+
+    ParameterHandler m_parameter_handler;
+    SocketHandler m_socket_handler;
+
+
+    Socket<Facet>& m_enabled;
+    Socket<Facet>& m_num_voices;
+
+    TimeGate m_time_gate;
+};
+
+#endif //SERIALISTLOOPER_NODE_BASE_H

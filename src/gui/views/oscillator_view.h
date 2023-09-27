@@ -17,7 +17,7 @@ public:
     };
 
 
-    explicit OscillatorView(Oscillator& oscillator, Layout layout = Layout::full)
+    explicit OscillatorView(OscillatorNode& oscillator, Layout layout = Layout::full)
             : m_oscillator(oscillator)
               , m_layout(layout) {
         addAndMakeVisible(m_view);
@@ -63,7 +63,7 @@ private:
     }
 
 
-    Oscillator& m_oscillator;
+    OscillatorNode& m_oscillator;
 
     Layout m_layout;
 

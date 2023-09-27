@@ -70,7 +70,7 @@ TEST_CASE("Pulsator") {
 class OscillatorWrapper {
 public:
     OscillatorWrapper()
-            : osc_type("", handler, Oscillator::Type::phasor)
+            : osc_type("", handler, OscillatorNode::Type::phasor)
               , freq("", handler, 0.25f)
               , mul("", handler, 1.0f)
               , add("", handler, 0.0f)
@@ -86,7 +86,7 @@ public:
     juce::UndoManager um;
     ParameterHandler handler{um};
 
-    Variable<Facet, Oscillator::Type> osc_type;
+    Variable<Facet, OscillatorNode::Type> osc_type;
 
 
 
@@ -102,7 +102,7 @@ public:
 
 
 
-    Oscillator oscillator;
+    OscillatorNode oscillator;
 };
 
 

@@ -26,18 +26,6 @@ public:
 
 
     virtual void update_time(const TimePoint&) {}
-
-
-    template<std::size_t max_count = 128, typename... Args>
-    static std::size_t compute_voice_count(const Voices<Facet>& voices, Args... args) {
-        auto num_voices = static_cast<long>(voices.adapted_to(1).front_or(0));
-        if (num_voices <= 0) {
-            return std::min(max_count, std::max({static_cast<std::size_t>(1), args...}));
-        }
-
-        return std::min(max_count, static_cast<std::size_t>(num_voices));
-    }
-
 };
 
 

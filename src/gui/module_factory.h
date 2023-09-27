@@ -184,13 +184,13 @@ public:
 
         auto& parent = graph.get_parameter_handler();
 
-        auto oscillator = std::make_unique<Oscillator>(graph.next_id(), parent);
+        auto oscillator = std::make_unique<OscillatorNode>(graph.next_id(), parent);
 
         // TODO: Need to implement a module for the pulse to be able to replace/connect it
         auto internal_trigger = std::make_unique<UnitPulse>(graph.next_id(), parent);
 
-        auto type = std::make_unique<Variable<Facet, Oscillator::Type>>(graph.next_id(), parent
-                                                                        , Oscillator::Type::phasor);
+        auto type = std::make_unique<Variable<Facet, OscillatorNode::Type>>(graph.next_id(), parent
+                                                                            , OscillatorNode::Type::phasor);
         auto freq = std::make_unique<Variable<Facet, float>>(graph.next_id(), parent, 0.25f);
         auto mul = std::make_unique<Variable<Facet, float>>(graph.next_id(), parent, 1.0f);
         auto add = std::make_unique<Variable<Facet, float>>(graph.next_id(), parent, 0.0f);

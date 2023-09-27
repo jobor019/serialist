@@ -21,7 +21,7 @@ class OscillatorModule : public NodeBase<Facet> {
 public:
 
     using SliderLayout = SliderWidget::Layout;
-    using ComboBoxType = ComboBoxWidget<Oscillator::Type>;
+    using ComboBoxType = ComboBoxWidget<OscillatorNode::Type>;
     using CbLayout = ComboBoxType::Layout;
 
     enum class Layout {
@@ -30,8 +30,8 @@ public:
     };
 
 
-    OscillatorModule(Oscillator& oscillator
-                     , Variable<Facet, Oscillator::Type>& internal_type
+    OscillatorModule(OscillatorNode& oscillator
+                     , Variable<Facet, OscillatorNode::Type>& internal_type
                      , Variable<Facet, float>& internal_freq
                      , Variable<Facet, float>& internal_mul
                      , Variable<Facet, float>& internal_add
@@ -44,11 +44,11 @@ public:
               , m_type_socket(oscillator.get_type(), std::make_unique<ComboBoxType>(
                     internal_type
                     , std::vector<ComboBoxType::Entry>{
-                            {  "phasor", Oscillator::Type::phasor}
-                            , {"sin"   , Oscillator::Type::sin}
-                            , {"sqr"   , Oscillator::Type::square}
-                            , {"tri"   , Oscillator::Type::tri}
-                            , {"rnd"   , Oscillator::Type::white_noise}}
+                            {  "phasor", OscillatorNode::Type::phasor}
+                            , {"sin"   , OscillatorNode::Type::sin}
+                            , {"sqr"   , OscillatorNode::Type::square}
+                            , {"tri"   , OscillatorNode::Type::tri}
+                            , {"rnd"   , OscillatorNode::Type::white_noise}}
                     , "type"
                     , CbLayout::label_left))
               , m_freq_socket(oscillator.get_freq(), std::make_unique<SliderWidget>(
