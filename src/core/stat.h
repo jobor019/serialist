@@ -48,6 +48,12 @@ public:
         recompute();
     }
 
+    void set_bounds(double lower_bound, double upper_bound) {
+        m_lower_bound = lower_bound;
+        m_upper_bound = upper_bound;
+        recompute();
+    }
+
 
     void set_pdf(const std::function<double(double, double, double)>& pdf) {
         m_pdf = pdf;

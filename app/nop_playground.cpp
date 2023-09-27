@@ -11,7 +11,7 @@ private:
 
     // TRIGGER: TODO
     UnitPulse m_trigger{"", m_parameter_handler};
-    Variable<Facet, OscillatorNode::Type> m_type{"", m_parameter_handler, OscillatorNode::Type::phasor};
+    Variable<Facet, Oscillator::Type> m_type{"", m_parameter_handler, Oscillator::Type::phasor};
     Variable<Facet, float> m_freq{"", m_parameter_handler, 0.25f};
     Variable<Facet, float> m_mul{"", m_parameter_handler, 1.0f};
     Variable<Facet, float> m_add{"", m_parameter_handler, 0.0f};
@@ -29,5 +29,15 @@ private:
 
 
 int main() {
-    return 0;
+    RandomPulsator pulsator;
+
+    double lb = 0.25;
+    double ub = 1.0;
+
+    for (int i = 0; i < 50; ++i) {
+        auto time = static_cast<double>(i) / 10.0;
+        if (auto trigger_time = pulsator.process(time, lb, ub)) {
+            std::cout << "t=" << time << ": " << *trigger_time << std::endl;
+        }
+    }
 }

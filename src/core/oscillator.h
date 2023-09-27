@@ -255,7 +255,7 @@ public:
     Socket<Facet>& get_duty() { return m_duty; }
     Socket<Facet>& get_curve() { return m_curve; }
 
-    
+
     std::vector<std::vector<Facet>> get_output_history() { return m_previous_values.pop_all(); }
 
 
