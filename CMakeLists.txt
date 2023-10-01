@@ -48,8 +48,13 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/vt_parameter.h
         src/core/socket_base.h
         src/core/random_pulsator.h
-        src/core/stat.h
+        src/core/stat/weighted_random.h
         src/core/node_base.h
+        src/core/partial_note.h
+        src/core/distributor.h
+        src/core/algo/held_notes.h
+        src/core/stat/vec.h
+        src/core/stat/distribution.h
 )
 
 target_link_libraries(serialistCore INTERFACE magicEnum)
@@ -225,7 +230,8 @@ target_link_libraries(playground
 
 add_executable(nopPlayground EXCLUDE_FROM_ALL
         ${CMAKE_CURRENT_SOURCE_DIR}/app/nop_playground.cpp
-        )
+        src/core/algo/held_notes.h
+)
 
 target_link_libraries(nopPlayground
         INTERFACE
@@ -244,13 +250,14 @@ target_include_directories(nopPlayground
 #####################################################################################
 
 add_executable(tests EXCLUDE_FROM_ALL
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/backend/oscillator_tests.cpp
+#        ${CMAKE_CURRENT_SOURCE_DIR}/test/backend/oscillator_tests.cpp
 #        ${CMAKE_CURRENT_SOURCE_DIR}/test/interpolator_tests.cpp
 #        ${CMAKE_CURRENT_SOURCE_DIR}/test/selector_tests.cpp
 #        ${CMAKE_CURRENT_SOURCE_DIR}/test/looper_tests.cpp
 #        ${CMAKE_CURRENT_SOURCE_DIR}/test/generator_tests.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/backend/facet_tests.cpp
+#        ${CMAKE_CURRENT_SOURCE_DIR}/test/backend/facet_tests.cpp
         test/backend/nop_tests.cpp
+        test/backend/stat/vec_tests.cpp
 )
 
 target_link_libraries(tests

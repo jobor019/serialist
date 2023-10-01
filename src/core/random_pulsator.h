@@ -3,7 +3,7 @@
 #define SERIALISTLOOPER_RANDOM_PULSATOR_H
 
 #include <functional>
-#include "stat.h"
+#include "core/stat/weighted_random.h"
 #include "events.h"
 #include "time_gate.h"
 #include "parameter_policy.h"
@@ -154,7 +154,7 @@ private:
     Socket<Facet>& m_lower_bound;
     Socket<Facet>& m_upper_bound;
 
-    std::vector<RandomPulsator> m_pulsators;
+    std::vector<RandomPulsator> m_pulsators{RandomPulsator()};
 
     Voices<Trigger> m_current_value = Voices<Trigger>::create_empty_like();
 };

@@ -174,6 +174,10 @@ public:
         return Voices{voice.vector()};
     }
 
+    bool operator==(const Voices& other) const {
+        return m_voices == other.m_voices;
+    }
+
 
     void append(const Voice<T>& voice) {
         m_voices.push_back(voice);

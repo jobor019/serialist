@@ -3,6 +3,8 @@
 #include "core/oscillator.h"
 #include "core/unit_pulse.h"
 #include "core/random_pulsator.h"
+#include "core/sequence.h"
+#include "core/distributor.h"
 
 class OscillatorWrapper {
 public:
@@ -28,16 +30,29 @@ private:
 };
 
 
+class RandomPulsatorWrapper {
+public:
+    ParameterHandler m_parameter_handler;
+
+    Sequence<Facet, bool> m_enabled{"", m_parameter_handler, true};
+    Variable<Facet, int> m_num_voices{"", m_parameter_handler, 1};
+
+    Sequence<Facet, float> m_lower_bound{"", m_parameter_handler, 0.5f};
+    Sequence<Facet, float> m_upper_bound{"", m_parameter_handler, 2.0f};
+
+    RandomPulsatorNode m_random_pulsator{"", m_parameter_handler, &m_lower_bound, &m_upper_bound
+                                         , &m_enabled, &m_num_voices};
+
+};
+
+
 int main() {
-    RandomPulsator pulsator;
+//    RandomPulsatorWrapper random_pulsator;
+//    for (int i = 0; i < 10; ++i) {
+//        random_pulsator.m_random_pulsator.update_time(TimePoint(i));
+//        random_pulsator.m_random_pulsator.process();
+//    }
 
-    double lb = 0.25;
-    double ub = 1.0;
+    Distributor distributor;
 
-    for (int i = 0; i < 50; ++i) {
-        auto time = static_cast<double>(i) / 10.0;
-        if (auto trigger_time = pulsator.process(time, lb, ub)) {
-            std::cout << "t=" << time << ": " << *trigger_time << std::endl;
-        }
-    }
 }
