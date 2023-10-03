@@ -3,7 +3,7 @@
 #define SERIALISTLOOPER_RANDOM_PULSATOR_H
 
 #include <functional>
-#include "core/stat/weighted_random.h"
+#include "core/algo/weighted_random.h"
 #include "events.h"
 #include "time_gate.h"
 #include "parameter_policy.h"

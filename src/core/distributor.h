@@ -6,53 +6,76 @@
 #include <map>
 #include "partial_note.h"
 #include "node_base.h"
-#include "core/stat/weighted_random.h"
+#include "core/algo/weighted_random.h"
 #include "core/algo/held_notes.h"
+#include "core/algo/vec.h"
 
 class Distributor {
+public:
+    Voices<int> process(const Voices<Trigger>& triggers, std::size_t num_voices) {
+    }
+
+    Voi
+
+private:
+    Vec<int> m_pitch_material;
+    int m_pitch_pivot;
+
+    Vec<double> m_spectrum_distribution;
+
+    std::size_t m_num_voices;
+
+
+    Held<int> m_currently_held;
+
+    bool m_configuration_changed = false;
+};
+
+
+class DistributorOld {
 public:
     static const int MIN_NOTE = 21;
     static const int MAX_NOTE = 108;
     static const int NOTE_RANGE = MAX_NOTE - MIN_NOTE;
 
-    struct NoteVector {
-
-        explicit NoteVector(std::size_t num_voices) : notes(num_voices, std::nullopt) {}
-
-
-        explicit NoteVector(const std::vector<std::optional<int>>& notes) : notes(notes) {}
-
-
-        std::size_t size() const { return notes.size(); }
-
-
-        NoteVector& operator+=(const NoteVector& other) {
-            assert(size() == other.size());
-
-            for (std::size_t i = 0; i < other.size(); ++i) {
-                if (other.notes.at(i)) {
-                    notes.at(i) = other.notes.at(i);
-                }
-            }
-            notes.insert(notes.end(), other.notes.begin(), other.notes.end());
-            return *this;
-        }
-
-
-        std::vector<std::optional<int>> notes;
-    };
-
-    struct Notes {
-        Notes(const NoteVector& note_offs
-              , const NoteVector& note_ons)
-                : note_offs(note_offs), note_ons(note_ons) {
-            assert(note_offs.size() == note_ons.size());
-        }
-
-
-        NoteVector note_offs;
-        NoteVector note_ons;
-    };
+//    struct NoteVector {
+//
+//        explicit NoteVector(std::size_t num_voices) : notes(num_voices, std::nullopt) {}
+//
+//
+//        explicit NoteVector(const std::vector<std::optional<int>>& notes) : notes(notes) {}
+//
+//
+//        std::size_t size() const { return notes.size(); }
+//
+//
+//        NoteVector& operator+=(const NoteVector& other) {
+//            assert(size() == other.size());
+//
+//            for (std::size_t i = 0; i < other.size(); ++i) {
+//                if (other.notes.at(i)) {
+//                    notes.at(i) = other.notes.at(i);
+//                }
+//            }
+//            notes.insert(notes.end(), other.notes.begin(), other.notes.end());
+//            return *this;
+//        }
+//
+//
+//        std::vector<std::optional<int>> notes;
+//    };
+//
+//    struct Notes {
+//        Notes(const NoteVector& note_offs
+//              , const NoteVector& note_ons)
+//                : note_offs(note_offs), note_ons(note_ons) {
+//            assert(note_offs.size() == note_ons.size());
+//        }
+//
+//
+//        NoteVector note_offs;
+//        NoteVector note_ons;
+//    };
 
 
     Notes process(const Voices<Trigger>& triggers

@@ -7,7 +7,7 @@
 #include "core/facet.h"
 #include "core/parameter_policy.h"
 #include "core/sequence.h"
-#include "core/oscillator.h"
+//#include "core/oscillator.h"
 
 TEST_CASE("NopSequenceParameter") {
 Voice<Facet> facets{{Facet(1), Facet(2), Facet(3)}};

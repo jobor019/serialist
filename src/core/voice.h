@@ -6,47 +6,12 @@
 #include <optional>
 #include <iostream>
 #include "utils.h"
+#include "core/algo/vec.h"
 
 
 class VoiceUtils {
 public:
-    const static inline std::size_t AUTO_VOICES = 0;
 
-    VoiceUtils() = delete;
-
-
-    template<typename OutputType, typename InputType, std::enable_if_t<!std::is_same_v<InputType, OutputType>, int> = 0>
-    static std::vector<OutputType> adapted_to(const std::vector<InputType>& v, std::size_t target_num_voices) {
-        if (target_num_voices == AUTO_VOICES) {
-            target_num_voices = v.size();
-        }
-
-        std::vector<OutputType> voices;
-        voices.reserve(target_num_voices);
-
-        for (std::size_t i = 0; i < target_num_voices; ++i) {
-            voices.push_back(static_cast<OutputType>(v.at(i % v.size())));
-        }
-
-        return voices;
-    }
-
-
-    template<typename OutputType>
-    static std::vector<OutputType> adapted_to(const std::vector<OutputType>& v, std::size_t target_num_voices) {
-        if (v.size() == target_num_voices || target_num_voices == AUTO_VOICES) {
-            return v;
-        } else {
-            std::vector<OutputType> voices;
-            voices.reserve(target_num_voices);
-
-            for (std::size_t i = 0; i < target_num_voices; ++i) {
-                voices.push_back(v.at(i % v.size()));
-            }
-
-            return voices;
-        }
-    }
 
 
     template<typename T>
@@ -67,65 +32,7 @@ public:
 // ==============================================================================================
 
 template<typename T>
-class Voice {
-public:
-    explicit Voice(std::vector<T> v) : m_voice(std::move(v)) {}
-
-
-    explicit Voice(const T& v) : Voice(std::vector<T>(1, v)) {}
-
-
-    template<typename U = T>
-    explicit Voice(const std::vector<U>& v) : m_voice(VoiceUtils::adapted_to<T, U>(v, v.size())) {}
-
-
-    static Voice create_empty() { return Voice({}); }
-
-
-    std::size_t size() const { return m_voice.size(); }
-
-
-    bool empty() const { return m_voice.empty(); }
-
-
-    const T& at(std::size_t pos) const { return m_voice.at(pos); }
-
-
-    void append(const T& v) { m_voice.push_back(v); }
-
-
-    const std::vector<T>& vector() const { return m_voice; }
-
-
-    template<typename U = T>
-    std::vector<U> vector_as() const { return adapted_to<U>(m_voice.size()); }
-
-
-    template<typename U = T>
-    U value_or(const U& fallback) const {
-        if (m_voice.empty())
-            return fallback;
-        return static_cast<U>(m_voice.at(0));
-    }
-
-
-    template<typename U = T>
-    std::vector<U> adapted_to(std::size_t target_num_voices) const {
-        return VoiceUtils::adapted_to<U, T>(m_voice, target_num_voices);
-    }
-
-
-    template<typename U = T>
-    std::optional<U> value() const {
-        if (m_voice.empty())
-            return std::nullopt;
-        return m_voice.front();
-    }
-
-
-private:
-    std::vector<T> m_voice;
-};
+using Voice = Vec<T>;
 
 
 // ==============================================================================================
@@ -133,8 +40,10 @@ private:
 template<typename T>
 class Voices {
 public:
+    const static inline std::size_t AUTO_VOICES = 0;
 
-    explicit Voices(std::vector<Voice<T>> v) : m_voices(std::move(v)) {
+
+    explicit Voices(Vec<Voice<T>> v) : m_voices(std::move(v)) {
         // A `Voice` may be empty but a collection of `Voice`s should have at least one entry,
         //   even if the entry doesn't contain any data
         assert(!m_voices.empty());
@@ -144,58 +53,17 @@ public:
     explicit Voices(std::size_t num_voices) : Voices(empty_like(num_voices)) {}
 
 
-    explicit Voices(const T& v, std::size_t num_voices = 1) : Voices(std::vector<T>(num_voices, v)) {}
-
-
-    explicit Voices(const std::vector<T>& voices) {
-        assert(!voices.empty());
-        for (auto& e: voices) {
-            m_voices.emplace_back(Voice<T>(e));
-        }
-    }
-
-
-    template<typename U = T>
-    explicit Voices(const std::vector<std::vector<U>>& voices) {
-        if (voices.empty()) {
-            m_voices = empty_like(1);
-        } else {
-            for (auto& e: voices) {
-                m_voices.emplace_back(Voice<T>(e));
-            }
-        }
-    }
-
-
     static Voices<T> create_empty_like() { return Voices<T>(empty_like(1)); }
 
 
-    static Voices<T> transposed(const Voice<T>& voice) {
+    static Voices<T> new_transposed(const Voice<T>& voice) {
         return Voices{voice.vector()};
     }
+
 
     bool operator==(const Voices& other) const {
         return m_voices == other.m_voices;
     }
-
-
-    void append(const Voice<T>& voice) {
-        m_voices.push_back(voice);
-    }
-
-
-    /**
-     * @throws std::out_of_range if `voice_index >= size()`
-     */
-    void append_to(std::size_t voice_index, const T& value) {
-        m_voices.at(voice_index).append(value);
-    }
-
-
-
-//    Voices<T> from_other(const Voices<T>& other, std::size_t target_num_voices) {
-//        return adapt_to_voice_count(other, target_num_voices);
-//    }
 
 
     void clear(std::size_t num_voices = 1) { m_voices = empty_like(num_voices); }
@@ -204,13 +72,23 @@ public:
     std::size_t size() const { return m_voices.size(); }
 
 
-    /**
-     * @throw std::out_of_range if `voice_index >= size()`
-     */
-    const Voice<T>& at(std::size_t voice_index) const {
-        return m_voices.at(voice_index);
+    void merge(const Voices<T>& other) {
+        if (size() != other.size()) {
+            throw std::runtime_error("Voices size mismatch");
+        }
+
+        for (std::size_t i = 0; i < m_voices.size(); ++i) {
+            m_voices[i].concatenate(other.vec());
+        }
     }
 
+    Voices<T> merge_uneven(const Voices<T>& other, bool overwrite_dimensions) const {
+
+        if (overwrite_dimensions && other.size() > m_voices.size()) {
+            m_voices.resize(other.size());
+        }
+        auto size = m_voices.size();
+    }
 
     /**
     * @return true if every Voice is empty
@@ -232,7 +110,7 @@ public:
         if (m_voices.empty())
             return std::nullopt;
 
-        return m_voices.front().value();
+        return m_voices.front();
     }
 
 
@@ -244,7 +122,7 @@ public:
         if (m_voices.empty())
             return fallback;
 
-        return m_voices.front().value_or(fallback);
+        return m_voices.front_or();
     }
 
 
@@ -252,139 +130,80 @@ public:
     * @return The first value in the each Voice or std::nulllopt if voice is empty
     */
     template<typename U = T>
-    std::vector<std::optional<U>> fronts() const {
-        std::vector<std::optional<U>> output;
+    Vec<std::optional<U>> fronts() const {
+        Vec<std::optional<U>> output;
         output.reserve(m_voices.size());
 
         std::transform(m_voices.begin(), m_voices.end(), std::back_inserter(output)
-                       , [](const Voice<T>& voice) { return voice.value(); });
+                       , [](const Voice<T>& voice) { return voice.front(); });
 
         return output;
     }
 
 
     template<typename U = T>
-    std::vector<U> fronts_or(const U& fallback) const {
-        std::vector<U> output;
+    Vec<U> fronts_or(const U& fallback) const {
+        Vec<U> output;
         output.reserve(m_voices.size());
 
         std::transform(m_voices.begin(), m_voices.end(), std::back_inserter(output)
-                       , [&fallback](const Voice<T>& voice) { return voice.value_or(fallback); });
+                       , [&fallback](const Voice<T>& voice) { return voice.front_or(fallback); });
 
         return output;
     }
 
-
-    /**
-     * @return duplicate of values_or?
-     */
-//    template<typename U = T>
-//    std::vector<U> fronts_or(const U& fallback) const {
-//        std::vector<U> output;
-//        output.reserve(m_voices.size());
-//
-//        std::transform(m_voices.begin(), m_voices.end(), std::back_inserter(output)
-//                       , [&fallback](const Voice<T>& voice) { return voice.value_or(fallback); });
-//
-//        return output;
-//    }
-
-    /**
-     * @return The first value in each Voice or `fallback_value` if voice is empty
-     */
-    template<typename U = T>
-    std::vector<U> values_or(const U& fallback_value) const {
-        return v_or(m_voices, fallback_value);
-    }
-
-
-    /**
-     * @return The first value in each Voice or `fallback_value` if voice is empty
-     */
-    template<typename U = T, std::enable_if_t<std::is_arithmetic_v<U>, int> = 0>
-    std::vector<U> values_or(const U& fallback_value
-                             , const std::optional<U>& low_thresh
-                             , const std::optional<U>& high_thresh) const {
-        auto values = v_or(m_voices, fallback_value);
-        for (auto& v: values) {
-            if (low_thresh)
-                v = std::max(*low_thresh, v);
-            if (high_thresh) {
-                v = std::min(*high_thresh, v);
-            }
-        }
-        return values;
-    }
 
 
     Voices<T> adapted_to(std::size_t target_num_voices) const {
-        return Voices<T>(VoiceUtils::adapted_to<Voice<T>>(m_voices, target_num_voices));
-    }
-
-
-    std::vector<T> flatten() const {
-        std::vector<T> flattened;
-
-        for (auto& voice: m_voices) {
-            flattened.insert(flattened.end(), voice.begin(), voice.end());
+        if (m_voices.size() == target_num_voices || target_num_voices == AUTO_VOICES) {
+            return *this;
+        } else {
+            Voices<T>(m_voices.cloned().resize_fold(target_num_voices));
         }
-        return flattened;
+    }
+
+    void resize(std::size_t new_size) {
+        assert(new_size > 0);
+        m_voices.resize_fold(new_size);
+    }
+
+    template<typename U = T>
+    Voices<U> as_type() const {
+        Vec<Voice<U>> output;
+        output.reserve(m_voices.size());
+        for (auto& voice: m_voices) {
+            output.push_back(voice.as_type());
+        }
+        return output;
     }
 
 
-    template<typename U = T, std::enable_if_t<utils::is_printable_v<U>, int> = 0>
-    void print() {
+    template<typename E = T, typename = std::enable_if_t<utils::is_printable_v<E>>>
+    void print() const {
         std::cout << "{ ";
-        for (auto& voice: m_voices) {
-            std::cout << "{";
-            for (auto& elem: voice.vector()) {
-                std::cout << elem << ", ";
-            }
-            std::cout << "}";
-        }
+        for (auto& voice: m_voices)
+            voice.print();
+
         std::cout << " }" << std::endl;
     }
 
 
-    const std::vector<Voice<T>>& vector() const { return m_voices; }
+
+    const Vec<Voice<T>>& vec() const { return m_voices; }
+
+    Vec<Voice<T>>& vec_mut() { return m_voices; }
 
 
-    template<typename U = T>
-    std::vector<std::vector<U>> vectors_as() const {
-        std::vector<std::vector<U>> output;
-        output.reserve(m_voices.size());
-        for (auto& voice: m_voices) {
-            output.push_back(voice.vector_as());
-        }
-        return output;
-    }
 
 
 private:
-    static std::vector<Voice<T>> empty_like(std::size_t num_voices) {
+    static Vec<Voice<T>> empty_like(std::size_t num_voices) {
         assert(num_voices > 0);
-        return std::vector<Voice<T>>(num_voices, Voice<T>({}));
+        return Vec<Voice<T>>::repeated(Voice<T>({}), num_voices);
     }
 
 
-    template<typename U = T>
-    static std::vector<U> v_or(const std::vector<Voice<T>>& v, const U& fallback) {
-        std::vector<U> output;
-        output.reserve(v.size());
-
-        for (auto& voice: v) {
-            if (voice.empty())
-                output.emplace_back(fallback);
-            else {
-                output.push_back(static_cast<U>(voice.at(0)));
-            }
-        }
-
-        return output;
-    }
-
-
-    std::vector<Voice<T>> m_voices;
+    Vec<Voice<T>> m_voices;
 
 
 };

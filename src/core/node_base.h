@@ -48,21 +48,6 @@ public:
 
 
 protected:
-
-    template<typename ObjectType>
-    static void resize(std::vector<ObjectType>& objects, std::size_t new_count) {
-        auto diff = static_cast<long>(new_count - objects.size());
-        if (diff < 0) {
-            // remove N last objects
-            objects.erase(objects.end() + diff, objects.end());
-        } else if (diff > 0) {
-            // duplicate last object N times
-            auto last = objects.back();
-            objects.resize(objects.size() + static_cast<std::size_t>(diff), last);
-        }
-    }
-
-
     template<typename OutputType>
     std::vector<OutputType> adapt(const Voices<Facet>& values
                                   , std::size_t num_voices
