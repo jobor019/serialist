@@ -3,7 +3,7 @@
 #define SERIALISTLOOPER_PITCH_H
 
 #include <vector>
-#include "vec.h"
+#include "core/algo/vec.h"
 #include "core/voice.h"
 
 class Note {

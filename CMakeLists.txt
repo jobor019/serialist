@@ -52,9 +52,9 @@ add_library(serialistCore INTERFACE
         src/core/partial_note.h
         src/core/distributor.h
         src/core/algo/vec.h
-        src/core/algo/pitch.h
+        src/core/algo/pitch/pitch.h
         src/core/algo/random.h
-        src/core/algo/time.h
+        src/core/algo/time/time.h
         src/core/algo/voices.h
 )
 
@@ -257,7 +257,8 @@ add_executable(tests EXCLUDE_FROM_ALL
 #        ${CMAKE_CURRENT_SOURCE_DIR}/test/generator_tests.cpp
 #        ${CMAKE_CURRENT_SOURCE_DIR}/test/backend/facet_tests.cpp
 #        test/backend/nop_tests.cpp
-        test/backend/stat/vec_tests.cpp
+        test/backend/vec_tests.cpp
+        test/backend/voices_tests.cpp
 )
 
 target_link_libraries(tests

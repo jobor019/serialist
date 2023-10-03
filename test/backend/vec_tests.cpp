@@ -127,17 +127,17 @@ TEST_CASE("Vec remove", "[remove]") {
     REQUIRE(v.size() == 4);
 }
 
-TEST_CASE("Vec resize", "[resize]") {
+TEST_CASE("Vec resize_append", "[resize_append]") {
     Vec v = {1, 2, 3};
 
     // Test resizing to a smaller size
-    v.resize(2, 0);
+    v.resize_append(2, 0);
     REQUIRE(v.size() == 2);
     REQUIRE(v[0] == 1);
     REQUIRE(v[1] == 2);
 
     // Test resizing to a larger size with append_value
-    v.resize(5, 10);
+    v.resize_append(5, 10);
     REQUIRE(v.size() == 5);
     REQUIRE(v[0] == 1);
     REQUIRE(v[1] == 2);
@@ -164,14 +164,6 @@ TEST_CASE("Vec erase", "[erase]") {
     REQUIRE(v[1] == 5);
 }
 
-TEST_CASE("Vec reserve", "[reserve]") {
-    Vec<int> v;
-
-    // Test reserving capacity
-    v.reserve(10);
-    REQUIRE(v.empty());
-    REQUIRE(v.vector_mut().capacity() >= 10);
-}
 
 TEST_CASE("Vec slice", "[slice]") {
     Vec v = {1, 2, 3, 4, 5};
@@ -379,6 +371,18 @@ TEST_CASE("Vec mean", "[mean]") {
     REQUIRE(meanResult == 3);
 }
 
+TEST_CASE("Vec pow", "[pow]") {
+    Vec v = {1.0, 2.0, 3.0, 4.0, 5.0};
+    v.pow(2.0);
+    REQUIRE(v.size() == 5);
+    REQUIRE_THAT(v[0], Catch::Matchers::WithinRel(1.0, 0.001));
+    REQUIRE_THAT(v[1], Catch::Matchers::WithinRel(4.0, 0.001));
+    REQUIRE_THAT(v[2], Catch::Matchers::WithinRel(9.0, 0.001));
+    REQUIRE_THAT(v[3], Catch::Matchers::WithinRel(16.0, 0.001));
+    REQUIRE_THAT(v[4], Catch::Matchers::WithinRel(25.0, 0.001));
+
+}
+
 TEST_CASE("Vec resize_extend", "[resize_extend]") {
     Vec v = {1, 2, 3};
 
@@ -482,6 +486,14 @@ TEST_CASE("Vec cloned does not mutate the original - part 2", "[cloned]") {
     REQUIRE(clone[2] == "cherry");
 }
 
+
+TEST_CASE("Function chaining") {
+    Vec v = {1, 2, 3};
+    REQUIRE_THAT(v.as_type<double>().pow(2.0).add(10).multiply(2).sum(), Catch::Matchers::WithinRel(88.0, 0.001));
+    REQUIRE(v[0] == 1);
+    REQUIRE(v[1] == 2);
+    REQUIRE(v[2] == 3);
+}
 
 
 class Temp {

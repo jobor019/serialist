@@ -15,24 +15,21 @@ public:
 
     // =========================== CONSTRUCTORS ==========================
 
-
     Vec() = default;
 
 
-    explicit Vec(std::vector<T> data) : m_vector(data) {}
+    explicit Vec(std::vector<T> data) : m_vector(std::move(data)) {
+        // TODO: For now. Ideally, Vec's copy ctor should be deleted to avoid accidental copies
+        static_assert(std::is_copy_constructible_v<T>, "T must be copy constructible");
+    }
 
 
-    Vec(std::initializer_list<T> data) : m_vector(data) {}
+    Vec(std::initializer_list<T> data) : m_vector(std::move(data)) {
+        static_assert(std::is_copy_constructible_v<T>, "T must be copy constructible"); // TODO: For now
+    }
 
 
-    explicit Vec(const T& value) : m_vector({value}) {}
-
-
-    virtual ~Vec() = default;
-    Vec(const Vec&) = delete;            // use cloned()
-    Vec& operator=(const Vec&) = delete; // use cloned()
-    Vec(Vec&&) noexcept = default;
-    Vec& operator=(Vec&&) noexcept = default;
+    explicit Vec(const T& value) : m_vector({std::move(value)}) {}
 
 
     template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
@@ -51,7 +48,8 @@ public:
     }
 
 
-    static Vec<T> repeated(std::size_t repetitions, const T& value) {
+    static Vec<T>
+    repeated(std::size_t repetitions, const T& value) {
         std::vector<T> output(repetitions, value);
         return Vec<T>{output};
     }
@@ -64,7 +62,7 @@ public:
         for (std::size_t i = 0; i < repetitions; ++i) {
             output.insert(output.end(), values.m_vector.begin(), values.m_vector.end());
         }
-        return Vec<T>{output};
+        return Vec<T>(std::move(output));
     }
 
     // =========================== OPERATORS ==========================
@@ -153,7 +151,7 @@ public:
         for (auto index: indices) {
             result.push_back(m_vector.at(sign_index(index)));
         }
-        return Vec<T>(result);
+        return Vec<T>(std::move(result));
     }
 
     // =========================== CLONING / COPYING ==========================
@@ -173,14 +171,14 @@ public:
             output.push_back(m_vector[i]);
         }
 
-        return Vec<T>{output};
+        return Vec<T>(std::move(output));
     }
 
 
     Vec<T> drain() {
         std::vector<T> v;
         std::swap(m_vector, v);
-        return Vec<T>(v);
+        return Vec<T>(std::move(v));
     }
 
 
@@ -191,15 +189,15 @@ public:
         for (const T& element: m_vector) {
             result.push_back(static_cast<U>(element));
         }
-        return Vec<U>(result);
+        return Vec<U>(std::move(result));
     }
 
 
     // =========================== MUTATORS ==========================
 
 
-    Vec<T>& append(const T& value) {
-        m_vector.push_back(value);
+    Vec<T>& append(T value) {
+        m_vector.push_back(std::move(value));
         return *this;
     }
 
@@ -251,13 +249,13 @@ public:
     }
 
 
-    Vec<T>& reserve(std::size_t n) {
-        m_vector.reserve(n);
-        return *this;
-    }
+//    Vec<T>& reserve(std::size_t n) {
+//        m_vector.reserve(n);
+//        return *this;
+//    }
 
 
-    Vec<T>& resize(std::size_t new_size, const T& append_value) {
+    Vec<T>& resize_append(std::size_t new_size, const T& append_value) {
         if (new_size == 0)
             m_vector.clear();
         else
@@ -399,7 +397,8 @@ public:
         if (m_vector.empty()) {
             return std::nullopt;
         }
-        return m_vector.front();
+
+        return std::make_optional(m_vector.at(0));
     }
 
 
@@ -443,7 +442,7 @@ public:
 
 
     template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
-    Vec<T>& pow(const T& exponent) const {
+    Vec<T>& pow(const T& exponent) {
         apply_base([](const T& a, const T& b) { return std::pow(a, b); }, exponent);
         return *this;
     }
@@ -593,7 +592,7 @@ private:
         for (auto index: indices.vector()) {
             result.push_back(sign_index(index));
         }
-        return Vec<std::size_t>{result};
+        return Vec<std::size_t>(std::move(result));
     }
 
 
@@ -607,7 +606,7 @@ private:
         for (std::size_t i = 0; i < m_vector.size(); ++i) {
             output.push_back(op(m_vector.at(i), other.m_vector.at(i)));
         }
-        return Vec<T>(output);
+        return Vec<T>(std::move(output));
     }
 
 

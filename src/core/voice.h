@@ -9,28 +9,6 @@
 #include "core/algo/vec.h"
 
 
-class VoiceUtils {
-public:
-
-
-
-    template<typename T>
-    static std::vector<std::vector<T>> transpose(const std::vector<T>& v) {
-        std::vector<std::vector<T>> output;
-        output.reserve(v.size());
-
-        for (const T& t: v) {
-            output.push_back({t});
-        }
-        return output;
-    }
-};
-
-
-
-
-// ==============================================================================================
-
 template<typename T>
 using Voice = Vec<T>;
 
@@ -42,6 +20,7 @@ class Voices {
 public:
     const static inline std::size_t AUTO_VOICES = 0;
 
+    Voices (std::initializer_list<Voice<T>> v) : Voices(Vec<Voice<T>>(std::move(v))) {}
 
     explicit Voices(Vec<Voice<T>> v) : m_voices(std::move(v)) {
         // A `Voice` may be empty but a collection of `Voice`s should have at least one entry,
@@ -56,8 +35,12 @@ public:
     static Voices<T> create_empty_like() { return Voices<T>(empty_like(1)); }
 
 
-    static Voices<T> new_transposed(const Voice<T>& voice) {
-        return Voices{voice.vector()};
+    static Voices<T> transposed(const Voice<T>& voice) {
+        Vec<Voice<T>> output;
+        for (auto& v: voice.vector()) {
+            output.append(Voice<T>(v));
+        }
+        return Voices<T>(std::move(output));
     }
 
 
@@ -66,40 +49,55 @@ public:
     }
 
 
-    void clear(std::size_t num_voices = 1) { m_voices = empty_like(num_voices); }
+    Voices<T> cloned() const {
+        return Voices<T>(m_voices);
+    }
 
 
-    std::size_t size() const { return m_voices.size(); }
+    void clear(std::size_t num_voices = 1) {
+        m_voices = empty_like(num_voices);
+    }
 
 
-    void merge(const Voices<T>& other) {
+    std::size_t size() const {
+        return m_voices.size();
+    }
+
+
+    Voices<T>& merge(const Voices<T>& other) {
         if (size() != other.size()) {
             throw std::runtime_error("Voices size mismatch");
         }
 
         for (std::size_t i = 0; i < m_voices.size(); ++i) {
-            m_voices[i].concatenate(other.vec());
+            m_voices[i].concatenate(other.vec()[i]);
         }
+
+        return *this;
+
     }
 
-    Voices<T> merge_uneven(const Voices<T>& other, bool overwrite_dimensions) const {
 
+    Voices<T>& merge_uneven(const Voices<T>& other, bool overwrite_dimensions){
         if (overwrite_dimensions && other.size() > m_voices.size()) {
-            m_voices.resize(other.size());
+            m_voices.resize_append(other.size(), Voice<T>());
         }
-        auto size = m_voices.size();
+
+        std::size_t num_voices = std::min(m_voices.size(), other.size());
+        for (std::size_t i = 0; i < num_voices; ++i) {
+            m_voices[i].concatenate(other.vec()[i]);
+        }
+
+        return *this;
     }
+
 
     /**
     * @return true if every Voice is empty
     */
     bool is_empty_like() const {
-        for (auto& voice: m_voices) {
-            if (!voice.empty()) {
-                return false;
-            }
-        }
-        return true;
+        auto& v = m_voices.vector();
+        return !std::any_of(v.begin(), v.end(), [](const Voice<T>& voice) { return !voice.empty(); });
     }
 
 
@@ -110,7 +108,11 @@ public:
         if (m_voices.empty())
             return std::nullopt;
 
-        return m_voices.front();
+        if (auto voice = m_voices.front(); voice.has_value()) {
+            return voice.value().front();
+        } else {
+            return std::nullopt;
+        }
     }
 
 
@@ -122,7 +124,11 @@ public:
         if (m_voices.empty())
             return fallback;
 
-        return m_voices.front_or();
+        if (auto voice = m_voices.front(); voice.has_value()) {
+            return voice.value().front_or(fallback);
+        } else {
+            return fallback;
+        }
     }
 
 
@@ -131,75 +137,73 @@ public:
     */
     template<typename U = T>
     Vec<std::optional<U>> fronts() const {
-        Vec<std::optional<U>> output;
+        std::vector<std::optional<U>> output;
         output.reserve(m_voices.size());
 
-        std::transform(m_voices.begin(), m_voices.end(), std::back_inserter(output)
+        auto& v = m_voices.vector();
+        std::transform(v.begin(), v.end(), std::back_inserter(output)
                        , [](const Voice<T>& voice) { return voice.front(); });
 
-        return output;
+        return Vec<std::optional<U>>(std::move(output));
     }
 
 
     template<typename U = T>
     Vec<U> fronts_or(const U& fallback) const {
-        Vec<U> output;
+        std::vector<U> output;
         output.reserve(m_voices.size());
 
-        std::transform(m_voices.begin(), m_voices.end(), std::back_inserter(output)
+        auto v = m_voices.vector();
+        std::transform(v.begin(), v.end(), std::back_inserter(output)
                        , [&fallback](const Voice<T>& voice) { return voice.front_or(fallback); });
 
-        return output;
+        return Vec<U>(std::move(output));
     }
-
 
 
     Voices<T> adapted_to(std::size_t target_num_voices) const {
         if (m_voices.size() == target_num_voices || target_num_voices == AUTO_VOICES) {
-            return *this;
+            return cloned();
         } else {
-            Voices<T>(m_voices.cloned().resize_fold(target_num_voices));
+            return Voices<T>(m_voices.cloned().resize_fold(target_num_voices));
         }
     }
 
-    void resize(std::size_t new_size) {
-        assert(new_size > 0);
-        m_voices.resize_fold(new_size);
-    }
 
     template<typename U = T>
     Voices<U> as_type() const {
-        Vec<Voice<U>> output;
+        std::vector<Voice<U>> output;
         output.reserve(m_voices.size());
-        for (auto& voice: m_voices) {
-            output.push_back(voice.as_type());
+
+        for (const auto& voice: m_voices.vector()) {
+            output.push_back(voice.template as_type<U>());
         }
-        return output;
+
+        auto vec = Vec<Voice<U>>(std::move(output));
+        return Voices<U>(std::move(vec));
     }
 
 
     template<typename E = T, typename = std::enable_if_t<utils::is_printable_v<E>>>
     void print() const {
         std::cout << "{ ";
-        for (auto& voice: m_voices)
+        for (const auto& voice: m_voices.vector())
             voice.print();
 
         std::cout << " }" << std::endl;
     }
 
 
-
     const Vec<Voice<T>>& vec() const { return m_voices; }
 
+
     Vec<Voice<T>>& vec_mut() { return m_voices; }
-
-
 
 
 private:
     static Vec<Voice<T>> empty_like(std::size_t num_voices) {
         assert(num_voices > 0);
-        return Vec<Voice<T>>::repeated(Voice<T>({}), num_voices);
+        return Vec<Voice<T>>::repeated(num_voices, Voice<T>());
     }
 
 
