@@ -1,10 +1,10 @@
 
-#ifndef SERIALISTLOOPER_PITCH_H
-#define SERIALISTLOOPER_PITCH_H
+#ifndef SERIALISTLOOPER_NOTES_H
+#define SERIALISTLOOPER_NOTES_H
 
 #include <vector>
 #include "core/algo/vec.h"
-#include "core/voice.h"
+#include "core/algo/voice/voices.h"
 
 class Note {
 public:
@@ -59,8 +59,8 @@ public:
     }
 
 
-    bool release(std::uint8_t note) {
-        return m_held.remove(note);
+    void release(std::uint8_t note) {
+        m_held.remove(note);
     }
 
 
@@ -92,9 +92,9 @@ public:
 
 
 private:
-    std::vector<HeldNotes> m_held_notes;
+    Vec<HeldNotes> m_held_notes;
 
 };
 
 
-#endif //SERIALISTLOOPER_PITCH_H
+#endif //SERIALISTLOOPER_NOTES_H

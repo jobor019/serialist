@@ -202,6 +202,12 @@ public:
     }
 
 
+    Vec<T>& extend(const Vec<T>& other) {
+        m_vector.insert(m_vector.end(), other.m_vector.begin(), other.m_vector.end());
+        return *this;
+    }
+
+
     Vec<T>& concatenate(const Vec<T>& other) {
         m_vector.insert(m_vector.end(), other.m_vector.begin(), other.m_vector.end());
         return *this;
@@ -285,6 +291,26 @@ public:
         return *this;
     }
 
+    // // =========================== FUNCTIONAL ==========================
+
+    Vec<T>& map(std::function<T(T)> f) {
+        for (std::size_t i = 0; i < m_vector.size(); ++i) {
+            m_vector[i] = f(m_vector[i]);
+        }
+        return *this;
+    }
+
+
+    /**
+     *  Removes all elements for which `f` returns false
+     */
+    Vec<T>& filter(std::function<bool(T)> f) {
+        m_vector.erase(std::remove_if(m_vector.begin(), m_vector.end(), [f](const T& element) {
+            return !f(element);
+        }), m_vector.end());
+        return *this;
+    }
+
 
     Vec<T>& apply(std::function<T(T, T)> f, T value) {
         for (std::size_t i = 0; i < m_vector.size(); ++i) {
@@ -357,6 +383,34 @@ public:
         return *this;
     }
 
+
+    T foldl(std::function<T(T, T)> f, const T& initial) {
+        T value = initial;
+        for (std::size_t i = 0; i < m_vector.size(); ++i) {
+            value = f(value, m_vector[i]);
+        }
+        return value;
+    }
+
+
+    /**
+     * Removes all elements for which `f` returns false from the original Vec and returns them as a separate vector
+     */
+    Vec<T> filter_drain(std::function<bool(T)> f) {
+        auto drain_iterator = std::stable_partition(m_vector.begin(), m_vector.end(), f);
+
+        std::vector<T> drained;
+
+        for (auto it = drain_iterator; it != m_vector.end(); ++it) {
+            drained.push_back(std::move(*it));
+        }
+
+        m_vector.erase(drain_iterator, m_vector.end());
+        return Vec<T>(std::move(drained));
+    }
+
+
+
     // =========================== MISC ==========================
 
     void print() const {
@@ -375,6 +429,16 @@ public:
 
     bool contains(const T& value) const {
         return std::find(m_vector.begin(), m_vector.end(), value) != m_vector.end();
+    }
+
+
+    bool contains(const Vec<T>& values) const {
+        for (const T& value: values) {
+            if (!contains(value)) {
+                return false;
+            }
+        }
+        return true;
     }
 
 

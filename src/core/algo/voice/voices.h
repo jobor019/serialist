@@ -1,11 +1,11 @@
 
-#ifndef SERIALISTLOOPER_VOICE_H
-#define SERIALISTLOOPER_VOICE_H
+#ifndef SERIALISTLOOPER_VOICES_H
+#define SERIALISTLOOPER_VOICES_H
 
 #include <vector>
 #include <optional>
 #include <iostream>
-#include "utils.h"
+#include "core/utils.h"
 #include "core/algo/vec.h"
 
 
@@ -20,7 +20,9 @@ class Voices {
 public:
     const static inline std::size_t AUTO_VOICES = 0;
 
-    Voices (std::initializer_list<Voice<T>> v) : Voices(Vec<Voice<T>>(std::move(v))) {}
+
+    Voices(std::initializer_list<Voice<T>> v) : Voices(Vec<Voice<T>>(std::move(v))) {}
+
 
     explicit Voices(Vec<Voice<T>> v) : m_voices(std::move(v)) {
         // A `Voice` may be empty but a collection of `Voice`s should have at least one entry,
@@ -46,6 +48,16 @@ public:
 
     bool operator==(const Voices& other) const {
         return m_voices == other.m_voices;
+    }
+
+
+    Voice<T>& operator[](std::size_t index) {
+        return m_voices[index];
+    }
+
+
+    const Voice<T>& operator[](std::size_t index) const {
+        return m_voices[index];
     }
 
 
@@ -78,7 +90,7 @@ public:
     }
 
 
-    Voices<T>& merge_uneven(const Voices<T>& other, bool overwrite_dimensions){
+    Voices<T>& merge_uneven(const Voices<T>& other, bool overwrite_dimensions) {
         if (overwrite_dimensions && other.size() > m_voices.size()) {
             m_voices.resize_append(other.size(), Voice<T>());
         }
@@ -212,4 +224,4 @@ private:
 
 };
 
-#endif //SERIALISTLOOPER_VOICE_H
+#endif //SERIALISTLOOPER_VOICES_H

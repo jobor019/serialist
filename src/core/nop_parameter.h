@@ -7,7 +7,7 @@
 #include <iostream>
 #include "exceptions.h"
 #include "interpolator.h"
-#include "voice.h"
+#include "algo/voice/voices.h"
 
 class NopParameterHandler {
 public:

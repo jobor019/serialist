@@ -5,7 +5,7 @@
 //#include "core/random_pulsator.h"
 //#include "core/sequence.h"
 //#include "core/distributor.h"
-#include "core/algo/voices.h"
+#include "core/algo/voice/multi_voiced.h"
 
 //class OscillatorWrapper {
 //public:
@@ -46,6 +46,15 @@
 //
 //};
 
+class MyFlushable : public Flushable<int> {
+public:
+    MyFlushable() = default;
+
+    Voice<int> flush() override {
+        return Voice<int>(1);
+    }
+};
+
 
 int main() {
 //    RandomPulsatorWrapper random_pulsator;
@@ -57,7 +66,12 @@ int main() {
 //    Distributor distributor;
 
 
-MultiVoiced<std::vector<int>, int> v;
+MultiVoiced<MyFlushable, int> v(8);
+
+v.flush();
+
+
+
 
 
 }

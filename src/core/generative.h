@@ -5,7 +5,7 @@
 
 #include "transport.h"
 #include "parameter_policy.h"
-#include "voice.h"
+#include "core/algo/voice/voices.h"
 
 #include <optional>
 

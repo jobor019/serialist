@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "core/voice.h"
+#include "core/algo/voice/voices.h"
 
 TEST_CASE("Voices constructor with a vector of Voice objects") {
     // Create a vector of Voice objects
@@ -242,3 +242,6 @@ TEST_CASE("Voices::vec and Voices::vec_mut") {
     REQUIRE(constVec[0].size() == 3);
     REQUIRE(constVec[0][0] == 4);
 }
+
+
+

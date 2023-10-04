@@ -11,7 +11,7 @@
 #include "serializable.h"
 #include "parameter_keys.h"
 #include "facet.h"
-#include "voice.h"
+#include "core/algo/voice/voices.h"
 
 class VTSerialization {
 public:
