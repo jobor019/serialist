@@ -3,8 +3,9 @@
 #define SERIALISTLOOPER_NOTES_H
 
 #include <vector>
-#include "core/algo/vec.h"
-#include "core/algo/voice/voices.h"
+#include "core/algo/collections/vec.h"
+#include "core/algo/collections/voices.h"
+#include "core/algo/collections/held.h"
 
 class Note {
 public:
@@ -46,55 +47,26 @@ private:
 
 // ==============================================================================================
 
-class HeldNotes {
-public:
+using HeldNotes = Held<unsigned int>;
 
+using MultiVoiceHeldNotes = MultiVoiceHeld<unsigned int>;
 
-    bool bind(std::uint8_t note) {
-        if (!m_held.contains(note)) {
-            m_held.append(note);
-            return true;
-        }
-        return false;
-    }
-
-
-    void release(std::uint8_t note) {
-        m_held.remove(note);
-    }
-
-
-    Vec<std::uint8_t> flush() {
-        return m_held.drain();
-    }
-
-
-    const Vec<std::uint8_t>& get_held() const {
-        return m_held;
-    }
-
-
-private:
-    Vec<std::uint8_t> m_held;
-
-};
-
-
-// ==============================================================================================
-
-class VoicedHeldNotes {
-public:
-    explicit VoicedHeldNotes(std::size_t num_voices) : m_held_notes(num_voices) {}
-
-    Voices<std::uint8_t> update_num_voices(std::size_t num_voices) {
-        if (m_held_notes.size() )
-    }
-
-
-private:
-    Vec<HeldNotes> m_held_notes;
-
-};
+//
+//// ==============================================================================================
+//
+//class VoicedHeldNotes {
+//public:
+//    explicit VoicedHeldNotes(std::size_t num_voices) : m_held_notes(num_voices) {}
+//
+//    Voices<std::uint8_t> update_num_voices(std::size_t num_voices) {
+//        if (m_held_notes.size() )
+//    }
+//
+//
+//private:
+//    Vec<HeldNotes> m_held_notes;
+//
+//};
 
 
 #endif //SERIALISTLOOPER_NOTES_H

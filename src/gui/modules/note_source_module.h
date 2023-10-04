@@ -13,7 +13,7 @@
 #include "interaction_visualizations.h"
 #include "pulsator_module.h"
 
-class NoteSourceModule : public RootBase {
+class NoteSourceModule : public RootModuleBase {
 public:
 
     enum class Layout {
@@ -29,8 +29,8 @@ public:
                      , Variable<Facet, bool>& internal_enabled
                      , Variable<Facet, float>& internal_num_voices
                      , Layout layout = Layout::full)
-            : RootBase(note_source, &internal_enabled, &internal_num_voices)
-            , m_internal_trigger(note_source.get_trigger_pulse(), std::move(internal_trigger))
+            : RootModuleBase(note_source, &internal_enabled, &internal_num_voices)
+              , m_internal_trigger(note_source.get_trigger_pulse(), std::move(internal_trigger))
               , m_internal_pitch(note_source.get_pitch(), std::make_unique<SliderWidget>(
                     internal_pitch, 2100, 10800, 100, true, "pitch", SliderWidget::Layout::label_below))
               , m_internal_velocity(note_source.get_velocity(), std::make_unique<SliderWidget>(

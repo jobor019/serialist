@@ -6,7 +6,7 @@
 #include <optional>
 #include <iostream>
 #include "core/utils.h"
-#include "core/algo/vec.h"
+#include "core/algo/collections/vec.h"
 
 
 template<typename T>
@@ -203,6 +203,15 @@ public:
             voice.print();
 
         std::cout << " }" << std::endl;
+    }
+
+
+    Vec<T> flattened() const {
+        Vec<T> output;
+        for (const auto& voice: m_voices.vector()) {
+            output.extend(voice);
+        }
+        return std::move(output);
     }
 
 

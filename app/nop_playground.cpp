@@ -6,6 +6,7 @@
 //#include "core/sequence.h"
 //#include "core/distributor.h"
 #include "core/algo/voice/multi_voiced.h"
+#include "core/algo/pitch/notes.h"
 
 //class OscillatorWrapper {
 //public:
@@ -70,7 +71,16 @@ MultiVoiced<MyFlushable, int> v(8);
 
 v.flush();
 
+MultiVoiceHeldNotes v2(8);
+v2.bind(82, 1);
+v2.bind(84, 1);
+v2.bind(88, 1);
 
+v2.get_held().print();
+
+//for (auto& e : v2.get_held().flattened().vector()) {
+//    std::cout << e << std::endl;
+//}
 
 
 

@@ -5,7 +5,7 @@
 
 #include <vector>
 #include "transport.h"
-#include "core/algo/voice/voices.h"
+#include "core/algo/collections/voices.h"
 
 class Event {
 public:

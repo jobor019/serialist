@@ -40,11 +40,11 @@ public:
 
 // ==============================================================================================
 
-class RootBase : public GenerativeComponent {
+class RootModuleBase : public GenerativeComponent {
 public:
-    explicit RootBase(Root& main_generative
-                      , Variable<Facet, bool>* internal_enabled = nullptr
-                      , Variable<Facet, float>* internal_num_voices = nullptr)
+    explicit RootModuleBase(Root& main_generative
+                            , Variable<Facet, bool>* internal_enabled = nullptr
+                            , Variable<Facet, float>* internal_num_voices = nullptr)
             : m_main_generative(main_generative)
               , m_header(m_main_generative.get_parameter_handler().get_id()
                          , internal_enabled
@@ -101,11 +101,11 @@ private:
 // ==============================================================================================
 
 template<typename OutputType = Facet>
-class NodeBase : public GenerativeComponent
+class NodeModuleBase : public GenerativeComponent
                  , public ConnectableModule
                  , public juce::DragAndDropTarget {
 public:
-    explicit NodeBase(Node<OutputType>& main_generative
+    explicit NodeModuleBase(Node<OutputType>& main_generative
                       , Variable<Facet, bool>* internal_enabled = nullptr
                       , Variable<Facet, float>* internal_num_voices = nullptr
                               , bool header_visible = true)

@@ -43,7 +43,7 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/unit_pulse.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utils.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/variable.h
-        src/core/algo/voice/voices.h
+        src/core/algo/collections/voices.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/vt_parameter.h
         src/core/socket_base.h
         src/core/random_pulsator.h
@@ -51,11 +51,12 @@ add_library(serialistCore INTERFACE
         src/core/node_base.h
         src/core/partial_note.h
         src/core/distributor.h
-        src/core/algo/vec.h
+        src/core/algo/collections/vec.h
         src/core/algo/pitch/notes.h
         src/core/algo/random.h
         src/core/algo/time/time.h
         src/core/algo/voice/multi_voiced.h
+        src/core/algo/collections/held.h
 )
 
 target_link_libraries(serialistCore INTERFACE magicEnum)

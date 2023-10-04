@@ -2,8 +2,8 @@
 #ifndef SERIALISTLOOPER_MULTI_VOICED_H
 #define SERIALISTLOOPER_MULTI_VOICED_H
 
-#include "core/algo/voice/voices.h"
-#include "core/algo/vec.h"
+#include "core/algo/collections/voices.h"
+#include "core/algo/collections/vec.h"
 
 template<typename T>
 class Flushable {
@@ -41,7 +41,6 @@ public:
         }
 
         return output;
-
     }
 
 
@@ -73,9 +72,24 @@ public:
         m_objects.resize_append(new_size, ObjectType());
     }
 
+    const Vec<ObjectType>& get_objects() const {
+        return m_objects;
+    }
+
+
+    Vec<ObjectType>& get_objects() {
+        return m_objects;
+    }
+
+    std::size_t size() const {
+        return m_objects.size();
+    }
 
 private:
     Vec<ObjectType> m_objects;
 };
+
+
+
 
 #endif //SERIALISTLOOPER_MULTI_VOICED_H

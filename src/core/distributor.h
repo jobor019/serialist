@@ -7,15 +7,16 @@
 #include "partial_note.h"
 #include "node_base.h"
 #include "core/algo/weighted_random.h"
-#include "core/algo/held_notes.h"
-#include "core/algo/vec.h"
+#include "core/algo/collections/vec.h"
+#include "core/algo/collections/held.h"
 
 class Distributor {
 public:
     Voices<int> process(const Voices<Trigger>& triggers, std::size_t num_voices) {
     }
 
-    Voi
+
+
 
 private:
     Vec<int> m_pitch_material;
