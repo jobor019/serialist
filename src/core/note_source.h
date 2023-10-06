@@ -269,7 +269,7 @@ private:
 
     bool is_enabled() {
         // Unlike most other modules, NoteSource is disabled by default to avoid unnecessary output on creation
-        return m_enabled.process(1).front_or(false);
+        return m_enabled.process(1).first_or(false);
     }
 
 

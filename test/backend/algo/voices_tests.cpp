@@ -13,8 +13,8 @@ TEST_CASE("Voices constructor with a vector of Voice objects") {
     Voices<int> voices(std::move(v));
 
     REQUIRE(voices.size() == 3);
-    REQUIRE(voices.front().value() == 1);
-    REQUIRE(voices.front_or(100) == 1);
+    REQUIRE(voices.first().value() == 1);
+    REQUIRE(voices.first_or(100) == 1);
 }
 
 
@@ -38,7 +38,7 @@ TEST_CASE("Voices::transposed") {
     Voices<int> voices = Voices<int>::transposed(voice1);
 
     REQUIRE(voices.size() == 3);
-    REQUIRE(voices.front().value() == 1);
+    REQUIRE(voices.first().value() == 1);
 }
 
 
@@ -102,7 +102,7 @@ TEST_CASE("Voices::merge") {
     voices1.merge(voices2);
 
     REQUIRE(voices1.size() == 1);
-    REQUIRE(voices1.front().value() == 1);
+    REQUIRE(voices1.first().value() == 1);
     REQUIRE(voices1.vec()[0] == Voice<int>({1, 2, 3, 4, 5, 6}));
 }
 
@@ -141,27 +141,27 @@ TEST_CASE("Voices::is_empty_like") {
 }
 
 
-TEST_CASE("Voices::front") {
+TEST_CASE("Voices::first") {
     Voice<int> voice1 = {1, 2, 3};
     Voices<int> voices1({voice1});
 
-    REQUIRE(voices1.front().value() == 1);
+    REQUIRE(voices1.first().value() == 1);
 
     Voices<int> emptyVoices(1);
 
-    REQUIRE_FALSE(emptyVoices.front().has_value());
+    REQUIRE_FALSE(emptyVoices.first().has_value());
 }
 
 
-TEST_CASE("Voices::front_or") {
+TEST_CASE("Voices::first_or") {
     Voice<int> voice1 = {1, 2, 3};
     Voices<int> voices1({voice1});
 
-    REQUIRE(voices1.front_or(100) == 1);
+    REQUIRE(voices1.first_or(100) == 1);
 
     Voices<int> emptyVoices(1);
 
-    REQUIRE(emptyVoices.front_or(100) == 100);
+    REQUIRE(emptyVoices.first_or(100) == 100);
 }
 
 
@@ -242,6 +242,45 @@ TEST_CASE("Voices::vec and Voices::vec_mut") {
     REQUIRE(constVec[0].size() == 3);
     REQUIRE(constVec[0][0] == 4);
 }
+
+
+TEST_CASE("Operator[] for Mutable Voices") {
+    Voices<int> voices({{1, 2, 3}, {4, 5}, {6}});
+    REQUIRE(voices.size() == 3);
+
+    SECTION("Accessing valid indices") {
+        REQUIRE(voices[0] == Voice<int>({1, 2, 3}));
+        REQUIRE(voices[1] == Voice<int>({4, 5}));
+        REQUIRE(voices[2] == Voice<int>({6}));
+    }
+
+    SECTION("Accessing out-of-range index") {
+        REQUIRE_THROWS_AS(voices[3], std::out_of_range);
+    }
+
+    SECTION("Modifying values using operator[]") {
+        voices[0][0] = 100;
+        REQUIRE(voices[0] == Voice<int>({100, 2, 3}));
+        voices[2].vector_mut().push_back(7);
+        REQUIRE(voices[2] == Voice<int>({6, 7}));
+    }
+}
+
+TEST_CASE("Operator[] for Const Voices") {
+    const Voices<double> voices({{1.1, 2.2}, {3.3}});
+    REQUIRE(voices.size() == 2);
+
+    SECTION("Accessing valid indices") {
+        REQUIRE(voices[0] == Voice<double>({1.1, 2.2}));
+        REQUIRE(voices[1] == Voice<double>({3.3}));
+    }
+
+    SECTION("Accessing out-of-range index") {
+        REQUIRE_THROWS_AS(voices[2], std::out_of_range);
+    }
+}
+
+
 
 
 

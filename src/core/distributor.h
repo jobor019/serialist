@@ -9,25 +9,87 @@
 #include "core/algo/weighted_random.h"
 #include "core/algo/collections/vec.h"
 #include "core/algo/collections/held.h"
+#include "core/algo/pitch/notes.h"
 
 class Distributor {
 public:
-    Voices<int> process(const Voices<Trigger>& triggers, std::size_t num_voices) {
+    // TODO: DistributorNode should handle enabled and call resize, set_pitch_material, etc, if changed
+    Voices<Note> process(const Voices<Trigger>& triggers, std::size_t num_voices) {
+        if (m_configuration_changed) {
+            update_configuration();
+            m_configuration_changed = false;
+        }
+
+        auto notes = trigger_note_offs(triggers, num_voices)
+                .merge_uneven(trigger_note_ons(triggers, num_voices), true);
+
+        return notes;
     }
 
 
+    Voices<Note> flush() {
+        return m_currently_held
+                .flush()
+                .as_type<Note>(&Note::note_off);
+    }
+
+
+    Voices<Note> resize(std::size_t num_voices) {
+        return m_currently_held
+                .resize(num_voices)
+                .as_type<Note>(&Note::note_off);
+    }
+
+
+    void set_pitch_material(const Vec<int>& pitch_material) {
+        m_pitch_material = pitch_material;
+        m_configuration_changed = true;
+    }
+
+
+    void set_pitch_pivot(int pitch_pivot) {
+        m_pitch_pivot = pitch_pivot;
+        m_configuration_changed = true;
+    }
+
+
+    void set_spectrum_distribution(const Vec<double>& spectrum_distribution) {
+        m_spectrum_distribution = spectrum_distribution;
+        m_configuration_changed = true;
+    }
 
 
 private:
+    void update_configuration() {
+        // TODO ...
+    }
+
+
+    Voices<Note> trigger_note_offs(const Voices<Trigger>& triggers, std::size_t num_voices) {
+        Voices<Note> note_offs(num_voices);
+        for (std::size_t i = 0; i < num_voices; ++i) {
+            auto tt = triggers[i];
+
+            if (triggers[i].contains([](const Trigger& t) { return t.get_type() == Trigger::Type::pulse_off; })) {
+
+            }
+        }
+
+        for (const auto& voice: triggers) {
+
+        }
+    }
+
+
+    Voices<Note> trigger_note_ons(const Voices<Trigger>& triggers, std::size_t num_voices) {};
+
+
     Vec<int> m_pitch_material;
     int m_pitch_pivot;
 
     Vec<double> m_spectrum_distribution;
 
-    std::size_t m_num_voices;
-
-
-    Held<int> m_currently_held;
+    MultiVoiceHeld<int> m_currently_held;
 
     bool m_configuration_changed = false;
 };
@@ -38,45 +100,6 @@ public:
     static const int MIN_NOTE = 21;
     static const int MAX_NOTE = 108;
     static const int NOTE_RANGE = MAX_NOTE - MIN_NOTE;
-
-//    struct NoteVector {
-//
-//        explicit NoteVector(std::size_t num_voices) : notes(num_voices, std::nullopt) {}
-//
-//
-//        explicit NoteVector(const std::vector<std::optional<int>>& notes) : notes(notes) {}
-//
-//
-//        std::size_t size() const { return notes.size(); }
-//
-//
-//        NoteVector& operator+=(const NoteVector& other) {
-//            assert(size() == other.size());
-//
-//            for (std::size_t i = 0; i < other.size(); ++i) {
-//                if (other.notes.at(i)) {
-//                    notes.at(i) = other.notes.at(i);
-//                }
-//            }
-//            notes.insert(notes.end(), other.notes.begin(), other.notes.end());
-//            return *this;
-//        }
-//
-//
-//        std::vector<std::optional<int>> notes;
-//    };
-//
-//    struct Notes {
-//        Notes(const NoteVector& note_offs
-//              , const NoteVector& note_ons)
-//                : note_offs(note_offs), note_ons(note_ons) {
-//            assert(note_offs.size() == note_ons.size());
-//        }
-//
-//
-//        NoteVector note_offs;
-//        NoteVector note_ons;
-//    };
 
 
     Notes process(const Voices<Trigger>& triggers
@@ -192,22 +215,6 @@ private:
     }
 
 
-    NoteVector flush_all() {
-        throw std::runtime_error("not implemented: "); // TODO
-
-    }
-
-
-    NoteVector flush_invalid(const std::vector<int>& new_material) {
-        throw std::runtime_error("not implemented: "); // TODO
-    }
-
-
-    NoteVector flush_old_voices(std::size_t new_num_voices) {
-        throw std::runtime_error("not implemented: "); // TODO
-    }
-
-
     NoteVector generate_note_offs(const Voices<Trigger>& triggers) {
         throw std::runtime_error("not implemented: "); // TODO
     }
@@ -230,6 +237,7 @@ private:
         return {MIN_NOTE + static_cast<int>(std::round(start * NOTE_RANGE))
                 , MIN_NOTE + static_cast<int>(std::round(end * NOTE_RANGE))};
     }
+
 
     std::map<std::size_t, std::vector<int>> full_material(const std::vector<int>& material, std::size_t num_bins) {
         throw std::runtime_error("not implemented: "); // TODO

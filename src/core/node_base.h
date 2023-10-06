@@ -65,12 +65,12 @@ protected:
     std::optional<TimePoint> pop_time() { return m_time_gate.pop_time(); }
 
 
-    bool is_enabled() { return m_enabled.process(1).front_or(true); }
+    bool is_enabled() { return m_enabled.process(1).first_or(true); }
 
 
     template<std::size_t max_count = 128, typename... Args>
     std::size_t voice_count(Args... args) {
-        auto num_voices = static_cast<long>(m_num_voices.process().adapted_to(1).front_or(0));
+        auto num_voices = static_cast<long>(m_num_voices.process().adapted_to(1).first_or(0));
         if (num_voices <= 0) {
             return std::min(max_count, std::max({static_cast<std::size_t>(1), args...}));
         }

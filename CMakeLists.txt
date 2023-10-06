@@ -57,6 +57,8 @@ add_library(serialistCore INTERFACE
         src/core/algo/time/time.h
         src/core/algo/voice/multi_voiced.h
         src/core/algo/collections/held.h
+        src/core/algo/stat.h
+        src/core/algo/classifiers.h
 )
 
 target_link_libraries(serialistCore INTERFACE magicEnum)
@@ -260,6 +262,9 @@ add_executable(tests EXCLUDE_FROM_ALL
 #        test/backend/nop_tests.cpp
         test/backend/algo/vec_tests.cpp
         test/backend/algo/voices_tests.cpp
+        test/backend/algo/random_tests.cpp
+        test/backend/algo/stat_tests.cpp
+        test/backend/algo/classifiers_tests.cpp
 )
 
 target_link_libraries(tests

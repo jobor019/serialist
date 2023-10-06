@@ -7,60 +7,9 @@
 #include <functional>
 #include <random>
 
-class DiscreteWeightedRandom {
-public:
-    explicit DiscreteWeightedRandom(const std::vector<double>& distribution)
-            : m_cdf(cdf_of(distribution)) {
-    }
-
-
-    static std::vector<double> cdf_of(const std::vector<double>& distribution) {
-        std::vector<double> cdf;
-        cdf.reserve(distribution.size());
-
-        double v = 0.0;
-
-        // compute cdf
-        for (const auto& e: distribution) {
-            v += std::max(0.0, e);
-            cdf.push_back(v);
-        }
-
-        // normalize to 1/max
-        if (!cdf.empty() && cdf.back() > 0.0) {
-            auto f = 1.0 / cdf.back();
-            for (auto& e: cdf) {
-                e *= f;
-            }
-        }
-
-        return cdf;
-    }
-
-
-    std::size_t next() {
-        auto x = m_distribution(m_rng);
-
-        auto it = std::lower_bound(m_cdf.begin(), m_cdf.end(), x);
-
-        if (it == m_cdf.end()) {
-            return m_cdf.size() - 1;
-        }
-        return static_cast<std::size_t>(it - m_cdf.begin());
-    }
-
-
-private:
-    std::vector<double> m_cdf;
-
-    std::mt19937 m_rng{std::random_device()()};
-    std::uniform_real_distribution<> m_distribution{0.0, 1.0};
-};
-
-
 // ==============================================================================================
 
-//  TODO: This class can be generalized to use DiscreteWeightedRandom internally
+//  TODO: This class can be generalized and/or removed
 class ContinuousWeightedRandom {
 public:
     explicit ContinuousWeightedRandom(std::function<double(double, double, double)> lambda

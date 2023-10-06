@@ -125,7 +125,7 @@ public:
 
 
     template<typename U>
-    T& operator[](const U& index) {
+    decltype(auto) operator[](const U& index) {
         if constexpr (std::is_signed_v<U>) {
             return m_vector.at(sign_index(index));
         } else {
@@ -135,7 +135,7 @@ public:
 
 
     template<typename U>
-    T operator[](const U& index) const {
+    decltype(auto) operator[](const U& index) const {
         if constexpr (std::is_signed_v<U>) {
             return m_vector.at(sign_index(index));
         } else {
@@ -153,6 +153,27 @@ public:
         }
         return Vec<T>(std::move(result));
     }
+
+
+    decltype(auto) begin() { return m_vector.begin(); }
+
+
+    decltype(auto) begin() const { return m_vector.begin(); }
+
+
+    decltype(auto) end() { return m_vector.end(); }
+
+
+    decltype(auto) end() const { return m_vector.end(); }
+
+//    decltype(auto) first() { return m_vector.first(); }
+//    decltype(auto) first() const { return m_vector.first(); }
+
+    decltype(auto) back() { return m_vector.back(); }
+
+
+    decltype(auto) back() const { return m_vector.back(); }
+
 
     // =========================== CLONING / COPYING ==========================
 
@@ -184,12 +205,26 @@ public:
 
     template<typename U>
     Vec<U> as_type() const {
-        std::vector<U> result;
-        result.reserve(m_vector.size());
+        std::vector<U> output;
+        output.reserve(m_vector.size());
         for (const T& element: m_vector) {
-            result.push_back(static_cast<U>(element));
+            output.push_back(static_cast<U>(element));
         }
-        return Vec<U>(std::move(result));
+        return Vec<U>(std::move(output));
+    }
+
+
+    /**
+     * note: requires explicit template argument to be called, cannot be inferred from `f`
+     */
+    template<typename U>
+    Vec<U> as_type(std::function<U(const T&)> f) const {
+        std::vector<U> output;
+        output.reserve(m_vector.size());
+        for (const T& element: m_vector) {
+            output.push_back(f(element));
+        }
+        return Vec<U>(std::move(output));
     }
 
 
@@ -354,7 +389,7 @@ public:
     }
 
 
-    Vec<T>& apply(std::function<T(T, T)> f, T value, const Vec<bool>& binary_mask) {
+    Vec<T>& apply(std::function<T(const T&, const T&)> f, const T& value, const Vec<bool>& binary_mask) {
         if (m_vector.size() != binary_mask.size()) {
             throw std::logic_error("binary_mask must have the same size as the internal vector");
         }
@@ -442,6 +477,16 @@ public:
     }
 
 
+    bool contains(std::function<bool(const T&)> f) const {
+        for (const T& element: m_vector) {
+            if (f(element)) {
+                return true;
+            }
+        }
+        return true;
+    }
+
+
     bool empty() const {
         return m_vector.empty();
     }
@@ -457,7 +502,7 @@ public:
     }
 
 
-    std::optional<T> front() const {
+    std::optional<T> first() const {
         if (m_vector.empty()) {
             return std::nullopt;
         }
@@ -467,7 +512,7 @@ public:
 
 
     template<typename U = T>
-    U front_or(const U& fallback) const {
+    U first_or(const U& fallback) const {
         if (m_vector.empty())
             return fallback;
         return static_cast<U>(m_vector.at(0));
@@ -568,17 +613,14 @@ public:
 
     template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
     T sum() const {
-        T result = 0;
-        for (const T& element: m_vector) {
-            result += element;
-        }
-        return result;
+        return std::accumulate(m_vector.begin(), m_vector.end(), T(0));
     }
 
 
     template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
-    T cumsum() const {
-        return std::accumulate(m_vector.begin(), m_vector.end(), T(0));
+    Vec<T>& cumsum() {
+        std::partial_sum(m_vector.begin(), m_vector.end(), m_vector.begin());
+        return *this;
     }
 
 
@@ -601,42 +643,6 @@ public:
     T min() const {
         return *std::min_element(m_vector.begin(), m_vector.end());
     }
-
-
-    // TODO: Update
-//    template<typename U = std::size_t>
-//    Vec<U> histogram(std::optional<std::size_t> num_bins
-//                     , std::optional<U> low_thresh = std::nullopt
-//                     , std::optional<U> high_thresh = std::nullopt) const {
-//        static_assert(std::is_arithmetic_v<U>);
-//        std::vector<U> histogram(num_bins, 0);
-//        auto min_value = low_thresh.has_value()
-//                         ? *low_thresh
-//                         : static_cast<U>(*std::min_element(m_vector.begin(), m_vector.end()));
-//        auto max_value = high_thresh.has_value()
-//                         ? *high_thresh
-//                         : static_cast<U>(*std::max_element(m_vector.begin(), m_vector.end()));
-//
-//        double bin_width;
-//        if constexpr (std::is_integral_v<U>) {
-//            bin_width = (max_value - min_value + 1) / static_cast<double>(num_bins);
-//        } else {
-//            bin_width = (max_value - min_value) / static_cast<double>(num_bins);
-//        }
-//
-//        for (const T& value: m_vector) {
-//            if (low_thresh.has_value() && value < *low_thresh)
-//                histogram.front()++;
-//            else if (high_thresh.has_value() && value >= *high_thresh)
-//                histogram.back()++;
-//            else {
-//                auto bin_index = static_cast<std::size_t>((value - min_value) / bin_width);
-//                histogram.at(bin_index)++;
-//            }
-//        }
-//
-//        return Vec<U>(histogram);
-//    }
 
 
 private:

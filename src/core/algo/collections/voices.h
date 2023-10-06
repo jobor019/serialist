@@ -51,14 +51,26 @@ public:
     }
 
 
-    Voice<T>& operator[](std::size_t index) {
+    decltype(auto) operator[](std::size_t index) {
         return m_voices[index];
     }
 
 
-    const Voice<T>& operator[](std::size_t index) const {
+    decltype(auto) operator[](std::size_t index) const {
         return m_voices[index];
     }
+
+
+    decltype(auto) begin() { return m_voices.begin(); }
+
+
+    decltype(auto) end() { return m_voices.end(); }
+
+
+    decltype(auto) begin() const { return m_voices.begin(); }
+
+
+    decltype(auto) end() const { return m_voices.end(); }
 
 
     Voices<T> cloned() const {
@@ -66,13 +78,36 @@ public:
     }
 
 
-    void clear(std::size_t num_voices = 1) {
-        m_voices = empty_like(num_voices);
+    template<typename U = T>
+    Voices<U> as_type() const {
+        std::vector<Voice<U>> output;
+        output.reserve(m_voices.size());
+
+        for (const auto& voice: m_voices.vector()) {
+            output.push_back(voice.template as_type<U>());
+        }
+
+        auto vec = Vec<Voice<U>>(std::move(output));
+        return Voices<U>(std::move(vec));
     }
 
 
-    std::size_t size() const {
-        return m_voices.size();
+    template<typename U = T>
+    Voices<U> as_type(std::function<U(const T&)> f) const {
+        std::vector<Voice<U>> output;
+        output.reserve(m_voices.size());
+
+        for (const auto& voice: m_voices.vector()) {
+            output.push_back(voice.template as_type<U>(f));
+        }
+
+        auto vec = Vec<Voice<U>>(std::move(output));
+        return Voices<U>(std::move(vec));
+    }
+
+
+    void clear(std::size_t num_voices = 1) {
+        m_voices = empty_like(num_voices);
     }
 
 
@@ -105,23 +140,14 @@ public:
 
 
     /**
-    * @return true if every Voice is empty
-    */
-    bool is_empty_like() const {
-        auto& v = m_voices.vector();
-        return !std::any_of(v.begin(), v.end(), [](const Voice<T>& voice) { return !voice.empty(); });
-    }
-
-
-    /**
     * @return The first value in the the first Voice or std::nulllopt if the first voice is empty
     */
-    std::optional<T> front() const {
+    std::optional<T> first() const {
         if (m_voices.empty())
             return std::nullopt;
 
-        if (auto voice = m_voices.front(); voice.has_value()) {
-            return voice.value().front();
+        if (auto voice = m_voices.first(); voice.has_value()) {
+            return voice.value().first();
         } else {
             return std::nullopt;
         }
@@ -132,12 +158,12 @@ public:
     * @return The first value in the first Voice or `fallback_value` if the first Voice is empty
     */
     template<typename U = T>
-    U front_or(const U& fallback) const {
+    U first_or(const U& fallback) const {
         if (m_voices.empty())
             return fallback;
 
-        if (auto voice = m_voices.front(); voice.has_value()) {
-            return voice.value().front_or(fallback);
+        if (auto voice = m_voices.first(); voice.has_value()) {
+            return voice.value().first_or(fallback);
         } else {
             return fallback;
         }
@@ -154,7 +180,7 @@ public:
 
         auto& v = m_voices.vector();
         std::transform(v.begin(), v.end(), std::back_inserter(output)
-                       , [](const Voice<T>& voice) { return voice.front(); });
+                       , [](const Voice<T>& voice) { return voice.first(); });
 
         return Vec<std::optional<U>>(std::move(output));
     }
@@ -167,7 +193,7 @@ public:
 
         auto v = m_voices.vector();
         std::transform(v.begin(), v.end(), std::back_inserter(output)
-                       , [&fallback](const Voice<T>& voice) { return voice.front_or(fallback); });
+                       , [&fallback](const Voice<T>& voice) { return voice.first_or(fallback); });
 
         return Vec<U>(std::move(output));
     }
@@ -179,20 +205,6 @@ public:
         } else {
             return Voices<T>(m_voices.cloned().resize_fold(target_num_voices));
         }
-    }
-
-
-    template<typename U = T>
-    Voices<U> as_type() const {
-        std::vector<Voice<U>> output;
-        output.reserve(m_voices.size());
-
-        for (const auto& voice: m_voices.vector()) {
-            output.push_back(voice.template as_type<U>());
-        }
-
-        auto vec = Vec<Voice<U>>(std::move(output));
-        return Voices<U>(std::move(vec));
     }
 
 
@@ -212,6 +224,20 @@ public:
             output.extend(voice);
         }
         return std::move(output);
+    }
+
+
+    std::size_t size() const {
+        return m_voices.size();
+    }
+
+
+    /**
+    * @return true if every Voice is empty
+    */
+    bool is_empty_like() const {
+        auto& v = m_voices.vector();
+        return !std::any_of(v.begin(), v.end(), [](const Voice<T>& voice) { return !voice.empty(); });
     }
 
 

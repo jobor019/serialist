@@ -7,6 +7,7 @@
 //#include "core/distributor.h"
 #include "core/algo/voice/multi_voiced.h"
 #include "core/algo/pitch/notes.h"
+#include "core/events.h"
 
 //class OscillatorWrapper {
 //public:
@@ -47,41 +48,46 @@
 //
 //};
 
-class MyFlushable : public Flushable<int> {
-public:
-    MyFlushable() = default;
 
-    Voice<int> flush() override {
-        return Voice<int>(1);
+class A {
+public:
+    explicit A(const std::string& name) : m_name(name) {}
+
+    void print() const {
+        std::cout << m_name << std::endl;
     }
+
+private:
+    std::string m_name;
 };
 
 
+void ff(const Voices<int>& t) {
+    auto& z = t[2];
+    z.print();
+}
+
+
+void fff(const Vec<A>& a) {
+    a[2].print();
+}
+
+void applish(const Vec<bool>& a) {
+    for (std::size_t i = 0; i < a.size(); ++i) {
+        if (a[i]) {
+            std::cout << i << std::endl;
+        }
+    }
+}
+
+
 int main() {
-//    RandomPulsatorWrapper random_pulsator;
-//    for (int i = 0; i < 10; ++i) {
-//        random_pulsator.m_random_pulsator.update_time(TimePoint(i));
-//        random_pulsator.m_random_pulsator.process();
-//    }
+//    auto a = Voices<int>::transposed(Vec<int>{1, 2, 3, 4});
+//    a[2].print();
+//    ff(a);
+//    Vec<A> v{A{"a"}, A{"b"}, A{"c"}};
+//    fff(v);
 
-//    Distributor distributor;
-
-
-MultiVoiced<MyFlushable, int> v(8);
-
-v.flush();
-
-MultiVoiceHeldNotes v2(8);
-v2.bind(82, 1);
-v2.bind(84, 1);
-v2.bind(88, 1);
-
-v2.get_held().print();
-
-//for (auto& e : v2.get_held().flattened().vector()) {
-//    std::cout << e << std::endl;
-//}
-
-
-
+    Vec mask = {true, false, true, false, true};
+    applish(mask);
 }

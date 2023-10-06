@@ -76,8 +76,8 @@ public:
     }
 
 
-    Voices<T> resize() {
-        return m_voiced_held.resize();
+    Voices<T> resize(std::size_t num_voices) {
+        return m_voiced_held.resize(num_voices);
     }
 
 

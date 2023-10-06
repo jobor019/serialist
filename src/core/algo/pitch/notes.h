@@ -19,8 +19,10 @@ public:
     };
 
 
-    Note(Type type, std::uint8_t pitch) : m_type(type), m_pitch(pitch) {}
+    Note(Type type, unsigned int pitch) : m_type(type), m_pitch(pitch) {}
 
+
+    static Note note_off(unsigned int pitch) { return Note(Type::note_off, pitch); }
 
 
     bool operator==(const Note& other) const { return m_type == other.m_type && m_pitch == other.m_pitch; }
@@ -34,13 +36,13 @@ public:
     Type get_type() const { return m_type; }
 
 
-    std::uint8_t get_pitch() const { return m_pitch; }
+    unsigned int get_pitch() const { return m_pitch; }
 
 
 private:
 
     Type m_type;
-    std::uint8_t m_pitch;
+    unsigned int m_pitch;
 
 };
 

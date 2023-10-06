@@ -183,6 +183,16 @@ TEST_CASE("Vec as_type", "[as_type]") {
     REQUIRE(converted[2] == 3);
 }
 
+TEST_CASE("Vec as_type with lambda", "[as_type]") {
+    Vec<int> v = {1, 2, 3}; // Specify the template argument here
+
+    Vec<std::string> converted = v.as_type<std::string>(static_cast<std::string(*)(int)>(std::to_string));
+    REQUIRE(converted.size() == 3);
+    REQUIRE(converted[0] == "1");
+    REQUIRE(converted[1] == "2");
+    REQUIRE(converted[2] == "3");
+}
+
 
 TEST_CASE("Vec apply", "[apply]") {
     Vec v = {1, 2, 3, 4, 5};
@@ -247,27 +257,27 @@ TEST_CASE("Vec vector and vector_mut", "[vector]") {
 }
 
 
-TEST_CASE("Vec front", "[front]") {
+TEST_CASE("Vec first", "[first]") {
     Vec v = {1, 2, 3, 4, 5};
 
-    std::optional<int> result1 = v.front();
+    std::optional<int> result1 = v.first();
     REQUIRE(result1.has_value() == true);
     REQUIRE(result1.value() == 1);
 
     Vec<int> emptyVec;
-    std::optional<int> result2 = emptyVec.front();
+    std::optional<int> result2 = emptyVec.first();
     REQUIRE(result2.has_value() == false);
 }
 
 
-TEST_CASE("Vec front_or", "[front_or]") {
+TEST_CASE("Vec first_or", "[first_or]") {
     Vec v = {1, 2, 3, 4, 5};
 
-    int result1 = v.front_or(0);
+    int result1 = v.first_or(0);
     REQUIRE(result1 == 1);
 
     Vec<int> emptyVec;
-    int result2 = emptyVec.front_or(100);
+    int result2 = emptyVec.first_or(100);
     REQUIRE(result2 == 100);
 }
 
@@ -315,8 +325,7 @@ TEST_CASE("Vec sum", "[sum]") {
 TEST_CASE("Vec cumsum", "[cumsum]") {
     Vec v = {1, 2, 3, 4, 5};
 
-    int cumsumResult = v.cumsum();
-    REQUIRE(cumsumResult == 15);
+    REQUIRE(v.cumsum() == Vec{1, 3, 6, 10, 15});
 }
 
 

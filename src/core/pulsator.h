@@ -129,7 +129,7 @@ public:
 
 
 private:
-    bool is_enabled() { return m_enabled.process(1).front_or(true); }
+    bool is_enabled() { return m_enabled.process(1).first_or(true); }
 
 
     void schedule_missing_triggers(const TimePoint& t, std::size_t new_voice_count) {
