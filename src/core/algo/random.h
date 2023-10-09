@@ -21,11 +21,22 @@ public:
     }
 
 
+    template<typename T>
+    T next(const Vec<std::pair<T, T>>& ranges) {
+        (void) ranges;
+        throw std::runtime_error("Not implemented: next(const Vec<std::pair<T, T>>& ranges)"); // TODO: Implement
+    }
+
+
     /**
-     * @throw std::out_of_range if `values` is empty
+     * @throw std::invalid_argument if `values` is empty
      */
     template<typename T>
     const T& choice(const Vec<T>& values) {
+        if (values.empty()) {
+            throw std::invalid_argument("Cannot choose from an empty vector");
+        }
+
         return values[static_cast<std::size_t>(std::floor(m_distribution(m_rng) * static_cast<double>(values.size())))];
     }
 
@@ -39,16 +50,15 @@ public:
 
 
     /**
-     * @throw std::out_of_range if `values` is empty
+     * @throw std::invalid_argument if `weights` is empty
      */
     template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
-    std::size_t weighted_choice(const Vec<T>& values) {
-        if (values.empty()) {
-            throw std::out_of_range("Cannot choose from an empty vector");
+    std::size_t weighted_choice(const Vec<T>& weights) {
+        if (weights.empty()) {
+            throw std::invalid_argument("Cannot choose from an empty vector");
         }
 
-        auto cdf = values.cloned().cumsum();
-
+        auto cdf = weights.cloned().cumsum();
 
         auto choice = static_cast<T>(next() * cdf.back());
 
@@ -56,7 +66,13 @@ public:
         if (it == cdf.end()) {
             return cdf.size() - 1;
         }
-        return static_cast<std::size_t>(it - cdf.begin());
+        return static_cast<std::size_t>(std::distance(cdf.begin(), it));
+    }
+
+
+    template<typename WeightsType, typename ValuesType, typename = std::enable_if_t<std::is_arithmetic_v<WeightsType>>>
+    WeightsType weighted_choice(const Vec<WeightsType>& weights, const Vec<ValuesType>& values) {
+        return values[weighted_choice(weights)];
     }
 
 

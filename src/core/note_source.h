@@ -22,7 +22,7 @@ public:
 
     class NoteSourceKeys {
     public:
-        static const inline std::string PULSE = "pulse";
+        static const inline std::string PULSE = "pulse_on";
         static const inline std::string PITCH = "pitch";
         static const inline std::string VELOCITY = "velocity";
         static const inline std::string CHANNEL = "channel";
@@ -254,7 +254,7 @@ private:
 
 
     static bool contains_pulse_on(const Voice<Trigger>& triggers) {
-        return contains(triggers, Trigger::Type::pulse);
+        return contains(triggers, Trigger::Type::pulse_on);
     }
 
 

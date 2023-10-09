@@ -186,7 +186,7 @@ public:
 
         auto oscillator = std::make_unique<OscillatorNode>(graph.next_id(), parent);
 
-        // TODO: Need to implement a module for the pulse to be able to replace/connect it
+        // TODO: Need to implement a module for the pulse_on to be able to replace/connect it
         auto internal_trigger = std::make_unique<UnitPulse>(graph.next_id(), parent);
 
         auto type = std::make_unique<Variable<Facet, OscillatorNode::Type>>(graph.next_id(), parent

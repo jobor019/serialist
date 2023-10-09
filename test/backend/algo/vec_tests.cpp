@@ -46,6 +46,11 @@ TEST_CASE("Vec operator+", "[operator]") {
 
 
 TEST_CASE("Vec range", "[range]") {
+    Vec<int> v0 = Vec<int>::range(2, 4);
+    REQUIRE(v0.size() == 2);
+    REQUIRE(v0[0] == 2);
+    REQUIRE(v0[1] == 3);
+
     Vec<int> v1 = Vec<int>::range(1, 6, 2);
     REQUIRE(v1.size() == 3);
     REQUIRE(v1[0] == 1);
@@ -53,10 +58,10 @@ TEST_CASE("Vec range", "[range]") {
     REQUIRE(v1[2] == 5);
 
     Vec<double> v2 = Vec<double>::range(1.0, 4.0, 0.5);
-    REQUIRE(v2.size() == 7);
+    REQUIRE(v2.size() == 6);
     REQUIRE(v2[0] == 1.0);
     REQUIRE(v2[1] == 1.5);
-    REQUIRE(v2[6] == 4.0);
+    REQUIRE(v2[5] == 3.5);
 }
 
 

@@ -4,298 +4,166 @@
 
 
 #include <map>
-#include "partial_note.h"
-#include "node_base.h"
+//#include "node_base.h"
 #include "core/algo/weighted_random.h"
 #include "core/algo/collections/vec.h"
 #include "core/algo/collections/held.h"
 #include "core/algo/pitch/notes.h"
+#include "core/algo/classifiers.h"
+#include "core/algo/stat.h"
+#include "core/algo/random.h"
 
-class Distributor {
+class Allocator {
 public:
-    // TODO: DistributorNode should handle enabled and call resize, set_pitch_material, etc, if changed
-    Voices<Note> process(const Voices<Trigger>& triggers, std::size_t num_voices) {
-        if (m_configuration_changed) {
+    explicit Allocator(std::optional<unsigned int> seed = std::nullopt) : m_random(seed), m_pitch_selector(seed) {}
+
+
+    Voices<NoteNumber> release(const Voices<Trigger>& triggers, std::size_t num_voices) {
+        if (m_configuration_changed)
             update_configuration();
-            m_configuration_changed = false;
+
+        Voices<NoteNumber> note_offs(num_voices);
+        for (std::size_t i = 0; i < num_voices; ++i) {
+            if (triggers[i].contains([](const Trigger& t) { return t.get_type() == Trigger::Type::pulse_off; })) {
+                note_offs[i].extend(m_currently_held.flush(i));
+            }
+        }
+        return note_offs;
+    }
+
+
+    Voices<NoteNumber> bind(const Voices<Trigger>& triggers, std::size_t num_voices) {
+        if (m_configuration_changed)
+            update_configuration();
+
+        auto classes = m_classifier.classify(m_currently_held.get_held().flattened());
+        auto histogram = Histogram<std::size_t>(classes, Vec<std::size_t>::range(m_classifier.get_num_classes()));
+        auto counts = histogram.get_counts().cloned().multiply(0UL, m_invalid_bins);
+
+        Voices<NoteNumber> output(num_voices);
+
+        for (std::size_t voice = 0; voice < num_voices; ++voice) {
+            if (triggers[voice].contains([](const Trigger& t) { return t.get_type() == Trigger::Type::pulse_on; })) {
+                auto weights = m_spectrum_distribution - counts.as_type<double>().normalize();
+                auto class_idx = m_random.weighted_choice(weights);
+                counts[class_idx] -= 1;
+                auto note = m_pitch_selector.select_from(m_classifier.start_of(class_idx)
+                                                         , m_classifier.end_of(class_idx)
+                                                         , m_enabled_pitch_classes);
+                m_currently_held.bind(note, voice);
+                output[voice].append(note);
+            }
         }
 
-        auto notes = trigger_note_offs(triggers, num_voices)
-                .merge_uneven(trigger_note_ons(triggers, num_voices), true);
-
-        return notes;
+        return output;
     }
 
 
-    Voices<Note> flush() {
-        return m_currently_held
-                .flush()
-                .as_type<Note>(&Note::note_off);
+    Voices<NoteNumber> flush() {
+        return m_currently_held.flush();
     }
 
 
-    Voices<Note> resize(std::size_t num_voices) {
-        return m_currently_held
-                .resize(num_voices)
-                .as_type<Note>(&Note::note_off);
+    Voices<NoteNumber> resize(std::size_t num_voices) {
+        return m_currently_held.resize(num_voices);
     }
 
 
-    void set_pitch_material(const Vec<int>& pitch_material) {
-        m_pitch_material = pitch_material;
-        m_configuration_changed = true;
-    }
-
-
-    void set_pitch_pivot(int pitch_pivot) {
-        m_pitch_pivot = pitch_pivot;
+    void set_pitch_classes(const PitchClassRange& pcs) {
+        m_enabled_pitch_classes = pcs;
         m_configuration_changed = true;
     }
 
 
     void set_spectrum_distribution(const Vec<double>& spectrum_distribution) {
         m_spectrum_distribution = spectrum_distribution;
+        m_classifier.set_band_width(static_cast<NoteNumber>(spectrum_distribution.size()));
         m_configuration_changed = true;
     }
 
 
 private:
     void update_configuration() {
-        // TODO ...
-    }
+        m_spectrum_distribution.normalize();
+        auto num_classes = m_classifier.get_num_classes();
 
-
-    Voices<Note> trigger_note_offs(const Voices<Trigger>& triggers, std::size_t num_voices) {
-        Voices<Note> note_offs(num_voices);
-        for (std::size_t i = 0; i < num_voices; ++i) {
-            auto tt = triggers[i];
-
-            if (triggers[i].contains([](const Trigger& t) { return t.get_type() == Trigger::Type::pulse_off; })) {
-
+        Vec<std::size_t> enabled_bands;
+        for (std::size_t cls = 0; cls < num_classes; ++cls) {
+            auto [lo, hi] = m_classifier.bounds_of(cls);
+            for (NoteNumber pc = lo; pc < hi; ++pc) {
+                if (m_enabled_pitch_classes.is_in(pc)) {
+                    enabled_bands.append(cls);
+                    break;
+                }
             }
         }
-
-        for (const auto& voice: triggers) {
-
-        }
+        m_invalid_bins = enabled_bands.boolean_mask(num_classes);
+        m_configuration_changed = false;
     }
 
 
-    Voices<Note> trigger_note_ons(const Voices<Trigger>& triggers, std::size_t num_voices) {};
+    PitchClassRange m_enabled_pitch_classes;
 
+    MultiVoiceHeld<NoteNumber> m_currently_held{1};
+    LinearBandClassifier<NoteNumber> m_classifier{pitch::MIN_NOTE, pitch::MAX_NOTE, 12};
 
-    Vec<int> m_pitch_material;
-    int m_pitch_pivot;
+    Vec<double> m_spectrum_distribution = Vec<double>::repeated(m_classifier.get_num_classes(), 1.0);
+    Vec<bool> m_invalid_bins = Vec<bool>::repeated(m_classifier.get_num_classes(), false);
 
-    Vec<double> m_spectrum_distribution;
+    Random m_random;
+    PitchSelector m_pitch_selector;
 
-    MultiVoiceHeld<int> m_currently_held;
 
     bool m_configuration_changed = false;
 };
 
-
-class DistributorOld {
-public:
-    static const int MIN_NOTE = 21;
-    static const int MAX_NOTE = 108;
-    static const int NOTE_RANGE = MAX_NOTE - MIN_NOTE;
-
-
-    Notes process(const Voices<Trigger>& triggers
-                  , const std::vector<int>& material
-                  , int pivot
-                  , const std::vector<double>& distribution
-                  , bool flush_on_change
-                  , bool enabled
-                  , std::size_t num_voices) {
-
-        // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-        // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-        // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-        // TODO
-        // TODO: better solution than passing all arguments each time would be to update its internal state
-        // TODO:    only if the value changes (using Socket.process_if_changed()).
-        // TODO
-        // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-        // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-        // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-
-        auto note_offs = trigger_note_offs(triggers, material, flush_on_change, enabled, num_voices);
-        auto note_ons = trigger_note_ons(triggers, material, pivot, distribution, enabled, num_voices);
-
-        m_previous_enabled_state = enabled;
-        m_previous_material = material;
-        m_previous_num_voices = num_voices;
-
-        return {note_offs, note_ons};
-    }
-
-
-private:
-
-
-    NoteVector trigger_note_offs(const Voices<Trigger>& triggers
-                                 , const std::vector<int>& material
-                                 , bool flush_on_change
-                                 , bool enabled
-                                 , std::size_t num_voices) {
-        if (!enabled && enabled != m_previous_enabled_state) {
-            return flush_all();
-        }
-
-
-        NoteVector note_offs(num_voices);
-        if (material_changed(material) && flush_on_change) {
-            note_offs += flush_invalid(material);
-        }
-
-        if (num_voices < m_previous_num_voices) {
-            note_offs += flush_old_voices(num_voices);
-        }
-
-        note_offs += generate_note_offs(triggers);
-
-        return note_offs;
-    }
-
-
-    NoteVector trigger_note_ons(const Voices<Trigger>& triggers
-                                , const std::vector<int>& material
-                                , int pivot
-                                , const std::vector<double>& distribution
-                                , bool enabled
-                                , std::size_t num_voices) {
-        if (!enabled) {
-            return NoteVector(num_voices);
-        }
-
-        auto held = get_held_distribution(distribution.size());
-        auto pdf = get_diff_distribution(held, distribution);
-        pdf = disable_invalid_bins(distribution, material);
-
-        NoteVector note_ons(num_voices);
-
-        for (const auto& voice_index: retriggers(triggers)) {
-            auto cdf = DiscreteWeightedRandom(pdf);
-            auto bin = cdf.next();
-            pdf.at(bin) -= 1.0;
-            note_ons.notes.at(voice_index) = select_from(bin, material, pivot, distribution.size());
-        }
-
-        return note_ons;
-    }
-
-
-    std::vector<double> get_held_distribution(std::size_t num_bins) {
-        throw std::runtime_error("not implemented: "); // TODO
-
-    }
-
-
-    std::vector<double> get_diff_distribution(const std::vector<double>& held_distribution
-                                              , const std::vector<double>& target_distribution) {
-        throw std::runtime_error("not implemented: "); // TODO
-    }
-
-
-    std::vector<double> disable_invalid_bins(const std::vector<double>& distribution
-                                             , const std::vector<int>& material) {
-        throw std::runtime_error("not implemented: "); // TODO
-    }
-
-
-    std::vector<std::size_t> retriggers(const Voices<Trigger>& triggers) {
-        throw std::runtime_error("not implemented: "); // TODO
-    }
-
-
-    bool material_changed(const std::vector<int>& material) {
-        return material == m_previous_material;
-    }
-
-
-    NoteVector generate_note_offs(const Voices<Trigger>& triggers) {
-        throw std::runtime_error("not implemented: "); // TODO
-    }
-
-
-    std::size_t bin_of(int note_number, std::size_t num_bins) {
-//        return
-    }
-
-
-    int select_from(std::size_t bin, const std::vector<int>& material, int pivot, std::size_t num_bins) {
-        auto [low, high] = range_of(bin, num_bins);
-
-    }
-
-
-    static std::pair<int, int> range_of(std::size_t bin, std::size_t num_bins) {
-        double start = static_cast<double>(bin) / static_cast<double>(num_bins);
-        double end = static_cast<double>(bin + 1) / static_cast<double>(num_bins);
-        return {MIN_NOTE + static_cast<int>(std::round(start * NOTE_RANGE))
-                , MIN_NOTE + static_cast<int>(std::round(end * NOTE_RANGE))};
-    }
-
-
-    std::map<std::size_t, std::vector<int>> full_material(const std::vector<int>& material, std::size_t num_bins) {
-        throw std::runtime_error("not implemented: "); // TODO
-
-    }
-
-
-    bool m_previous_enabled_state = false;
-    Held<int> m_currently_held;
-
-    std::vector<int> m_previous_material;
-    std::size_t m_previous_num_voices;
-};
-
-class DistributorNode : public NodeBase<PartialNote> {
-public:
-
-    class DistributorKeys {
-    public:
-        static const inline std::string PULSE = "pulse";
-        static const inline std::string MATERIAL = "material";
-        static const inline std::string PIVOT = "pivot";
-        static const inline std::string DISTRIBUTION = "distribution";
-        static const inline std::string FLUSH_ON_CHANGE = "flush_on_change";
-
-        static const inline std::string CLASS_NAME = "distributor";
-    };
-
-
-    DistributorNode(const std::string& id
-                    , ParameterHandler& parent
-                    , Node<Trigger>* pulse
-                    , Node<Facet>* material
-                    , Node<Facet>* pivot
-                    , Node<Facet>* distribution
-                    , Node<Facet>* flush_on_change
-                    , Node<Facet>* enabled
-                    , Node<Facet>* num_voices)
-            : NodeBase<PartialNote>(id, parent, enabled, num_voices, DistributorKeys::CLASS_NAME)
-              , m_pulse(add_socket(DistributorKeys::PULSE, pulse))
-              , m_material(add_socket(DistributorKeys::MATERIAL, material))
-              , m_pivot(add_socket(DistributorKeys::PIVOT, pivot))
-              , m_distribution(add_socket(DistributorKeys::DISTRIBUTION, distribution))
-              , m_flush_on_change(add_socket(DistributorKeys::FLUSH_ON_CHANGE, flush_on_change)) {}
-
-
-    Voices<PartialNote> process() override {
-        throw std::runtime_error("not implemented: "); // TODO: implement
-    }
-
-
-private:
-    Socket<Trigger>& m_pulse;
-    Socket<Facet>& m_material;
-    Socket<Facet>& m_pivot;
-    Socket<Facet>& m_distribution;
-    Socket<Facet>& m_flush_on_change;
-
-};
+//
+//// ==============================================================================================
+//
+//class DistributorNode : public NodeBase<PartialNote> {
+//public:
+//
+//    class DistributorKeys {
+//    public:
+//        static const inline std::string PULSE = "pulse_on";
+//        static const inline std::string MATERIAL = "material";
+//        static const inline std::string PIVOT = "pivot";
+//        static const inline std::string DISTRIBUTION = "distribution";
+//        static const inline std::string FLUSH_ON_CHANGE = "flush_on_change";
+//
+//        static const inline std::string CLASS_NAME = "distributor";
+//    };
+//
+//
+//    DistributorNode(const std::string& id
+//                    , ParameterHandler& parent
+//                    , Node<Trigger>* pulse
+//                    , Node<Facet>* material
+//                    , Node<Facet>* pivot
+//                    , Node<Facet>* distribution
+//                    , Node<Facet>* flush_on_change
+//                    , Node<Facet>* enabled
+//                    , Node<Facet>* num_voices)
+//            : NodeBase<PartialNote>(id, parent, enabled, num_voices, DistributorKeys::CLASS_NAME)
+//              , m_pulse(add_socket(DistributorKeys::PULSE, pulse))
+//              , m_material(add_socket(DistributorKeys::MATERIAL, material))
+//              , m_pivot(add_socket(DistributorKeys::PIVOT, pivot))
+//              , m_distribution(add_socket(DistributorKeys::DISTRIBUTION, distribution))
+//              , m_flush_on_change(add_socket(DistributorKeys::FLUSH_ON_CHANGE, flush_on_change)) {}
+//
+//
+//    Voices<PartialNote> process() override {
+//        throw std::runtime_error("not implemented: "); // TODO: implement
+//    }
+//
+//
+//private:
+//    Socket<Trigger>& m_pulse;
+//    Socket<Facet>& m_material;
+//    Socket<Facet>& m_pivot;
+//    Socket<Facet>& m_distribution;
+//    Socket<Facet>& m_flush_on_change;
+//
+//};
 
 #endif //SERIALISTLOOPER_DISTRIBUTOR_H

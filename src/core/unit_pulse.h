@@ -18,7 +18,7 @@ public:
 
 
     void update_time(const TimePoint& t) override {
-        m_current_value = Voices<Trigger>(Trigger(t.get_tick(), Trigger::Type::pulse, 1));
+        m_current_value = Voices<Trigger>(Trigger(t.get_tick(), Trigger::Type::pulse_on, 1));
     }
 
 

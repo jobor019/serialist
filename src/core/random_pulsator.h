@@ -140,7 +140,7 @@ public:
 
         for (std::size_t i = 0; i < num_voices; ++i) {
             if (auto trigger_time = m_pulsators.at(i).process(t->get_tick(), lower_bounds.at(i), upper_bounds.at(i))) {
-                m_current_value.append_to(i, {*trigger_time, Trigger::Type::pulse, static_cast<int>(i)});
+                m_current_value.append_to(i, {*trigger_time, Trigger::Type::pulse_on, static_cast<int>(i)});
             }
         }
 

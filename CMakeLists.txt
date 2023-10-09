@@ -59,6 +59,7 @@ add_library(serialistCore INTERFACE
         src/core/algo/collections/held.h
         src/core/algo/stat.h
         src/core/algo/classifiers.h
+        src/core/algo/collections/range.h
 )
 
 target_link_libraries(serialistCore INTERFACE magicEnum)

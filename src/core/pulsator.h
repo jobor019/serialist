@@ -138,7 +138,7 @@ private:
         for (std::size_t i = 0; i < new_voice_count; ++i) {
             if (!voice_has_trigger.at(i)) {
                 m_scheduler.add_event(std::make_unique<Trigger>(next_trigger_time
-                                                                , Trigger::Type::pulse
+                                                                , Trigger::Type::pulse_on
                                                                 , static_cast<int>(i)));
             }
         }
@@ -177,7 +177,7 @@ private:
             if (id < num_voices) { // discard any lingering triggers of old voices
                 output.append_to(id, *trigger);
 
-                if (trigger->get_type() == Trigger::Type::pulse) {
+                if (trigger->get_type() == Trigger::Type::pulse_on) {
                     if (t.get_tick() - trigger->get_time() > JUMP_THRESHOLD_TICKS) {
                         // Gap larger than reasonable drift occurred: do not apply drift compensation
                         throw std::runtime_error("scheduling jump/gap: not implemented"); // TODO
@@ -199,7 +199,7 @@ private:
 
         for (auto& trigger: m_scheduler.peek()) {
             auto id = static_cast<std::size_t>(trigger->get_id());
-            if (trigger->get_type() == Trigger::Type::pulse && id < num_voices) {
+            if (trigger->get_type() == Trigger::Type::pulse_on && id < num_voices) {
                 has_pulse_on.at(id) = true;
             }
         }
@@ -212,9 +212,9 @@ private:
         auto next_pulse_on = now + interval;
         auto next_pulse_off = now + interval * duty;
 
-        // if simultaneous: place pulse_off before pulse in scheduler's internal vector
+        // if simultaneous: place pulse_off before pulse_on in scheduler's internal vector
         m_scheduler.add_event(std::make_unique<Trigger>(next_pulse_off, Trigger::Type::pulse_off, id));
-        m_scheduler.add_event(std::make_unique<Trigger>(next_pulse_on, Trigger::Type::pulse, id));
+        m_scheduler.add_event(std::make_unique<Trigger>(next_pulse_on, Trigger::Type::pulse_on, id));
     }
 
 

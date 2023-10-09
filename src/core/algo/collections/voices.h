@@ -125,6 +125,9 @@ public:
     }
 
 
+    /**
+     * merges two `Voices<T>` of different sizes.
+     */
     Voices<T>& merge_uneven(const Voices<T>& other, bool overwrite_dimensions) {
         if (overwrite_dimensions && other.size() > m_voices.size()) {
             m_voices.resize_append(other.size(), Voice<T>());

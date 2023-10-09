@@ -41,15 +41,18 @@ public:
         while (v < end) {
             output.push_back(v);
             v += step;
-            if (v == end)
-                output.push_back(end);
         }
         return Vec<T>{output};
     }
 
 
-    static Vec<T>
-    repeated(std::size_t repetitions, const T& value) {
+    template<typename E = T, typename = std::enable_if_t<std::is_integral_v<E>>>
+    static Vec<T> range(T end) {
+        return Vec<T>::range(0, end);
+    }
+
+
+    static Vec<T> repeated(std::size_t repetitions, const T& value) {
         std::vector<T> output(repetitions, value);
         return Vec<T>{output};
     }
@@ -63,6 +66,18 @@ public:
             output.insert(output.end(), values.m_vector.begin(), values.m_vector.end());
         }
         return Vec<T>(std::move(output));
+    }
+
+
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    static Vec<T> ones(std::size_t size) {
+        return Vec<T>::repeated(size, static_cast<T>(1));
+    }
+
+
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    static Vec<T> zeros(std::size_t size) {
+        return Vec<T>::repeated(size, static_cast<T>(0));
     }
 
     // =========================== OPERATORS ==========================
@@ -225,6 +240,26 @@ public:
             output.push_back(f(element));
         }
         return Vec<U>(std::move(output));
+    }
+
+
+    template<typename E = T, typename = std::enable_if_t<std::is_integral_v<E>>>
+    Vec<bool> boolean_mask(std::optional<std::size_t> size = std::nullopt) const {
+        Vec<bool> output = Vec<bool>::repeated(size.value_or(max() + 1), false);
+        for (const auto& index: m_vector) {
+            output[index] = true;
+        }
+        return output;
+    }
+
+    template<typename U, typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool>>>
+    Vec<U> index_map() {
+        Vec<T> output;
+        for (std::size_t i = 0; i < m_vector.size(); ++i) {
+            if (m_vector[i])
+                output.append(i);
+        }
+        return output;
     }
 
 
@@ -468,12 +503,9 @@ public:
 
 
     bool contains(const Vec<T>& values) const {
-        for (const T& value: values) {
-            if (!contains(value)) {
-                return false;
-            }
-        }
-        return true;
+        return std::all_of(values.begin(), values.end(), [this](const T& value) {
+            return contains(value);
+        });
     }
 
 
@@ -483,7 +515,7 @@ public:
                 return true;
             }
         }
-        return true;
+        return false;
     }
 
 
@@ -559,7 +591,7 @@ public:
 
     template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
     Vec<T>& normalize() {
-        if (auto max_value = max(); max_value != 0.0) {
+        if (auto max_value = max(); max_value != static_cast<T>(0.0)) {
             auto scale_factor = 1 / max_value;
 
             for (auto& e: m_vector) {

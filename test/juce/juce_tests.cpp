@@ -54,7 +54,7 @@ TEST_CASE("Pulsator") {
 
         for (auto& vv: v.vector()) {
             for (auto& val: vv.vector()) {
-                if (val.get_type() == Trigger::Type::pulse) {
+                if (val.get_type() == Trigger::Type::pulse_on) {
                     std::cout << "PULSE(" << val.get_id() << "), ";
                 } else {
                     std::cout << "off(" << val.get_id() << "), ";

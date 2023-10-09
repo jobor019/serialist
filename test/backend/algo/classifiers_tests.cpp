@@ -15,7 +15,7 @@ TEST_CASE("LinearBandClassifier<int> Tests", "[LinearBandClassifier<int>]") {
     }
 
     SECTION("Get Number of Bands") {
-        REQUIRE(classifier.get_num_bands() == 10);
+        REQUIRE(classifier.get_num_classes() == 10);
     }
 
     SECTION("Start and End of Bands") {
@@ -38,7 +38,7 @@ TEST_CASE("LinearBandClassifier<double> Tests", "[LinearBandClassifier<double>]"
     }
 
     SECTION("Get Number of Bands") {
-        REQUIRE(classifier.get_num_bands() == 10);
+        REQUIRE(classifier.get_num_classes() == 10);
     }
 
     SECTION("Start and End of Bands") {
@@ -53,7 +53,7 @@ TEST_CASE("LinearBandClassifier<double> Tests", "[LinearBandClassifier<double>]"
 TEST_CASE("LinearBandClassifier<int> Additional Tests", "[LinearBandClassifier<int>]") {
     SECTION("Range: 10-59, Band Width: 10") {
         LinearBandClassifier classifier(10, 59, 10);
-        REQUIRE(classifier.get_num_bands() == 5);
+        REQUIRE(classifier.get_num_classes() == 5);
 
         REQUIRE(classifier.classify(15) == 0);
         REQUIRE(classifier.classify(20) == 1);
@@ -67,7 +67,7 @@ TEST_CASE("LinearBandClassifier<int> Additional Tests", "[LinearBandClassifier<i
 
     SECTION("Range: -30 to 60, Band Width: 15") {
         LinearBandClassifier classifier(-30, 60, 15);
-        REQUIRE(classifier.get_num_bands() == 6);
+        REQUIRE(classifier.get_num_classes() == 6);
 
         REQUIRE(classifier.classify(5) == 2);
         REQUIRE(classifier.classify(-20) == 0);

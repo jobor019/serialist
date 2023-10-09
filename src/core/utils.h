@@ -10,19 +10,19 @@
 
 namespace utils {
 
-template <typename T>
+template<typename T>
 struct is_printable {
-    template <typename U>
+    template<typename U>
     static auto test(int) -> decltype(std::cout << std::declval<U>(), std::true_type{});
 
-    template <typename U>
+    template<typename U>
     static std::false_type test(...);
 
     static constexpr bool value = decltype(test<T>(0))::value;
 };
 
 
-template <typename T>
+template<typename T>
 constexpr bool is_printable_v = is_printable<T>::value;
 
 // ==============================================================================================
@@ -97,15 +97,14 @@ std::vector<T*> collect_if(Args* ... args) {
  * @param d The divisor.
  * @return The remainder of the division `n` by `d`, always positive.
  */
-inline double modulo(double n, double d) {
-    return std::fmod(std::fmod(n, d) + d, d);
+template<typename T, typename = std::enable_if_t<std::is_integral_v<T> || std::is_floating_point_v<T>>>
+inline double modulo(T n, T d) {
+    if constexpr (std::is_integral_v<T>) {
+        return ((n % d) + d) % d;
+    } else {
+        return std::fmod(std::fmod(n, d) + d, d);
+    }
 }
-
-
-inline long modulo(long n, long d) {
-    return ((n % d) + d) % d;
-}
-
 
 // ==============================================================================================
 

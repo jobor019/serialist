@@ -4,7 +4,6 @@
 
 #include "core/algo/collections/vec.h"
 
-
 template<typename InputType>
 class LinearBandClassifier {
 public:
@@ -12,7 +11,7 @@ public:
             : m_min(min)
               , m_max(max)
               , m_band_width(band_width)
-              , m_num_bands(compute_n_bands(min, max, band_width)) {
+              , m_num_classes(compute_n_bands(min, max, band_width)) {
         static_assert(std::is_arithmetic_v<InputType>, "InputType must be an arithmetic type");
     }
 
@@ -20,30 +19,59 @@ public:
         if (value < m_min)
             return 0;
         if (value >= m_max) {
-            return m_num_bands - 1;
+            return m_num_classes - 1;
         }
 
         return static_cast<std::size_t>((value - m_min) / m_band_width);
     }
 
-    std::size_t get_num_bands() const {
-        return m_num_bands;
+    Vec<std::size_t> classify(const Vec<InputType>& values) const {
+        Vec<std::size_t> output(values.size());
+        for (std::size_t i = 0; i < values.size(); ++i) {
+            output[i] = classify(values[i]);
+        }
+        return output;
+    }
+
+    std::size_t get_num_classes() const {
+        return m_num_classes;
     }
 
     InputType start_of(std::size_t band) const {
-        if (band >= m_num_bands)
-            band = m_num_bands - 1;
+        if (band >= m_num_classes)
+            band = m_num_classes - 1;
 
         return m_min + static_cast<InputType>(band) * m_band_width;
     }
 
     InputType end_of(std::size_t band) const {
-        if (band >= m_num_bands)
+        if (band >= m_num_classes - 1)
             return m_max;
 
         return m_min + static_cast<InputType>(band + 1) * m_band_width;
     }
 
+    std::pair<InputType, InputType> bounds_of(std::size_t band) const {
+        return std::make_pair(start_of(band), end_of(band));
+    }
+
+
+    void set_min(InputType min) {
+        m_min = min;
+        m_num_classes = compute_n_bands(m_min, m_max, m_band_width);
+    }
+
+
+    void set_max(InputType max) {
+        m_max = max;
+        m_num_classes = compute_n_bands(m_min, m_max, m_band_width);
+    }
+
+
+    void set_band_width(InputType band_width) {
+        m_band_width = band_width;
+        m_num_classes = compute_n_bands(m_min, m_max, m_band_width);
+    }
 
 
 private:
@@ -60,7 +88,7 @@ private:
     InputType m_max;
     InputType m_band_width;
 
-    std::size_t m_num_bands;
+    std::size_t m_num_classes;
 };
 
 

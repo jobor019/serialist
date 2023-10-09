@@ -75,9 +75,17 @@ public:
         return m_voiced_held.flush();
     }
 
+    Vec<T> flush(std::size_t voice_index) {
+        return m_voiced_held.flush(voice_index);
+    }
+
 
     Voices<T> resize(std::size_t num_voices) {
         return m_voiced_held.resize(num_voices);
+    }
+
+    std::size_t size() const {
+        return m_voiced_held.size();
     }
 
 

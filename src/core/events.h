@@ -27,7 +27,7 @@ public:
 class Trigger : public Event {
 public:
     enum class Type {
-        pulse
+        pulse_on
         , pulse_off
     };
 

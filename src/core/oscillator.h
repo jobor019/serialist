@@ -228,7 +228,7 @@ public:
         std::vector<Facet> output = m_current_value.adapted_to(num_voices).fronts_or(Facet(0.0));
 
         for (std::size_t i = 0; i < num_voices; ++i) {
-            if (Trigger::contains(triggers.at(i), Trigger::Type::pulse)) {
+            if (Trigger::contains(triggers.at(i), Trigger::Type::pulse_on)) {
                 double position = m_oscillators.at(i).process(t.get_tick(), types.at(i), freqs.at(i), muls.at(i)
                                                               , adds.at(i), dutys.at(i), curves.at(i), steppeds.at(i));
                 output.at(i) = static_cast<Facet>(position);
