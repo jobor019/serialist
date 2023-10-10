@@ -31,16 +31,44 @@ public:
     }
 
 
-    explicit Voices(std::size_t num_voices) : Voices(empty_like(num_voices)) {}
+    static Voices<T> zeros(std::size_t num_voices) {
+        return Voices<T>(Voices<T>::create_empty_like(num_voices));
+    }
 
+    static Voices<T> empty_like() {
+        return Voices<T>(Voices<T>::create_empty_like(1));
+    }
 
-    static Voices<T> create_empty_like() { return Voices<T>(empty_like(1)); }
+    static Voices<T> singular(const T& value, std::size_t num_voices = 1) {
+        return one_hot(value, 0, num_voices);
+    }
+
+    static Voices<T> one_hot(const T& value, std::size_t index, std::size_t num_voices) {
+        auto voices = Voices<T>::zeros(num_voices);
+        voices[index].append(value);
+        return std::move(voices);
+    }
+
+    static Voices<T> one_hot(const Vec<T>& values, std::size_t index, std::size_t num_voices) {
+        auto voices = Voices<T>::zeros(num_voices);
+        voices[index] = values;
+        return voices;
+    }
+
+    static Voices<T> repeated(const T& value, std::size_t num_voices) {
+        auto v = Vec<Voice<T>>::repeated(num_voices, {value});
+        return Voices<T>(std::move(v));
+    }
+
+//    static decltype(auto) allocated(std::size_t num_voices) {
+//        return Voices<T>::zeros(num_voices);
+//    }
 
 
     static Voices<T> transposed(const Voice<T>& voice) {
-        Vec<Voice<T>> output;
+        auto output = Vec<Voice<T>>::allocated(voice.size());
         for (auto& v: voice.vector()) {
-            output.append(Voice<T>(v));
+            output.append(Voice<T>::singular(v));
         }
         return Voices<T>(std::move(output));
     }
@@ -107,7 +135,7 @@ public:
 
 
     void clear(std::size_t num_voices = 1) {
-        m_voices = empty_like(num_voices);
+        m_voices = create_empty_like(num_voices);
     }
 
 
@@ -251,11 +279,13 @@ public:
 
 
 private:
-    static Vec<Voice<T>> empty_like(std::size_t num_voices) {
-        assert(num_voices > 0);
+    static Vec<Voice<T>> create_empty_like(std::size_t num_voices) {
+        if (num_voices == 0) {
+            throw std::invalid_argument("num_voices must be greater than 0");
+        }
+
         return Vec<Voice<T>>::repeated(num_voices, Voice<T>());
     }
-
 
     Vec<Voice<T>> m_voices;
 

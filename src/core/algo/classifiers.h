@@ -26,9 +26,9 @@ public:
     }
 
     Vec<std::size_t> classify(const Vec<InputType>& values) const {
-        Vec<std::size_t> output(values.size());
-        for (std::size_t i = 0; i < values.size(); ++i) {
-            output[i] = classify(values[i]);
+        auto output = Vec<std::size_t>::allocated(values.size());
+        for (const auto& v: values) {
+            output.append(classify(v));
         }
         return output;
     }
@@ -73,6 +73,11 @@ public:
         m_num_classes = compute_n_bands(m_min, m_max, m_band_width);
     }
 
+    void set_num_classes(std::size_t num_classes) {
+        m_num_classes = num_classes;
+        m_band_width = compute_band_width(m_min, m_max, m_num_classes);
+    }
+
 
 private:
 
@@ -81,6 +86,13 @@ private:
             return static_cast<std::size_t>(std::ceil(static_cast<double>(max - min) / static_cast<double>(band_width)));
         }
         return static_cast<std::size_t>((max - min) / band_width);
+    }
+
+    static InputType compute_band_width(const InputType& min, const InputType& max, const std::size_t num_classes) {
+        if constexpr (std::is_integral_v<InputType>) {
+            return static_cast<InputType>(std::ceil(static_cast<double>(max - min) / static_cast<double>(num_classes)));
+        }
+        return static_cast<InputType>((max - min) / num_classes);
     }
 
 

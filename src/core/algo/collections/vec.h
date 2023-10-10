@@ -29,7 +29,16 @@ public:
     }
 
 
-    explicit Vec(const T& value) : m_vector({std::move(value)}) {}
+    static Vec<T> singular(const T& value) {
+        return Vec<T>({value});
+    }
+
+
+    static Vec<T> allocated(std::size_t size) {
+        Vec<T> v;
+        v.vector_mut().reserve(size);
+        return std::move(v);
+    }
 
 
     template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
@@ -80,7 +89,16 @@ public:
         return Vec<T>::repeated(size, static_cast<T>(0));
     }
 
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    static Vec<T> one_hot(const T& value, std::size_t index, std::size_t size) {
+        auto v = Vec<T>::zeros(size);
+        v[index] = value;
+        return std::move(v);
+    }
+
+
     // =========================== OPERATORS ==========================
+
 
     bool operator==(const Vec<T>& other) const {
         return m_vector == other.m_vector;
@@ -181,8 +199,6 @@ public:
 
     decltype(auto) end() const { return m_vector.end(); }
 
-//    decltype(auto) first() { return m_vector.first(); }
-//    decltype(auto) first() const { return m_vector.first(); }
 
     decltype(auto) back() { return m_vector.back(); }
 
@@ -191,6 +207,7 @@ public:
 
 
     // =========================== CLONING / COPYING ==========================
+
 
     Vec<T> cloned() const {
         return Vec<T>(m_vector);
@@ -251,6 +268,7 @@ public:
         }
         return output;
     }
+
 
     template<typename U, typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool>>>
     Vec<U> index_map() {
@@ -325,12 +343,6 @@ public:
     }
 
 
-//    Vec<T>& reserve(std::size_t n) {
-//        m_vector.reserve(n);
-//        return *this;
-//    }
-
-
     Vec<T>& resize_append(std::size_t new_size, const T& append_value) {
         if (new_size == 0)
             m_vector.clear();
@@ -361,7 +373,9 @@ public:
         return *this;
     }
 
+
     // // =========================== FUNCTIONAL ==========================
+
 
     Vec<T>& map(std::function<T(T)> f) {
         for (std::size_t i = 0; i < m_vector.size(); ++i) {
@@ -462,6 +476,14 @@ public:
         return value;
     }
 
+    bool all(std::function<bool(T)> f) const {
+        return std::all_of(m_vector.begin(), m_vector.end(), f);
+    }
+
+    bool any(std::function<bool(T)> f) const {
+        return std::any_of(m_vector.begin(), m_vector.end(), f);
+    }
+
 
     /**
      * Removes all elements for which `f` returns false from the original Vec and returns them as a separate vector
@@ -482,6 +504,7 @@ public:
 
 
     // =========================== MISC ==========================
+
 
     void print() const {
         std::cout << "[";
@@ -550,8 +573,8 @@ public:
         return static_cast<U>(m_vector.at(0));
     }
 
-    // ======================== ARITHMETIC OPERATIONS ========================
 
+    // ======================== ARITHMETIC OPERATIONS ========================
 
 
     template<typename... Args, typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>

@@ -19,22 +19,72 @@ TEST_CASE("Voices constructor with a vector of Voice objects") {
 
 
 TEST_CASE("Voices constructor with a number of voices") {
-    Voices<int> voices(4);
+    auto voices = Voices<int>::zeros(4);
 
     REQUIRE(voices.size() == 4);
     REQUIRE(voices.is_empty_like() == true);
 }
 //
 TEST_CASE("Voices::create_empty_like") {
-    Voices<int> emptyVoices = Voices<int>::create_empty_like();
+    Voices<int> emptyVoices = Voices<int>::empty_like();
 
     REQUIRE(emptyVoices.size() == 1);
     REQUIRE(emptyVoices.is_empty_like() == true);
 }
 
 
+TEST_CASE("Voices::zeros") {
+    SECTION("Create Voices with zero values") {
+        auto voices = Voices<int>::zeros(4);
+
+        REQUIRE(voices.size() == 4);
+        REQUIRE(voices.is_empty_like() == true);
+    }
+
+    SECTION("Create Voices with zero values and specify the number of voices") {
+        auto voices = Voices<int>::zeros(6);
+
+        REQUIRE(voices.size() == 6);
+        REQUIRE(voices.is_empty_like() == true);
+    }
+}
+
+TEST_CASE("Voices::singular") {
+    SECTION("Create a single Voice with a specific value") {
+        auto voices = Voices<int>::singular(42);
+
+        REQUIRE(voices.size() == 1);
+        REQUIRE(voices.first().value() == 42);
+    }
+
+    SECTION("Create multiple Voices with the same value") {
+        auto voices = Voices<int>::singular(99, 5);
+
+        REQUIRE(voices.size() == 5);
+        REQUIRE(voices[0].first().has_value());
+        REQUIRE(voices[0].first().value() == 99);
+        REQUIRE_FALSE(voices[1].first().has_value());
+        REQUIRE_FALSE(voices[2].first().has_value());
+        REQUIRE_FALSE(voices[3].first().has_value());
+        REQUIRE_FALSE(voices[4].first().has_value());
+    }
+}
+
+TEST_CASE("Voices::repeated") {
+    SECTION("Create multiple Voices with repeated values") {
+        auto voices = Voices<int>::repeated(7, 3);
+
+        REQUIRE(voices.size() == 3);
+        for (const auto& voice : voices) {
+            REQUIRE(voice.first().value() == 7);
+        }
+    }
+}
+
+
+
 TEST_CASE("Voices::transposed") {
-    Voice<int> voice1 = {1, 2, 3};
+    auto voice1 = Voice<int>{1, 2, 3};
     Voices<int> voices = Voices<int>::transposed(voice1);
 
     REQUIRE(voices.size() == 3);
@@ -43,14 +93,14 @@ TEST_CASE("Voices::transposed") {
 
 
 TEST_CASE("Voices::operator==") {
-    Voice<int> voice1 = {1, 2, 3};
-    Voice<int> voice2 = {4, 5, 6};
+    auto voice1 = Voice<int>{1, 2, 3};
+    auto voice2 = Voice<int>{4, 5, 6};
     Voices<int> voices1({voice1, voice2});
     Voices<int> voices2({voice1, voice2});
 
     REQUIRE(voices1 == voices2);
 
-    Voice<int> voice3 = {7, 8, 9};
+    auto voice3 = Voice<int>{7, 8, 9};
     Voices<int> voices3({voice1, voice3});
 
     REQUIRE_FALSE(voices1 == voices3);
@@ -58,7 +108,7 @@ TEST_CASE("Voices::operator==") {
 
 
 TEST_CASE("Voices::cloned") {
-    Voice<int> voice1 = {1, 2, 3};
+    auto voice1 = Voice<int>{1, 2, 3};
     Voices<int> voices1({voice1});
 
     Voices<int> voices2 = voices1.cloned();
@@ -68,7 +118,7 @@ TEST_CASE("Voices::cloned") {
 
 
 TEST_CASE("Voices::clear") {
-    Voice<int> voice1 = {1, 2, 3};
+    auto voice1 = Voice<int>{1, 2, 3};
     Voices<int> voices1({voice1});
 
     voices1.clear();
@@ -84,9 +134,9 @@ TEST_CASE("Voices::clear") {
 
 
 TEST_CASE("Voices::size") {
-    Voice<int> voice1 = {1, 2, 3};
+    auto voice1 = Voice<int>{1, 2, 3};
     Voices<int> voices1({voice1});
-    Voices<int> voices2(5);
+    auto voices2 = Voices<int>::zeros(5);
 
     REQUIRE(voices1.size() == 1);
     REQUIRE(voices2.size() == 5);
@@ -94,8 +144,8 @@ TEST_CASE("Voices::size") {
 
 
 TEST_CASE("Voices::merge") {
-    Voice<int> voice1 = {1, 2, 3};
-    Voice<int> voice2 = {4, 5, 6};
+    auto voice1 = Voice<int>{1, 2, 3};
+    auto voice2 = Voice<int>{4, 5, 6};
     Voices<int> voices1({voice1});
     Voices<int> voices2({voice2});
 
@@ -108,8 +158,8 @@ TEST_CASE("Voices::merge") {
 
 
 TEST_CASE("Voices::merge_uneven") {
-    Voice<int> voice1 = {1, 2, 3};
-    Voice<int> voice2 = {4, 5, 6, 7};
+    auto voice1 = Voice<int>{1, 2, 3};
+    auto voice2 = Voice<int>{4, 5, 6, 7};
     Voices<int> voices1({voice1});
     Voices<int> voices2({voice2});
 
@@ -129,12 +179,12 @@ TEST_CASE("Voices::merge_uneven") {
 
 
 TEST_CASE("Voices::is_empty_like") {
-    Voice<int> voice1 = {};
+    auto voice1 = Voice<int>{};
     Voices<int> voices1({voice1});
 
     REQUIRE(voices1.is_empty_like() == true);
 
-    Voice<int> voice2 = {1};
+    auto voice2 = Voice<int>::singular(1);
     Voices<int> voices2({voice2});
 
     REQUIRE(voices2.is_empty_like() == false);
@@ -142,32 +192,32 @@ TEST_CASE("Voices::is_empty_like") {
 
 
 TEST_CASE("Voices::first") {
-    Voice<int> voice1 = {1, 2, 3};
+    auto voice1 = Voice<int>{1, 2, 3};
     Voices<int> voices1({voice1});
 
     REQUIRE(voices1.first().value() == 1);
 
-    Voices<int> emptyVoices(1);
+     auto emptyVoices = Voices<int>::empty_like();
 
     REQUIRE_FALSE(emptyVoices.first().has_value());
 }
 
 
 TEST_CASE("Voices::first_or") {
-    Voice<int> voice1 = {1, 2, 3};
+    auto voice1 = Voice<int>{1, 2, 3};
     Voices<int> voices1({voice1});
 
     REQUIRE(voices1.first_or(100) == 1);
 
-    Voices<int> emptyVoices(1);
+    auto emptyVoices = Voices<int>::empty_like();
 
     REQUIRE(emptyVoices.first_or(100) == 100);
 }
 
 
 TEST_CASE("Voices::fronts") {
-    Voice<int> voice1 = {1, 2, 3};
-    Voice<int> voice2 = {4, 5, 6};
+    auto voice1 = Voice<int>{1, 2, 3};
+    auto voice2 = Voice<int>{4, 5, 6};
     Voices<int> voices1({voice1, voice2});
 
     Vec<std::optional<int>> fronts = voices1.fronts();
@@ -176,7 +226,7 @@ TEST_CASE("Voices::fronts") {
     REQUIRE(fronts[0].value() == 1);
     REQUIRE(fronts[1].value() == 4);
 
-    Voices<int> emptyVoices(2);
+    auto emptyVoices = Voices<int>::zeros(2);
 
     fronts = emptyVoices.fronts();
 
@@ -187,8 +237,8 @@ TEST_CASE("Voices::fronts") {
 
 
 TEST_CASE("Voices::fronts_or") {
-    Voice<int> voice1 = {1, 2, 3};
-    Voice<int> voice2 = {4, 5, 6};
+    auto voice1 = Voice<int>{1, 2, 3};
+    auto voice2 = Voice<int>{4, 5, 6};
     Voices<int> voices1({voice1, voice2});
 
     Vec<int> fronts = voices1.fronts_or(100);
@@ -197,7 +247,7 @@ TEST_CASE("Voices::fronts_or") {
     REQUIRE(fronts[0] == 1);
     REQUIRE(fronts[1] == 4);
 
-    Voices<int> emptyVoices(2);
+    auto emptyVoices = Voices<int>::zeros(2);
 
     fronts = emptyVoices.fronts_or(100);
 
@@ -208,7 +258,7 @@ TEST_CASE("Voices::fronts_or") {
 
 
 TEST_CASE("Voices::adapted_to") {
-    Voice<int> voice1 = {1, 2, 3};
+    auto voice1 = Voice<int>{1, 2, 3};
     Voices<int> voices1({voice1});
 
     Voices<int> voices2 = voices1.adapted_to(3);
@@ -220,7 +270,7 @@ TEST_CASE("Voices::adapted_to") {
 
 
 TEST_CASE("Voices::as_type") {
-    Voice<int> voice1 = {1, 2, 3};
+    auto voice1 = Voice<int>{1, 2, 3};
     Voices<int> voices1({voice1});
 
     Voices<double> voices2 = voices1.as_type<double>();
@@ -228,7 +278,7 @@ TEST_CASE("Voices::as_type") {
 
 
 TEST_CASE("Voices::vec and Voices::vec_mut") {
-    Voice<int> voice1 = {1, 2, 3};
+    auto voice1 = Voice<int>{1, 2, 3};
     Voices<int> voices1({voice1});
 
     const Vec<Voice<int>>& constVec = voices1.vec();

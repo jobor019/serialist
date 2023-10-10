@@ -12,6 +12,7 @@
 #include "core/algo/classifiers.h"
 #include "core/algo/stat.h"
 #include "core/algo/random.h"
+#include "events.h"
 
 class Allocator {
 public:
@@ -22,9 +23,11 @@ public:
         if (m_configuration_changed)
             update_configuration();
 
-        Voices<NoteNumber> note_offs(num_voices);
+        auto note_offs = Voices<NoteNumber>::zeros(num_voices);
         for (std::size_t i = 0; i < num_voices; ++i) {
-            if (triggers[i].contains([](const Trigger& t) { return t.get_type() == Trigger::Type::pulse_off; })) {
+            if (triggers[i].contains([](const Trigger& t) {
+                return t.get_type() == Trigger::Type::pulse_off || t.get_type() == Trigger::Type::pulse_on;
+            })) {
                 note_offs[i].extend(m_currently_held.flush(i));
             }
         }
@@ -40,7 +43,7 @@ public:
         auto histogram = Histogram<std::size_t>(classes, Vec<std::size_t>::range(m_classifier.get_num_classes()));
         auto counts = histogram.get_counts().cloned().multiply(0UL, m_invalid_bins);
 
-        Voices<NoteNumber> output(num_voices);
+        auto output = Voices<NoteNumber>::zeros(num_voices);
 
         for (std::size_t voice = 0; voice < num_voices; ++voice) {
             if (triggers[voice].contains([](const Trigger& t) { return t.get_type() == Trigger::Type::pulse_on; })) {
@@ -50,8 +53,10 @@ public:
                 auto note = m_pitch_selector.select_from(m_classifier.start_of(class_idx)
                                                          , m_classifier.end_of(class_idx)
                                                          , m_enabled_pitch_classes);
-                m_currently_held.bind(note, voice);
-                output[voice].append(note);
+                if (note.has_value()) {
+                    m_currently_held.bind(*note, voice);
+                    output[voice].append(*note);
+                }
             }
         }
 
@@ -76,9 +81,24 @@ public:
 
 
     void set_spectrum_distribution(const Vec<double>& spectrum_distribution) {
-        m_spectrum_distribution = spectrum_distribution;
-        m_classifier.set_band_width(static_cast<NoteNumber>(spectrum_distribution.size()));
+        m_spectrum_distribution = spectrum_distribution.cloned().normalize();
+        m_classifier.set_num_classes(spectrum_distribution.size());
         m_configuration_changed = true;
+    }
+
+
+    const LinearBandClassifier<NoteNumber>& get_classifier() const {
+        return m_classifier;
+    }
+
+
+    const Vec<double>& get_spectrum_distribution() const {
+        return m_spectrum_distribution;
+    }
+
+
+    const PitchSelector& get_pitch_selector() const {
+        return m_pitch_selector;
     }
 
 

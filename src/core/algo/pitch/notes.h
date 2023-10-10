@@ -10,9 +10,9 @@
 
 
 namespace pitch {
-static const int MIN_NOTE = 21;
-static const int MAX_NOTE = 108;
-static const int NOTE_RANGE = MAX_NOTE - MIN_NOTE;
+static const unsigned int MIN_NOTE = 21;
+static const unsigned int MAX_NOTE = 108;
+static const unsigned int NOTE_RANGE = MAX_NOTE - MIN_NOTE;
 } // namespace pitch
 
 
@@ -36,7 +36,12 @@ public:
 
 
     bool is_in(NoteNumber note) const {
-        return m_mask[utils::modulo(note - m_transposition, m_pivot)];
+        return m_mask[classify(note)];
+    }
+
+
+    NoteNumber classify(NoteNumber note) const {
+        return utils::modulo(note - m_transposition, m_pivot);
     }
 
 
@@ -57,13 +62,18 @@ public:
     explicit PitchSelector(std::optional<unsigned int> seed = std::nullopt) : m_random(seed) {}
 
 
-    NoteNumber select_from(NoteNumber start
-                           , NoteNumber end
-                           , const PitchClassRange& enabled_pitch_classes) {
-        return m_random.choice(Vec<NoteNumber>::range(start, end)
-                                       .filter([&enabled_pitch_classes](NoteNumber note) {
-                                           return enabled_pitch_classes.is_in(note);
-                                       }));
+    std::optional<NoteNumber> select_from(NoteNumber start
+                                          , NoteNumber end
+                                          , const PitchClassRange& enabled_pitch_classes) {
+        auto pitches = Vec<NoteNumber>::range(start, end)
+                .filter([&enabled_pitch_classes](NoteNumber note) {
+                    return enabled_pitch_classes.is_in(note);
+                });
+
+        if (pitches.empty())
+            return std::nullopt;
+
+        return {m_random.choice(pitches)};
     }
 
 

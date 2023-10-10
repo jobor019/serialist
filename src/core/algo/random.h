@@ -34,7 +34,7 @@ public:
     template<typename T>
     const T& choice(const Vec<T>& values) {
         if (values.empty()) {
-            throw std::invalid_argument("Cannot choose from an empty vector");
+            throw std::invalid_argument("Cannot choose from empty values");
         }
 
         return values[static_cast<std::size_t>(std::floor(m_distribution(m_rng) * static_cast<double>(values.size())))];
@@ -55,7 +55,7 @@ public:
     template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
     std::size_t weighted_choice(const Vec<T>& weights) {
         if (weights.empty()) {
-            throw std::invalid_argument("Cannot choose from an empty vector");
+            throw std::invalid_argument("Cannot choose from empty weights");
         }
 
         auto cdf = weights.cloned().cumsum();

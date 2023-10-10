@@ -33,7 +33,7 @@ public:
 
     template<typename E = DataType, typename = std::enable_if_t<std::is_base_of_v<Flushable<E>, ObjectType>>>
     Voices<DataType> flush() {
-        Voices<DataType> output(m_objects.size());
+        auto output = Voices<DataType>::zeros(m_objects.size());
 
         for (std::size_t i = 0; i < m_objects.size(); ++i) {
             auto e = m_objects[i].flush();
@@ -54,7 +54,7 @@ public:
     std::enable_if_t<std::is_base_of_v<Flushable<E>, ObjectType>, Voices<DataType>>
     resize(std::size_t new_size) {
         assert(new_size > 0);
-        Voices<DataType> flushed(m_objects.size()); // old object size
+        auto flushed = Voices<DataType>::zeros(m_objects.size()); // old object size
 
         if (new_size < m_objects.size()) {
             for (std::size_t i = new_size; i < m_objects.size(); ++i) {
@@ -72,6 +72,7 @@ public:
         m_objects.resize_append(new_size, ObjectType());
     }
 
+
     const Vec<ObjectType>& get_objects() const {
         return m_objects;
     }
@@ -81,15 +82,15 @@ public:
         return m_objects;
     }
 
+
     std::size_t size() const {
         return m_objects.size();
     }
 
+
 private:
     Vec<ObjectType> m_objects;
 };
-
-
 
 
 #endif //SERIALISTLOOPER_MULTI_VOICED_H

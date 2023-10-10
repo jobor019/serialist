@@ -266,6 +266,7 @@ add_executable(tests EXCLUDE_FROM_ALL
         test/backend/algo/random_tests.cpp
         test/backend/algo/stat_tests.cpp
         test/backend/algo/classifiers_tests.cpp
+        test/backend/allocator_tests.cpp
 )
 
 target_link_libraries(tests

@@ -98,7 +98,7 @@ std::vector<T*> collect_if(Args* ... args) {
  * @return The remainder of the division `n` by `d`, always positive.
  */
 template<typename T, typename = std::enable_if_t<std::is_integral_v<T> || std::is_floating_point_v<T>>>
-inline double modulo(T n, T d) {
+inline T modulo(T n, T d) {
     if constexpr (std::is_integral_v<T>) {
         return ((n % d) + d) % d;
     } else {

@@ -22,6 +22,26 @@ TEST_CASE("Vec Constructors", "[constructor]") {
 }
 
 
+TEST_CASE("Vec operator[]", "[operator]") {
+    SECTION("Accessing element") {
+        Vec v1({1, 2, 3});
+        REQUIRE(v1[0] == 1);
+        REQUIRE(v1[1] == 2);
+        REQUIRE(v1[2] == 3);
+    }
+
+    SECTION("Accessing out of bounds") {
+        Vec v1({1, 2, 3});
+        REQUIRE_THROWS(v1[3]);
+    }
+
+    SECTION("Reassignment") {
+        Vec v1({1, 2, 3});
+        v1[0] = 4;
+        REQUIRE(v1[0] == 4);
+    }
+}
+
 TEST_CASE("Vec operator==", "[operator]") {
     Vec v1({1, 2, 3});
     Vec v2({1, 2, 3});
