@@ -33,7 +33,7 @@ public:
     bool has_changed() {
         std::lock_guard lock{m_mutex};
         // Note: calling Node.process() multiple times in the same time step won't change the node's value
-        return m_previous_value = process_internal();
+        return m_previous_value != process_internal();
     }
 
 
@@ -85,7 +85,7 @@ public:
 protected:
     Voices<T> process_internal() {
         if (m_node == nullptr)
-            return Voices<T>::create_empty_like();
+            return Voices<T>::empty_like();
         return m_node->process();
     }
 
@@ -109,7 +109,7 @@ private:
     std::mutex m_mutex;
     Node<T>* m_node = nullptr;
 
-    Voices<T> m_previous_value = Voices<T>::create_empty_like();
+    Voices<T> m_previous_value = Voices<T>::empty_like();
 };
 
 

@@ -79,6 +79,10 @@ public:
     }
 
 
+    bool operator==(const Facet& other) const {
+        return std::abs(m_value - other.m_value) < enum_epsilon;
+    }
+
     bool operator==(const bool b) const {
         return static_cast<bool>(*this) == b;
     }
@@ -117,28 +121,28 @@ public:
     }
 
 
-//    template<typename OutputType, std::enable_if_t<std::is_arithmetic_v<OutputType>, int> = 0>
-//    Facet operator+(const OutputType& t) {
-//        return Facet(m_value + t);
-//    }
-//
-//
-//    template<typename OutputType, std::enable_if_t<std::is_arithmetic_v<OutputType>, int> = 0>
-//    Facet operator-(const OutputType& t) {
-//        return Facet(m_value - t);
-//    }
-//
-//
-//    template<typename OutputType, std::enable_if_t<std::is_arithmetic_v<OutputType>, int> = 0>
-//    Facet operator*(const OutputType& t) {
-//        return Facet(m_value * t);
-//    }
-//
-//
-//    template<typename OutputType, std::enable_if_t<std::is_arithmetic_v<OutputType>, int> = 0>
-//    Facet operator/(const OutputType& t) {
-//        return Facet(m_value / t);
-//    }
+    template<typename OutputType, std::enable_if_t<std::is_arithmetic_v<OutputType>, int> = 0>
+    Facet operator+(const OutputType& t) {
+        return Facet(m_value + t);
+    }
+
+
+    template<typename OutputType, std::enable_if_t<std::is_arithmetic_v<OutputType>, int> = 0>
+    Facet operator-(const OutputType& t) {
+        return Facet(m_value - t);
+    }
+
+
+    template<typename OutputType, std::enable_if_t<std::is_arithmetic_v<OutputType>, int> = 0>
+    Facet operator*(const OutputType& t) {
+        return Facet(m_value * t);
+    }
+
+
+    template<typename OutputType, std::enable_if_t<std::is_arithmetic_v<OutputType>, int> = 0>
+    Facet operator/(const OutputType& t) {
+        return Facet(m_value / t);
+    }
 
 
 
@@ -215,6 +219,12 @@ private:
     double m_value;
 
 };
+
+
+// ==============================================================================================
+
+template<>
+struct std::is_floating_point<Facet> : std::true_type {};
 
 
 #endif //SERIALISTLOOPER_FACET_H

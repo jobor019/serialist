@@ -13,6 +13,8 @@
 #include "core/algo/stat.h"
 #include "core/algo/random.h"
 #include "events.h"
+#include "partial_note.h"
+#include "node_base.h"
 
 class Allocator {
 public:
@@ -47,17 +49,11 @@ public:
                 .normalize_l1()
                 .multiply(static_cast<double>(num_voices));
 
-//        std::cout << "weights: " ;
-//        weights.print();
-//        std::cout << "counts: " ;
-//        counts.print();
-
         auto output = Voices<NoteNumber>::zeros(num_voices);
 
         for (std::size_t voice = 0; voice < num_voices; ++voice) {
             if (triggers[voice].contains([](const Trigger& t) { return t.get_type() == Trigger::Type::pulse_on; })) {
                 auto distribution = (weights - counts.as_type<double>()).clip({0}, std::nullopt);
-//                distribution.print();
                 auto class_idx = m_random.weighted_choice(distribution);
                 counts[class_idx] += 1;
                 auto note = m_pitch_selector.select_from(m_classifier.start_of(class_idx)
@@ -146,53 +142,66 @@ private:
     bool m_configuration_changed = false;
 };
 
-//
-//// ==============================================================================================
-//
-//class DistributorNode : public NodeBase<PartialNote> {
-//public:
-//
-//    class DistributorKeys {
-//    public:
-//        static const inline std::string PULSE = "pulse_on";
-//        static const inline std::string MATERIAL = "material";
-//        static const inline std::string PIVOT = "pivot";
-//        static const inline std::string DISTRIBUTION = "distribution";
-//        static const inline std::string FLUSH_ON_CHANGE = "flush_on_change";
-//
-//        static const inline std::string CLASS_NAME = "distributor";
-//    };
-//
-//
-//    DistributorNode(const std::string& id
-//                    , ParameterHandler& parent
-//                    , Node<Trigger>* pulse
-//                    , Node<Facet>* material
-//                    , Node<Facet>* pivot
-//                    , Node<Facet>* distribution
-//                    , Node<Facet>* flush_on_change
-//                    , Node<Facet>* enabled
-//                    , Node<Facet>* num_voices)
-//            : NodeBase<PartialNote>(id, parent, enabled, num_voices, DistributorKeys::CLASS_NAME)
-//              , m_pulse(add_socket(DistributorKeys::PULSE, pulse))
-//              , m_material(add_socket(DistributorKeys::MATERIAL, material))
-//              , m_pivot(add_socket(DistributorKeys::PIVOT, pivot))
-//              , m_distribution(add_socket(DistributorKeys::DISTRIBUTION, distribution))
-//              , m_flush_on_change(add_socket(DistributorKeys::FLUSH_ON_CHANGE, flush_on_change)) {}
-//
-//
-//    Voices<PartialNote> process() override {
-//        throw std::runtime_error("not implemented: "); // TODO: implement
-//    }
-//
-//
-//private:
-//    Socket<Trigger>& m_pulse;
-//    Socket<Facet>& m_material;
-//    Socket<Facet>& m_pivot;
-//    Socket<Facet>& m_distribution;
-//    Socket<Facet>& m_flush_on_change;
-//
-//};
+
+// ==============================================================================================
+
+class AllocatorNode : public NodeBase<PartialNote> {
+public:
+
+    class AllocatorKeys {
+    public:
+        static const inline std::string PULSE = "pulse_on";
+        static const inline std::string MATERIAL = "material";
+        static const inline std::string PIVOT = "pivot";
+        static const inline std::string DISTRIBUTION = "distribution";
+        static const inline std::string FLUSH_ON_CHANGE = "flush_on_change";
+
+        static const inline std::string CLASS_NAME = "distributor";
+    };
+
+
+    AllocatorNode(const std::string& id
+                  , ParameterHandler& parent
+                  , Node<Trigger>* pulse
+                  , Node<Facet>* material
+                  , Node<Facet>* pivot
+                  , Node<Facet>* distribution
+                  , Node<Facet>* flush_on_change
+                  , Node<Facet>* enabled
+                  , Node<Facet>* num_voices)
+            : NodeBase<PartialNote>(id, parent, enabled, num_voices, AllocatorKeys::CLASS_NAME)
+              , m_pulse(add_socket(AllocatorKeys::PULSE, pulse))
+              , m_pitch_classes(add_socket(AllocatorKeys::MATERIAL, material))
+              , m_pivot(add_socket(AllocatorKeys::PIVOT, pivot))
+              , m_distribution(add_socket(AllocatorKeys::DISTRIBUTION, distribution))
+              , m_flush_on_change(add_socket(AllocatorKeys::FLUSH_ON_CHANGE, flush_on_change)) {}
+
+
+    Voices<PartialNote> process() override {
+        auto t = pop_time();
+        if (!t) // process has already been called this cycle
+            return m_current_value;
+
+        if (!is_enabled() || !m_pulse.is_connected()
+            || !m_pitch_classes.is_connected() || m_distribution.is_connected()) {
+            m_current_value = Voices<PartialNote>::empty_like();
+            return m_current_value;
+        }
+
+        auto triggers = m_pulse.process();
+        auto material = m_pitch_classes.process();
+    }
+
+
+private:
+    Socket<Trigger>& m_pulse;
+    Socket<Facet>& m_pitch_classes;
+    Socket<Facet>& m_pivot;
+    Socket<Facet>& m_distribution;
+    Socket<Facet>& m_flush_on_change;
+
+    Voices<PartialNote> m_current_value = Voices<PartialNote>::empty_like();
+
+};
 
 #endif //SERIALISTLOOPER_ALLOCATOR_H

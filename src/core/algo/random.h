@@ -21,10 +21,20 @@ public:
     }
 
 
+
     template<typename T>
     T next(const Vec<std::pair<T, T>>& ranges) {
         (void) ranges;
         throw std::runtime_error("Not implemented: next(const Vec<std::pair<T, T>>& ranges)"); // TODO: Implement
+    }
+
+    template <typename T, typename... Args>
+    Vec<T> nexts(std::size_t count, Args... args) {
+        auto result = Vec<T>::allocated(count);
+        for (std::size_t i = 0; i < count; ++i) {
+            result.append(next(args...));
+        }
+        return std::move(result);
     }
 
 

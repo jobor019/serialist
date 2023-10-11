@@ -2,6 +2,8 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "core/algo/collections/voices.h"
+#include "core/facet.h"
+#include "core/algo/random.h"
 
 TEST_CASE("Voices constructor with a vector of Voice objects") {
     // Create a vector of Voice objects
@@ -105,6 +107,28 @@ TEST_CASE("Voices::operator==") {
 
     REQUIRE_FALSE(voices1 == voices3);
 }
+
+
+TEST_CASE("Voices approx_equals", "[approx_equals]") {
+    auto voice1 = Voice<double>({1.0, 2.0, 3.0});
+    auto voice2 = Voice<double>{4.0, 5.0, 6.0};
+
+    auto voices1 = Voices<double>{voice1, voice2};
+    auto voices2 = Voices<double>{voice1.cloned().add(1e-7), voice2.cloned().add(1e-7)};
+
+    REQUIRE(voices1.approx_equals(voices2));
+
+    auto voice3 = Voice<double>({4.1, 5.1, 6.1});
+    Voices<double> voices3({voice1, voice3});
+
+    REQUIRE_FALSE(voices1.approx_equals(voices3));
+
+    double epsilon = 1.0;
+    REQUIRE(voices1.approx_equals(voices2, epsilon));
+    REQUIRE_FALSE(voices1.approx_equals(voices3, epsilon));
+}
+
+
 
 
 TEST_CASE("Voices::cloned") {
@@ -331,6 +355,54 @@ TEST_CASE("Operator[] for Const Voices") {
 }
 
 
+TEST_CASE("Has changed performance", "[performance]") {
+    Random random(0);
 
+    std::size_t num_iterations = 100;
+    std::size_t num_voices = 1000;
+    std::size_t num_notes_per_voice = 12;
+
+    auto times_equal = Vec<long long>::allocated(num_voices);
+    auto times_unequal = Vec<long long>::allocated(num_voices);
+    auto results_equal = Vec<bool>::allocated(num_iterations);
+    auto results_unequal = Vec<bool>::allocated(num_iterations);
+
+    for (std::size_t i = 0; i < num_iterations; ++i) {
+        Voices<Facet> voices_eq = Voices<Facet>::zeros(num_voices);
+        Voices<Facet> voices_uneq = Voices<Facet>::zeros(num_voices);
+
+        for (std::size_t j = 0; j < num_voices; j++) {
+            voices_eq[j] = random.nexts<double>(num_notes_per_voice).as_type<Facet>();
+            voices_uneq[j] = random.nexts<double>(num_notes_per_voice).as_type<Facet>();
+        }
+
+        Voices<Facet> comparison_voice = voices_eq.cloned();
+
+        auto t1 = std::chrono::high_resolution_clock::now();
+        results_equal.append(voices_eq == comparison_voice);
+        auto t2 = std::chrono::high_resolution_clock::now();
+
+        times_equal.append(std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count());
+
+        t1 = std::chrono::high_resolution_clock::now();
+        results_unequal.append(voices_uneq == comparison_voice);
+        t2 = std::chrono::high_resolution_clock::now();
+
+        times_unequal.append(std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count());
+    }
+
+    REQUIRE(results_equal.all());
+    REQUIRE_FALSE(results_unequal.any());
+
+    std::cout << "Equal: " << "\n";
+    std::cout << "    mean: " << times_equal.mean() << " usec\n";
+    std::cout << "    max: " << times_equal.max() << " usec\n";
+    std::cout << "    min: " << times_equal.min() << " usec\n\n";
+
+    std::cout << "Unequal: " << "\n";
+    std::cout << "    mean: " << times_unequal.mean() << " usec\n";
+    std::cout << "    max: " << times_unequal.max() << " usec\n";
+    std::cout << "    min: " << times_unequal.min() << " usec\n\n";
+}
 
 

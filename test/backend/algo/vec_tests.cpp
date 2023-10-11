@@ -54,6 +54,24 @@ TEST_CASE("Vec operator==", "[operator]") {
 }
 
 
+TEST_CASE("Vec approx_equals", "[approx_equals]") {
+    Vec v1({1.0, 2.0, 3.0});
+    auto v2 = Vec({1.0, 2.0, 3.0}).add(1e-7);
+    Vec v3({1.1, 2.1, 2.9});
+    Vec v4({4.0, 5.0, 6.0});
+
+    REQUIRE(v1.approx_equals(v2));
+    REQUIRE_FALSE(v1.approx_equals(v3));
+    REQUIRE_FALSE(v1.approx_equals(v4));
+
+    double epsilon = 1.0;
+    REQUIRE(v1.approx_equals(v2, epsilon));
+    REQUIRE(v1.approx_equals(v3, epsilon));
+    REQUIRE_FALSE(v1.approx_equals(v4, epsilon));
+}
+
+
+
 TEST_CASE("Vec operator+", "[operator]") {
     Vec v1({1, 2, 3});
     Vec v2({4, 5, 6});

@@ -52,7 +52,7 @@ protected:
     std::vector<OutputType> adapt(const Voices<Facet>& values
                                   , std::size_t num_voices
                                   , const OutputType& default_value) {
-        return values.adapted_to(num_voices).values_or(default_value);
+        return values.adapted_to(num_voices).fronts_or(default_value);
     }
 
 

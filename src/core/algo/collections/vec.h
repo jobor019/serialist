@@ -483,15 +483,26 @@ public:
     }
 
 
+    template<typename E = T, typename = std::enable_if_t<!std::is_same_v<E, bool>>>
     bool all(std::function<bool(T)> f) const {
         return std::all_of(m_vector.begin(), m_vector.end(), f);
     }
 
+    template<typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool>>>
+    bool all() const {
+        return std::all_of(m_vector.begin(), m_vector.end(), [](const T& element) { return element; });
+    }
 
+
+    template<typename E = T, typename = std::enable_if_t<!std::is_same_v<E, bool>>>
     bool any(std::function<bool(T)> f) const {
         return std::any_of(m_vector.begin(), m_vector.end(), f);
     }
 
+    template<typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool>>>
+    bool any() const {
+        return std::any_of(m_vector.begin(), m_vector.end(), [](const T& element) { return element; });
+    }
 
     /**
      * Removes all elements for which `f` returns false from the original Vec and returns them as a separate vector
@@ -547,6 +558,20 @@ public:
             }
         }
         return false;
+    }
+
+    template<typename E = T, typename = std::enable_if_t<std::is_floating_point_v<E>>>
+    bool approx_equals(const Vec<T>& other, double epsilon = 1e-6) const {
+        if (other.size() != m_vector.size()) {
+            return false;
+        }
+
+        for (std::size_t i = 0; i < m_vector.size(); ++i) {
+            if (std::fabs(other[i] - m_vector[i]) > epsilon) {
+                return false;
+            }
+        }
+        return true;
     }
 
 

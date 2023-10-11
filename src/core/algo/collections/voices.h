@@ -262,6 +262,20 @@ public:
         return m_voices.size();
     }
 
+    template<typename E = T, typename = std::enable_if_t<std::is_floating_point_v<E>>>
+    bool approx_equals(const Voices<T>& other, double epsilon = 1e-6) const {
+        if (other.size() != m_voices.size()) {
+            return false;
+        }
+
+        for  (std::size_t i = 0; i < m_voices.size(); ++i) {
+            if (!m_voices[i].approx_equals(other.vec()[i], epsilon)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 
     /**
     * @return true if every Voice is empty

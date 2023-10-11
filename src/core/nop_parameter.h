@@ -62,9 +62,8 @@ public:
     }
 
 
-    void set_transposed(const std::vector<StoredType>& v) {
-        auto v_transposed = VoiceUtils::transpose(v);
-        m_voices = Voices<OutputType>(v_transposed);
+    void set_transposed(const Vec<StoredType>& v) {
+        m_voices = Voices<OutputType>::transposed(v);
     }
 
 
