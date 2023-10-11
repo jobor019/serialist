@@ -50,7 +50,7 @@ add_library(serialistCore INTERFACE
         src/core/algo/weighted_random.h
         src/core/node_base.h
         src/core/partial_note.h
-        src/core/distributor.h
+        src/core/allocator.h
         src/core/algo/collections/vec.h
         src/core/algo/pitch/notes.h
         src/core/algo/random.h

@@ -89,6 +89,7 @@ public:
         return Vec<T>::repeated(size, static_cast<T>(0));
     }
 
+
     template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
     static Vec<T> one_hot(const T& value, std::size_t index, std::size_t size) {
         auto v = Vec<T>::zeros(size);
@@ -468,7 +469,7 @@ public:
     }
 
 
-    T foldl(std::function<T(T, T)> f, const T& initial) {
+    T foldl(std::function<T(T, T)> f, const T& initial) const {
         T value = initial;
         for (std::size_t i = 0; i < m_vector.size(); ++i) {
             value = f(value, m_vector[i]);
@@ -476,9 +477,16 @@ public:
         return value;
     }
 
+
+    decltype(auto) count(std::function<bool(T)> f) const {
+        return std::count_if(m_vector.begin(), m_vector.end(), f);
+    }
+
+
     bool all(std::function<bool(T)> f) const {
         return std::all_of(m_vector.begin(), m_vector.end(), f);
     }
+
 
     bool any(std::function<bool(T)> f) const {
         return std::any_of(m_vector.begin(), m_vector.end(), f);
@@ -612,10 +620,46 @@ public:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
-    Vec<T>& normalize() {
+    template<typename E = T, typename = std::enable_if_t<std::is_floating_point_v<E>>>
+    Vec<T>& normalize_max() {
         if (auto max_value = max(); max_value != static_cast<T>(0.0)) {
             auto scale_factor = 1 / max_value;
+
+            for (auto& e: m_vector) {
+                e *= scale_factor;
+            }
+        }
+        return *this;
+    }
+
+
+    template<typename E = T, typename = std::enable_if_t<std::is_floating_point_v<E>>>
+    Vec<T>& normalize_l1() {
+        auto sum = static_cast<T>(0.0);
+        for (const auto& e: m_vector) {
+            sum += std::abs(e);
+        }
+
+        if (sum != static_cast<T>(0.0)) {
+            auto scale_factor = static_cast<T>(1.0) / sum;
+
+            for (auto& e: m_vector) {
+                e *= scale_factor;
+            }
+        }
+        return *this;
+    }
+
+
+    template<typename E = T, typename = std::enable_if_t<std::is_floating_point_v<E>>>
+    Vec<T>& normalize_l2() {
+        auto sum_of_squares = static_cast<T>(0.0);
+        for (const auto& e: m_vector) {
+            sum_of_squares += e * e;
+        }
+
+        if (sum_of_squares != static_cast<T>(0.0)) {
+            auto scale_factor = std::sqrt(static_cast<T>(1.0) / sum_of_squares);
 
             for (auto& e: m_vector) {
                 e *= scale_factor;
@@ -656,13 +700,57 @@ public:
 
 
     template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
-    Vec<T>& sort(bool ascending) {
+    Vec<T>& sort(bool ascending = true) {
         if (ascending)
             std::sort(m_vector.begin(), m_vector.end());
         else
             std::sort(m_vector.begin(), m_vector.end(), std::greater<>());
 
         return *this;
+    }
+
+
+    /**
+     * @note Assumes that `indices` does not contain any gaps nor invalid indices
+     */
+    Vec<T>& reorder(const Vec<std::size_t>& indices) {
+        if(indices.size() != m_vector.size()) {
+            throw std::out_of_range("indices.size() != m_vector.size()");
+        }
+
+        std::vector<T> reordered(m_vector.size());
+        for (std::size_t i = 0; i < m_vector.size(); ++i) {
+            reordered[i] = m_vector[indices[i]];
+        }
+
+        m_vector = std::move(reordered);
+        return *this;
+    }
+
+
+    Vec<std::size_t> argsort(bool ascending = true, bool apply_sort = false) {
+        std::vector<std::size_t> indices(m_vector.size());
+        std::iota(indices.begin(), indices.end(), 0);
+
+        if (ascending)
+            std::sort(indices.begin(), indices.end()
+                      , [this](std::size_t i, std::size_t j) { return m_vector[i] < m_vector[j]; });
+        else
+            std::sort(indices.begin(), indices.end()
+                      , [this](std::size_t i, std::size_t j) { return m_vector[i] > m_vector[j]; });
+
+        auto output = Vec<std::size_t>(std::move(indices));
+
+        if (apply_sort) {
+            reorder(output);
+        }
+
+        return output;
+    }
+
+
+    Vec<T>& reverse() {
+        throw std::runtime_error("Not implemented: reverse()");
     }
 
 
@@ -697,6 +785,59 @@ public:
     template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
     T min() const {
         return *std::min_element(m_vector.begin(), m_vector.end());
+    }
+
+
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    T peak() const {
+        std::vector<T> abs_values;
+        abs_values.reserve(m_vector.size());
+
+        std::transform(m_vector.begin(), m_vector.end(), std::back_inserter(abs_values), [](const auto& e) {
+            return std::abs(e);
+        });
+
+        return *std::max_element(abs_values.begin(), abs_values.end());
+    }
+
+
+    // ======================== BOOLEAN MASK OPERATORS =============================
+
+    template<typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool>>>
+    Vec<T>& logical_not() {
+        for (std::size_t i = 0; i < m_vector.size(); ++i) {
+            m_vector.at(i) = !m_vector.at(i);
+        }
+
+        return *this;
+    }
+
+
+    template<typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool>>>
+    Vec<T>& logical_and(const Vec<T>& other) {
+        if (other.size() != m_vector.size()) {
+            throw std::out_of_range("vectors must have the same size for element-wise operation");
+        }
+
+        for (std::size_t i = 0; i < m_vector.size(); ++i) {
+            m_vector.at(i) = m_vector.at(i) && other.m_vector.at(i);
+        }
+
+        return *this;
+    }
+
+
+    template<typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool>>>
+    Vec<T>& logical_or(const Vec<T>& other) {
+        if (other.size() != m_vector.size()) {
+            throw std::out_of_range("vectors must have the same size for element-wise operation");
+        }
+
+        for (std::size_t i = 0; i < m_vector.size(); ++i) {
+            m_vector.at(i) = m_vector.at(i) || other.m_vector.at(i);
+        }
+
+        return *this;
     }
 
 

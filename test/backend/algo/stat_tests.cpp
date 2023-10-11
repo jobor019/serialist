@@ -35,10 +35,32 @@ TEST_CASE("Histogram construction and value/count retrieval") {
         REQUIRE(histogram_counts[3] == 4);
     }
 
+    SECTION("Non-sorted input") {
+        Vec values = {4, 4, 4, 4, 3, 3, 3, 2, 2, 1};
+        Histogram histogram(values);
+
+        const Vec<int>& histogram_values = histogram.get_bins();
+        const Vec<std::size_t>& histogram_counts = histogram.get_counts();
+
+        REQUIRE(histogram_values.size() == 4);
+        REQUIRE(histogram_counts.size() == 4);
+
+        REQUIRE(histogram_values[0] == 1);
+        REQUIRE(histogram_values[1] == 2);
+        REQUIRE(histogram_values[2] == 3);
+        REQUIRE(histogram_values[3] == 4);
+
+        REQUIRE(histogram_counts[0] == 1);
+        REQUIRE(histogram_counts[1] == 2);
+        REQUIRE(histogram_counts[2] == 3);
+        REQUIRE(histogram_counts[3] == 4);
+    }
+
+
     SECTION("With specified bins") {
-        Vec<int> values = {1, 2, 2, 3, 3, 3, 4, 4, 4, 4};
-        Vec<int> bins = {1, 2, 3, 4, 5};
-        Histogram<int> histogram2(values, bins);
+        Vec values = {1, 2, 2, 3, 3, 3, 4, 4, 4, 4};
+        Vec bins = {1, 2, 3, 4, 5};
+        Histogram histogram2(values, bins);
         const Vec<int>& histogram2_values = histogram2.get_bins();
         const Vec<std::size_t>& histogram2_counts = histogram2.get_counts();
 

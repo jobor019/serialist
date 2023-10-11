@@ -1,6 +1,6 @@
 
-#ifndef SERIALISTLOOPER_DISTRIBUTOR_H
-#define SERIALISTLOOPER_DISTRIBUTOR_H
+#ifndef SERIALISTLOOPER_ALLOCATOR_H
+#define SERIALISTLOOPER_ALLOCATOR_H
 
 
 #include <map>
@@ -41,15 +41,25 @@ public:
 
         auto classes = m_classifier.classify(m_currently_held.get_held().flattened());
         auto histogram = Histogram<std::size_t>(classes, Vec<std::size_t>::range(m_classifier.get_num_classes()));
-        auto counts = histogram.get_counts().cloned().multiply(0UL, m_invalid_bins);
+        auto counts = histogram.get_counts().cloned();
+        auto weights = m_spectrum_distribution.cloned()
+                .multiply(0.0, m_invalid_bins)
+                .normalize_l1()
+                .multiply(static_cast<double>(num_voices));
+
+//        std::cout << "weights: " ;
+//        weights.print();
+//        std::cout << "counts: " ;
+//        counts.print();
 
         auto output = Voices<NoteNumber>::zeros(num_voices);
 
         for (std::size_t voice = 0; voice < num_voices; ++voice) {
             if (triggers[voice].contains([](const Trigger& t) { return t.get_type() == Trigger::Type::pulse_on; })) {
-                auto weights = m_spectrum_distribution - counts.as_type<double>().normalize();
-                auto class_idx = m_random.weighted_choice(weights);
-                counts[class_idx] -= 1;
+                auto distribution = (weights - counts.as_type<double>()).clip({0}, std::nullopt);
+//                distribution.print();
+                auto class_idx = m_random.weighted_choice(distribution);
+                counts[class_idx] += 1;
                 auto note = m_pitch_selector.select_from(m_classifier.start_of(class_idx)
                                                          , m_classifier.end_of(class_idx)
                                                          , m_enabled_pitch_classes);
@@ -81,7 +91,7 @@ public:
 
 
     void set_spectrum_distribution(const Vec<double>& spectrum_distribution) {
-        m_spectrum_distribution = spectrum_distribution.cloned().normalize();
+        m_spectrum_distribution = spectrum_distribution;
         m_classifier.set_num_classes(spectrum_distribution.size());
         m_configuration_changed = true;
     }
@@ -104,7 +114,6 @@ public:
 
 private:
     void update_configuration() {
-        m_spectrum_distribution.normalize();
         auto num_classes = m_classifier.get_num_classes();
 
         Vec<std::size_t> enabled_bands;
@@ -117,7 +126,7 @@ private:
                 }
             }
         }
-        m_invalid_bins = enabled_bands.boolean_mask(num_classes);
+        m_invalid_bins = enabled_bands.boolean_mask(num_classes).logical_not();
         m_configuration_changed = false;
     }
 
@@ -186,4 +195,4 @@ private:
 //
 //};
 
-#endif //SERIALISTLOOPER_DISTRIBUTOR_H
+#endif //SERIALISTLOOPER_ALLOCATOR_H

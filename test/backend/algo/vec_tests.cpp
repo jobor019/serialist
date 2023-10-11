@@ -42,6 +42,7 @@ TEST_CASE("Vec operator[]", "[operator]") {
     }
 }
 
+
 TEST_CASE("Vec operator==", "[operator]") {
     Vec v1({1, 2, 3});
     Vec v2({1, 2, 3});
@@ -208,10 +209,11 @@ TEST_CASE("Vec as_type", "[as_type]") {
     REQUIRE(converted[2] == 3);
 }
 
-TEST_CASE("Vec as_type with lambda", "[as_type]") {
-    Vec<int> v = {1, 2, 3}; // Specify the template argument here
 
-    Vec<std::string> converted = v.as_type<std::string>(static_cast<std::string(*)(int)>(std::to_string));
+TEST_CASE("Vec as_type with lambda", "[as_type]") {
+    Vec v = {1, 2, 3}; // Specify the template argument here
+
+    Vec<std::string> converted = v.as_type<std::string>([](const auto& s) { return std::to_string(s); });
     REQUIRE(converted.size() == 3);
     REQUIRE(converted[0] == "1");
     REQUIRE(converted[1] == "2");
@@ -339,6 +341,61 @@ TEST_CASE("Vec sort", "[sort]") {
 }
 
 
+TEST_CASE("Vec reorder", "[reorder]") {
+    Vec v({5, 2, 8, 1, 9});
+
+    SECTION("Reordering with valid indices") {
+        Vec<std::size_t> indices({3, 1, 0, 2, 4});
+        v.reorder(indices);
+
+        REQUIRE(v.size() == 5);
+        REQUIRE(v[0] == 1);
+        REQUIRE(v[1] == 2);
+        REQUIRE(v[2] == 5);
+        REQUIRE(v[3] == 8);
+        REQUIRE(v[4] == 9);
+    }
+
+    SECTION("Reordering with invalid indices") {
+        Vec<std::size_t> invalid_indices({1, 2, 3});
+
+        REQUIRE_THROWS_AS(v.reorder(invalid_indices), std::out_of_range);
+    }
+}
+
+TEST_CASE("Vec argsort", "[argsort]") {
+    Vec v({5, 2, 8, 1, 9});
+
+    SECTION("Argsort in ascending order without applying the sort") {
+        Vec<std::size_t> ascending_indices = v.argsort(true, false);
+
+        REQUIRE(ascending_indices.size() == 5);
+        REQUIRE(ascending_indices[0] == 3);
+        REQUIRE(ascending_indices[1] == 1);
+        REQUIRE(ascending_indices[2] == 0);
+        REQUIRE(ascending_indices[3] == 2);
+        REQUIRE(ascending_indices[4] == 4);
+    }
+
+    SECTION("Argsort in descending order and apply the sort to the vector") {
+        Vec<std::size_t> descending_indices = v.argsort(false, true);
+
+        REQUIRE(descending_indices.size() == 5);
+        REQUIRE(descending_indices[0] == 4);
+        REQUIRE(descending_indices[1] == 2);
+        REQUIRE(descending_indices[2] == 0);
+        REQUIRE(descending_indices[3] == 1);
+        REQUIRE(descending_indices[4] == 3);
+
+        REQUIRE(v[0] == 9);
+        REQUIRE(v[1] == 8);
+        REQUIRE(v[2] == 5);
+        REQUIRE(v[3] == 2);
+        REQUIRE(v[4] == 1);
+    }
+}
+
+
 TEST_CASE("Vec sum", "[sum]") {
     Vec v = {1, 2, 3, 4, 5};
 
@@ -417,13 +474,45 @@ TEST_CASE("Vec apply with binary mask", "[apply]") {
 TEST_CASE("Vec clip", "[clip]") {
     Vec v = {1, 2, 3, 4, 5};
 
-    v.clip({2}, {4});
-    REQUIRE(v.size() == 5);
-    REQUIRE(v[0] == 2);
-    REQUIRE(v[1] == 2);
-    REQUIRE(v[2] == 3);
-    REQUIRE(v[3] == 4);
-    REQUIRE(v[4] == 4);
+    SECTION("Double bounds") {
+        v.clip({2}, {4});
+        REQUIRE(v.size() == 5);
+        REQUIRE(v[0] == 2);
+        REQUIRE(v[1] == 2);
+        REQUIRE(v[2] == 3);
+        REQUIRE(v[3] == 4);
+        REQUIRE(v[4] == 4);
+    }
+
+    SECTION("lower bound") {
+        v.clip({4}, std::nullopt);
+        REQUIRE(v.size() == 5);
+        REQUIRE(v[0] == 4);
+        REQUIRE(v[1] == 4);
+        REQUIRE(v[2] == 4);
+        REQUIRE(v[3] == 4);
+        REQUIRE(v[4] == 5);
+    }
+
+    SECTION("upper bound") {
+        v.clip(std::nullopt, {3});
+        REQUIRE(v.size() == 5);
+        REQUIRE(v[0] == 1);
+        REQUIRE(v[1] == 2);
+        REQUIRE(v[2] == 3);
+        REQUIRE(v[3] == 3);
+        REQUIRE(v[4] == 3);
+    }
+
+    SECTION("out of bounds") {
+        v.clip({8}, {11});
+        REQUIRE(v.size() == 5);
+        REQUIRE(v[0] == 8);
+        REQUIRE(v[1] == 8);
+        REQUIRE(v[2] == 8);
+        REQUIRE(v[3] == 8);
+        REQUIRE(v[4] == 8);
+    }
 }
 
 
@@ -484,7 +573,7 @@ TEST_CASE("Function chaining") {
 
 
 TEST_CASE("Test map function", "[map]") {
-    Vec<int> v({1, 2, 3, 4, 5});
+    Vec v({1, 2, 3, 4, 5});
 
     auto double_fn = [](int x) { return x * 2; };
 
@@ -495,7 +584,7 @@ TEST_CASE("Test map function", "[map]") {
 
 
 TEST_CASE("Test filter function", "[filter]") {
-    Vec<int> v({1, 2, 3, 4, 5});
+    Vec v({1, 2, 3, 4, 5});
 
     auto even_fn = [](int x) { return x % 2 == 0; };
 
@@ -514,7 +603,7 @@ TEST_CASE("Test foldl function", "[foldl]") {
 
 
 TEST_CASE("Test filter_drain function", "[filter_drain]") {
-    Vec<int> v({1, 2, 3, 4, 5});
+    Vec v({1, 2, 3, 4, 5});
     auto even_fn = [](int x) { return x % 2 == 0; };
     Vec<int> drained = v.filter_drain(even_fn);
 
@@ -523,9 +612,44 @@ TEST_CASE("Test filter_drain function", "[filter_drain]") {
 }
 
 
+TEST_CASE("Vec normalize_max", "[normalize_max]") {
+    Vec<float> v2 = {2.0, 4.0, 10.0};
+    v2.normalize_max();
+
+    REQUIRE(v2.size() == 3);
+    REQUIRE_THAT(v2[0], Catch::Matchers::WithinRel(0.2, 1e-6));
+    REQUIRE_THAT(v2[1], Catch::Matchers::WithinRel(0.4, 1e-6));
+    REQUIRE_THAT(v2[2], Catch::Matchers::WithinRel(1.0, 1e-6));
+}
+
+
+TEST_CASE("Vec normalize_l1", "[normalize_l1]") {
+    Vec<float> v2 = {1.0, 2.0, 3.0, 4.0};
+    v2.normalize_l1();
+
+    REQUIRE(v2.size() == 4);
+    REQUIRE_THAT(v2[0], Catch::Matchers::WithinRel(0.1, 1e-6));
+    REQUIRE_THAT(v2[1], Catch::Matchers::WithinRel(0.2, 1e-6));
+    REQUIRE_THAT(v2[2], Catch::Matchers::WithinRel(0.3, 1e-6));
+    REQUIRE_THAT(v2[3], Catch::Matchers::WithinRel(0.4, 1e-6));
+}
+
+
+TEST_CASE("Vec normalize_l2", "[normalize_l2]") {
+    Vec<float> v2 = {1.0, 2.0, 3.0, 4.0};
+    v2.normalize_l2();
+
+    REQUIRE(v2.size() == 4);
+    REQUIRE_THAT(v2[0], Catch::Matchers::WithinRel(0.18257419, 1e-6));
+    REQUIRE_THAT(v2[1], Catch::Matchers::WithinRel(0.36514837, 1e-6));
+    REQUIRE_THAT(v2[2], Catch::Matchers::WithinRel(0.54772256, 1e-6));
+    REQUIRE_THAT(v2[3], Catch::Matchers::WithinRel(0.73029674, 1e-6));
+}
+
+
 TEST_CASE("Test extend function", "[extend]") {
-    Vec<int> v1({1, 2, 3});
-    Vec<int> v2({4, 5, 6});
+    Vec v1({1, 2, 3});
+    Vec v2({4, 5, 6});
     v1.extend(v2);
 
     REQUIRE(v1.vector() == std::vector<int>({1, 2, 3, 4, 5, 6}));

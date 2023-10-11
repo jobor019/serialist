@@ -58,7 +58,7 @@ public:
             throw std::invalid_argument("Cannot choose from empty weights");
         }
 
-        auto cdf = weights.cloned().cumsum();
+        auto cdf = weights.cloned().clip({0}, std::nullopt).cumsum();
 
         auto choice = static_cast<T>(next() * cdf.back());
 
