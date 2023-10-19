@@ -4,10 +4,10 @@
 #define SERIALISTLOOPER_CONFIGURATION_LAYER_COMPONENT_H
 
 #include <juce_gui_extra/juce_gui_extra.h>
-#include "core/parameter_policy.h"
+#include "core/param/parameter_policy.h"
 #include "generative_component.h"
 #include "connector_component.h"
-#include "core/note_source.h"
+#include "core/generatives/note_source.h"
 #include "core/generation_graph.h"
 #include "key_state.h"
 #include "keyboard_shortcuts.h"

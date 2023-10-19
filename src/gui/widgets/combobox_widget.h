@@ -4,7 +4,7 @@
 #define SERIALISTLOOPER_COMBOBOX_WIDGET_H
 
 #include <juce_gui_extra/juce_gui_extra.h>
-#include "core/variable.h"
+#include "core/generatives/variable.h"
 #include "generative_component.h"
 
 template<typename StoredType>

@@ -4,11 +4,11 @@
 
 #include "module_bases.h"
 #include "slider_widget.h"
-#include "core/pulsator.h"
+#include "core/generatives/pulsator.h"
 #include "socket_widget.h"
 #include "header_widget.h"
 
-class PulsatorModule : public NodeBase<Trigger> {
+class PulsatorModule : public NodeBase<TriggerEvent> {
 public:
 
     using SliderLayout = SliderWidget::Layout;
@@ -25,7 +25,7 @@ public:
                    , Variable<Facet, bool>& internal_enabled
                    , Variable<Facet, float>& internal_num_voices
                    , Layout layout = Layout::full)
-            : NodeBase<Trigger>(pulsator, &internal_enabled, &internal_num_voices, layout == Layout::full)
+            : NodeBase<TriggerEvent>(pulsator, &internal_enabled, &internal_num_voices, layout == Layout::full)
               , m_interval_socket(pulsator.get_trigger_interval()
                                   , std::make_unique<SliderWidget>(internal_trigger_interval
                                                                    , 0.125, 4.0, 0.125, false

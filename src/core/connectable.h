@@ -2,7 +2,7 @@
 #ifndef SERIALISTLOOPER_CONNECTABLE_H
 #define SERIALISTLOOPER_CONNECTABLE_H
 
-#include "generative.h"
+#include "core/generative.h"
 
 class Connectable {
 public:

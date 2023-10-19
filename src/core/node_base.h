@@ -3,9 +3,10 @@
 #define SERIALISTLOOPER_NODE_BASE_H
 
 #include "generative.h"
-#include "socket_handler.h"
-#include "parameter_keys.h"
-#include "time_gate.h"
+#include "core/param/socket_handler.h"
+#include "core/param/parameter_keys.h"
+#include "core/utility/time_gate.h"
+#include "core/collections/voices.h"
 
 template<typename T>
 class NodeBase : public Node<T> {
@@ -48,14 +49,6 @@ public:
 
 
 protected:
-    template<typename OutputType>
-    std::vector<OutputType> adapt(const Voices<Facet>& values
-                                  , std::size_t num_voices
-                                  , const OutputType& default_value) {
-        return values.adapted_to(num_voices).fronts_or(default_value);
-    }
-
-
     template<typename OutputType>
     Socket<OutputType>& add_socket(const std::string& id, Node<OutputType>* initial = nullptr) {
         return m_socket_handler.create_socket(id, initial);

@@ -3,7 +3,7 @@
 #ifndef SERIALISTLOOPER_NOTE_SOURCE_MODULE_H
 #define SERIALISTLOOPER_NOTE_SOURCE_MODULE_H
 
-#include "core/note_source.h"
+#include "core/generatives/note_source.h"
 #include "generative_component.h"
 #include "midi_config.h"
 #include "widgets/slider_widget.h"
@@ -89,7 +89,7 @@ public:
 
 
 private:
-    SocketWidget<Trigger> m_internal_trigger;
+    SocketWidget<TriggerEvent> m_internal_trigger;
 
     SocketWidget<Facet> m_internal_pitch;
     SocketWidget<Facet> m_internal_velocity;

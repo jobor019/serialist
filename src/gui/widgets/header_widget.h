@@ -4,7 +4,7 @@
 #define SERIALISTLOOPER_HEADER_WIDGET_H
 
 #include <juce_gui_extra/juce_gui_extra.h>
-#include "core/variable.h"
+#include "core/generatives/variable.h"
 #include "toggle_button_widget.h"
 #include "look_and_feel.h"
 

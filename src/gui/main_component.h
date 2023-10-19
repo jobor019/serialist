@@ -3,12 +3,12 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "generative_component.h"
-#include "core/note_source.h"
+#include "core/generatives/note_source.h"
 #include "connector_component.h"
-#include "core/transport.h"
-#include "core/scheduler.h"
+#include "core/algo/time/transport.h"
+#include "core/algo/time/scheduler.h"
 #include "io/renderers.h"
-#include "core/parameter_policy.h"
+#include "core/param/parameter_policy.h"
 #include "configuration_layer_component.h"
 #include "modules/note_source_module.h"
 #include "modules/oscillator_module.h"

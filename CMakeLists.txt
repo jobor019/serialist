@@ -14,57 +14,61 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/GuiUtils/src)
 
 add_library(serialistCore INTERFACE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collection.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collection_RM.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/connectable.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/events.h
+        src/core/algo/time/events.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/exceptions.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/facet.h
+        src/core/algo/facet.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generation_graph.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generative.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generator.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/interpolation_adapter.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/interpolator.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/note_source.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/nop_parameter.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/oscillator.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/parameter_policy.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/phasor.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/pulsator.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/scheduler.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/transport.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/sequence.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/serializable.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/selector.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/socket_handler.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/socket_policy.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/time_gate.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/transform.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/vt_socket.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/unit_pulse.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utils.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/variable.h
-        src/core/algo/collections/voices.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/vt_parameter.h
-        src/core/socket_base.h
-        src/core/random_pulsator.h
-        src/core/algo/weighted_random.h
-        src/core/node_base.h
-        src/core/partial_note.h
-        src/core/allocator.h
-        src/core/algo/collections/vec.h
-        src/core/algo/pitch/notes.h
-        src/core/algo/random.h
-        src/core/algo/time/time.h
-        src/core/algo/voice/multi_voiced.h
-        src/core/algo/collections/held.h
-        src/core/algo/stat.h
-        src/core/algo/classifiers.h
-        src/core/algo/collections/range.h
+        src/core/generatives/generator.h
+        src/core/generatives/interpolation_adapter.h
+        src/core/generatives/interpolator.h
+        src/core/generatives/note_source.h
+        src/core/param/nop_parameter.h
+        src/core/generatives/oscillator.h
+        src/core/param/parameter_policy.h
+        src/core/algo/phasor.h
+        src/core/generatives/pulsator.h
+        src/core/algo/time/scheduler.h
+        src/core/algo/time/transport.h
+        src/core/generatives/sequence.h
+        src/core/utility/serializable.h
+        src/core/generatives/selector.h
+        src/core/param/socket_handler.h
+        src/core/param/socket_policy.h
+        src/core/utility/time_gate.h
+        src/core/generatives/transform.h
+        src/core/param/vt_socket.h
+        src/core/generatives/unit_pulse.h
+        src/core/utility/utils.h
+        src/core/generatives/variable.h
+        src/core/collections/voices.h
+        src/core/param/vt_parameter.h
+        src/core/param/socket_base.h
+        src/core/generatives/random_pulsator.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/weighted_random.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/node_base.h
+        src/core/algo/partial_note.h
+        src/core/generatives/allocator.h
+        src/core/collections/vec.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/pitch/notes.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/random.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/time.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/voice/multi_voiced.h
+        src/core/collections/held.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/stat.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/classifiers.h
+        src/core/collections/range.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/trigger.h
+        src/core/utility/traits.h
 )
 
 target_link_libraries(serialistCore INTERFACE magicEnum)
 
-target_include_directories(serialistCore INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src/core)
+target_include_directories(serialistCore
+        INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 
 
@@ -266,7 +270,9 @@ add_executable(tests EXCLUDE_FROM_ALL
         test/backend/algo/random_tests.cpp
         test/backend/algo/stat_tests.cpp
         test/backend/algo/classifiers_tests.cpp
-        test/backend/allocator_tests.cpp
+        test/backend/generatives/allocator_tests.cpp
+        test/backend/generatives/sequence_tests.cpp
+        test/backend/generatives/variable_tests.cpp
 )
 
 target_link_libraries(tests

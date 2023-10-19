@@ -1,11 +1,6 @@
 
-
-#include "core/node_base.h"
-#include "core/allocator.h"
-
-
+#include "core/param/parameter_policy.h"
 
 int main() {
-    Voices<PartialNote> voices = Voices<PartialNote>::empty_like();
-    voices = Voices<PartialNote>::zeros(4);
+    return 0;
 }

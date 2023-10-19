@@ -3,12 +3,12 @@
 
 
 
-#include "core/pulsator.h"
-#include "core/oscillator.h"
+#include "core/generatives/pulsator.h"
+#include "core/generatives/oscillator.h"
 //#include "core/generator.h"
-#include "core/note_source.h"
+#include "core/generatives/note_source.h"
 #include "midi_config.h"
-#include "core/note_source.h"
+#include "core/generatives/note_source.h"
 //#include "midi_config.h"
 
 class PulsatorWrapper {
@@ -54,7 +54,7 @@ TEST_CASE("Pulsator") {
 
         for (auto& vv: v.vector()) {
             for (auto& val: vv.vector()) {
-                if (val.get_type() == Trigger::Type::pulse_on) {
+                if (val.get_type() == TriggerEvent::Type::pulse_on) {
                     std::cout << "PULSE(" << val.get_id() << "), ";
                 } else {
                     std::cout << "off(" << val.get_id() << "), ";

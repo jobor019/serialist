@@ -5,9 +5,9 @@
 
 #include <mutex>
 #include <regex>
-#include "note_source.h"
-#include "parameter_policy.h"
-#include "parameter_keys.h"
+#include "core/generatives/note_source.h"
+#include "core/param/parameter_policy.h"
+#include "core/param/parameter_keys.h"
 
 class GraphUtils {
 public:

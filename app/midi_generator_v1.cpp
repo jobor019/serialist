@@ -1,11 +1,11 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include <memory>
-#include "../src/core/scheduler.h"
+#include "../src/core/algo/time/scheduler.h"
 #include "../src/io/renderers.h"
-#include "../src/core/transport.h"
+#include "../src/core/algo/time/transport.h"
 #include "../src/core/generation_graph.h"
-#include "../src/core/generator.h"
+#include "../src/core/generatives/generator.h"
 #include "../src/gui/looper_component.h"
 #include "../src/gui/mapping_component.h"
 #include "../src/gui/old_generator_component.h"
@@ -101,7 +101,7 @@ public:
 
         for (auto& event: events) {
             if (dynamic_cast<TriggerEvent*>(event.get())) {
-                std::cout << "#################### Trigger: " << event->get_time() << "\n";
+                std::cout << "#################### TriggerEvent: " << event->get_time() << "\n";
                 m_scheduler.add_events(m_graph->process(time));
             } else if (auto note_event = dynamic_cast<MidiEvent*>(event.get())) {
                 std::cout << "note:    @" << note_event->get_time() << " (" << note_event->get_note_number() << ", "

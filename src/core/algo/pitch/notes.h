@@ -3,9 +3,9 @@
 #define SERIALISTLOOPER_NOTES_H
 
 #include <vector>
-#include "core/algo/collections/vec.h"
-#include "core/algo/collections/voices.h"
-#include "core/algo/collections/held.h"
+#include "core/collections/vec.h"
+#include "core/collections/voices.h"
+#include "core/collections/held.h"
 #include "core/algo/random.h"
 
 
@@ -35,6 +35,16 @@ public:
               , m_mask(m_classes.boolean_mask(m_pivot)) {}
 
 
+    static PitchClassRange with(const PitchClassRange& other, const Vec<NoteNumber>& new_pitch_classes) {
+        return PitchClassRange{new_pitch_classes, other.m_pivot, other.m_transposition};
+    }
+
+
+    static PitchClassRange with(const PitchClassRange& other, NoteNumber new_pivot) {
+        return PitchClassRange{other.m_classes, new_pivot, other.m_transposition};
+    }
+
+
     bool is_in(NoteNumber note) const {
         return m_mask[classify(note)];
     }
@@ -42,6 +52,16 @@ public:
 
     NoteNumber classify(NoteNumber note) const {
         return utils::modulo(note - m_transposition, m_pivot);
+    }
+
+
+    const Vec<NoteNumber>& get_classes() const {
+        return m_classes;
+    }
+
+
+    NoteNumber get_pivot() const {
+        return m_pivot;
     }
 
 

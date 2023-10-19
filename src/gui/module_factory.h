@@ -5,8 +5,8 @@
 
 #include <vector>
 #include "generative_component.h"
-#include "core/oscillator.h"
-#include "core/variable.h"
+#include "core/generatives/oscillator.h"
+#include "core/generatives/variable.h"
 #include "modules/oscillator_module.h"
 #include "text_sequence_module.h"
 #include "interpolation_module.h"
@@ -112,7 +112,7 @@ public:
                                                                     , enabled.get()
                                                                     , num_voices.get());
 
-        auto* pulsator = dynamic_cast<Node<Trigger>*>(&pulsator_module->get_generative());
+        auto* pulsator = dynamic_cast<Node<TriggerEvent>*>(&pulsator_module->get_generative());
 
         assert(pulsator);
 

@@ -2,7 +2,7 @@
 #ifndef SERIALISTLOOPER_STAT_H
 #define SERIALISTLOOPER_STAT_H
 
-#include "core/algo/collections/vec.h"
+#include "core/collections/vec.h"
 
 template<typename T>
 class Histogram {

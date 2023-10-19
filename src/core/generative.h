@@ -3,9 +3,9 @@
 #ifndef SERIALIST_LOOPER_GENERATIVE_H
 #define SERIALIST_LOOPER_GENERATIVE_H
 
-#include "transport.h"
-#include "parameter_policy.h"
-#include "core/algo/collections/voices.h"
+#include "core/algo/time/transport.h"
+#include "core/param/parameter_policy.h"
+#include "core/collections/voices.h"
 
 #include <optional>
 
@@ -22,7 +22,7 @@ public:
 
     virtual std::vector<Generative*> get_connected() = 0;
     virtual ParameterHandler& get_parameter_handler() = 0;
-    virtual void disconnect_if(Generative& connected_to) = 0;
+    virtual void disconnect_if(Generative&) {}
 
 
     virtual void update_time(const TimePoint&) {}

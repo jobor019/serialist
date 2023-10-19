@@ -5,7 +5,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "core/algo/random.h"
-#include "core/algo/collections/vec.h"
+#include "core/collections/vec.h"
 
 TEST_CASE("Random::next() returns values in [0, 1]") {
     Random random(0);

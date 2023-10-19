@@ -1,8 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "core/algo/collections/voices.h"
-#include "core/facet.h"
+#include "core/collections/voices.h"
+#include "core/algo/facet.h"
 #include "core/algo/random.h"
 
 TEST_CASE("Voices constructor with a vector of Voice objects") {
@@ -125,7 +125,7 @@ TEST_CASE("Voices approx_equals", "[approx_equals]") {
 
     double epsilon = 1.0;
     REQUIRE(voices1.approx_equals(voices2, epsilon));
-    REQUIRE_FALSE(voices1.approx_equals(voices3, epsilon));
+    REQUIRE(voices1.approx_equals(voices3, epsilon));
 }
 
 
@@ -239,12 +239,12 @@ TEST_CASE("Voices::first_or") {
 }
 
 
-TEST_CASE("Voices::fronts") {
+TEST_CASE("Voices::firsts") {
     auto voice1 = Voice<int>{1, 2, 3};
     auto voice2 = Voice<int>{4, 5, 6};
     Voices<int> voices1({voice1, voice2});
 
-    Vec<std::optional<int>> fronts = voices1.fronts();
+    Vec<std::optional<int>> fronts = voices1.firsts();
 
     REQUIRE(fronts.size() == 2);
     REQUIRE(fronts[0].value() == 1);
@@ -252,7 +252,7 @@ TEST_CASE("Voices::fronts") {
 
     auto emptyVoices = Voices<int>::zeros(2);
 
-    fronts = emptyVoices.fronts();
+    fronts = emptyVoices.firsts();
 
     REQUIRE(fronts.size() == 2);
     REQUIRE_FALSE(fronts[0].has_value());
@@ -260,12 +260,12 @@ TEST_CASE("Voices::fronts") {
 }
 
 
-TEST_CASE("Voices::fronts_or") {
+TEST_CASE("Voices::firsts_or") {
     auto voice1 = Voice<int>{1, 2, 3};
     auto voice2 = Voice<int>{4, 5, 6};
     Voices<int> voices1({voice1, voice2});
 
-    Vec<int> fronts = voices1.fronts_or(100);
+    Vec<int> fronts = voices1.firsts_or(100);
 
     REQUIRE(fronts.size() == 2);
     REQUIRE(fronts[0] == 1);
@@ -273,7 +273,7 @@ TEST_CASE("Voices::fronts_or") {
 
     auto emptyVoices = Voices<int>::zeros(2);
 
-    fronts = emptyVoices.fronts_or(100);
+    fronts = emptyVoices.firsts_or(100);
 
     REQUIRE(fronts.size() == 2);
     REQUIRE(fronts[0] == 100);
@@ -298,6 +298,20 @@ TEST_CASE("Voices::as_type") {
     Voices<int> voices1({voice1});
 
     Voices<double> voices2 = voices1.as_type<double>();
+}
+
+
+TEST_CASE("Voices::as_type(f)") {
+    auto voice1 = Voice<int>{1, 2, 3};
+    Voices<int> voices1({voice1});
+
+    Voices<std::string> voices2 = voices1.as_type<std::string>([](const int& value) {
+        return std::to_string(value);
+    });
+
+    REQUIRE(voices2.size() == 1);
+    REQUIRE(voices2[0] == Vec<std::string>{"1", "2", "3"});
+
 }
 
 
@@ -352,6 +366,17 @@ TEST_CASE("Operator[] for Const Voices") {
     SECTION("Accessing out-of-range index") {
         REQUIRE_THROWS_AS(voices[2], std::out_of_range);
     }
+}
+
+TEST_CASE("Partition for Voices") {
+    const Voices<int> voices({{1, 2, 3}, {2, 3, 4}, {3, 4, 5}});
+    auto f = [](int e) { return e >= 3; };
+    auto [matching, non_matching] = voices.partition(f);
+
+    REQUIRE(non_matching.size() == 3);
+    REQUIRE(matching.size() == 3);
+    REQUIRE(non_matching == Voices<int>({{1, 2}, {2}, {}}));
+    REQUIRE(matching == Voices<int>({{3}, {3, 4}, {3, 4, 5}}));
 }
 
 

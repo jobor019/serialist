@@ -1,9 +1,9 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 #include <memory>
 #include "look_and_feel.h"
-#include "core/parameter_policy.h"
+#include "core/param/parameter_policy.h"
 #include "key_state.h"
-#include "core/transport.h"
+#include "core/algo/time/transport.h"
 #include "core/generation_graph.h"
 #include "configuration_layer_component.h"
 #include "generator_module.h"
@@ -44,7 +44,7 @@ public:
 //        auto [pulsator_module, pulsator_generatives] = ModuleFactory::new_pulsator(m_generation_graph, PulsatorModule::Layout::note_source_internal);
 //        auto& generative = pulsator_module->get_generative();
 //        if (generative) {
-//            auto* pulsator = dynamic_cast<Node<Trigger>*>(&generative);
+//            auto* pulsator = dynamic_cast<Node<TriggerEvent>*>(&generative);
 //            std::cout << "dc worked\n";
 //        } else {
 //            std::cout << "generative not set\n";

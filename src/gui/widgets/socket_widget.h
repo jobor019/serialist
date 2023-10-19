@@ -4,7 +4,7 @@
 #define SERIALISTLOOPER_SOCKET_WIDGET_H
 
 #include <juce_gui_extra/juce_gui_extra.h>
-#include "core/socket_policy.h"
+#include "core/param/socket_policy.h"
 #include "generative_component.h"
 #include "keyboard_shortcuts.h"
 #include "connectable_module.h"

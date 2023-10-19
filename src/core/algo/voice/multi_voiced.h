@@ -2,8 +2,8 @@
 #ifndef SERIALISTLOOPER_MULTI_VOICED_H
 #define SERIALISTLOOPER_MULTI_VOICED_H
 
-#include "core/algo/collections/voices.h"
-#include "core/algo/collections/vec.h"
+#include "core/collections/voices.h"
+#include "core/collections/vec.h"
 
 template<typename T>
 class Flushable {
@@ -16,6 +16,7 @@ public:
     Flushable& operator=(Flushable&&) noexcept = default;
 
     virtual Voice<T> flush() = 0;
+    virtual Voice<T> flush(std::function<bool(const T&)> f) = 0;
 };
 
 
@@ -37,6 +38,18 @@ public:
 
         for (std::size_t i = 0; i < m_objects.size(); ++i) {
             auto e = m_objects[i].flush();
+            output[i].extend(e);
+        }
+
+        return output;
+    }
+
+    template<typename E = DataType, typename = std::enable_if_t<std::is_base_of_v<Flushable<E>, ObjectType>>>
+    Voices<DataType> flush(std::function<bool(const DataType&)> f) {
+        auto output = Voices<DataType>::zeros(m_objects.size());
+
+        for (std::size_t i = 0; i < m_objects.size(); ++i) {
+            auto e = m_objects[i].flush(f);
             output[i].extend(e);
         }
 
