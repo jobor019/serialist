@@ -230,8 +230,9 @@ TEST_CASE("Distributions") {
 
         for (std::size_t i = 0; i < num_iterations; ++i) {
             auto note_ons = allocator.bind(triggers, num_voices);
-            auto class_count = Histogram<std::size_t>(classifier.classify(note_ons.flattened())
-                                                      , Vec<std::size_t>::range(num_classes)).get_counts();
+            auto class_count = Histogram<std::size_t>::with_discrete_bins(
+                    classifier.classify(note_ons.flattened())
+                    , Vec<std::size_t>::range(num_classes)).get_counts();
             class_occurrences += class_count;
             REQUIRE_THAT(static_cast<double>(class_count[0]) / static_cast<double>(num_voices)
                          , Catch::Matchers::WithinAbs(first_band_weight, 0.1));

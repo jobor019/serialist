@@ -5,7 +5,8 @@
 #include <vector>
 #include <optional>
 #include <iostream>
-#include "core/utility/utils.h"
+#include "core/utility/enums.h"
+#include "core/utility/traits.h"
 #include "core/collections/vec.h"
 
 

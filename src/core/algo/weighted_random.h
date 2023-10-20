@@ -39,14 +39,14 @@ public:
 
 
     void set_lower_bound(double lower_bound) {
-        // TODO: Range check on lower bound
+        // TODO: LinearSpace check on lower bound
         m_lower_bound = lower_bound;
         recompute();
     }
 
 
     void set_upper_bound(double upper_bound) {
-        // TODO: Range check on lower bound
+        // TODO: LinearSpace check on lower bound
         m_upper_bound = upper_bound;
         recompute();
     }

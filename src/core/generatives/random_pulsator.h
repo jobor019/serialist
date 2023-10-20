@@ -3,25 +3,49 @@
 #define SERIALISTLOOPER_RANDOM_PULSATOR_H
 
 #include <functional>
+#include <cmath>
 #include "core/algo/weighted_random.h"
 #include "core/algo/time/events.h"
-#include "core/utility/time_gate.h"
+#include "core/algo/time/time_gate.h"
 #include "core/param/parameter_policy.h"
 #include "core/param/socket_handler.h"
 #include "core/param/parameter_keys.h"
 #include "core/node_base.h"
+
+class RandomPulsatorNew {
+public:
+    static constexpr double BOUND_THRESHOLD = 0.015625;   // 256d-note
+private:
+
+};
 
 class RandomPulsator {
 public:
 
     static constexpr double BOUND_THRESHOLD = 0.015625;   // 256d-note
 
-    static constexpr double JUMP_THRESHOLD_TICKS = 1.0;   // quarter note
-
-
-    static double pdf(double q, double lower_bound, double) {
+    static double pdf(double x, double lower_bound, double) {
         assert(lower_bound >= 0.0);
-        return 2.0 * std::pow(0.5, q / lower_bound);
+        return 2.0 * std::pow(0.5, x / lower_bound);
+    }
+
+    static double cdf(double u, double lower_bound, double) {
+        auto q = std::pow(0.5, 1 / lower_bound);
+        return 2 / std::log(q) * (std::pow(q, u) - 0.5);
+    }
+
+    static double inverse_cdf(double u, double lower_bound, double upper_bound) {
+        // TODO: This is not the way to do it. We should store all the information locally in the class and
+        //  rather than have a Random::inverse_transform_sampling, just do a Random::random() and sample locally.
+
+        // TODO: REPLACE WITH EqualDurationSampling class!!!!
+        auto q = std::pow(0.5, 1 / lower_bound);
+        auto log_q = std::log(q);
+        auto gamma = log_q / ( 2 * (std::pow(q, upper_bound) - 0.5));
+
+        auto k_inv = log_q / (2 * gamma);
+
+        return 1 / log_q * std::log(u * k_inv + 0.5);
     }
 
 

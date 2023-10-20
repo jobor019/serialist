@@ -7,7 +7,7 @@
 #include "core/algo/time/events.h"
 #include "core/algo/time/scheduler.h"
 #include "core/generative.h"
-#include "core/utility/utils.h"
+#include "core/utility/enums.h"
 #include "core/param/parameter_policy.h"
 #include "core/param/socket_policy.h"
 #include "core/held_notes_RM.h"

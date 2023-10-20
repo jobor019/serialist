@@ -9,7 +9,7 @@
 #include "core/collections/held.h"
 #include "core/algo/pitch/notes.h"
 #include "core/algo/classifiers.h"
-#include "core/algo/stat.h"
+#include "core/algo/histogram.h"
 #include "core/algo/random.h"
 #include "core/algo/partial_note.h"
 #include "core/node_base.h"
@@ -39,7 +39,10 @@ public:
             update_configuration();
 
         auto classes = m_classifier.classify(m_currently_held.get_held().flattened());
-        auto histogram = Histogram<std::size_t>(classes, Vec<std::size_t>::range(m_classifier.get_num_classes()));
+        auto histogram = Histogram<std::size_t>::with_discrete_bins(
+                classes
+                , Vec<std::size_t>::range(m_classifier.get_num_classes())
+        );
         auto counts = histogram.get_counts().cloned();
         auto weights = m_spectrum_distribution.cloned()
                 .multiply(0.0, m_invalid_bins)
@@ -183,7 +186,7 @@ public:
             return m_current_value;
 
         if (!(is_enabled() && m_pulse.is_connected()
-            && m_pitch_classes.is_connected() &&m_distribution.is_connected())) {
+              && m_pitch_classes.is_connected() && m_distribution.is_connected())) {
             m_current_value = Voices<PartialNote>::empty_like();
 
             // first callback since it was disabled: flush any held notes
@@ -237,7 +240,7 @@ private:
             auto pivot = static_cast<NoteNumber>(m_pivot.process().first_or(12));
             auto pcs = m_pitch_classes.process()
                     .firsts()
-                    .filter([](const auto& pc) { return pc.has_value(); })
+                    .filter([&pivot](const auto& pc) { return pc.has_value() && *pc < pivot; })
                     .as_type<NoteNumber>([](const auto& pc) { return static_cast<NoteNumber>(*pc); });
 
             if (pcs.empty()) {

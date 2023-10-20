@@ -3,8 +3,8 @@
 #define SERIALISTLOOPER_TRIGGER_H
 
 enum class Trigger {
-    pulse_on
-    , pulse_off
+    pulse_off = 0
+    , pulse_on = 1
 };
 
 #endif //SERIALISTLOOPER_TRIGGER_H

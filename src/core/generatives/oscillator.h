@@ -8,13 +8,13 @@
 #include "core/param/parameter_policy.h"
 #include "core/generative.h"
 #include "core/algo/phasor.h"
-#include "core/utility/utils.h"
+#include "core/utility/enums.h"
 #include "core/param/socket_policy.h"
 #include "core/generatives/variable.h"
 #include "core/algo/facet.h"
 #include "core/param/socket_handler.h"
 #include "core/algo/time/events.h"
-#include "core/utility/time_gate.h"
+#include "core/algo/time/time_gate.h"
 #include "core/node_base.h"
 
 class Oscillator {

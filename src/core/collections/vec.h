@@ -61,6 +61,30 @@ public:
     }
 
 
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    static Vec<T> linspace(T start, T end, std::size_t num, bool include_endpoint = true) {
+        if (num == 0) {
+            return {};
+        } else if (num == 1) {
+            return Vec<T>::singular(start);
+        }
+
+        double step;
+        if (include_endpoint) {
+            step = static_cast<double>(end - start) / static_cast<double>(num - 1);
+        } else {
+            step = static_cast<double>(end - start) / static_cast<double>(num);
+        }
+
+        auto result = Vec<T>::allocated(num);
+        for (std::size_t i = 0; i < num; ++i) {
+            result.append(static_cast<T>(start + static_cast<T>(i) * step));
+        }
+        return result;
+
+    }
+
+
     static Vec<T> repeated(std::size_t repetitions, const T& value) {
         std::vector<T> output(repetitions, value);
         return Vec<T>{output};
@@ -103,6 +127,7 @@ public:
     bool operator==(const Vec<T>& other) const {
         return m_vector == other.m_vector;
     }
+
 
     bool operator!=(const Vec<T>& other) const {
         return m_vector != other.m_vector;
@@ -472,6 +497,49 @@ public:
     }
 
 
+    // TODO: Not tested
+//    Vec& rotate(long amount) {
+//        if (amount >= 0) {
+//            auto rotation_position = amount % static_cast<long>(m_vector.size());
+//            std::rotate(m_vector.begin(), m_vector.begin() + rotation_position, m_vector.end());
+//        } else {
+//            auto rotation_position = -amount % static_cast<long>(m_vector.size());
+//            std::rotate(m_vector.begin(), m_vector.begin() + rotation_position, m_vector.end());
+//        }
+//        return *this;
+//    }
+
+
+
+    Vec<T>& shift(long amount) {
+        if (amount == 0) {
+            return *this;
+        }
+
+        if (static_cast<std::size_t>(std::abs(amount)) >= m_vector.size()) {
+            m_vector = std::vector<T>(m_vector.size(), static_cast<T>(0));
+            return *this;
+        }
+
+        std::vector<T> target(m_vector.size(), static_cast<T>(0));
+        if (amount > 0) {
+            auto target_offset = static_cast<std::size_t>(amount);
+            for (std::size_t i = 0; i < target.size() - target_offset; ++i) {
+                target.at(i + target_offset) = m_vector.at(i);
+            }
+        } else {
+            auto source_offset = static_cast<std::size_t>(std::abs(amount));
+            for (std::size_t j = 0; j < target.size() - source_offset; ++j) {
+                target.at(j) = m_vector.at(j + source_offset);
+            }
+        }
+
+        m_vector = target;
+
+        return *this;
+    }
+
+
     T foldl(std::function<T(T, T)> f, const T& initial) const {
         T value = initial;
         for (std::size_t i = 0; i < m_vector.size(); ++i) {
@@ -491,6 +559,7 @@ public:
         return std::all_of(m_vector.begin(), m_vector.end(), f);
     }
 
+
     template<typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool>>>
     bool all() const {
         return std::all_of(m_vector.begin(), m_vector.end(), [](const T& element) { return element; });
@@ -502,10 +571,12 @@ public:
         return std::any_of(m_vector.begin(), m_vector.end(), f);
     }
 
+
     template<typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool>>>
     bool any() const {
         return std::any_of(m_vector.begin(), m_vector.end(), [](const T& element) { return element; });
     }
+
 
     /**
      * Removes all elements for which `f` returns false from the original Vec and returns them as a separate vector
@@ -553,6 +624,7 @@ public:
         });
     }
 
+
     bool contains_any(const Vec<T>& values) const {
         return std::any_of(values.begin(), values.end(), [this](const T& value) {
             return contains(value);
@@ -568,6 +640,7 @@ public:
         }
         return false;
     }
+
 
     template<typename E = T, typename = std::enable_if_t<std::is_floating_point_v<E>>>
     bool approx_equals(const Vec<T>& other, double epsilon = 1e-6) const {
@@ -748,7 +821,7 @@ public:
      * @note Assumes that `indices` does not contain any gaps nor invalid indices
      */
     Vec<T>& reorder(const Vec<std::size_t>& indices) {
-        if(indices.size() != m_vector.size()) {
+        if (indices.size() != m_vector.size()) {
             throw std::out_of_range("indices.size() != m_vector.size()");
         }
 

@@ -1,0 +1,80 @@
+
+#ifndef SERIALISTLOOPER_EQUAL_DURATION_SAMPLING_H
+#define SERIALISTLOOPER_EQUAL_DURATION_SAMPLING_H
+
+#include <cassert>
+#include "core/algo/random.h"
+
+
+/**
+ * Randomly samples durations in interval [lower_bound, upper_bound) using an inverse exponential distribution
+ * See Obsidian docs for details and equations
+ */
+class EqualDurationSampling {
+public:
+    EqualDurationSampling(double lower_bound, double upper_bound, std::optional<unsigned int> seed = std::nullopt)
+            : m_lower_bound(lower_bound)
+              , m_upper_bound(upper_bound)
+              , m_random(seed) {
+        assert(lower_bound <= upper_bound);
+        recompute_coefficients();
+    }
+
+
+    double next() {
+        return inverse_cdf(m_random.next());
+    }
+
+
+    void set_lower_bound(double lower_bound) {
+        m_lower_bound = lower_bound;
+        recompute_coefficients();
+    }
+
+
+    void set_upper_bound(double upper_bound) {
+        m_upper_bound = upper_bound;
+        recompute_coefficients();
+    }
+
+
+    void set_bounds(double lower_bound, double upper_bound) {
+        m_lower_bound = lower_bound;
+        m_upper_bound = upper_bound;
+        recompute_coefficients();
+    }
+
+
+    [[maybe_unused]]
+    double pdf(double x) const {
+        return 2.0 * std::pow(0.5, x / m_lower_bound);
+    }
+
+
+    [[maybe_unused]]
+    double inverse_cdf(double u) const {
+        return 1 / m_log_q * std::log(u * m_k_inv + 0.5);
+    }
+
+
+private:
+    void recompute_coefficients() {
+        auto q = std::pow(0.5, 1 / m_lower_bound);
+        m_log_q = std::log(q);
+        auto gamma = m_log_q / (2 * (std::pow(q, m_upper_bound) - 0.5));
+
+        m_k_inv = m_log_q / (2 * gamma);
+    }
+
+
+    double m_lower_bound;
+    double m_upper_bound;
+
+    Random m_random;
+
+    double m_log_q = 0.0;
+    double m_k_inv = 0.0;
+};
+
+
+#endif //SERIALISTLOOPER_EQUAL_DURATION_SAMPLING_H

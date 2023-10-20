@@ -1,5 +1,5 @@
 
-#ifndef SERIALISTLOOPER_RANGE_H
+#ifndef SERIALISTLOOPER_SPACES_H
 #define SERIALISTLOOPER_RANGE_H
 
 #include <type_traits>
@@ -24,4 +24,4 @@ private:
     double m_end;
 };
 
-#endif //SERIALISTLOOPER_RANGE_H
+#endif //SERIALISTLOOPER_SPACES_H

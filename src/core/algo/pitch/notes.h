@@ -7,7 +7,7 @@
 #include "core/collections/voices.h"
 #include "core/collections/held.h"
 #include "core/algo/random.h"
-
+#include "core/utility/math.h"
 
 namespace pitch {
 static const unsigned int MIN_NOTE = 21;

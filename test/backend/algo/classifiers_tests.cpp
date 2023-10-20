@@ -55,7 +55,7 @@ TEST_CASE("LinearBandClassifier<double> Tests", "[LinearBandClassifier<double>]"
 
 
 TEST_CASE("LinearBandClassifier<int> Additional Tests", "[LinearBandClassifier<int>]") {
-    SECTION("Range: 10-59, Band Width: 10") {
+    SECTION("LinearSpace: 10-59, Band Width: 10") {
         LinearBandClassifier classifier(10, 59, 5);
         REQUIRE(classifier.get_num_classes() == 5);
 
@@ -69,7 +69,7 @@ TEST_CASE("LinearBandClassifier<int> Additional Tests", "[LinearBandClassifier<i
         REQUIRE(classifier.end_of(4) == 59);
     }
 
-    SECTION("Range: -30 to 60, Band Width: 15") {
+    SECTION("LinearSpace: -30 to 60, Band Width: 15") {
         LinearBandClassifier classifier(-30, 60, 6);
         REQUIRE(classifier.get_num_classes() == 6);
 

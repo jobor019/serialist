@@ -5,7 +5,7 @@
 #include "generative.h"
 #include "core/param/socket_handler.h"
 #include "core/param/parameter_keys.h"
-#include "core/utility/time_gate.h"
+#include "core/algo/time/time_gate.h"
 #include "core/collections/voices.h"
 
 template<typename T>

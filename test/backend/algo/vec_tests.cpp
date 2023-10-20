@@ -71,7 +71,6 @@ TEST_CASE("Vec approx_equals", "[approx_equals]") {
 }
 
 
-
 TEST_CASE("Vec operator+", "[operator]") {
     Vec v1({1, 2, 3});
     Vec v2({4, 5, 6});
@@ -381,6 +380,7 @@ TEST_CASE("Vec reorder", "[reorder]") {
     }
 }
 
+
 TEST_CASE("Vec argsort", "[argsort]") {
     Vec v({5, 2, 8, 1, 9});
 
@@ -672,6 +672,118 @@ TEST_CASE("Test extend function", "[extend]") {
 
     REQUIRE(v1.vector() == std::vector<int>({1, 2, 3, 4, 5, 6}));
 }
+
+
+TEST_CASE("Test linspace function") {
+    SECTION("Integral linspaces") {
+        auto v0 = Vec<int>::linspace(0, 10, 0);
+        REQUIRE(v0.empty());
+
+        auto v1 = Vec<int>::linspace(0, 10, 11);
+        REQUIRE(v1 == Vec({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}));
+
+        auto v2 = Vec<int>::linspace(0, 10, 11, false);
+        REQUIRE(v2 == Vec({0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}));
+
+        auto v3 = Vec<int>::linspace(0, 10, 3);
+        REQUIRE(v3 == Vec({0, 5, 10}));
+
+        auto v4 = Vec<int>::linspace(0, 10, 3, false);
+        REQUIRE(v4 == Vec({0, 3, 6}));
+
+        auto v5 = Vec<int>::linspace(10, 0, 11);
+        REQUIRE(v5 == Vec({10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0}));
+
+        auto v6 = Vec<int>::linspace(10, 0, 11, false);
+        REQUIRE(v6 == Vec({10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0}));
+
+        auto v8 = Vec<int>::linspace(10, 0, 3);
+        REQUIRE(v8 == Vec({10, 5, 0}));
+
+        auto v9 = Vec<int>::linspace(10, 0, 3, false);
+        REQUIRE(v9 == Vec({10, 6, 3}));
+    }
+
+    SECTION("Float-point linspaces") {
+        auto v0 = Vec<double>::linspace(0.0, 10.0, 0);
+        REQUIRE(v0.empty());
+
+        auto v1 = Vec<double>::linspace(0.0, 10.0, 11);
+        REQUIRE(v1.approx_equals(Vec<double>({0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0}), 1e-3));
+
+        auto v2 = Vec<double>::linspace(0.0, 10.0, 11, false);
+        REQUIRE(v2.approx_equals(Vec<double>({0.0, 0.9091, 1.8182, 2.7273, 3.6364, 4.5455
+                                              , 5.4545, 6.3636, 7.2727, 8.1818, 9.0909}), 1e-3));
+
+        auto v3 = Vec<double>::linspace(0.0, 10.0, 3);
+        REQUIRE(v3.approx_equals(Vec<double>({0.0, 5.0, 10.0}), 1e-3));
+
+        auto v4 = Vec<double>::linspace(0.0, 10.0, 3, false);
+        REQUIRE(v4.approx_equals(Vec<double>({0.0, 3.3333, 6.6667}), 1e-3));
+
+        auto v5 = Vec<double>::linspace(10.0, 0.0, 11);
+        REQUIRE(v5.approx_equals(Vec<double>({10.0, 9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0}), 1e-3));
+
+        auto v6 = Vec<double>::linspace(10.0, 0.0, 11, false);
+        REQUIRE(v6.approx_equals(Vec<double>({10.0, 9.0909, 8.1818, 7.2727, 6.3636, 5.4545
+                                              , 4.5455, 3.6364, 2.7273, 1.8182, 0.9091}), 1e-3));
+
+        auto v8 = Vec<double>::linspace(10.0, 0.0, 3);
+        REQUIRE(v8.approx_equals(Vec<double>({10.0, 5.0, 0.0}), 1e-3));
+
+        auto v9 = Vec<double>::linspace(10.0, 0.0, 3, false);
+        REQUIRE(v9.approx_equals(Vec<double>({10.0, 6.6667, 3.3333}), 1e-3));
+    }
+
+
+}
+
+//TEST_CASE("Test rotate function", "[rotate]") {
+//    Vec v({1, 2, 3, 4, 5});
+//
+//    SECTION("Rotate right by 2 elements") {
+//        v.rotate(2);
+//        REQUIRE(v.vector() == std::vector<int>({4, 5, 1, 2, 3}));
+//    }
+//
+//    SECTION("Rotate left by 1 element") {
+//        v.rotate(-1);
+//        REQUIRE(v.vector() == std::vector<int>({2, 3, 4, 5, 1}));
+//    }
+//
+//    SECTION("No rotation (amount is 0)") {
+//        v.rotate(0);
+//        REQUIRE(v.vector() == std::vector<int>({1, 2, 3, 4, 5}));
+//    }
+//}
+
+
+TEST_CASE("Test shift function", "[shift]") {
+    Vec v({1, 2, 3, 4, 5});
+
+    SECTION("Shift right by 2 elements") {
+        v.shift(2);
+        REQUIRE(v == Vec({0, 0, 1, 2, 3}));
+    }
+
+    SECTION("Shift left by 1 element") {
+        v.shift(-1);
+        REQUIRE(v == Vec({2, 3, 4, 5, 0}));
+    }
+
+    SECTION("Shift left by 5 elements (completely shift out)") {
+        v.shift(-5);
+        REQUIRE(v == Vec<int>::zeros(5));
+    }
+
+    SECTION("No shift (amount is 0)") {
+        v.shift(0);
+        REQUIRE(v == Vec({1, 2, 3, 4, 5}));
+    }
+}
+
+
+
 
 
 class Temp {

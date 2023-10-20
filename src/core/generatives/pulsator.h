@@ -7,7 +7,7 @@
 #include "core/algo/time/scheduler.h"
 #include "core/param/socket_policy.h"
 #include "core/param/socket_handler.h"
-#include "core/utility/time_gate.h"
+#include "core/algo/time/time_gate.h"
 #include "core/generatives/variable.h"
 
 class Pulsator : public Node<TriggerEvent> {

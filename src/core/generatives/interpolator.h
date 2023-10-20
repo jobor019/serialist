@@ -7,8 +7,10 @@
 #include <optional>
 #include <cmath>
 #include <sstream>
-#include "core/utility/utils.h"
+#include "core/utility/enums.h"
 #include "core/algo/facet.h"
+#include "core/utility/math.h"
+#include "core/utility/traits.h"
 
 
 
