@@ -52,10 +52,12 @@ public:
 
 
     void increment(int64_t delta_nanos) {
-        double tick_increment = static_cast<double>(delta_nanos) * 1e-9 * m_tempo / 60.0;
+        increment(static_cast<double>(delta_nanos) * 1e-9 * m_tempo / 60.0);
+    }
+
+    void increment(double tick_increment) {
         m_tick += tick_increment;
         m_beat = fmod(m_beat + tick_increment, m_meter.duration());
-
     }
 
 

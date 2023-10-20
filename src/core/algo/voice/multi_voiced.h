@@ -16,7 +16,12 @@ public:
     Flushable& operator=(Flushable&&) noexcept = default;
 
     virtual Voice<T> flush() = 0;
-    virtual Voice<T> flush(std::function<bool(const T&)> f) = 0;
+
+
+    virtual Voice<T> flush(std::function<bool(const T&)> f) {
+        (void) f;
+        return flush();
+    }
 };
 
 
@@ -26,7 +31,7 @@ template<typename ObjectType, typename DataType>
 class MultiVoiced {
 public:
 
-    explicit MultiVoiced(std::size_t num_voices) : m_objects(Vec<ObjectType>::repeated(num_voices, ObjectType())) {
+    explicit MultiVoiced(std::size_t num_voices = 1) : m_objects(Vec<ObjectType>::repeated(num_voices, ObjectType())) {
         static_assert(std::is_default_constructible_v<ObjectType>, "ObjectType must be default constructible");
         assert(num_voices > 0);
     }
@@ -43,6 +48,7 @@ public:
 
         return output;
     }
+
 
     template<typename E = DataType, typename = std::enable_if_t<std::is_base_of_v<Flushable<E>, ObjectType>>>
     Voices<DataType> flush(std::function<bool(const DataType&)> f) {
@@ -84,6 +90,42 @@ public:
     resize(std::size_t new_size) {
         m_objects.resize_append(new_size, ObjectType());
     }
+
+    template<typename Setter, typename ArgType, typename = std::enable_if_t<std::is_member_function_pointer_v<Setter>>>
+    void set(Setter func, const Vec<ArgType>& values) {
+        if (values.size() != m_objects.size()) {
+            throw std::invalid_argument("values.size() != m_vector.size()");
+        }
+
+        for (std::size_t i = 0; i < values.size(); ++i) {
+            (m_objects[i].*func)(values[i]);
+        }
+    }
+
+
+
+    template<typename U>
+    decltype(auto) operator[](const U& index) {
+        return m_objects[index];
+    }
+
+    template<typename U>
+    decltype(auto) operator[](const U& index) const {
+        return m_objects[index];
+    }
+
+
+    decltype(auto) begin() { return m_objects.begin(); }
+
+
+    decltype(auto) begin() const { return m_objects.begin(); }
+
+
+    decltype(auto) end() { return m_objects.end(); }
+
+
+    decltype(auto) end() const { return m_objects.end(); }
+
 
 
     const Vec<ObjectType>& get_objects() const {

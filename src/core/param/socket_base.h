@@ -35,6 +35,11 @@ public:
         return has_changed_internal();
     }
 
+    std::size_t voice_count() {
+        std::lock_guard lock{m_mutex};
+        return process_internal().size();
+    }
+
 
     Generative* get_connected() const override {
         return dynamic_cast<Generative*>(m_node);
@@ -91,7 +96,7 @@ protected:
 
     bool has_changed_internal() {
         // Note: calling Node.process() multiple times in the same time step won't change the node's value
-        return m_previous_value != process_internal();
+        return !m_previous_value.has_value() || m_previous_value != process_internal();
     }
 
 
@@ -101,6 +106,7 @@ protected:
         } else {
             m_node = nullptr;
         }
+        m_previous_value = std::nullopt;
     }
 
 
@@ -114,7 +120,7 @@ private:
     std::mutex m_mutex;
     Node<T>* m_node = nullptr;
 
-    Voices<T> m_previous_value = Voices<T>::empty_like();
+    std::optional<Voices<T>> m_previous_value = std::nullopt;
 };
 
 

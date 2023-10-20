@@ -40,7 +40,7 @@ TEST_CASE("Equal Duration Sampling Tests") {
 
         auto chi_square = ((p_observed - expected).pow(2) / expected).sum();
 
-        REQUIRE(chi_square < 1.0); // 1.0 completely arbitrarily chosen
+        REQUIRE(chi_square < 1.0); // 1.0 completely arbitrarily chosen, could be any value
     }
 }
 

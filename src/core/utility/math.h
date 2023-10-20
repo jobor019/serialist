@@ -28,6 +28,23 @@ inline T modulo(T n, T d) {
 }
 
 
+// ==============================================================================================
+
+template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+inline T clip(T position, std::optional<T> lower_bound = std::nullopt, std::optional<T> upper_bound = std::nullopt) {
+    if (lower_bound.has_value()) {
+        position = std::max(*lower_bound, position);
+    }
+
+    if (upper_bound.has_value()) {
+        position = std::min(*upper_bound, position);
+    }
+
+    return position;
+}
+
+
+
 } // namespace utils
 
 #endif //SERIALISTLOOPER_MATH_H

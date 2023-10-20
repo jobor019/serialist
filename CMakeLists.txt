@@ -276,6 +276,7 @@ add_executable(tests EXCLUDE_FROM_ALL
         test/backend/generatives/sequence_tests.cpp
         test/backend/generatives/variable_tests.cpp
         test/backend/algo/equal_distribution_tests.cpp
+        test/backend/generatives/random_pulsator_tests.cpp
 )
 
 target_link_libraries(tests

@@ -26,38 +26,28 @@ public:
     }
 
 
-    void set_lower_bound(double lower_bound) {
+    void set_lower_bound(double lower_bound, bool recompute = true) {
         m_lower_bound = lower_bound;
-        recompute_coefficients();
+        if (recompute)
+            recompute_coefficients();
     }
 
 
-    void set_upper_bound(double upper_bound) {
+    void set_upper_bound(double upper_bound, bool recompute = true) {
         m_upper_bound = upper_bound;
-        recompute_coefficients();
+        if (recompute)
+            recompute_coefficients();
     }
 
 
-    void set_bounds(double lower_bound, double upper_bound) {
+    void set_bounds(double lower_bound, double upper_bound, bool recompute = true) {
         m_lower_bound = lower_bound;
         m_upper_bound = upper_bound;
-        recompute_coefficients();
+        if (recompute)
+            recompute_coefficients();
     }
 
 
-    [[maybe_unused]]
-    double pdf(double x) const {
-        return 2.0 * std::pow(0.5, x / m_lower_bound);
-    }
-
-
-    [[maybe_unused]]
-    double inverse_cdf(double u) const {
-        return 1 / m_log_q * std::log(u * m_k_inv + 0.5);
-    }
-
-
-private:
     void recompute_coefficients() {
         auto q = std::pow(0.5, 1 / m_lower_bound);
         m_log_q = std::log(q);
@@ -65,6 +55,28 @@ private:
 
         m_k_inv = m_log_q / (2 * gamma);
     }
+
+
+    [[maybe_unused]]
+    double pdf(double x) const {
+        if (x < m_lower_bound || x > m_upper_bound)
+            return 0.0;
+
+        return 2.0 * std::pow(0.5, x / m_lower_bound);
+    }
+
+
+    [[maybe_unused]]
+    double inverse_cdf(double u) const {
+        if (u < 0.0 || u >= 1.0) {
+            throw std::invalid_argument("Value must be in (0, 1)");
+        }
+
+        return 1 / m_log_q * std::log(u * m_k_inv + 0.5);
+    }
+
+
+private:
 
 
     double m_lower_bound;
