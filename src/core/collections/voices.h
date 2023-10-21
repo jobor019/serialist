@@ -71,7 +71,7 @@ public:
 
     static Voices<T> transposed(const Voice<T>& voice) {
         auto output = Vec<Voice<T>>::allocated(voice.size());
-        for (auto& v: voice.vector()) {
+        for (const auto& v: voice.vector()) {
             output.append(Voice<T>::singular(v));
         }
         return Voices<T>(std::move(output));

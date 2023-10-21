@@ -14,6 +14,8 @@
 #include "core/algo/time/equal_duration_sampling.h"
 #include "core/algo/time/jump_gate.h"
 #include "core/algo/voice/multi_voiced.h"
+#include "sequence.h"
+#include "variable.h"
 
 class RandomPulsator : public Flushable<Trigger> {
 public:
@@ -23,9 +25,9 @@ public:
 
 
     explicit RandomPulsator(double lower_bound = 0.25
-                   , double upper_bound = 4.0
-                   , double relative_offset = 1.0
-                   , std::optional<unsigned int> seed = std::nullopt)
+                            , double upper_bound = 4.0
+                            , double relative_offset = 1.0
+                            , std::optional<unsigned int> seed = std::nullopt)
             : m_duration_rnd(lower_bound, upper_bound, seed)
               , m_pulse_width(utils::clip(relative_offset, {0.0}, {1.0})) {}
 
@@ -33,9 +35,8 @@ public:
     Voice<Trigger> process(double time) {
         if (m_configuration_changed) {
             recompute_existing(time);
+            m_configuration_changed = false;
         }
-
-        m_previous_trigger_time = time;
 
         Voice<Trigger> output;
         if (auto pulse_off = process_current_pulse_off(time)) {
@@ -45,8 +46,10 @@ public:
             output.append(*pulse_on);
         }
 
-        if (!m_next_pulse_on_time)
+        if (!m_next_pulse_on_time) {
             schedule_next(time);
+            m_previous_trigger_time = time;
+        }
 
         return output;
 
@@ -135,6 +138,7 @@ private:
         auto p_current_duration = m_duration_rnd.pdf(current_duration);
 
         if (p_current_duration < PROBABILITY_RECOMPUTE_THRESHOLD) {
+            std::cout << "recomputing full pulse (old duration: " << current_duration << ", p=" << p_current_duration << ")\n";
             // note: new duration is generated relative to last trigger, not current time
             schedule_next(m_previous_trigger_time, !m_next_pulse_off_time.has_value());
             return true;
@@ -209,6 +213,7 @@ public:
         if (!t) // process has already been called this cycle
             return m_current_value;
 
+        // TODO: Enabled shouldn't be a single value but per voice!!!!!
         if (!is_enabled()) {
             if (m_previous_enable_state) {
                 m_current_value = m_pulsators.flush();
@@ -232,23 +237,23 @@ public:
 
         if (m_jump_gate.poll(*t)) {
             output.merge_uneven(m_pulsators.flush(), true);
-            for (auto& pulsator : m_pulsators) {
+            for (auto& pulsator: m_pulsators) {
                 pulsator.reset_time();
             }
         }
 
         if (m_lower_bound.has_changed()) {
-            auto lower_bounds = m_lower_bound.process().firsts_or(0.25);
+            auto lower_bounds = m_lower_bound.process().adapted_to(num_voices).firsts_or(0.25);
             m_pulsators.set(&RandomPulsator::set_lower_bound, lower_bounds.as_type<double>());
         }
 
         if (m_upper_bound.has_changed()) {
-            auto upper_bounds = m_upper_bound.process().firsts_or(4.0);
+            auto upper_bounds = m_upper_bound.process().adapted_to(num_voices).firsts_or(4.0);
             m_pulsators.set(&RandomPulsator::set_upper_bound, upper_bounds.as_type<double>());
         }
 
         if (m_pulse_width.has_changed()) {
-            auto durations = m_pulse_width.process().firsts_or(1.0);
+            auto durations = m_pulse_width.process().adapted_to(num_voices).firsts_or(1.0);
             m_pulsators.set(&RandomPulsator::set_pulse_width, durations.as_type<double>());
         }
 
@@ -276,6 +281,31 @@ private:
     Voices<Trigger> m_current_value = Voices<Trigger>::empty_like();
 
     bool m_previous_enable_state = true;
+};
+
+
+// ==============================================================================================
+
+template<typename FloatType = float>
+struct RandomPulsatorWrapper {
+    ParameterHandler parameter_handler;
+
+    Sequence<Facet, FloatType> lower_bound{RandomPulsatorNode::RandomPulsatorKeys::LOWER_BOUND
+                                       , parameter_handler
+                                       , Voices<FloatType>::singular(0.25f)};
+    Sequence<Facet, FloatType> upper_bound{RandomPulsatorNode::RandomPulsatorKeys::UPPER_BOUND
+                                       , parameter_handler
+                                       , Voices<FloatType>::singular(2.0f)};
+    Sequence<Facet, FloatType> pulse_width{RandomPulsatorNode::RandomPulsatorKeys::PULSE_WIDTH
+                                       , parameter_handler
+                                       , Voices<FloatType>::singular(1.0f)};
+
+    Sequence<Facet, bool> enabled{ParameterKeys::ENABLED, parameter_handler, Voices<bool>::singular(true)};
+    Variable<Facet, std::size_t> num_voices{ParameterKeys::NUM_VOICES, parameter_handler, 1};
+
+    RandomPulsatorNode random_pulsator{"RandomPulsator", parameter_handler
+                                       , &lower_bound, &upper_bound, &pulse_width
+                                       , &enabled, &num_voices};
 };
 
 #endif //SERIALISTLOOPER_RANDOM_PULSATOR_H
