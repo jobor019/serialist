@@ -33,7 +33,9 @@ public:
 
     explicit MultiVoiced(std::size_t num_voices = 1) : m_objects(Vec<ObjectType>::repeated(num_voices, ObjectType())) {
         static_assert(std::is_default_constructible_v<ObjectType>, "ObjectType must be default constructible");
-        assert(num_voices > 0);
+        if (num_voices == 0) {
+            throw std::invalid_argument("num_voices cannot be 0");
+        }
     }
 
 
@@ -72,7 +74,9 @@ public:
     template<typename E = DataType>
     std::enable_if_t<std::is_base_of_v<Flushable<E>, ObjectType>, Voices<DataType>>
     resize(std::size_t new_size) {
-        assert(new_size > 0);
+        if (new_size == 0) {
+            throw std::invalid_argument("num voices cannot be 0");
+        }
         auto flushed = Voices<DataType>::zeros(m_objects.size()); // old object size
 
         if (new_size < m_objects.size()) {
@@ -80,7 +84,7 @@ public:
                 flushed[i] = m_objects[i].flush();
             }
         }
-        m_objects.resize_append(new_size, ObjectType());
+        m_objects.resize_default(new_size);
         return flushed;
     }
 
@@ -88,7 +92,10 @@ public:
     template<typename E = DataType>
     std::enable_if_t<!std::is_base_of_v<Flushable<E>, ObjectType>, void>
     resize(std::size_t new_size) {
-        m_objects.resize_append(new_size, ObjectType());
+        if (new_size == 0) {
+            throw std::invalid_argument("num voices cannot be 0");
+        }
+        m_objects.resize_default(new_size);
     }
 
     template<typename Setter, typename ArgType, typename = std::enable_if_t<std::is_member_function_pointer_v<Setter>>>

@@ -178,6 +178,39 @@ TEST_CASE("Vec resize_append", "[resize_append]") {
 }
 
 
+TEST_CASE("Vec resize_fold", "[resize_fold]") {
+    Vec v = {1, 2, 3};
+
+    v.resize_fold(4);
+    REQUIRE(v.size() == 4);
+    REQUIRE(v[0] == 1);
+    REQUIRE(v[1] == 2);
+    REQUIRE(v[2] == 3);
+    REQUIRE(v[3] == 1);
+
+    v.resize_fold(2);
+    REQUIRE(v.size() == 2);
+    REQUIRE(v[0] == 1);
+    REQUIRE(v[1] == 2);
+}
+
+TEST_CASE("Vec resize_default", "[resize_default]") {
+    Vec v = {1, 2, 3};
+
+    v.resize_default(4);
+    REQUIRE(v.size() == 4);
+    REQUIRE(v[0] == 1);
+    REQUIRE(v[1] == 2);
+    REQUIRE(v[2] == 3);
+    REQUIRE(v[3] == 0);
+
+    v.resize_fold(2);
+    REQUIRE(v.size() == 2);
+    REQUIRE(v[0] == 1);
+    REQUIRE(v[1] == 2);
+}
+
+
 TEST_CASE("Vec erase", "[erase]") {
     Vec v = {1, 2, 3, 4, 5};
 

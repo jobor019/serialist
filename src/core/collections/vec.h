@@ -372,33 +372,74 @@ public:
     }
 
 
+    /**
+     * Resize and append copies of the provided element
+     */
+    template<typename E = T, typename = std::enable_if_t<std::is_copy_constructible_v<E>>>
     Vec<T>& resize_append(std::size_t new_size, const T& append_value) {
-        if (new_size == 0)
-            m_vector.clear();
-        else
-            resize_internal(new_size, {append_value});
+        if (auto diff = size_diff(new_size); diff < 0) {
+            shrink_internal(new_size);
+        } else {
+            m_vector.resize(new_size, append_value);
+        }
 
         return *this;
     }
 
 
+    /**
+     * Resize and append default-constructed elements (useful for seeded elements where identical copies aren't desired)
+     */
+    template<typename E = T, typename = std::enable_if_t<std::is_default_constructible_v<E>>>
+    Vec<T>& resize_default(std::size_t new_size) {
+        if (auto diff = size_diff(new_size); diff < 0) {
+            shrink_internal(new_size);
+        } else {
+            for (std::size_t i = 0; i < static_cast<std::size_t>(diff); ++i) {
+                m_vector.emplace_back();
+            }
+        }
+        return *this;
+    }
+
+
+    /**
+     * Resize and append copies of the last element
+     */
+    template<typename E = T, typename = std::enable_if_t<std::is_copy_constructible_v<E>>>
     Vec<T>& resize_extend(std::size_t new_size) {
-        assert(!m_vector.empty());
+        if (m_vector.empty()) {
+            throw std::invalid_argument("cannot resize_extend empty vector");
+        }
 
-        if (new_size == 0)
-            m_vector.clear();
-        else
-            resize_internal(new_size, {m_vector.back()});
+        if (auto diff = size_diff(new_size); diff < 0) {
+            shrink_internal(new_size);
+        } else {
+            m_vector.resize(new_size, m_vector.back());
+        }
 
         return *this;
     }
 
 
+    /**
+    * Resize and append copies of existing elements in the vector (consecutive folded)
+    */
+    template<typename E = T, typename = std::enable_if_t<std::is_copy_constructible_v<E>>>
     Vec<T>& resize_fold(std::size_t new_size) {
-        if (new_size == 0)
-            m_vector.clear();
-        else
-            resize_internal(new_size, std::nullopt);
+        if (m_vector.empty()) {
+            throw std::invalid_argument("cannot resize_fold empty vector");
+        }
+
+        if (auto diff = size_diff(new_size); diff < 0) {
+            shrink_internal(new_size);
+        } else {
+            std::size_t original_size = m_vector.size();
+            for (std::size_t i = 0; i < static_cast<std::size_t>(diff); ++i) {
+                m_vector.push_back(m_vector.at(i % original_size));
+            }
+        }
+
         return *this;
     }
 
@@ -989,28 +1030,30 @@ private:
     }
 
 
-    void resize_internal(std::size_t new_size, const std::optional<T>& append_value) {
+    enum class ResizeType {
+        append
+        , extend
+        , fold
+        , default_ctor
+    };
+
+
+    long size_diff(std::size_t new_size) const {
+        return static_cast<long>(new_size - m_vector.size());
+    }
+
+
+    void shrink_internal(std::size_t new_size) {
+        assert(new_size <= m_vector.size());
+
         if (new_size == 0) {
             m_vector.clear();
             return;
         }
 
-        auto diff = static_cast<long>(new_size - m_vector.size());
-        if (diff < 0) {
-            // remove N last objects
-            m_vector.erase(vector().end() + diff, m_vector.end());
-        } else if (diff > 0) {
-            if (append_value.has_value()) {
-                // append
-                m_vector.resize(new_size, *append_value);
-            } else {
-                // fold
-                std::size_t original_size = m_vector.size();
-                for (std::size_t i = 0; i < static_cast<std::size_t>(diff); ++i) {
-                    m_vector.push_back(m_vector.at(i % original_size));
-                }
-            }
-        }
+        auto diff = size_diff(new_size);
+        m_vector.erase(m_vector.end() + diff, m_vector.end());
+
     }
 
 

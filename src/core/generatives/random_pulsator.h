@@ -229,9 +229,11 @@ public:
                                       , m_upper_bound.voice_count()
                                       , m_pulse_width.voice_count());
 
+        bool resized = false;
         Voices<Trigger> output = Voices<Trigger>::zeros(num_voices);
         if (num_voices != m_pulsators.size()) {
             output.merge_uneven(m_pulsators.resize(num_voices), true);
+            resized = true;
         }
 
 
@@ -242,17 +244,17 @@ public:
             }
         }
 
-        if (m_lower_bound.has_changed()) {
+        if (resized || m_lower_bound.has_changed()) {
             auto lower_bounds = m_lower_bound.process().adapted_to(num_voices).firsts_or(0.25);
             m_pulsators.set(&RandomPulsator::set_lower_bound, lower_bounds.as_type<double>());
         }
 
-        if (m_upper_bound.has_changed()) {
+        if (resized || m_upper_bound.has_changed()) {
             auto upper_bounds = m_upper_bound.process().adapted_to(num_voices).firsts_or(4.0);
             m_pulsators.set(&RandomPulsator::set_upper_bound, upper_bounds.as_type<double>());
         }
 
-        if (m_pulse_width.has_changed()) {
+        if (resized || m_pulse_width.has_changed()) {
             auto durations = m_pulse_width.process().adapted_to(num_voices).firsts_or(1.0);
             m_pulsators.set(&RandomPulsator::set_pulse_width, durations.as_type<double>());
         }
