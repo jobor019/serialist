@@ -64,6 +64,7 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/equal_duration_sampling.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/math.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/queue.h
+        src/core/algo/time/filters.h
 )
 
 target_link_libraries(serialistCore INTERFACE magicEnum)
@@ -277,6 +278,7 @@ add_executable(tests EXCLUDE_FROM_ALL
         test/backend/generatives/variable_tests.cpp
         test/backend/algo/equal_distribution_tests.cpp
         test/backend/generatives/random_pulsator_tests.cpp
+        test/backend/algo/filters_tests.cpp
 )
 
 target_link_libraries(tests
