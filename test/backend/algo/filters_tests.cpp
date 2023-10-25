@@ -10,30 +10,50 @@
 
 TEST_CASE("Smoo") {
     Smoo s;
-
-
     Random rnd(0);
 
     auto step = 0.01;
-
     auto ticks = rnd.nexts<double>(1000).multiply(step).cumsum();
 
     auto freq = 0.5;
     auto phasor = ticks.cloned().map([&freq](auto x) { return utils::modulo(x, 1/freq) * freq;});
     auto square_wave = phasor.cloned().map([](auto x) { return static_cast<double>(x < 0.5); });
 
-    auto y = Vec<double>::zeros(ticks.size());
-    for (std::size_t i = 0; i < ticks.size(); ++i) {
-        y[i] = s.process(square_wave[i], ticks[i]);
+    SECTION("Stateless") {
+        s.set_tau(0.1);
+        auto y = Vec<double>::zeros(ticks.size());
+        for (std::size_t i = 0; i < ticks.size(); ++i) {
+            y[i] = s.process(square_wave[i], ticks[i]);
+        }
+
+        std::cout << "ticks = ";
+        ticks.print();
+
+        std::cout << "x = ";
+        square_wave.print();
+
+        std::cout << "y = ";
+        y.print();
     }
 
-    std::cout << "ticks = ";
-    ticks.print();
+    SECTION("With setter") {
+        auto y = Vec<double>::zeros(ticks.size());
+        for (std::size_t i = 0; i < ticks.size(); ++i) {
+            y[i] = s.process(square_wave[i], ticks[i], 0.1);
+        }
 
-    std::cout << "x = ";
-    square_wave.print();
+        std::cout << "ticks = ";
+        ticks.print();
 
-    std::cout << "y = ";
-    y.print();
+        std::cout << "x = ";
+        square_wave.print();
 
+        std::cout << "y = ";
+        y.print();
+    }
+
+}
+
+TEST_CASE("Smoo stateless") {
+    Smoo s;
 }

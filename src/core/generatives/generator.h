@@ -36,7 +36,7 @@ public:
               , Node<Facet>* num_voices = nullptr)
             : m_parameter_handler(id, parent)
               , m_socket_handler(m_parameter_handler)
-//              , m_trigger(m_socket_handler.create_socket(GeneratorKeys::TRIGGER, trigger))
+//              , trigger(m_socket_handler.create_socket(GeneratorKeys::TRIGGER, trigger))
               , m_cursor(m_socket_handler.create_socket(GeneratorKeys::CURSOR, cursor))
               , m_interpolation_strategy(m_socket_handler.create_socket(GeneratorKeys::INTERP, interp))
               , m_sequence(m_socket_handler.create_socket(GeneratorKeys::SEQUENCE, sequence))
@@ -54,7 +54,7 @@ public:
         if (!t) // process has already been called this cycle
             return m_current_value;
 
-        if (!is_enabled() /* || !m_trigger.is_connected() */) {
+        if (!is_enabled() /* || !trigger.is_connected() */) {
             m_current_value = Voices<Facet>::create_empty_like();
             return m_current_value;
         }
@@ -166,7 +166,7 @@ private:
     SocketHandler m_socket_handler;
 
 
-//    Socket<TriggerEvent>& m_trigger;
+//    Socket<TriggerEvent>& trigger;
     Socket<Facet>& m_cursor;
     Socket<InterpolationStrategy>& m_interpolation_strategy;
     Socket<T>& m_sequence;

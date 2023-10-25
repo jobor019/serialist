@@ -6,25 +6,26 @@
 #include <cmath>
 #include <iostream>
 #include <iomanip>
+#include "core/utility/math.h"
 
 
 class Phasor {
 public:
 
     explicit Phasor(double max = 1.0
-                    , double phase = 0.0
+                    , double position = 0.0
                     , double current_time = 0.0)
             :  m_max(max)
-              , m_current_value(std::fmod(phase, 1.0) * max)
+              , m_current_value(utils::modulo(position, 1.0) * max)
               , m_previous_update_time(current_time) {}
 
 
-    double process(double time, double step_size, bool stepped) {
+    double process(double time, double step_size, double phase, bool stepped) {
         double increment;
         if (stepped) {
             if (m_is_first_value) {
                 m_is_first_value = false;
-                return m_current_value;
+                return with_phase(m_current_value, phase);
             }
             increment = step_size;
         } else {
@@ -34,22 +35,16 @@ public:
 
         double val = m_current_value + increment;
 
-        // modulo (supports negative numerator but not negative denominator)
-        m_current_value = std::fmod(std::fmod(val, m_max) + m_max, m_max);
-
-        // Handle fmod rounding errors
-        if (std::abs(m_current_value - m_max) < 1e-8) {
-            m_current_value = 0;
-        }
-
+        m_current_value = utils::modulo(val, m_max);
         m_is_first_value = false;
-        return m_current_value;
+
+        return with_phase(m_current_value, phase);
     }
 
 
-    void set_phase(double value, bool reset_to = false) {
-        m_is_first_value = reset_to;
-        m_current_value = std::fmod(value, m_max);
+    void reset(double position = 0.0) {
+        m_is_first_value = true;
+        m_current_value = position;
     }
 
 
@@ -61,6 +56,16 @@ public:
 
 
 private:
+    double with_phase(double x, double phase) const {
+        auto output = utils::modulo(x + phase * m_max, m_max);
+
+        // Handle rounding errors
+        if (std::abs(output - m_max) < 1e-8) {
+            return 0.0;
+        }
+        return output;
+    }
+
     double m_max;
     double m_current_value;
 

@@ -270,7 +270,6 @@ public:
 
 
 private:
-
     JumpGate m_jump_gate;
 
 

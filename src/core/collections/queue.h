@@ -12,7 +12,7 @@ public:
 
 
     void push(T value) {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        std::lock_guard lock(m_mutex);
         m_queue.emplace_back(value);
         if (m_queue.size() > m_size) {
             m_queue.pop_front();
@@ -21,7 +21,7 @@ public:
 
 
     std::optional<T> pop() {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        std::lock_guard lock(m_mutex);
 
         if (m_queue.empty())
             return std::nullopt;
@@ -32,27 +32,27 @@ public:
     }
 
 
-    std::vector<T> pop_all() {
-        std::lock_guard<std::mutex> lock(m_mutex);
+    Vec<T> pop_all() {
+        std::lock_guard lock(m_mutex);
 
-        std::vector<T> result;
+        Vec<T> result;
         while (!m_queue.empty()) {
-            result.push_back(std::move(m_queue.front()));
+            result.append(std::move(m_queue.front()));
             m_queue.pop_front();
         }
         return result;
     }
 
 
-    std::vector<T> get_snapshot() {
-        std::lock_guard<std::mutex> lock(m_mutex);
+    Vec<T> get_snapshot() {
+        std::lock_guard lock(m_mutex);
         return {m_queue.cbegin(), m_queue.cend()};
     }
 
 
     [[nodiscard]]
     const T& back() {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        std::lock_guard lock(m_mutex);
         return m_queue.back();
     }
 

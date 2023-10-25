@@ -16,30 +16,39 @@
 #include "core/algo/time/events.h"
 #include "core/algo/time/time_gate.h"
 #include "core/node_base.h"
+#include "core/algo/random.h"
+#include "core/algo/time/filters.h"
+#include "core/collections/queue.h"
+#include "core/algo/voice/multi_voiced.h"
+#include "unit_pulse.h"
+#include "sequence.h"
 
 class Oscillator {
 public:
     enum class Type {
-        phasor
-        , sin
-        , square
-        , tri
-        , white_noise
-        , brown_noise
-        , random_walk
+        phasor = 0
+        , sin = 1
+        , square = 2
+        , tri = 3
+        , white_noise = 4
+        , brown_noise = 5
+        , random_walk = 6
     };
 
 
-    double process(double time, Type type, double freq, double mul, double add
-                   , double duty, double curve, bool stepped) {
-        auto x = m_phasor.process(time, freq, stepped);
-        return mul * waveform(x, type, duty, curve) + add;
+    explicit Oscillator(std::optional<int> seed = std::nullopt, double tau_ticks = 0.0)
+            : m_random(seed), m_lpf(tau_ticks) {}
+
+
+    double process(double time, Type type, double freq, double phase, double mul
+                   , double add, double duty, double curve, bool stepped, double tau) {
+        auto x = m_phasor.process(time, freq, phase, stepped);
+        auto y = mul * waveform(x, type, duty, curve) + add;
+        return m_lpf.process(y, time, tau, stepped);
     }
 
 
 private:
-
-
     double waveform(double x, Type type, double duty, double curve) {
         switch (type) {
             case Type::phasor:
@@ -57,7 +66,7 @@ private:
             case Type::random_walk:
                 return random_walk();
             default:
-                throw std::runtime_error("oscillator types not implemented");
+                throw std::invalid_argument("oscillator types not implemented");
         }
     }
 
@@ -68,7 +77,7 @@ private:
 
 
     static double square(double x, double duty) {
-        return static_cast<double>(x <= duty);
+        return static_cast<double>(x >= duty);
     }
 
 
@@ -84,7 +93,7 @@ private:
 
 
     double white_noise() {
-        return m_distribution(m_rng);
+        return m_random.next();
     }
 
 
@@ -116,9 +125,8 @@ private:
 
 
     Phasor m_phasor;
-
-    std::mt19937 m_rng{std::random_device()()};
-    std::uniform_real_distribution<double> m_distribution{0.0, 1.0};
+    Random m_random;
+    Smoo m_lpf;
 
 };
 
@@ -139,8 +147,9 @@ public:
         static const inline std::string MUL = "mul";
         static const inline std::string DUTY = "duty";
         static const inline std::string CURVE = "curve";
-        static const inline std::string ENABLED = "enabled";
         static const inline std::string STEPPED = "stepped";
+        static const inline std::string PHASE = "phase";
+        static const inline std::string TAU = "tau";
 
         static const inline std::string CLASS_NAME = "oscillator";
     };
@@ -148,15 +157,17 @@ public:
 
     OscillatorNode(const std::string& identifier
                    , ParameterHandler& parent
-                   , Node<TriggerEvent>* trigger = nullptr
+                   , Node<Trigger>* trigger = nullptr
                    , Node<Facet>* type = nullptr
                    , Node<Facet>* freq = nullptr
                    , Node<Facet>* add = nullptr
                    , Node<Facet>* mul = nullptr
                    , Node<Facet>* duty = nullptr
                    , Node<Facet>* curve = nullptr
-                   , Node<Facet>* enabled = nullptr
+                   , Node<Facet>* tau = nullptr
+                   , Node<Facet>* phase = nullptr
                    , Node<Facet>* stepped = nullptr
+                   , Node<Facet>* enabled = nullptr
                    , Node<Facet>* num_voices = nullptr)
             : NodeBase<Facet>(identifier, parent, enabled, num_voices, OscillatorKeys::CLASS_NAME)
               , m_trigger(add_socket(OscillatorKeys::TRIGGER, trigger))
@@ -166,16 +177,18 @@ public:
               , m_mul(add_socket(OscillatorKeys::MUL, mul))
               , m_duty(add_socket(OscillatorKeys::DUTY, duty))
               , m_curve(add_socket(OscillatorKeys::CURVE, curve))
+              , m_tau(add_socket(OscillatorKeys::TAU, tau))
+              , m_phase(add_socket(OscillatorKeys::PHASE, phase))
               , m_stepped(add_socket(OscillatorKeys::STEPPED, stepped)) {}
 
 
     Voices<Facet> process() override {
         auto t = pop_time();
-        if (!t) // process has already been called this cycle
+        if (!t)
             return m_current_value;
 
         if (!is_enabled() || !m_trigger.is_connected()) {
-            m_current_value = Voices<Facet>::create_empty_like();
+            m_current_value = Voices<Facet>::empty_like();
             return m_current_value;
         }
 
@@ -190,100 +203,161 @@ public:
         auto duty = m_duty.process();
         auto curve = m_curve.process();
         auto stepped = m_stepped.process();
+        auto tau = m_tau.process();
+        auto phase = m_phase.process();
 
-        auto num_voices = voice_count(type.size(), freq.size(), mul.size(), add.size(), duty.size(), curve.size());
+        auto num_voices = voice_count(type.size(), freq.size(), mul.size(), add.size(), duty.size()
+                                      , curve.size(), stepped.size(), phase.size(), tau.size());
 
         if (num_voices != m_oscillators.size()) {
-            resize(m_oscillators, num_voices);
+            m_oscillators.resize(num_voices);
         }
 
-        Voices<TriggerEvent> triggers = trigger.adapted_to(num_voices);
-        std::vector<Oscillator::Type> types = adapt(type, num_voices, Oscillator::Type::phasor);
-        std::vector<double> freqs = adapt(freq, num_voices, 1.0);
-        std::vector<double> muls = adapt(mul, num_voices, 1.0);
-        std::vector<double> adds = adapt(add, num_voices, 0.0);
-        std::vector<double> dutys = adapt(duty, num_voices, 0.5);
-        std::vector<double> curves = adapt(curve, num_voices, 1.0);
-        std::vector<bool> steppeds = adapt(stepped, num_voices, false);
 
-        auto output = process_oscillators(*t, num_voices, triggers, types, freqs, muls, adds, dutys, curves, steppeds);
+
+        Voices<Trigger> triggers = trigger.adapted_to(num_voices);
+        Vec<Oscillator::Type> types = adapt(type, num_voices, Oscillator::Type::phasor);
+        Vec<double> freqs = adapt(freq, num_voices, 1.0);
+        Vec<double> muls = adapt(mul, num_voices, 1.0);
+        Vec<double> adds = adapt(add, num_voices, 0.0);
+        Vec<double> dutys = adapt(duty, num_voices, 0.5);
+        Vec<double> curves = adapt(curve, num_voices, 1.0);
+        Vec<bool> steppeds = adapt(stepped, num_voices, false);
+        Vec<double> taus = adapt(tau, num_voices, 0.0);
+        Vec<double> phases = adapt(phase, num_voices, 0.0);
+
+        auto output = Vec<double>::allocated(num_voices);
+        for (std::size_t i = 0; i < num_voices; ++i) {
+            auto y = m_oscillators[i].process(t->get_tick(), types[i], freqs[i], phases[i], muls[i]
+                                              , adds[i], dutys[i], curves[i], steppeds[i], taus[i]);
+            output.append(y);
+        }
+
+
+        auto voices = Voices<Facet>::transposed(output.as_type<Facet>());
 
         m_previous_values.push(output);
-        m_current_value = Voices<Facet>(output);
+        m_current_value = voices;
 
-        return {m_current_value};
+        return m_current_value;
     }
 
 
-    std::vector<Facet> process_oscillators(const TimePoint& t
-                                           , std::size_t num_voices
-                                           , Voices<TriggerEvent> triggers
-                                           , std::vector<Oscillator::Type> types
-                                           , std::vector<double> freqs
-                                           , std::vector<double> muls
-                                           , std::vector<double> adds
-                                           , std::vector<double> dutys
-                                           , std::vector<double> curves
-                                           , std::vector<bool> steppeds) {
-        std::vector<Facet> output = m_current_value.adapted_to(num_voices).firsts_or(Facet(0.0));
-
-        for (std::size_t i = 0; i < num_voices; ++i) {
-            if (TriggerEvent::contains(triggers.at(i), TriggerEvent::Type::pulse_on)) {
-                double position = m_oscillators.at(i).process(t.get_tick(), types.at(i), freqs.at(i), muls.at(i)
-                                                              , adds.at(i), dutys.at(i), curves.at(i), steppeds.at(i));
-                output.at(i) = static_cast<Facet>(position);
-            }
-        }
-        return output;
-    }
+    void set_trigger(Node<Trigger>* trigger) { m_trigger = trigger; }
 
 
-    void set_trigger(Node<TriggerEvent>* trigger) { m_trigger = trigger; }
     void set_type(Node<Facet>* type) { m_type = type; }
+
+
     void set_freq(Node<Facet>* freq) { m_freq = freq; }
+
+
     void set_add(Node<Facet>* add) { m_add = add; }
+
+
     void set_mul(Node<Facet>* mul) { m_mul = mul; }
+
+
     void set_duty(Node<Facet>* duty) { m_duty = duty; }
+
+
     void set_curve(Node<Facet>* curve) { m_curve = curve; }
 
 
-    Socket<TriggerEvent>& get_trigger() { return m_trigger; }
+    Socket<Trigger>& get_trigger() { return m_trigger; }
+
+
     Socket<Facet>& get_type() { return m_type; }
+
+
     Socket<Facet>& get_freq() { return m_freq; }
+
+
     Socket<Facet>& get_add() { return m_add; }
+
+
     Socket<Facet>& get_mul() { return m_mul; }
+
+
     Socket<Facet>& get_duty() { return m_duty; }
+
+
     Socket<Facet>& get_curve() { return m_curve; }
 
 
-    std::vector<std::vector<Facet>> get_output_history() { return m_previous_values.pop_all(); }
+    Vec<Vec<double>> get_output_history() { return m_previous_values.pop_all(); }
 
 
 private:
 
     template<typename OutputType>
-    std::vector<OutputType> adapt(Voices<Facet> values
-                                  , std::size_t num_voices
-                                  , const OutputType& default_value) {
+    Vec<OutputType> adapt(Voices<Facet>& values
+                          , std::size_t num_voices
+                          , const OutputType& default_value) {
         return values.adapted_to(num_voices).firsts_or(default_value);
     }
 
-    Socket<TriggerEvent>& m_trigger;
+
+    Socket<Trigger>& m_trigger;
     Socket<Facet>& m_type;
     Socket<Facet>& m_freq;
     Socket<Facet>& m_add;
     Socket<Facet>& m_mul;
     Socket<Facet>& m_duty;
     Socket<Facet>& m_curve;
+    Socket<Facet>& m_tau;
+    Socket<Facet>& m_phase;
     Socket<Facet>& m_stepped;
 
 
-    std::vector<Oscillator> m_oscillators{Oscillator()};
+    MultiVoiced<Oscillator, double> m_oscillators;
 
 
-    utils::LockingQueue<std::vector<Facet>> m_previous_values{HISTORY_LENGTH};
+    LockingQueue<Vec<double>> m_previous_values{HISTORY_LENGTH};
 
-    Voices<Facet> m_current_value = Voices<Facet>(Facet(1));  // NOTE: OBJECT IS NOT THREAD-SAFE!
+    Voices<Facet> m_current_value = Voices<Facet>::singular(Facet(0.0));
+};
+
+
+// ==============================================================================================
+
+template<typename FloatType = float>
+struct OscillatorWrapper {
+    ParameterHandler parameter_handler;
+
+    Sequence<Trigger> trigger{OscillatorNode::OscillatorKeys::TRIGGER, parameter_handler};
+    Sequence<Facet, Oscillator::Type> type{OscillatorNode::OscillatorKeys::TYPE
+                                           , parameter_handler
+                                           , Voices<Oscillator::Type>::singular(Oscillator::Type::phasor)};
+    Sequence<Facet, FloatType> freq{OscillatorNode::OscillatorKeys::FREQ
+                                    , parameter_handler
+                                    , Voices<FloatType>::singular(0.1f)};
+    Sequence<Facet, FloatType> mul{OscillatorNode::OscillatorKeys::MUL
+                                   , parameter_handler
+                                   , Voices<FloatType>::singular(1.0f)};
+    Sequence<Facet, FloatType> add{OscillatorNode::OscillatorKeys::ADD
+                                   , parameter_handler
+                                   , Voices<FloatType>::singular(0.0f)};
+    Sequence<Facet, FloatType> duty{OscillatorNode::OscillatorKeys::DUTY
+                                    , parameter_handler
+                                    , Voices<FloatType>::singular(0.5f)};
+    Sequence<Facet, FloatType> curve{OscillatorNode::OscillatorKeys::CURVE
+                                     , parameter_handler
+                                     , Voices<FloatType>::singular(1.0f)};
+    Sequence<Facet, FloatType> tau{OscillatorNode::OscillatorKeys::TAU
+                                   , parameter_handler
+                                   , Voices<FloatType>::singular(0.0f)};
+    Sequence<Facet, FloatType> phase{OscillatorNode::OscillatorKeys::PHASE
+                                     , parameter_handler
+                                     , Voices<FloatType>::singular(0.0f)};
+
+    Variable<Facet, bool> stepped{OscillatorNode::OscillatorKeys::STEPPED, parameter_handler, true};
+    Sequence<Facet, bool> enabled{ParameterKeys::ENABLED, parameter_handler, Voices<bool>::singular(true)};
+    Variable<Facet, std::size_t> num_voices{ParameterKeys::NUM_VOICES, parameter_handler, 1};
+
+    OscillatorNode oscillator{OscillatorNode::OscillatorKeys::CLASS_NAME
+                              , parameter_handler, &trigger, &type, &freq, &add, &mul, &duty
+                              , &curve, &tau, &phase, &stepped, &enabled, &num_voices};
 };
 
 #endif //SERIALISTLOOPER_OSCILLATOR_H
