@@ -180,7 +180,6 @@ public:
         }
 
         return *this;
-
     }
 
 
@@ -309,12 +308,13 @@ public:
         return std::move(output);
     }
 
+
     std::pair<Voices<T>, Voices<T>> partition(std::function<bool(const T&)> f) const {
         Voices<T> matching = Voices<T>::zeros(m_voices.size());
         Voices<T> non_matching = Voices<T>::zeros(m_voices.size());
 
         for (std::size_t i = 0; i < m_voices.size(); ++i) {
-            for (const auto& elem : m_voices[i]) {
+            for (const auto& elem: m_voices[i]) {
                 if (f(elem)) {
                     matching[i].append(elem);
                 } else {
@@ -332,6 +332,15 @@ public:
         std::cout << "{ ";
         for (const auto& voice: m_voices.vector())
             voice.print();
+
+        std::cout << " }" << std::endl;
+    }
+
+
+    void print(std::function<std::string(const T&)> f) const {
+        std::cout << "{ ";
+        for (const auto& voice: m_voices.vector())
+            voice.print(f);
 
         std::cout << " }" << std::endl;
     }

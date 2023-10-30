@@ -7,7 +7,7 @@
 #include <regex>
 #include <juce_data_structures/juce_data_structures.h>
 #include "core/exceptions.h"
-#include "core/generatives/interpolator.h"
+#include "core/generatives/interpolator_RM.h"
 #include "core/utility/serializable.h"
 #include "core/param/parameter_keys.h"
 #include "core/algo/facet.h"
@@ -411,7 +411,7 @@ public:
 
 //    VTSequenceParameter(const std::string& id
 //                        , VTParameterHandler& parent
-//                        , const Voices<OutputType>& initial)
+//                        , const Voices<PivotType>& initial)
 //            : VTSequenceParameter(id, parent, initial.vectors_as()) {}
 
 
@@ -447,7 +447,7 @@ public:
     }
 
 
-//    void set(const Voices<OutputType>& v) {
+//    void set(const Voices<PivotType>& v) {
 //        std::lock_guard lock{m_values_mutex};
 //        m_voices = v;
 //        reset_value_tree(v.vectors_as());
@@ -489,7 +489,7 @@ public:
 //    }
 //
 //
-//    std::vector<T> interpolate(double position, const InterpolationStrategy& strategy) {
+//    std::vector<T> interpolate(double position, const Strategy& strategy) {
 //        std::lock_guard lock{m_values_mutex};
 //        return Interpolator<T>::interpolate(position, strategy, m_voices);
 //    }

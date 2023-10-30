@@ -1,7 +1,7 @@
 
 
-#ifndef SERIALISTLOOPER_GENERATOR_H
-#define SERIALISTLOOPER_GENERATOR_H
+#ifndef SERIALISTLOOPER_GENERATOR_RM_H
+#define SERIALISTLOOPER_GENERATOR_RM_H
 
 #include "core/generative.h"
 #include "core/generatives/sequence.h"
@@ -180,4 +180,4 @@ private:
 };
 
 
-#endif //SERIALISTLOOPER_GENERATOR_H
+#endif //SERIALISTLOOPER_GENERATOR_RM_H

@@ -6,7 +6,6 @@
 
 #include <iostream>
 #include "core/exceptions.h"
-#include "core/generatives/interpolator.h"
 #include "core/collections/voices.h"
 
 class NopParameterHandler {

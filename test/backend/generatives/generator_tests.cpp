@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "core/generatives/generator.h"
+#include "core/generatives/generator_RM.h"
 #include "core/generatives/variable.h"
 #include "core/generatives/oscillator.h"
 

@@ -226,18 +226,23 @@ public:
         Vec<double> taus = adapt(tau, num_voices, 0.0);
         Vec<double> phases = adapt(phase, num_voices, 0.0);
 
-        auto output = Vec<double>::allocated(num_voices);
-        for (std::size_t i = 0; i < num_voices; ++i) {
-            auto y = m_oscillators[i].process(t->get_tick(), types[i], freqs[i], phases[i], muls[i]
-                                              , adds[i], dutys[i], curves[i], steppeds[i], taus[i]);
-            output.append(y);
-        }
-
-
-        auto voices = Voices<Facet>::transposed(output.as_type<Facet>());
-
-        m_previous_values.push(output);
-        m_current_value = voices;
+        throw std::runtime_error("TODO: Implement pulse");
+//        auto output = Vec<double>::allocated(num_voices);
+//        for (std::size_t i = 0; i < num_voices; ++i) {
+//            if (triggers[i].contains(Trigger::pulse_on)) {
+//                auto y = m_oscillators[i].process(t->get_tick(), types[i], freqs[i], phases[i], muls[i]
+//                                                  , adds[i], dutys[i], curves[i], steppeds[i], taus[i]);
+//                output.append(y);
+//            } else {
+//                output.append({}) // TODO CONTINUE FROM HERE: Probably need to use ouutput = Voices<double> or Vec<optional<double>>
+//            }
+//        }
+//
+//
+//        auto voices = Voices<Facet>::transposed(output.as_type<Facet>());
+//
+//        m_previous_values.push(output);
+//        m_current_value = voices;
 
         return m_current_value;
     }
@@ -323,39 +328,26 @@ private:
 
 template<typename FloatType = float>
 struct OscillatorWrapper {
+    using Keys = OscillatorNode::OscillatorKeys;
+    
     ParameterHandler parameter_handler;
 
-    Sequence<Trigger> trigger{OscillatorNode::OscillatorKeys::TRIGGER, parameter_handler};
-    Sequence<Facet, Oscillator::Type> type{OscillatorNode::OscillatorKeys::TYPE
-                                           , parameter_handler
+    Sequence<Trigger> trigger{Keys::TRIGGER, parameter_handler};
+    Sequence<Facet, Oscillator::Type> type{Keys::TYPE, parameter_handler
                                            , Voices<Oscillator::Type>::singular(Oscillator::Type::phasor)};
-    Sequence<Facet, FloatType> freq{OscillatorNode::OscillatorKeys::FREQ
-                                    , parameter_handler
-                                    , Voices<FloatType>::singular(0.1f)};
-    Sequence<Facet, FloatType> mul{OscillatorNode::OscillatorKeys::MUL
-                                   , parameter_handler
-                                   , Voices<FloatType>::singular(1.0f)};
-    Sequence<Facet, FloatType> add{OscillatorNode::OscillatorKeys::ADD
-                                   , parameter_handler
-                                   , Voices<FloatType>::singular(0.0f)};
-    Sequence<Facet, FloatType> duty{OscillatorNode::OscillatorKeys::DUTY
-                                    , parameter_handler
-                                    , Voices<FloatType>::singular(0.5f)};
-    Sequence<Facet, FloatType> curve{OscillatorNode::OscillatorKeys::CURVE
-                                     , parameter_handler
-                                     , Voices<FloatType>::singular(1.0f)};
-    Sequence<Facet, FloatType> tau{OscillatorNode::OscillatorKeys::TAU
-                                   , parameter_handler
-                                   , Voices<FloatType>::singular(0.0f)};
-    Sequence<Facet, FloatType> phase{OscillatorNode::OscillatorKeys::PHASE
-                                     , parameter_handler
-                                     , Voices<FloatType>::singular(0.0f)};
+    Sequence<Facet, FloatType> freq{Keys::FREQ, parameter_handler, Voices<FloatType>::singular(0.1f)};
+    Sequence<Facet, FloatType> mul{Keys::MUL, parameter_handler, Voices<FloatType>::singular(1.0f)};
+    Sequence<Facet, FloatType> add{Keys::ADD, parameter_handler, Voices<FloatType>::singular(0.0f)};
+    Sequence<Facet, FloatType> duty{Keys::DUTY, parameter_handler, Voices<FloatType>::singular(0.5f)};
+    Sequence<Facet, FloatType> curve{Keys::CURVE, parameter_handler, Voices<FloatType>::singular(1.0f)};
+    Sequence<Facet, FloatType> tau{Keys::TAU, parameter_handler, Voices<FloatType>::singular(0.0f)};
+    Sequence<Facet, FloatType> phase{Keys::PHASE, parameter_handler, Voices<FloatType>::singular(0.0f)};
 
-    Variable<Facet, bool> stepped{OscillatorNode::OscillatorKeys::STEPPED, parameter_handler, true};
+    Variable<Facet, bool> stepped{Keys::STEPPED, parameter_handler, true};
     Sequence<Facet, bool> enabled{ParameterKeys::ENABLED, parameter_handler, Voices<bool>::singular(true)};
     Variable<Facet, std::size_t> num_voices{ParameterKeys::NUM_VOICES, parameter_handler, 1};
 
-    OscillatorNode oscillator{OscillatorNode::OscillatorKeys::CLASS_NAME
+    OscillatorNode oscillator{Keys::CLASS_NAME
                               , parameter_handler, &trigger, &type, &freq, &add, &mul, &duty
                               , &curve, &tau, &phase, &stepped, &enabled, &num_voices};
 };

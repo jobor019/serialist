@@ -5,7 +5,7 @@
 #include "../src/io/renderers.h"
 #include "../src/core/algo/time/transport.h"
 #include "../src/core/generation_graph.h"
-#include "../src/core/generatives/generator.h"
+#include "../src/core/generatives/generator_RM.h"
 #include "../src/gui/looper_component.h"
 #include "../src/gui/mapping_component.h"
 #include "../src/gui/old_generator_component.h"

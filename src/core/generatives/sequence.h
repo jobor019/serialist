@@ -18,7 +18,7 @@ public:
     inline static const std::string CLASS_NAME = "sequence";
 
 
-    explicit Sequence(const std::string& id
+    Sequence(const std::string& id
                       , ParameterHandler& parent
                       , const Voices<StoredType>& initial_values = Voices<StoredType>::empty_like())
             : m_parameter_handler(id, parent)
@@ -29,6 +29,9 @@ public:
 
         m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, CLASS_NAME);
     }
+
+    Sequence(const std::string& id, ParameterHandler& parent, const StoredType& value)
+    : Sequence(id, parent, Voices<StoredType>::singular(value)) {}
 
 
     Voices<OutputType> process() override {
@@ -50,6 +53,9 @@ public:
         return m_sequence.get();
     }
 
+    void set_values(const StoredType& value) {
+        m_sequence.set(Voices<StoredType>::singular(value));
+    }
 
     void set_values(const Voices<StoredType>& values) {
         m_sequence.set(values);

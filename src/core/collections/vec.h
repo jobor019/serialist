@@ -7,6 +7,8 @@
 #include <functional>
 #include <iostream>
 #include <numeric>
+#include "core/utility/math.h"
+#include "core/utility/traits.h"
 
 
 template<typename T>
@@ -133,6 +135,10 @@ public:
         return m_vector != other.m_vector;
     }
 
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    Vec<T> operator+(const T& operand2) const {
+        return elementwise_operation(operand2, std::plus());
+    }
 
     template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
     Vec<T> operator+(const Vec<T>& other) const {
@@ -145,16 +151,31 @@ public:
         return elementwise_operation(other, std::minus());
     }
 
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    Vec<T> operator-(const T& operand2) const {
+        return elementwise_operation(operand2, std::minus());
+    }
+
 
     template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
     Vec<T> operator*(const Vec<T>& other) const {
         return elementwise_operation(other, std::multiplies());
     }
 
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    Vec<T> operator*(const T& operand2) const {
+        return elementwise_operation(operand2, std::multiplies());
+    }
+
 
     template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
     Vec<T> operator/(const Vec<T>& other) const {
         return elementwise_operation(other, std::divides());
+    }
+
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    Vec<T> operator/(const T& operand2) const {
+        return elementwise_operation(operand2, std::divides());
     }
 
 
@@ -640,10 +661,19 @@ public:
     // =========================== MISC ==========================
 
 
+    template<typename E = T, typename = std::enable_if_t<utils::is_printable_v<E>>>
     void print() const {
         std::cout << "[";
         for (const T& element: m_vector) {
             std::cout << element << ", ";
+        }
+        std::cout << "]" << std::endl;
+    }
+
+    void print(std::function<std::string(T)> f) const {
+        std::cout << "[";
+        for (const T& element: m_vector) {
+            std::cout << f(element) << ", ";
         }
         std::cout << "]" << std::endl;
     }
@@ -992,10 +1022,10 @@ public:
 private:
 
     std::size_t sign_index(long index) const {
-        if (index < 0) {
-            return static_cast<std::size_t>(static_cast<long>(m_vector.size()) + index);
-        }
-        return static_cast<std::size_t>(index);
+        // Note that if `std::abs(index) > m_vector.size()`,
+        //  this will return std::numeric_limits<std::size_t>::max() - index`
+        //  (which technically is unproblematic, since the value regardless will throw std::out_of_range)
+        return static_cast<std::size_t>(utils::sign_index(index, m_vector.size()));
     }
 
 
@@ -1007,6 +1037,16 @@ private:
             result.push_back(sign_index(index));
         }
         return Vec<std::size_t>(std::move(result));
+    }
+
+
+    Vec<T> elementwise_operation(const T& operand2, std::function<T(T, T)> op) const {
+        std::vector<T> output;
+        output.reserve(m_vector.size());
+        for (std::size_t i = 0; i < m_vector.size(); ++i) {
+            output.push_back(op(m_vector.at(i), operand2));
+        }
+        return Vec<T>(std::move(output));
     }
 
 

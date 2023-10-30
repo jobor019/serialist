@@ -31,7 +31,9 @@ inline T modulo(T n, T d) {
 // ==============================================================================================
 
 template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
-inline T clip(T position, std::optional<T> lower_bound = std::nullopt, std::optional<T> upper_bound = std::nullopt) {
+inline T clip(T position
+              , std::optional<T> lower_bound = std::nullopt
+                      , std::optional<T> upper_bound = std::nullopt) {
     if (lower_bound.has_value()) {
         position = std::max(*lower_bound, position);
     }
@@ -41,6 +43,17 @@ inline T clip(T position, std::optional<T> lower_bound = std::nullopt, std::opti
     }
 
     return position;
+}
+
+
+// ==============================================================================================
+
+template<typename IntType, typename = std::enable_if_t<std::is_integral_v<IntType>>>
+inline IntType sign_index(IntType index, std::size_t container_size) {
+    if (index < 0) {
+        return static_cast<IntType>(container_size) + index;
+    }
+    return index;
 }
 
 

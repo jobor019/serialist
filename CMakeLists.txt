@@ -7,6 +7,7 @@ project(SerialistLooper VERSION 0.0.1)
 list(APPEND CMAKE_PREFIX_PATH "/Applications/JUCE/install")
 find_package(JUCE CONFIG REQUIRED)        # If you've installed JUCE to your system
 find_package(Catch2 3 REQUIRED)
+
 # add_subdirectory(JUCE)                    # If you've put JUCE in a subdirectory called JUCE
 
 
@@ -20,9 +21,6 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/facet.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generation_graph.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generative.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/generator.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/interpolation_adapter.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/interpolator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/note_source.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/nop_parameter.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/oscillator.h
@@ -65,6 +63,7 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/math.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/queue.h
         src/core/algo/time/filters.h
+        src/core/generatives/interpolator.h
 )
 
 target_link_libraries(serialistCore INTERFACE magicEnum)
@@ -280,6 +279,8 @@ add_executable(tests EXCLUDE_FROM_ALL
         test/backend/generatives/random_pulsator_tests.cpp
         test/backend/algo/filters_tests.cpp
         test/backend/generatives/oscillator_tests.cpp
+        test/backend/generatives/interpolator_tests.cpp
+        test/backend/algo/facet_tests.cpp
 )
 
 target_link_libraries(tests

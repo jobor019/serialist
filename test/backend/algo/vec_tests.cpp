@@ -75,12 +75,35 @@ TEST_CASE("Vec operator+", "[operator]") {
     Vec v1({1, 2, 3});
     Vec v2({4, 5, 6});
 
-    Vec result = v1 + v2;
-    REQUIRE(result.size() == 3);
-    REQUIRE(result[0] == 5);
-    REQUIRE(result[1] == 7);
-    REQUIRE(result[2] == 9);
+    SECTION("Vector addition") {
+        Vec result = v1 + v2;
+        REQUIRE(v1 == Vec({1, 2, 3}));
+        REQUIRE(result.size() == 3);
+        REQUIRE(result[0] == 5);
+        REQUIRE(result[1] == 7);
+        REQUIRE(result[2] == 9);
+    }
+
+    SECTION("Scalar addition") {
+        Vec result = v1 + 5;
+        REQUIRE(v1 == Vec({1, 2, 3}));
+        REQUIRE(result.size() == 3);
+        REQUIRE(result[0] == 6);
+        REQUIRE(result[1] == 7);
+        REQUIRE(result[2] == 8);
+    }
+
+    SECTION("Mixed addition") {
+        Vec result = v1 + 10 + v2 + 100;
+        REQUIRE(v1 == Vec({1, 2, 3}));
+        REQUIRE(v2 == Vec({4, 5, 6}));
+        REQUIRE(result.size() == 3);
+        REQUIRE(result[0] == 115);
+        REQUIRE(result[1] == 117);
+        REQUIRE(result[2] == 119);
+    }
 }
+
 
 
 TEST_CASE("Vec range", "[range]") {

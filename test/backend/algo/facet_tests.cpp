@@ -158,6 +158,29 @@ TEST_CASE("Enum conversion") {
     }
 }
 
+TEST_CASE("Arithmetic operators") {
+    Facet f1(1.0);
+    Facet f2(2.0);
+    Facet f3(3.0);
+    double d1 = 4.0;
+    int i1 = 5;
+
+    SECTION("Addition") {
+        REQUIRE(f1 + f2 == Facet(3.0));
+        REQUIRE(f1 + 2.0 == Facet(3.0));
+        REQUIRE(2.0 + f1 == Facet(3.0));
+        REQUIRE(f1 + d1 == Facet(5.0));
+        REQUIRE(d1 + f1 == Facet(5.0));
+        REQUIRE(f1 + i1 == Facet(6.0));
+        REQUIRE(i1 + f1 == Facet(6.0));
+        REQUIRE(f1 + f2 + f3 == Facet(6.0));
+        REQUIRE(f1 == Facet(1.0));
+        REQUIRE(f2 == Facet(2.0));
+        REQUIRE(f3 == Facet(3.0));
+    }
+
+}
+
 
 //TEST_CASE("Performance") {
 //    // Creation

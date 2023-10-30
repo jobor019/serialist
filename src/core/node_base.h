@@ -7,6 +7,7 @@
 #include "core/param/parameter_keys.h"
 #include "core/algo/time/time_gate.h"
 #include "core/collections/voices.h"
+#include "core/algo/facet.h"
 
 template<typename T>
 class NodeBase : public Node<T> {

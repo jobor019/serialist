@@ -39,7 +39,7 @@ TEST_CASE("Smoo") {
     SECTION("With setter") {
         auto y = Vec<double>::zeros(ticks.size());
         for (std::size_t i = 0; i < ticks.size(); ++i) {
-            y[i] = s.process(square_wave[i], ticks[i], 0.1);
+            y[i] = s.process(square_wave[i], ticks[i], 0.1, false);
         }
 
         std::cout << "ticks = ";

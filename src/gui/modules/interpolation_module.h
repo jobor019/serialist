@@ -4,10 +4,10 @@
 #define SERIALISTLOOPER_INTERPOLATOR_COMPONENT_H
 
 #include <juce_gui_extra/juce_gui_extra.h>
-#include "core/generatives/interpolator.h"
+#include "core/generatives/interpolator_RM.h"
 #include "core/generatives/variable.h"
 #include "generative_component.h"
-#include "core/generatives/interpolation_adapter.h"
+#include "core/generatives/interpolation_adapter_RM.h"
 
 class InterpolationModule : public NodeBase<InterpolationStrategy> {
 public:

@@ -15,8 +15,8 @@ using AtomicParameter = AtomicVTParameter<DataType>;
 template<typename DataType>
 using ComplexParameter = LockingVTParameter<DataType>;
 
-template<typename OutputType, typename StoredType = OutputType>
-using SequenceParameter = VTSequenceParameter<OutputType, StoredType>;
+template<typename PivotType, typename StoredType = PivotType>
+using SequenceParameter = VTSequenceParameter<PivotType, StoredType>;
 
 
 #else

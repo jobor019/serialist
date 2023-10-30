@@ -83,6 +83,7 @@ public:
         return std::abs(m_value - other.m_value) < enum_epsilon;
     }
 
+
     bool operator==(const bool b) const {
         return static_cast<bool>(*this) == b;
     }
@@ -111,6 +112,7 @@ public:
     template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
     bool operator<(const T& t) const { return static_cast<T>(*this) < t; }
 
+
     friend std::ostream& operator<<(std::ostream& os, const Facet& facet) {
         auto original_precision = os.precision();
         os << std::fixed << std::setprecision(3);
@@ -121,27 +123,64 @@ public:
     }
 
 
-    template<typename OutputType, std::enable_if_t<std::is_arithmetic_v<OutputType>, int> = 0>
-    Facet operator+(const OutputType& t) {
-        return Facet(m_value + t);
+    template<typename U, typename = std::enable_if_t<std::is_arithmetic_v<U>>>
+    Facet operator+(U other) const {
+        return Facet(m_value + static_cast<double>(other));
     }
 
 
-    template<typename OutputType, std::enable_if_t<std::is_arithmetic_v<OutputType>, int> = 0>
-    Facet operator-(const OutputType& t) {
-        return Facet(m_value - t);
+    template<typename U
+             , typename = std::enable_if_t<std::conjunction_v<std::is_arithmetic<U>
+                                                              , std::negation<std::is_same<Facet, U>>>>>
+    friend Facet operator+(U lhs, const Facet& rhs) {
+        return Facet(static_cast<double>(lhs) + rhs.m_value);
     }
 
 
-    template<typename OutputType, std::enable_if_t<std::is_arithmetic_v<OutputType>, int> = 0>
-    Facet operator*(const OutputType& t) {
-        return Facet(m_value * t);
+    template<typename U, typename = std::enable_if_t<std::is_arithmetic_v<U>>>
+    Facet operator-(U other) const {
+        return Facet(m_value - static_cast<double>(other));
     }
 
 
-    template<typename OutputType, std::enable_if_t<std::is_arithmetic_v<OutputType>, int> = 0>
-    Facet operator/(const OutputType& t) {
-        return Facet(m_value / t);
+    template<typename U
+             , typename = std::enable_if_t<std::conjunction_v<std::is_arithmetic<U>
+                                                              , std::negation<std::is_same<Facet, U>>>>>
+    friend Facet operator-(U lhs, const Facet& rhs) {
+        return Facet(static_cast<double>(lhs) - rhs.m_value);
+    }
+
+
+    template<typename U, typename = std::enable_if_t<std::is_arithmetic_v<U>>>
+    Facet operator*(U other) const {
+        return Facet(m_value * static_cast<double>(other));
+    }
+
+
+    template<typename U
+             , typename = std::enable_if_t<std::conjunction_v<std::is_arithmetic<U>
+                                                              , std::negation<std::is_same<Facet, U>>>>>
+    friend Facet operator*(U lhs, const Facet& rhs) {
+        return Facet(static_cast<double>(lhs) * rhs.m_value);
+    }
+
+
+    template<typename U, typename = std::enable_if_t<std::is_arithmetic_v<U>>>
+    Facet operator/(U other) const {
+        return Facet(m_value / static_cast<double>(other));
+    }
+
+
+    template<typename U
+             , typename = std::enable_if_t<std::conjunction_v<std::is_arithmetic<U>
+                                                              , std::negation<std::is_same<Facet, U>>>>>
+    friend Facet operator/(U lhs, const Facet& rhs) {
+        return Facet(static_cast<double>(lhs) / rhs.m_value);
+    }
+
+
+    double operator*() const {
+        return m_value;
     }
 
 
@@ -158,10 +197,10 @@ public:
 
 
     // TODO
-//    template<typename OutputType>
-//    std::optional<OutputType> as_enum(int min_enum_value, int max_enum_value) {
+//    template<typename PivotType>
+//    std::optional<PivotType> as_enum(int min_enum_value, int max_enum_value) {
 //        if (!m_value.empty())
-//            return static_cast<OutputType>(m_value.at(0));
+//            return static_cast<PivotType>(m_value.at(0));
 //        return std::nullopt;
 //    }
 
@@ -224,7 +263,12 @@ private:
 // ==============================================================================================
 
 template<>
-struct std::is_floating_point<Facet> : std::true_type {};
+struct std::is_floating_point<Facet> : std::true_type {
+};
+
+template<>
+struct std::is_arithmetic<Facet> : std::true_type {
+};
 
 
 #endif //SERIALISTLOOPER_FACET_H
