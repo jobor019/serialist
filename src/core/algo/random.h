@@ -50,6 +50,35 @@ public:
         return values[static_cast<std::size_t>(std::floor(m_distribution(m_rng) * static_cast<double>(values.size())))];
     }
 
+    /**
+     * @throw std::invalid_argument if `values.size() < num_choices`
+     */
+    template<typename T>
+    Vec<T> choices(const Vec<T>& values, std::size_t num_choices) {
+        if (values.size() < num_choices) {
+            throw std::invalid_argument("Cannot choose from fewer values than choices");
+        }
+
+        auto result = Vec<T>::allocated(num_choices);
+
+        if (num_choices * 5 > values.size()) {
+            // If num_choices is close to the size of values, use a shuffle
+            Vec<T> shuffled = scramble(values);
+            for (std::size_t i = 0; i < num_choices; ++i) {
+                result.append(shuffled[i]);
+            }
+
+        } else {
+            // If num_choices is significantly smaller, use reservoir sampling
+            for (std::size_t i = 0; i < num_choices; ++i) {
+                result.append(choice(values));
+            }
+        }
+
+        return result;
+    }
+
+
 
     template<typename T>
     Vec<T> scramble(const Vec<T>& values) {

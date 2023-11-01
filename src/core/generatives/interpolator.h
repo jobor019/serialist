@@ -6,7 +6,7 @@
 #include <optional>
 #include "core/collections/voices.h"
 #include "core/algo/facet.h"
-#include "core/node_base.h"
+#include "core/node_stereotypes.h"
 #include "core/algo/time/trigger.h"
 #include "core/utility/math.h"
 #include "sequence.h"
@@ -21,7 +21,7 @@
 //}
 //
 //
-//static Strategy from_string(const std::string& s) {
+//static SelectionStrategy from_string(const std::string& s) {
 //    std::istringstream iss(s);
 //
 //    int type;
@@ -30,7 +30,7 @@
 //
 //    iss >> type >> dump >> pivot;
 //
-//    return Strategy(static_cast<Type>(type), pivot);
+//    return SelectionStrategy(static_cast<Type>(type), pivot);
 //}
 
 
@@ -214,7 +214,7 @@ public:
             return typename Interpolator<PivotType>::Clip();
         }
 
-        auto index = double2index(strategy_type->get());
+        auto index = utils::double2index(strategy_type->get(), NUM_STRATEGIES);
 
         return parse_strategy(index, pivot);
     }
@@ -234,15 +234,6 @@ public:
         } else {
             return typename Interpolator<PivotType>::Pass();
         }
-    }
-
-    static std::size_t double2index(double d) {
-        return static_cast<std::size_t>(std::floor(utils::modulo(d, 1.0)  * static_cast<double>(NUM_STRATEGIES)));
-
-    }
-
-    static double index2double(std::size_t index) {
-        return static_cast<double>(index) / static_cast<double>(NUM_STRATEGIES);
     }
 
 

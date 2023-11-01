@@ -1,6 +1,6 @@
 
-#ifndef SERIALISTLOOPER_NODE_BASE_H
-#define SERIALISTLOOPER_NODE_BASE_H
+#ifndef SERIALISTLOOPER_NODE_STEREOTYPES_H
+#define SERIALISTLOOPER_NODE_STEREOTYPES_H
 
 #include "generative.h"
 #include "core/param/socket_handler.h"
@@ -10,22 +10,15 @@
 #include "core/algo/facet.h"
 
 template<typename T>
-class NodeBase : public Node<T> {
+class StaticNode : public Node<T> {
 public:
-    NodeBase(const std::string& id
-             , ParameterHandler& parent
-             , Node<Facet>* enabled
-             , Node<Facet>* num_voices
-             , const std::string& class_name)
+    StaticNode(const std::string& id
+               , ParameterHandler& parent
+               , const std::string& class_name)
             : m_parameter_handler(id, parent)
-              , m_socket_handler(m_parameter_handler)
-              , m_enabled(m_socket_handler.create_socket(ParameterKeys::ENABLED, enabled))
-              , m_num_voices(m_socket_handler.create_socket(ParameterKeys::NUM_VOICES, num_voices)) {
+              , m_socket_handler(m_parameter_handler) {
         m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, class_name);
     }
-
-
-    void update_time(const TimePoint& t) override { m_time_gate.push_time(t); }
 
 
     std::vector<Generative*> get_connected() override { return m_socket_handler.get_connected(); }
@@ -35,6 +28,38 @@ public:
 
 
     void disconnect_if(Generative& connected_to) override { m_socket_handler.disconnect_if(connected_to); }
+
+
+protected:
+    template<typename OutputType>
+    Socket<OutputType>& add_socket(const std::string& id, Node<OutputType>* initial = nullptr) {
+        return m_socket_handler.create_socket(id, initial);
+    }
+
+
+private:
+    ParameterHandler m_parameter_handler;
+    SocketHandler m_socket_handler;
+
+};
+
+
+// ==============================================================================================
+
+template<typename T>
+class NodeBase : public StaticNode<T> {
+public:
+    NodeBase(const std::string& id
+             , ParameterHandler& parent
+             , Node<Facet>* enabled
+             , Node<Facet>* num_voices
+             , const std::string& class_name)
+            : StaticNode<T>(id, parent, class_name)
+              , m_enabled(StaticNode<T>::add_socket(ParameterKeys::ENABLED, enabled))
+              , m_num_voices(StaticNode<T>::add_socket(ParameterKeys::NUM_VOICES, num_voices)) {}
+
+
+    void update_time(const TimePoint& t) override { m_time_gate.push_time(t); }
 
 
     void set_enabled(Node<Facet>* enabled) { m_enabled = enabled; }
@@ -50,12 +75,6 @@ public:
 
 
 protected:
-    template<typename OutputType>
-    Socket<OutputType>& add_socket(const std::string& id, Node<OutputType>* initial = nullptr) {
-        return m_socket_handler.create_socket(id, initial);
-    }
-
-
     std::optional<TimePoint> pop_time() { return m_time_gate.pop_time(); }
 
 
@@ -74,15 +93,11 @@ protected:
 
 
 private:
-
-    ParameterHandler m_parameter_handler;
-    SocketHandler m_socket_handler;
-
-
     Socket<Facet>& m_enabled;
     Socket<Facet>& m_num_voices;
 
     TimeGate m_time_gate;
 };
 
-#endif //SERIALISTLOOPER_NODE_BASE_H
+
+#endif //SERIALISTLOOPER_NODE_STEREOTYPES_H

@@ -15,7 +15,7 @@
 #include "core/param/socket_handler.h"
 #include "core/algo/time/events.h"
 #include "core/algo/time/time_gate.h"
-#include "core/node_base.h"
+#include "core/node_stereotypes.h"
 #include "core/algo/random.h"
 #include "core/algo/time/filters.h"
 #include "core/collections/queue.h"

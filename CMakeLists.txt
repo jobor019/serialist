@@ -44,7 +44,7 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/socket_base.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/random_pulsator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/weighted_random.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/node_base.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/node_stereotypes.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/partial_note.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/allocator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/vec.h
@@ -260,13 +260,6 @@ target_include_directories(nopPlayground
 #####################################################################################
 
 add_executable(tests EXCLUDE_FROM_ALL
-#        ${CMAKE_CURRENT_SOURCE_DIR}/test/backend/oscillator_tests.cpp
-#        ${CMAKE_CURRENT_SOURCE_DIR}/test/interpolator_tests.cpp
-#        ${CMAKE_CURRENT_SOURCE_DIR}/test/selector_tests.cpp
-#        ${CMAKE_CURRENT_SOURCE_DIR}/test/looper_tests.cpp
-#        ${CMAKE_CURRENT_SOURCE_DIR}/test/generator_tests.cpp
-#        ${CMAKE_CURRENT_SOURCE_DIR}/test/backend/facet_tests.cpp
-#        test/backend/nop_tests.cpp
         test/backend/algo/vec_tests.cpp
         test/backend/algo/voices_tests.cpp
         test/backend/algo/random_tests.cpp
@@ -281,6 +274,7 @@ add_executable(tests EXCLUDE_FROM_ALL
         test/backend/generatives/oscillator_tests.cpp
         test/backend/generatives/interpolator_tests.cpp
         test/backend/algo/facet_tests.cpp
+        test/backend/generatives/selector_tests.cpp
 )
 
 target_link_libraries(tests

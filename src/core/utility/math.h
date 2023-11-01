@@ -33,7 +33,7 @@ inline T modulo(T n, T d) {
 template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
 inline T clip(T position
               , std::optional<T> lower_bound = std::nullopt
-                      , std::optional<T> upper_bound = std::nullopt) {
+              , std::optional<T> upper_bound = std::nullopt) {
     if (lower_bound.has_value()) {
         position = std::max(*lower_bound, position);
     }
@@ -56,6 +56,16 @@ inline IntType sign_index(IntType index, std::size_t container_size) {
     return index;
 }
 
+
+inline std::size_t double2index(double d, std::size_t index_range) {
+    return static_cast<std::size_t>(std::floor(utils::modulo(d, 1.0) * static_cast<double>(index_range)));
+
+}
+
+
+inline double index2double(std::size_t index, std::size_t index_range) {
+    return static_cast<double>(index) / static_cast<double>(index_range);
+}
 
 
 } // namespace utils

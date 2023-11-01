@@ -12,7 +12,7 @@
 #include "core/algo/histogram.h"
 #include "core/algo/random.h"
 #include "core/algo/partial_note.h"
-#include "core/node_base.h"
+#include "core/node_stereotypes.h"
 #include "core/algo/time/trigger.h"
 
 class Allocator {

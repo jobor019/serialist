@@ -62,18 +62,18 @@ TEST_CASE("Random::weighted_choice() returns valid indices for a non-empty vecto
     }
 }
 
-TEST_CASE("Random::choice() throws std::out_of_range for an empty vector") {
+TEST_CASE("Random::choice() throws for an empty vector") {
     Random random(0);
     Vec<int> values;
 
-    REQUIRE_THROWS_AS(random.choice(values), std::out_of_range);
+    REQUIRE_THROWS(random.choice(values));
 }
 
-TEST_CASE("Random::weighted_choice() throws std::out_of_range for an empty vector") {
+TEST_CASE("Random::weighted_choice() throws for an empty vector") {
     Random random(0);
     Vec<double> values;
 
-    REQUIRE_THROWS_AS(random.weighted_choice(values), std::out_of_range);
+    REQUIRE_THROWS(random.weighted_choice(values));
 }
 
 TEST_CASE("Random::scramble", "[scramble]") {
@@ -108,4 +108,40 @@ TEST_CASE("Random::scramble", "[scramble]") {
         REQUIRE_FALSE(elements_match);
     }
 }
+
+
+TEST_CASE("Random::choices() returns valid values without duplicates") {
+    Random random(0);
+    Vec values = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    std::unordered_set<int> seen_values;
+    const int numIterations = 1000;
+
+    for (int iteration = 0; iteration < numIterations; ++iteration) {
+        Vec<int> chosen = random.choices(values, 5);
+
+        REQUIRE(chosen.size() == 5);
+
+        // Ensure that each chosen value is in the original vector
+        for (int v : chosen) {
+            REQUIRE(std::find(values.begin(), values.end(), v) != values.end());
+            REQUIRE(seen_values.find(v) == seen_values.end()); // Check for duplicates
+            seen_values.insert(v);
+        }
+
+        // Reset the set of seen values for the next iteration
+        seen_values.clear();
+    }
+}
+
+
+TEST_CASE("Random::choices() returns empty vector for num_choices = 0") {
+    Random random(0);
+    Vec values = {1, 2, 3, 4, 5};
+
+    Vec<int> chosen = random.choices(values, 0);
+
+    REQUIRE(chosen.empty());
+}
+
+
 

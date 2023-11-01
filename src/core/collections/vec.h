@@ -227,8 +227,9 @@ public:
     }
 
 
-    Vec<T> operator[](const Vec<T>& indices) const {
-        std::vector<int> result;
+    template<typename U>
+    Vec<T> operator[](const Vec<U>& indices) const {
+        std::vector<T> result;
         result.reserve(indices.size());
 
         for (auto index: indices) {
@@ -873,6 +874,14 @@ public:
         if (high_thresh) {
             min_of(*high_thresh);
         }
+        return *this;
+    }
+
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    Vec<T>& clip_remove(std::optional<T> low_thresh, std::optional<T> high_thresh) {
+        filter_drain([low_thresh, high_thresh](const T& e) {
+            return (!low_thresh || e >= *low_thresh) && (!high_thresh || e <= *high_thresh);
+        });
         return *this;
     }
 
