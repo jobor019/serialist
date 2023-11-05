@@ -7,7 +7,6 @@
 #include <regex>
 #include <juce_data_structures/juce_data_structures.h>
 #include "core/exceptions.h"
-#include "core/generatives/interpolator_RM.h"
 #include "core/utility/serializable.h"
 #include "core/param/parameter_keys.h"
 #include "core/algo/facet.h"

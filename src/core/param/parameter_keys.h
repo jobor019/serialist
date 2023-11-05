@@ -17,6 +17,7 @@ public:
     static const inline std::string GENERATIVE_SOCKETS_TREE = "SOCKETS";
     static const inline std::string GENERATIVE_SOCKET = "SOCKET";
 
+    static const inline std::string TRIGGER = "trigger";
     static const inline std::string NUM_VOICES = "num_voices";
     static const inline std::string ENABLED = "enabled";
 

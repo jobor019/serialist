@@ -41,8 +41,13 @@ public:
 
 
     double process(double time, Type type, double freq, double phase, double mul
-                   , double add, double duty, double curve, bool stepped, double tau) {
-        auto x = m_phasor.process(time, freq, phase, stepped);
+                   , double add, double duty, double curve, bool stepped, double tau, bool increment = true) {
+        double x;
+        if (increment) {
+            x = m_phasor.process(time, freq, phase, stepped);
+        } else {
+            x = m_phasor.get_current_value();
+        }
         auto y = mul * waveform(x, type, duty, curve) + add;
         return m_lpf.process(y, time, tau, stepped);
     }
@@ -206,13 +211,12 @@ public:
         auto tau = m_tau.process();
         auto phase = m_phase.process();
 
-        auto num_voices = voice_count(type.size(), freq.size(), mul.size(), add.size(), duty.size()
-                                      , curve.size(), stepped.size(), phase.size(), tau.size());
+        auto num_voices = voice_count(trigger.size(), type.size(), freq.size(), mul.size(), add.size()
+                                      , duty.size(), curve.size(), stepped.size(), phase.size(), tau.size());
 
         if (num_voices != m_oscillators.size()) {
             m_oscillators.resize(num_voices);
         }
-
 
 
         Voices<Trigger> triggers = trigger.adapted_to(num_voices);
@@ -226,23 +230,16 @@ public:
         Vec<double> taus = adapt(tau, num_voices, 0.0);
         Vec<double> phases = adapt(phase, num_voices, 0.0);
 
-        throw std::runtime_error("TODO: Implement pulse");
-//        auto output = Vec<double>::allocated(num_voices);
-//        for (std::size_t i = 0; i < num_voices; ++i) {
-//            if (triggers[i].contains(Trigger::pulse_on)) {
-//                auto y = m_oscillators[i].process(t->get_tick(), types[i], freqs[i], phases[i], muls[i]
-//                                                  , adds[i], dutys[i], curves[i], steppeds[i], taus[i]);
-//                output.append(y);
-//            } else {
-//                output.append({}) // TODO CONTINUE FROM HERE: Probably need to use ouutput = Voices<double> or Vec<optional<double>>
-//            }
-//        }
-//
-//
-//        auto voices = Voices<Facet>::transposed(output.as_type<Facet>());
-//
-//        m_previous_values.push(output);
-//        m_current_value = voices;
+        auto output = Voices<Facet>::zeros(num_voices);
+        for (std::size_t i = 0; i < num_voices; ++i) {
+            bool increment = triggers[i].contains(Trigger::pulse_on);
+            auto y = m_oscillators[i].process(t->get_tick(), types[i], freqs[i], phases[i], muls[i]
+                                              , adds[i], dutys[i], curves[i], steppeds[i], taus[i], increment);
+            output[i].append(static_cast<Facet>(y));
+        }
+
+//        m_previous_values.push(output); // TODO: Update to use Facet
+        m_current_value = output;
 
         return m_current_value;
     }
@@ -329,7 +326,7 @@ private:
 template<typename FloatType = float>
 struct OscillatorWrapper {
     using Keys = OscillatorNode::OscillatorKeys;
-    
+
     ParameterHandler parameter_handler;
 
     Sequence<Trigger> trigger{Keys::TRIGGER, parameter_handler};

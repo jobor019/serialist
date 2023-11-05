@@ -31,7 +31,8 @@ template<typename ObjectType, typename DataType>
 class MultiVoiced {
 public:
 
-    explicit MultiVoiced(std::size_t num_voices = 1) : m_objects(Vec<ObjectType>::repeated(num_voices, ObjectType())) {
+    explicit MultiVoiced(std::size_t num_voices = 1)
+            : m_objects(Vec<ObjectType>::repeated(num_voices, ObjectType())) {
         static_assert(std::is_default_constructible_v<ObjectType>, "ObjectType must be default constructible");
         if (num_voices == 0) {
             throw std::invalid_argument("num_voices cannot be 0");
@@ -98,6 +99,7 @@ public:
         m_objects.resize_default(new_size);
     }
 
+
     template<typename Setter, typename ArgType, typename = std::enable_if_t<std::is_member_function_pointer_v<Setter>>>
     void set(Setter func, const Vec<ArgType>& values) {
         if (values.size() != m_objects.size()) {
@@ -110,11 +112,11 @@ public:
     }
 
 
-
     template<typename U>
     decltype(auto) operator[](const U& index) {
         return m_objects[index];
     }
+
 
     template<typename U>
     decltype(auto) operator[](const U& index) const {
@@ -132,7 +134,6 @@ public:
 
 
     decltype(auto) end() const { return m_objects.end(); }
-
 
 
     const Vec<ObjectType>& get_objects() const {

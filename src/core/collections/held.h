@@ -33,6 +33,7 @@ public:
         return m_held.drain();
     }
 
+
     Voice<T> flush(std::function<bool(const T&)> f) override {
         return m_held.filter_drain(f);
     }
@@ -79,20 +80,21 @@ public:
         return m_voiced_held.flush();
     }
 
+
     Voices<T> flush(std::function<bool(const T&)> f) {
         return m_voiced_held.flush(f);
     }
+
 
     Vec<T> flush(std::size_t voice_index) {
         return m_voiced_held.flush(voice_index);
     }
 
 
-
-
     Voices<T> resize(std::size_t num_voices) {
         return m_voiced_held.resize(num_voices);
     }
+
 
     std::size_t size() const {
         return m_voiced_held.size();
