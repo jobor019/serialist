@@ -236,6 +236,10 @@ public:
         }
     }
 
+    static double index2double(std::size_t index) {
+        return utils::index2double(index, NUM_STRATEGIES);
+    }
+
 
 private:
     ParameterHandler m_parameter_handler;

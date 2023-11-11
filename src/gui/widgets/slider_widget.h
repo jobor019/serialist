@@ -141,9 +141,9 @@ private:
 
     void on_slider_value_change() {
         if (m_is_integral)
-            m_variable.set_value(static_cast<float>(std::round(m_slider.getValue())));
+            m_variable.try_set_value(static_cast<float>(std::round(m_slider.getValue())));
         else
-            m_variable.set_value(static_cast<float>(m_slider.getValue()));
+            m_variable.try_set_value(static_cast<float>(m_slider.getValue()));
     }
 
 

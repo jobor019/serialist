@@ -109,9 +109,9 @@ TEST_CASE("Oscillator Ctor") {
 //    float increment = 0.3f; // stepped increment 0.3f is equivalent to 0.3 cycles per trigger = 0.3 freq
 //
 //    auto wrapper = OscillatorWrapper();
-//    wrapper.type.set_value(OscillatorNode::Type::phasor);
-//    wrapper.freq.set_value(increment);
-//    wrapper.m_stepped.set_value(true);
+//    wrapper.type.try_set_value(OscillatorNode::Type::phasor);
+//    wrapper.freq.try_set_value(increment);
+//    wrapper.m_stepped.try_set_value(true);
 //
 //    TimePoint t;
 //
@@ -136,9 +136,9 @@ TEST_CASE("Oscillator Ctor") {
 //    float freq = 0.25f;
 //
 //    auto wrapper = OscillatorWrapper();
-//    wrapper.type.set_value(OscillatorNode::Type::phasor);
-//    wrapper.freq.set_value(freq);
-//    wrapper.m_stepped.set_value(false);
+//    wrapper.type.try_set_value(OscillatorNode::Type::phasor);
+//    wrapper.freq.try_set_value(freq);
+//    wrapper.m_stepped.try_set_value(false);
 //
 //    TimePoint t{0.0};
 //
@@ -169,8 +169,8 @@ TEST_CASE("Oscillator Ctor") {
 //
 //TEST_CASE("Unity Phasor Drifting") {
 //    auto oscillator = OscillatorWrapper();
-//    oscillator.osc_type.set_value(Oscillator::Type::phasor);
-//    oscillator.freq.set_value(0.1f);
+//    oscillator.osc_type.try_set_value(Oscillator::Type::phasor);
+//    oscillator.freq.try_set_value(0.1f);
 //
 //    TimePoint t;
 //
@@ -185,9 +185,9 @@ TEST_CASE("Oscillator Ctor") {
 //
 //TEST_CASE("Sin Oscillator with Add Value") {
 //    auto oscillator = OscillatorWrapper();
-//    oscillator.osc_type.set_value(Oscillator::Type::sin);
-//    oscillator.freq.set_value(0.25f);
-//    oscillator.add.set_value(2.0f);
+//    oscillator.osc_type.try_set_value(Oscillator::Type::sin);
+//    oscillator.freq.try_set_value(0.25f);
+//    oscillator.add.try_set_value(2.0f);
 //
 //    TimePoint t;
 //
@@ -201,8 +201,8 @@ TEST_CASE("Oscillator Ctor") {
 //
 //TEST_CASE("Phasor Oscillator") {
 //    OscillatorWrapper oscillator;
-//    oscillator.osc_type.set_value(Oscillator::Type::phasor);
-//    oscillator.freq.set_value(0.25f);
+//    oscillator.osc_type.try_set_value(Oscillator::Type::phasor);
+//    oscillator.freq.try_set_value(0.25f);
 //
 //    TimePoint t;
 //
@@ -215,8 +215,8 @@ TEST_CASE("Oscillator Ctor") {
 //    }
 //
 //    SECTION("Test Freq and Mul") {
-//        oscillator.freq.set_value(0.5f);
-//        oscillator.mul.set_value(0.5f);
+//        oscillator.freq.try_set_value(0.5f);
+//        oscillator.mul.try_set_value(0.5f);
 //
 //        REQUIRE_THAT(oscillator.oscillator.process(t).at(0), Catch::Matchers::WithinAbs(0.0, 1e-5));
 //        REQUIRE_THAT(oscillator.oscillator.process(t).at(0), Catch::Matchers::WithinAbs(0.25, 1e-5));
@@ -226,9 +226,9 @@ TEST_CASE("Oscillator Ctor") {
 //    }
 //
 //    SECTION("Test Freq, Mul, Add") {
-//        oscillator.freq.set_value(0.4f);
-//        oscillator.mul.set_value(2.0f);
-//        oscillator.add.set_value(1.0f);
+//        oscillator.freq.try_set_value(0.4f);
+//        oscillator.mul.try_set_value(2.0f);
+//        oscillator.add.try_set_value(1.0f);
 //        REQUIRE_THAT(oscillator.oscillator.process(t).at(0), Catch::Matchers::WithinAbs(1.0, 1e-5));
 //        REQUIRE_THAT(oscillator.oscillator.process(t).at(0), Catch::Matchers::WithinAbs(1.8, 1e-5));
 //        REQUIRE_THAT(oscillator.oscillator.process(t).at(0), Catch::Matchers::WithinAbs(2.6, 1e-5));
@@ -237,21 +237,21 @@ TEST_CASE("Oscillator Ctor") {
 //    }
 //
 //    SECTION("Test Variable Freq, Add, Mul") {
-//        oscillator.freq.set_value(0.4f);
-//        oscillator.mul.set_value(2.0f);
-//        oscillator.add.set_value(1.0f);
+//        oscillator.freq.try_set_value(0.4f);
+//        oscillator.mul.try_set_value(2.0f);
+//        oscillator.add.try_set_value(1.0f);
 //        REQUIRE_THAT(oscillator.oscillator.process(t).at(0), Catch::Matchers::WithinAbs(1.0, 1e-5)); // x = 0
 //        REQUIRE_THAT(oscillator.oscillator.process(t).at(0), Catch::Matchers::WithinAbs(1.8, 1e-5)); // x = 0.4
 //
 //
-//        oscillator.freq.set_value(0.2f);
-//        oscillator.mul.set_value(0.5f);
-//        oscillator.add.set_value(2.0f);
+//        oscillator.freq.try_set_value(0.2f);
+//        oscillator.mul.try_set_value(0.5f);
+//        oscillator.add.try_set_value(2.0f);
 //        REQUIRE_THAT(oscillator.oscillator.process(t).at(0), Catch::Matchers::WithinAbs(2.3, 1e-5)); // x = 0.6
 //
-//        oscillator.freq.set_value(0.6f);
-//        oscillator.mul.set_value(1.5f);
-//        oscillator.add.set_value(0.5f);
+//        oscillator.freq.try_set_value(0.6f);
+//        oscillator.mul.try_set_value(1.5f);
+//        oscillator.add.try_set_value(0.5f);
 //        REQUIRE_THAT(oscillator.oscillator.process(t).at(0), Catch::Matchers::WithinAbs(0.8, 1e-5)); // x = 0.2
 //    }
 //}

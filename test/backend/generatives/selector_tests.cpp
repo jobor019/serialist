@@ -55,3 +55,41 @@ TEST_CASE("SelectorWrapper") {
     SelectorWrapper<Facet, int> selector;
 }
 
+TEST_CASE("SelectorAdapter") {
+    ParameterHandler handler;
+    Variable<Facet, double> strategy_type("", handler, 0.0);
+    Variable<Facet, std::size_t> nth_index("", handler, 0);
+    Variable<Facet, std::size_t> n_random("", handler, 1);
+    SelectorAdapter strategy(SelectorAdapter::CLASS_NAME, handler, &strategy_type, &nth_index, &n_random);
+
+    auto num_strategies = SelectionStrategy::count();
+    auto current_strategy = 0.0;
+    auto increment = 1.0 / static_cast<double>(num_strategies);
+
+    strategy.update_time(TimePoint());
+    auto result = strategy.process();
+    REQUIRE(!result.is_empty_like());
+    REQUIRE(result.first().value().is<SelectionStrategy::All>());
+
+    current_strategy += increment;
+    strategy_type.set_value(current_strategy);
+    strategy.update_time(TimePoint());
+    result = strategy.process();
+    REQUIRE(!result.is_empty_like());
+    REQUIRE(result.first().value().is<SelectionStrategy::None>());
+
+    current_strategy += increment;
+    strategy_type.set_value(current_strategy);
+    strategy.update_time(TimePoint());
+    result = strategy.process();
+    REQUIRE(!result.is_empty_like());
+    REQUIRE(result.first().value().is<SelectionStrategy::Nth>());
+
+    current_strategy += increment;
+    strategy_type.set_value(current_strategy);
+    strategy.update_time(TimePoint());
+    result = strategy.process();
+    REQUIRE(!result.is_empty_like());
+    REQUIRE(result.first().value().is<SelectionStrategy::Randomize>());
+}
+

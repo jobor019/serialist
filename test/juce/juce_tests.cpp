@@ -39,7 +39,7 @@ TEST_CASE("Pulsator") {
     auto& pulsator = wrapper.pulsator;
     wrapper.num_voices.set_value(3);
     wrapper.interval.set_value(0.5);
-//    wrapper.duty_cycle.set_value(0.5f);
+//    wrapper.duty_cycle.try_set_value(0.5f);
 
     for (int i = 0; i < 10000; ++i) {
         auto t = i / 1000.0;

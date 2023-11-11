@@ -37,7 +37,6 @@ public:
 
     using StrategyType = std::variant<All, None, Nth, Randomize, Probabilistic>;
 
-
     SelectionStrategy() = default;
 
 

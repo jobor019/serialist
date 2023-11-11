@@ -57,9 +57,8 @@ inline IntType sign_index(IntType index, std::size_t container_size) {
 }
 
 
-inline std::size_t double2index(double d, std::size_t index_range) {
-    return static_cast<std::size_t>(std::floor(utils::modulo(d, 1.0) * static_cast<double>(index_range)));
-
+inline std::size_t double2index(double d, std::size_t index_range, double epsilon = 1e-6) {
+    return static_cast<std::size_t>(std::floor(utils::modulo(d + epsilon, 1.0) * static_cast<double>(index_range)));
 }
 
 
