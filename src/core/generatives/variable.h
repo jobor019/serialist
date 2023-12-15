@@ -11,7 +11,7 @@
 template<typename OutputType, typename StoredType = OutputType>
 class Variable : public Node<OutputType> {
 public:
-    using ParameterType = typename std::conditional_t<std::atomic<StoredType>::is_always_lock_free
+    using ParameterType = typename std::conditional_t<utils::is_always_lock_free_v<StoredType>
                                                     , AtomicParameter<StoredType>
                                                     , ComplexParameter<StoredType>>;
 

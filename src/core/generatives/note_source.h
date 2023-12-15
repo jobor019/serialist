@@ -10,11 +10,12 @@
 #include "core/utility/enums.h"
 #include "core/param/parameter_policy.h"
 #include "core/param/socket_policy.h"
-#include "core/held_notes_RM.h"
 #include "core/param/socket_handler.h"
 #include "io/renderers.h"
+#include "core/generative_stereotypes.h"
 
 
+// TODO: Lots of refactoring needed here: Separate out NoteSource from NoteSourceNode + update accordingly
 class NoteSource : public Root {
 public:
 
@@ -68,14 +69,14 @@ public:
 
         auto& t = m_time_point;
 
-        auto voices = m_num_voices.process();
 
         auto trigger = m_trigger_pulse.process();
         auto pitch = m_pitch.process();
         auto velocity = m_velocity.process();
         auto channel = m_channel.process();
 
-        auto num_voices = compute_voice_count(voices, trigger.size(), pitch.size(), velocity.size(), channel.size());
+        auto num_voices = GenerativeCommons::voice_count(m_num_voices, trigger.size(), pitch.size()
+                                                         , velocity.size(), channel.size());
 
         if (m_held_notes.size() != num_voices) {
             for (auto& note_off: recompute_num_voices(t, num_voices)) {

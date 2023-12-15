@@ -7,7 +7,7 @@
 #include <regex>
 #include <juce_data_structures/juce_data_structures.h>
 #include "core/exceptions.h"
-#include "core/utility/serializable.h"
+#include "core/utility/traits.h"
 #include "core/param/parameter_keys.h"
 #include "core/algo/facet.h"
 #include "core/collections/voices.h"
@@ -20,7 +20,9 @@ public:
     static juce::var serialize(const T& value)  {
         static_assert(!std::is_same_v<T, Facet>, "Facet type is not serializable.");
 
-        if constexpr (is_serializable<T>::value) {
+        if constexpr (std::is_same_v<T, std::string>) {
+            return {value};
+        } else if constexpr (utils::is_serializable_v<T>) {
             return {value.to_string()};
         } else if constexpr (std::is_enum_v<T>) {
             return static_cast<int>(value);
@@ -34,7 +36,9 @@ public:
     static T deserialize(const juce::var& obj) {
         static_assert(!std::is_same_v<T, Facet>, "Facet type is not serializable.");
 
-        if constexpr (is_serializable<T>::value) {
+        if constexpr (std::is_same_v<T, std::string>) {
+            return obj.toString().toStdString();
+        } else if constexpr (utils::is_serializable_v<T>) {
             return T::from_string(obj.toString().toStdString());
         } else if constexpr (std::is_enum_v<T>) {
             return T(static_cast<int>(obj));
@@ -393,7 +397,7 @@ public:
 
     VTSequenceParameter(const std::string& id
                         , VTParameterHandler& parent
-                        , const std::vector<std::vector<StoredType>>& initial)
+                        , const Voices<StoredType>& initial)
             : m_value_tree({id})
               , m_parent(parent) {
         auto& parent_tree = m_parent.get_value_tree();
@@ -453,17 +457,17 @@ public:
 //    }
 
 
-    void set(const std::vector<std::vector<StoredType>>& v) {
+    void set(const Voices<StoredType>& v) {
         std::lock_guard lock{m_values_mutex};
-        m_voices = Voices<OutputType>(v);
+        m_voices = v.template as_type<OutputType>();
         reset_value_tree(v);
     }
 
-    void set_transposed(const std::vector<StoredType>& v) {
+    void set_transposed(const Voice<StoredType>& voice) {
         std::lock_guard lock{m_value_tree};
-        auto v_transposed = VoiceUtils::transpose(v);
-        m_voices = Voices<OutputType>(v_transposed);
-        reset_value_tree(v_transposed);
+        auto voices = Voices<StoredType>::transposed(voice);
+        m_voices = voice.template as_type<OutputType>();
+        reset_value_tree(voices);
     }
 
 
@@ -537,7 +541,7 @@ public:
 
 
 private:
-    void reset_value_tree(const std::vector<std::vector<StoredType>>& values) {
+    void reset_value_tree(const Voices<StoredType>& values) {
         m_vt_list.clear();
         m_next_vt_name = 0;
 
@@ -545,7 +549,7 @@ private:
         for (const auto& v: values) {
             auto name = "c" + std::to_string(m_next_vt_name);
             ++m_next_vt_name;
-            m_vt_list.emplace_back(v, name, m_value_tree, m_parent.get_undo_manager());
+            m_vt_list.emplace_back(v.vector(), name, m_value_tree, m_parent.get_undo_manager());
         }
     }
 
@@ -573,7 +577,7 @@ private:
 
     std::mutex m_values_mutex;
 
-    Voices<OutputType> m_voices = Voices<OutputType>::create_empty_like();
+    Voices<OutputType> m_voices = Voices<OutputType>::empty_like();
     juce::ValueTree m_value_tree;
 
     std::vector<ValueTreeList<StoredType>> m_vt_list;

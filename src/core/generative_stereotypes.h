@@ -1,6 +1,6 @@
 
-#ifndef SERIALISTLOOPER_NODE_STEREOTYPES_H
-#define SERIALISTLOOPER_NODE_STEREOTYPES_H
+#ifndef SERIALISTLOOPER_GENERATIVE_STEREOTYPES_H
+#define SERIALISTLOOPER_GENERATIVE_STEREOTYPES_H
 
 #include "generative.h"
 #include "core/param/socket_handler.h"
@@ -8,6 +8,62 @@
 #include "core/algo/time/time_gate.h"
 #include "core/collections/voices.h"
 #include "core/algo/facet.h"
+
+class GenerativeCommons {
+public:
+    GenerativeCommons() = delete;
+
+
+    template<std::size_t max_count = 128, typename... Args>
+    static std::size_t voice_count(Socket<Facet>& voices_count_socket, Args... args) {
+        auto num_voices = static_cast<long>(voices_count_socket.process().adapted_to(1).first_or(0));
+        if (num_voices <= 0) {
+            return std::min(max_count, std::max({static_cast<std::size_t>(1), args...}));
+        }
+
+        return std::min(max_count, static_cast<std::size_t>(num_voices));
+    }
+};
+
+
+// ==============================================================================================
+
+// TODO: Lots of code duplication from StaticNode. Not sure if this can be handled better
+class RootBase : public Root {
+public:
+    RootBase(const std::string& id
+             , ParameterHandler& parent
+             , const std::string& class_name)
+            : m_parameter_handler(id, parent)
+              , m_socket_handler(m_parameter_handler) {
+        m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, class_name);
+    }
+
+
+    std::vector<Generative*> get_connected() override { return m_socket_handler.get_connected(); }
+
+
+    ParameterHandler& get_parameter_handler() override { return m_parameter_handler; }
+
+
+    void disconnect_if(Generative& connected_to) override { m_socket_handler.disconnect_if(connected_to); }
+
+
+protected:
+    template<typename OutputType>
+    Socket<OutputType>& add_socket(const std::string& id, Node<OutputType>* initial = nullptr) {
+        return m_socket_handler.create_socket(id, initial);
+    }
+
+
+private:
+    ParameterHandler m_parameter_handler;
+    SocketHandler m_socket_handler;
+
+};
+
+
+// ==============================================================================================
 
 template<typename T>
 class StaticNode : public Node<T> {
@@ -83,12 +139,7 @@ protected:
 
     template<std::size_t max_count = 128, typename... Args>
     std::size_t voice_count(Args... args) {
-        auto num_voices = static_cast<long>(m_num_voices.process().adapted_to(1).first_or(0));
-        if (num_voices <= 0) {
-            return std::min(max_count, std::max({static_cast<std::size_t>(1), args...}));
-        }
-
-        return std::min(max_count, static_cast<std::size_t>(num_voices));
+        return GenerativeCommons::voice_count(m_num_voices, args...);
     }
 
 
@@ -100,4 +151,4 @@ private:
 };
 
 
-#endif //SERIALISTLOOPER_NODE_STEREOTYPES_H
+#endif //SERIALISTLOOPER_GENERATIVE_STEREOTYPES_H

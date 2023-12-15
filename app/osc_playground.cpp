@@ -1,41 +1,36 @@
+
 #include <juce_gui_extra/juce_gui_extra.h>
 #include <memory>
 #include "look_and_feel.h"
 #include "core/param/parameter_policy.h"
 #include "key_state.h"
-#include "core/algo/time/transport.h"
-#include "core/generation_graph.h"
-#include "configuration_layer_component.h"
+#include "core/generatives/osc_sender.h"
+#include "core/generatives/unit_pulse.h"
+#include "core/generatives/sequence.h"
+#include "core/generatives/variable.h"
 
-class SomeObject : public ParameterHandler {
-public:
-    explicit SomeObject(ParameterHandler&& handler) : ParameterHandler(std::move(handler)) {}
-};
-
-class PlaygroundComponent : public MainKeyboardFocusComponent
+class OscPlaygroundComponent : public MainKeyboardFocusComponent
                             , private juce::HighResolutionTimer
                             , private juce::ValueTree::Listener {
 public:
 
 
-    PlaygroundComponent()
+    OscPlaygroundComponent()
             : m_some_handler(m_undo_manager)
-              , m_generation_graph(m_some_handler)
-              , m_config_layer_component(m_generation_graph)
+            , m_pulse("pulse", m_some_handler)
+            , m_send_data("sequence", m_some_handler, Voices<int>::transposed({1234, 1234, 4556}))
+            , m_address("address", m_some_handler, "/test")
+            , m_sender("sender", m_some_handler, &m_address, &m_send_data, &m_pulse) {
 
-    {
+        m_sender.set_target({"127.0.0.1", 8080});
 
         m_lnf = std::make_unique<SerialistLookAndFeel>();
         SerialistLookAndFeel::setup_look_and_feel_colors(*m_lnf);
         juce::Desktop::getInstance().setDefaultLookAndFeel(m_lnf.get());
 
-        addAndMakeVisible(m_config_layer_component);
-
-        m_transport.start();
         startTimer(1);
         setSize(1000, 400);
 
-        m_generation_graph.get_parameter_handler().get_value_tree().addListener(this);
 
 //        auto [pulsator_module, pulsator_generatives] = ModuleFactory::new_pulsator(m_generation_graph, PulsatorModule::Layout::note_source_internal);
 //        auto& generative = pulsator_module->get_generative();
@@ -48,81 +43,27 @@ public:
 
     }
 
-    ~PlaygroundComponent() override {
-        std::cout << "dtor\n";
-        auto vt = m_generation_graph.get_parameter_handler().get_value_tree();
-        auto xmlElement = vt.createXml();
-
-        std::cout << xmlElement->toString() << "\n";
-
-        juce::File xml_file("../../../playground.xml");
-
-        if (xml_file.existsAsFile()) {
-            xml_file.deleteFile();
-        }
-
-        juce::FileOutputStream os(xml_file);
-
-        if (os.openedOk()) {
-            xmlElement->writeTo(os);
-            std::cout << "written to file\n";
-        } else {
-            std::cout << "Error opening the output file.";
-        }
-    }
-
 
     void paint(juce::Graphics& g) override {
         g.fillAll(juce::Colours::mediumaquamarine);
 
         g.setFont(juce::Font(16.0f));
         g.setColour(juce::Colours::white);
-        g.drawText("Hello Playground!", getLocalBounds(), juce::Justification::centred, true);
+        g.drawText("Hello OSC!", getLocalBounds(), juce::Justification::centred, true);
     }
 
 
     void resized() override {
-        m_config_layer_component.setBounds(getLocalBounds().reduced(10));
-
-    }
-
-
-    void recurse(juce::Component* component, std::vector<juce::Component*>& components) {
-        for (auto* child: component->getChildren()) {
-            if (child && child->getComponentID().isNotEmpty()) {
-                components.push_back(child);
-                recurse(child, components);
-            }
-        }
-    }
-
-
-    juce::Component* find_recursively(juce::Component* component, const juce::String& component_id) {
-        if (!component)
-            return nullptr;
-
-        if (component->getComponentID().equalsIgnoreCase(component_id))
-            return component;
-
-        for (auto* child: component->getChildren()) {
-            juce::Component* foundComponent = find_recursively(child, component_id);
-            if (foundComponent)
-                return foundComponent;
-        }
-
-        return nullptr;
     }
 
 
     void hiResTimerCallback() override {
-        m_generation_graph.process(m_transport.update_time());
-
-        ++callback_count;
-
-        if (callback_count % 1000 == 0) {
-//            std::cout << m_generation_graph.get_parameter_handler().get_value_tree().toXmlString() << "\n";
+        callback_count += 1;
+        if (callback_count % 500 == 0) {
+            std::cout << "sending..?\n";
+            m_sender.update_time(TimePoint());
+            m_sender.process();
         }
-
     }
 
 
@@ -143,32 +84,31 @@ public:
 
 
 private:
-    Transport m_transport;
-
     std::unique_ptr<juce::LookAndFeel> m_lnf;
-
 
     juce::UndoManager m_undo_manager;
 
     ParameterHandler m_some_handler;
 
-    GenerationGraph m_generation_graph;
 
-    ConfigurationLayerComponent m_config_layer_component;
+    UnitPulse m_pulse;
+    Sequence<Facet, int> m_send_data;
+    Variable<std::string> m_address;
+    OscSenderNode m_sender;
 
-    int callback_count = 0;
+    long callback_count = 0;
 
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PlaygroundComponent)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OscPlaygroundComponent)
 };
 
 
 // ==============================================================================================
 
-class Playground : public juce::JUCEApplication {
+class OscPlayground : public juce::JUCEApplication {
 public:
 
-    Playground() = default;
+    OscPlayground() = default;
 
 
     const juce::String getApplicationName() override { return JUCE_APPLICATION_NAME_STRING; }
@@ -211,7 +151,7 @@ public:
                 : DocumentWindow(name, juce::Desktop::getInstance().getDefaultLookAndFeel()
                 .findColour(juce::ResizableWindow::backgroundColourId), DocumentWindow::allButtons) {
             setUsingNativeTitleBar(true);
-            setContentOwned(new PlaygroundComponent(), true);
+            setContentOwned(new OscPlaygroundComponent(), true);
 
 #if JUCE_IOS || JUCE_ANDROID
             setFullScreen (true);
@@ -238,5 +178,5 @@ private:
 
 };
 
-START_JUCE_APPLICATION (Playground)
+START_JUCE_APPLICATION (OscPlayground)
 

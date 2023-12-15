@@ -10,7 +10,7 @@
 #include "core/param/parameter_policy.h"
 #include "core/param/socket_handler.h"
 #include "core/param/parameter_keys.h"
-#include "core/node_stereotypes.h"
+#include "core/generative_stereotypes.h"
 #include "core/algo/time/equal_duration_sampling.h"
 #include "core/algo/time/jump_gate.h"
 #include "core/algo/voice/multi_voiced.h"

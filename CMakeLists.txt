@@ -21,7 +21,7 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/facet.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generation_graph.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generative.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/note_source.h
+#        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/note_source.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/nop_parameter.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/oscillator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/parameter_policy.h
@@ -44,7 +44,7 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/socket_base.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/random_pulsator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/weighted_random.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/node_stereotypes.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generative_stereotypes.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/partial_note.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/allocator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/vec.h
@@ -64,6 +64,7 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/queue.h
         src/core/algo/time/filters.h
         src/core/generatives/interpolator.h
+        src/core/generatives/osc_sender.h
 )
 
 target_link_libraries(serialistCore INTERFACE magicEnum)
@@ -78,6 +79,7 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/modules/generator_module.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/modules/interpolation_module.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/modules/note_source_module.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/modules/osc_send_module.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/modules/oscillator_module.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/modules/pulsator_module.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/modules/text_sequence_module.h
@@ -98,11 +100,12 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction_visualizations.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/look_and_feel.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/main_component.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/module_bases.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/module_stereotypes.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/module_factory.h
 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/io/keyboard_shortcuts.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/io/midi_config.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/io/osc.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/io/renderers.h
         )
 
@@ -120,7 +123,8 @@ set(INCLUDES
 set(MODULE_DEPENDENCIES_JUCE
         juce::juce_gui_basics
         juce::juce_gui_extra
-        juce::juce_audio_devices)
+        juce::juce_audio_devices
+        juce::juce_osc)
 
 set(FLAGS_JUCE
         juce::juce_recommended_config_flags
@@ -228,6 +232,43 @@ target_link_libraries(playground
         serialistCore
         PRIVATE
         # GuiAppData            # If we'd created a binary data target, we'd link to it here
+        ${MODULE_DEPENDENCIES_JUCE}
+        guiUtils
+        magicEnum
+        PUBLIC
+        ${FLAGS_JUCE})
+
+#####################################################################################
+## TARGET: OSC PLAYGROUND
+#####################################################################################
+
+juce_add_gui_app(oscPlayground EXCLUDE_FROM_ALL
+        PRODUCT_NAME "OSC Playground")
+
+
+target_sources(oscPlayground
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/osc_playground.cpp
+        ${SOURCES})
+
+target_include_directories(oscPlayground PRIVATE
+        ${INCLUDES}
+        )
+
+target_compile_definitions(oscPlayground
+        PRIVATE
+        USE_JUCE=1
+        # JUCE_WEB_BROWSER and JUCE_USE_CURL would be on by default, but you might not need them.
+        JUCE_WEB_BROWSER=0  # If you remove this, add `NEEDS_WEB_BROWSER TRUE` to the `juce_add_gui_app` call
+        JUCE_USE_CURL=0     # If you remove this, add `NEEDS_CURL TRUE` to the `juce_add_gui_app` call
+        JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:serialistLooper,JUCE_PRODUCT_NAME>"
+        JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:serialistLooper,JUCE_VERSION>"
+        )
+
+target_link_libraries(oscPlayground
+        INTERFACE
+        serialistCore
+        PRIVATE
         ${MODULE_DEPENDENCIES_JUCE}
         guiUtils
         magicEnum

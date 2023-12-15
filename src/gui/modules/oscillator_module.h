@@ -13,11 +13,11 @@
 #include "socket_widget.h"
 #include "interaction_visualizations.h"
 #include "connectable_dnd_controller.h"
-#include "module_bases.h"
+#include "module_stereotypes.h"
 #include "core/generatives/unit_pulse.h"
 
 
-class OscillatorModule : public NodeBase<Facet> {
+class OscillatorModule : public NodeModuleBase<Facet> {
 public:
 
     using SliderLayout = SliderWidget::Layout;

@@ -1,6 +1,6 @@
 
-#ifndef SERIALISTLOOPER_MODULE_BASES_H
-#define SERIALISTLOOPER_MODULE_BASES_H
+#ifndef SERIALISTLOOPER_MODULE_STEREOTYPES_H
+#define SERIALISTLOOPER_MODULE_STEREOTYPES_H
 
 #include "generative_component.h"
 #include "connectable_module.h"
@@ -9,9 +9,9 @@
 #include "header_widget.h"
 #include "socket_widget.h"
 
-class Stereotypes {
+class ModuleStereotypeFuncs {
 public:
-    static void paint_module(juce::Graphics& g, juce::LookAndFeel& lnf, const juce::Rectangle<int>& bounds) {
+    static void paint_module(juce::Graphics& g, const juce::LookAndFeel& lnf, const juce::Rectangle<int>& bounds) {
         g.setColour(lnf.findColour(Colors::component_background_color));
         g.fillRoundedRectangle(bounds.toFloat(), 4.0f);
         g.setColour(lnf.findColour(Colors::component_border_color));
@@ -64,7 +64,7 @@ public:
 
 
     void paint(juce::Graphics& g) override {
-        Stereotypes::paint_module(g, getLookAndFeel(), getLocalBounds());
+        ModuleStereotypeFuncs::paint_module(g, getLookAndFeel(), getLocalBounds());
     }
 
 
@@ -85,7 +85,7 @@ protected:
 
 
     std::vector<std::unique_ptr<InteractionVisualization>> create_visualizations() {
-        return Stereotypes::root_visualizations(*this);
+        return ModuleStereotypeFuncs::root_visualizations(*this);
     }
 
 
@@ -168,7 +168,7 @@ public:
 
 
     void paint(juce::Graphics& g) override {
-        Stereotypes::paint_module(g, getLookAndFeel(), getLocalBounds());
+        ModuleStereotypeFuncs::paint_module(g, getLookAndFeel(), getLocalBounds());
     }
 
 
@@ -191,7 +191,7 @@ protected:
 
 
     std::vector<std::unique_ptr<InteractionVisualization>> create_visualizations() {
-        return Stereotypes::node_visualizations(*this);
+        return ModuleStereotypeFuncs::node_visualizations(*this);
     }
 
 
@@ -212,4 +212,4 @@ private:
     bool m_header_visible = true;
 };
 
-#endif //SERIALISTLOOPER_MODULE_BASES_H
+#endif //SERIALISTLOOPER_MODULE_STEREOTYPES_H

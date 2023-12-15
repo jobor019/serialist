@@ -10,10 +10,10 @@
 #include "core/generative.h"
 #include "core/algo/time/transport.h"
 #include "core/algo/random.h"
-#include "core/node_stereotypes.h"
+#include "core/generative_stereotypes.h"
 #include "core/algo/voice/multi_voiced.h"
 #include "core/algo/time/trigger.h"
-#include "core/node_stereotypes.h"
+#include "core/generative_stereotypes.h"
 #include "core/generatives/sequence.h"
 #include "core/generatives/variable.h"
 

@@ -9,7 +9,7 @@
 #include "generative_component.h"
 #include "core/generatives/interpolation_adapter_RM.h"
 
-class InterpolationModule : public NodeBase<InterpolationStrategy> {
+class InterpolationModule : public NodeModuleBase<InterpolationStrategy> {
 public:
 
     using InterpType = typename InterpolationStrategy::Type;

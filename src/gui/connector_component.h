@@ -266,7 +266,7 @@ private:
 
 
     juce::Component* find_connected_module(juce::ValueTree& socket_tree) {
-        auto connected_id = socket_tree.getProperty({VTSocketBase<int>::CONNECTED_PROPERTY}).toString();
+        auto connected_id = socket_tree.getProperty({VTSocket<int>::CONNECTED_PROPERTY}).toString();
 
         return find_module(connected_id);
 

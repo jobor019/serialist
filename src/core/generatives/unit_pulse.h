@@ -7,7 +7,7 @@
 #include "core/generative.h"
 #include "core/param/parameter_keys.h"
 
-class UnitPulse : public Node<TriggerEvent> {
+class UnitPulse : public Node<Trigger> {
 public:
     static const inline std::string CLASS_NAME = "pulsator";
 
@@ -18,12 +18,10 @@ public:
     }
 
 
-    void update_time(const TimePoint& t) override {
-        m_current_value = Voices<TriggerEvent>::singular(TriggerEvent(t.get_tick(), Trigger::pulse_on, 1));
-    }
+    void update_time(const TimePoint&) override {}
 
 
-    Voices<TriggerEvent> process() override {
+    Voices<Trigger> process() override {
         return m_current_value;
     }
 
@@ -37,7 +35,7 @@ public:
 private:
     ParameterHandler m_parameter_handler;
 
-    Voices<TriggerEvent> m_current_value = Voices<TriggerEvent>::empty_like();
+    Voices<Trigger> m_current_value = Voices<Trigger>::singular(Trigger::pulse_on);
 
 };
 

@@ -5,7 +5,7 @@
 
 #include <mutex>
 #include <regex>
-#include "core/generatives/note_source.h"
+#include "core/generative.h"
 #include "core/param/parameter_policy.h"
 #include "core/param/parameter_keys.h"
 

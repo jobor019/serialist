@@ -10,11 +10,11 @@
 #include "oscillator_module.h"
 #include "text_sequence_module.h"
 #include "interpolation_module.h"
-#include "module_bases.h"
+#include "module_stereotypes.h"
 
 
 template<typename OutputType, typename InternalSequenceType = OutputType>
-class GeneratorModule : public NodeBase<OutputType> {
+class GeneratorModule : public NodeModuleBase<OutputType> {
 public:
     enum class Layout {
         full

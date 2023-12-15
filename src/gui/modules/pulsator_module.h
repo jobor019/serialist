@@ -2,13 +2,13 @@
 #ifndef SERIALISTLOOPER_PULSATOR_MODULE_H
 #define SERIALISTLOOPER_PULSATOR_MODULE_H
 
-#include "module_bases.h"
+#include "module_stereotypes.h"
 #include "slider_widget.h"
 #include "core/generatives/pulsator.h"
 #include "socket_widget.h"
 #include "header_widget.h"
 
-class PulsatorModule : public NodeBase<TriggerEvent> {
+class PulsatorModule : public NodeModuleBase<TriggerEvent> {
 public:
 
     using SliderLayout = SliderWidget::Layout;
