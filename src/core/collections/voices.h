@@ -176,7 +176,7 @@ public:
         }
 
         for (std::size_t i = 0; i < m_voices.size(); ++i) {
-            m_voices[i].concatenate(other.vec()[i]);
+            m_voices[i].extend(other.vec()[i]);
         }
 
         return *this;
@@ -193,7 +193,7 @@ public:
 
         std::size_t num_voices = std::min(m_voices.size(), other.size());
         for (std::size_t i = 0; i < num_voices; ++i) {
-            m_voices[i].concatenate(other.vec()[i]);
+            m_voices[i].extend(other.vec()[i]);
         }
 
         return *this;

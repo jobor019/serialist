@@ -16,8 +16,9 @@ class VTSerialization {
 public:
     VTSerialization() = delete;
 
+
     template<typename T>
-    static juce::var serialize(const T& value)  {
+    static juce::var serialize(const T& value) {
         static_assert(!std::is_same_v<T, Facet>, "Facet type is not serializable.");
 
         if constexpr (std::is_same_v<T, std::string>) {
@@ -47,7 +48,6 @@ public:
         }
     }
 };
-
 
 
 class VTParameterHandler {
@@ -463,12 +463,30 @@ public:
         reset_value_tree(v);
     }
 
+
     void set_transposed(const Voice<StoredType>& voice) {
-        std::lock_guard lock{m_value_tree};
         auto voices = Voices<StoredType>::transposed(voice);
+
+        std::lock_guard lock{m_value_tree};
         m_voices = voice.template as_type<OutputType>();
         reset_value_tree(voices);
     }
+
+
+    void set_at(std::size_t index, const Voice<StoredType>& value) {
+        std::cout << "warning: ValueTree is NOT updated in this function\n"; // TODO
+        std::lock_guard lock{m_values_mutex};
+        m_voices[index] = value.template as_type<OutputType>();
+    }
+
+
+//    void set_at(std::size_t index, const Voice<StoredType>& value, bool pad_if_missing) {
+//        std::cout << "warning: ValueTree is NOT updated in this function\n"; // TODO
+//        std::optional<Voice<StoredType>> pad_value = pad_if_missing ? std::optional<Voice<StoredType>>() : std::nullopt;
+//
+//        std::lock_guard lock{m_values_mutex};
+//        m_voices.vec_mut().insert(static_cast<long>(index), value.template as_type<StoredType>(), pad_value);
+//    }
 
 
     const Voices<OutputType>& get_voices() {
@@ -477,8 +495,9 @@ public:
     }
 
 
-    const std::vector<std::vector<StoredType>>& get_values() {
+    Voices<StoredType> get_voices_raw() {
         std::lock_guard lock{m_values_mutex};
+        return m_voices.template as_type<StoredType>();
     }
 
 

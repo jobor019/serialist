@@ -4,7 +4,7 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 
 #include "core/generatives/oscillator.h"
-#include "generative_component.h"
+#include "state/generative_component_LEGACY_WIP.h"
 #include "widgets/slider_widget.h"
 #include "widgets/toggle_button_widget.h"
 #include "widgets/header_widget.h"
@@ -12,8 +12,8 @@
 #include "views/oscillator_view.h"
 #include "socket_widget.h"
 #include "interaction_visualizations.h"
-#include "connectable_dnd_controller.h"
-#include "module_stereotypes.h"
+#include "bases/connectable_dnd_controller.h"
+#include "bases/module_stereotypes.h"
 #include "core/generatives/unit_pulse.h"
 
 

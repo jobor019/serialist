@@ -4,13 +4,13 @@
 #define SERIALISTLOOPER_NEW_GENERATOR_COMPONENT_H
 
 #include "interaction_visualizations.h"
-#include "generative_component.h"
+#include "state/generative_component_LEGACY_WIP.h"
 #include "core/param/parameter_policy.h"
 #include "core/generatives/generator_RM.h"
 #include "oscillator_module.h"
 #include "text_sequence_module.h"
 #include "interpolation_module.h"
-#include "module_stereotypes.h"
+#include "bases/module_stereotypes.h"
 
 
 template<typename OutputType, typename InternalSequenceType = OutputType>

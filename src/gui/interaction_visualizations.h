@@ -2,8 +2,8 @@
 #ifndef SERIALISTLOOPER_INTERACTION_VISUALIZATIONS_H
 #define SERIALISTLOOPER_INTERACTION_VISUALIZATIONS_H
 
-#include <interaction_visualizer.h>
-#include "connectable_module.h"
+#include <interaction_visualizer_LEGACY.h>
+#include "bases/connectable_module.h"
 #include "keyboard_shortcuts.h"
 
 

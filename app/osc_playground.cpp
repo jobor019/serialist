@@ -8,19 +8,25 @@
 #include "core/generatives/unit_pulse.h"
 #include "core/generatives/sequence.h"
 #include "core/generatives/variable.h"
+#include "multi_slider/score_slider.h"
+#include "multi_slider/multi_slider.h"
+#include "multi_slider/bar_slider.h"
 
 class OscPlaygroundComponent : public MainKeyboardFocusComponent
-                            , private juce::HighResolutionTimer
-                            , private juce::ValueTree::Listener {
+                               , private juce::HighResolutionTimer
+                               , private juce::ValueTree::Listener {
 public:
-
 
     OscPlaygroundComponent()
             : m_some_handler(m_undo_manager)
-            , m_pulse("pulse", m_some_handler)
-            , m_send_data("sequence", m_some_handler, Voices<int>::transposed({1234, 1234, 4556}))
-            , m_address("address", m_some_handler, "/test")
-            , m_sender("sender", m_some_handler, &m_address, &m_send_data, &m_pulse) {
+              , m_pulse("pulse", m_some_handler)
+              , m_send_data("sequence", m_some_handler, Voices<int>::transposed({1234, 1234, 4556}))
+              , m_address("address", m_some_handler, "/test")
+              , m_sender("sender", m_some_handler, &m_address, &m_send_data, &m_pulse)
+              , m_multi_slider_sequence("multi", m_some_handler, 99)
+              , m_multi_slider(m_multi_slider_sequence, std::make_unique<BarSliderConfig<int>>()) {
+
+        addAndMakeVisible(m_multi_slider);
 
         m_sender.set_target({"127.0.0.1", 8080});
 
@@ -28,7 +34,27 @@ public:
         SerialistLookAndFeel::setup_look_and_feel_colors(*m_lnf);
         juce::Desktop::getInstance().setDefaultLookAndFeel(m_lnf.get());
 
-        startTimer(1);
+        Sequence<Facet, int> seq("sequence", m_some_handler);
+        Vec<Vec<int>> values = Vec<Vec<int>>::allocated(3);
+        values.append({1, 2, 3, 4});
+        values.append({99, 98, 97});
+        values.append({0, -1, 0, 1});
+        seq.set_values(Voices<int>(values));
+
+        auto property = seq.get_parameter_handler().get_value_tree().getChild(0).getChild(0).getProperty("v2");
+
+//        std::cout << "is string" << property.isString() << "\n";
+//        std::cout << "is int" << property.isInt() << "\n";
+//        std::cout << "is bool" << property.isBool() << "\n";
+//        std::cout << "is double" << property.isDouble() << "\n";
+
+//        std::cout << seq.get_parameter_handler().get_value_tree().getChild(0).getChild(0).getProperty("v2").toString() << "\n";
+
+//        seq.set_values(Voices<int>(values));
+//        std::cout << "ValueTree:\n";
+//        std::cout << m_some_handler.get_value_tree().toXmlString() << "\n";
+//ö
+//        startTimer(1);
         setSize(1000, 400);
 
 
@@ -54,6 +80,7 @@ public:
 
 
     void resized() override {
+        m_multi_slider.setBounds(50, 50, 300, 100);
     }
 
 
@@ -95,6 +122,10 @@ private:
     Sequence<Facet, int> m_send_data;
     Variable<std::string> m_address;
     OscSenderNode m_sender;
+
+    Sequence<Facet, int> m_multi_slider_sequence;
+    MultiSlider<int> m_multi_slider;
+//    ScoreSlider m_score_slider;
 
     long callback_count = 0;
 

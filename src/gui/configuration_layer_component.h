@@ -5,13 +5,13 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "core/param/parameter_policy.h"
-#include "generative_component.h"
-#include "connector_component.h"
+#include "state/generative_component_LEGACY_WIP.h"
+#include "bases/connector_component.h"
 #include "core/generatives/note_source.h"
 #include "core/generation_graph.h"
 #include "key_state.h"
 #include "keyboard_shortcuts.h"
-#include "global_action_handler.h"
+#include "global_action_handler_LEGACY.h"
 #include "generator_module.h"
 #include "module_factory.h"
 

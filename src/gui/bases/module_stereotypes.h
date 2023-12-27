@@ -2,10 +2,10 @@
 #ifndef SERIALISTLOOPER_MODULE_STEREOTYPES_H
 #define SERIALISTLOOPER_MODULE_STEREOTYPES_H
 
-#include "generative_component.h"
-#include "connectable_module.h"
-#include "interaction_visualizer.h"
-#include "connectable_dnd_controller.h"
+#include "state/generative_component_LEGACY_WIP.h"
+#include "bases/connectable_module.h"
+#include "interaction_visualizer_LEGACY.h"
+#include "bases/connectable_dnd_controller.h"
 #include "header_widget.h"
 #include "socket_widget.h"
 

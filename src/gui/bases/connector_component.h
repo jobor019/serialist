@@ -5,7 +5,7 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "component_utils.h"
-#include "global_action_handler.h"
+#include "global_action_handler_LEGACY.h"
 #include "core/param/socket_policy.h"
 
 class ConnectorComponent : public juce::Component {

@@ -2,7 +2,7 @@
 #ifndef SERIALISTLOOPER_PULSATOR_MODULE_H
 #define SERIALISTLOOPER_PULSATOR_MODULE_H
 
-#include "module_stereotypes.h"
+#include "bases/module_stereotypes.h"
 #include "slider_widget.h"
 #include "core/generatives/pulsator.h"
 #include "socket_widget.h"

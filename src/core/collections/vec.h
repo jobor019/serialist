@@ -135,10 +135,12 @@ public:
         return m_vector != other.m_vector;
     }
 
+
     template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
     Vec<T> operator+(const T& operand2) const {
         return elementwise_operation(operand2, std::plus());
     }
+
 
     template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
     Vec<T> operator+(const Vec<T>& other) const {
@@ -151,6 +153,7 @@ public:
         return elementwise_operation(other, std::minus());
     }
 
+
     template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
     Vec<T> operator-(const T& operand2) const {
         return elementwise_operation(operand2, std::minus());
@@ -162,6 +165,7 @@ public:
         return elementwise_operation(other, std::multiplies());
     }
 
+
     template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
     Vec<T> operator*(const T& operand2) const {
         return elementwise_operation(operand2, std::multiplies());
@@ -172,6 +176,7 @@ public:
     Vec<T> operator/(const Vec<T>& other) const {
         return elementwise_operation(other, std::divides());
     }
+
 
     template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
     Vec<T> operator/(const T& operand2) const {
@@ -340,14 +345,44 @@ public:
         return *this;
     }
 
+    Vec<T>& insert(long index, T value) {
+        auto signed_index = sign_index(index);
 
-    Vec<T>& extend(const Vec<T>& other) {
-        m_vector.insert(m_vector.end(), other.m_vector.begin(), other.m_vector.end());
+        if (signed_index >= size()) {
+            return append(std::move(value));
+        }
+
+        m_vector.insert(m_vector.begin() + static_cast<long>(signed_index), std::move(value));
         return *this;
     }
 
+    // TODO: Insert with padding. Will require quite some work to work with non-copy constructible objects,
+    //  e.g. Vec<std::unique_ptr<std::string>
+//    Vec<T>& insert(long index, T value, std::optional<T> pad_value = std::nullopt) {
+//        auto signed_index = sign_index(index);
+//
+//        if (signed_index == size()) {
+//            return append(std::move(value));
+//        } else if (signed_index > size()) {
+//            if (pad_value) {
+//                auto extension = Vec<T>::repeated(signed_index - size(), *pad_value);
+//                extension.append(std::move(value));
+//                m_vector.insert(m_vector.end()
+//                                , std::make_move_iterator(extension.begin())
+//                                , std::make_move_iterator(extension.end()));
+//
+//                return *this;
+//            } else {
+//                throw std::out_of_range("insert: index out of range");
+//            }
+//        }
+//
+//        m_vector.insert(m_vector.begin() + static_cast<long>(signed_index), std::move(value));
+//        return *this;
+//    }
 
-    Vec<T>& concatenate(const Vec<T>& other) {
+
+    Vec<T>& extend(const Vec<T>& other) {
         m_vector.insert(m_vector.end(), other.m_vector.begin(), other.m_vector.end());
         return *this;
     }
@@ -671,6 +706,7 @@ public:
         std::cout << "]" << std::endl;
     }
 
+
     void print(std::function<std::string(T)> f) const {
         std::cout << "[";
         for (const T& element: m_vector) {
@@ -711,6 +747,24 @@ public:
             }
         }
         return false;
+    }
+
+
+    std::optional<std::size_t> index(const T& value) const {
+        if (auto it = std::find(m_vector.begin(), m_vector.end(), value); it != m_vector.end()) {
+            return {std::distance(m_vector.begin(), it)};
+        } else {
+            return std::nullopt;
+        }
+    }
+
+    std::optional<std::size_t> index(std::function<bool(const T&)> f) const {
+        for (std::size_t i = 0; i < m_vector.size(); ++i) {
+            if (f(m_vector[i])) {
+                return i;
+            }
+        }
+        return std::nullopt;
     }
 
 
@@ -876,6 +930,7 @@ public:
         }
         return *this;
     }
+
 
     template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
     Vec<T>& clip_remove(std::optional<T> low_thresh, std::optional<T> high_thresh) {

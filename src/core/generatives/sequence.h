@@ -49,8 +49,12 @@ public:
     }
 
 
-    std::vector<std::vector<StoredType>> get_values() {
-        return m_sequence.get();
+    Voices<OutputType> get_values() {
+        return m_sequence.get_voices();
+    }
+
+    Voices<StoredType> get_values_raw() {
+        return m_sequence.get_voices_raw();
     }
 
     void set_values(const StoredType& value) {
@@ -60,6 +64,11 @@ public:
     void set_values(const Voices<StoredType>& values) {
         m_sequence.set(values);
     }
+
+    void set_value_at(std::size_t index, const Voice<StoredType>& value) {
+        m_sequence.set_at(index, value);
+    }
+
 
 
     SequenceParameter<OutputType, StoredType>& get_parameter_obj() {

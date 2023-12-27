@@ -2,7 +2,7 @@
 #ifndef SERIALISTLOOPER_CONNECTABLE_DND_CONTROLLER_H
 #define SERIALISTLOOPER_CONNECTABLE_DND_CONTROLLER_H
 
-#include "interaction_visualizer.h"
+#include "interaction_visualizer_LEGACY.h"
 #include "connectable_module.h"
 #include "core/generative.h"
 #include "interaction_visualizations.h"

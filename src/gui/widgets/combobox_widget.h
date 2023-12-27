@@ -5,7 +5,7 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "core/generatives/variable.h"
-#include "generative_component.h"
+#include "state/generative_component_LEGACY_WIP.h"
 
 template<typename StoredType>
 class ComboBoxWidget : public GenerativeComponent

@@ -12,7 +12,6 @@ find_package(Catch2 3 REQUIRED)
 
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/GuiUtils/src)
 
 add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/connectable.h
@@ -39,6 +38,7 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/unit_pulse.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/enums.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/variable.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/circular_buffer.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/voices.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/vt_parameter.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/socket_base.h
@@ -92,21 +92,41 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/slider_widget.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/toggle_button_widget.h
 
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider/clefs.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider/multi_slider.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider/multi_slider_action.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider/multi_slider_element.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider/score_slider.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider/bar_slider.h
+
+
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/configuration_layer_component.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/connectable_module.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/connectable_dnd_controller.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/connector_component.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/generative_component.h
+        src/gui/bases/connectable_module.h
+        src/gui/bases/connectable_dnd_controller.h
+        src/gui/bases/connector_component.h
+        src/gui/state/generative_component_LEGACY_WIP.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/global_action_handler_LEGACY.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction_visualizations.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction_visualizer_LEGACY.h
+        src/io/key_state.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/look_and_feel.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/main_component.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/module_stereotypes.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/module_factory.h
+        src/gui/bases/module_stereotypes.h
+        src/io/mouse_state.h
+
 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/io/keyboard_shortcuts.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/io/midi_config.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/io/osc.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/io/renderers.h
+
+
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/state/interaction_visualizer.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/state/state.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/state/state_condition.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/state/state_handler.h
+
         )
 
 
@@ -118,7 +138,7 @@ set(INCLUDES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/src/io
-        ${CMAKE_CURRENT_SOURCE_DIR}/GuiUtils/src)
+)
 
 set(MODULE_DEPENDENCIES_JUCE
         juce::juce_gui_basics
@@ -233,7 +253,6 @@ target_link_libraries(playground
         PRIVATE
         # GuiAppData            # If we'd created a binary data target, we'd link to it here
         ${MODULE_DEPENDENCIES_JUCE}
-        guiUtils
         magicEnum
         PUBLIC
         ${FLAGS_JUCE})
@@ -270,7 +289,6 @@ target_link_libraries(oscPlayground
         serialistCore
         PRIVATE
         ${MODULE_DEPENDENCIES_JUCE}
-        guiUtils
         magicEnum
         PUBLIC
         ${FLAGS_JUCE})

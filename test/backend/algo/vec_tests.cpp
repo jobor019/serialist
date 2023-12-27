@@ -158,11 +158,11 @@ TEST_CASE("Vec append", "[append]") {
 }
 
 
-TEST_CASE("Vec concatenate", "[concatenate]") {
+TEST_CASE("Vec extend", "[extend]") {
     Vec v1 = {1, 2};
     Vec v2 = {3, 4};
 
-    v1.concatenate(v2);
+    v1.extend(v2);
     REQUIRE(v1.size() == 4);
     REQUIRE(v1[0] == 1);
     REQUIRE(v1[1] == 2);
@@ -836,6 +836,39 @@ TEST_CASE("Test shift function", "[shift]") {
         v.shift(0);
         REQUIRE(v == Vec({1, 2, 3, 4, 5}));
     }
+}
+
+TEST_CASE("Test insert function", "[insert]") {
+    Vec v({1,2, 3,4});
+
+    SECTION("Insert at existing index") {
+        v.insert(1, 5);
+        REQUIRE(v == Vec({1, 5, 2, 3, 4}));
+    }
+
+    SECTION("Insert at end") {
+        v.insert(4, 5);
+        REQUIRE(v == Vec({1, 2, 3, 4, 5}));
+    }
+
+    SECTION("insert after end with padding") {
+        v.insert(5, 5, -1);
+        REQUIRE(v == Vec({1, 2, 3, 4, -1, 5}));
+    }
+
+    SECTION("Insert after end without padding") {
+        REQUIRE_THROWS(v.insert(5, 5));
+    }
+}
+
+TEST_CASE("Test insert with non-copyable constructible objects") {
+    Vec<std::unique_ptr<std::string>> v;
+    v.append(std::make_unique<std::string>("123"));
+    v.append(std::make_unique<std::string>("456"));
+
+    v.insert(0, std::make_unique<std::string>("789"));
+//    REQUIRE(v == Vec<std::unique_ptr<std::string>>({std::make_unique<std::string>("789"), std::make_unique<std::string>("123"), std::make_unique<std::string>("456")}));
+
 }
 
 

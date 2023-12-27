@@ -11,6 +11,7 @@ public:
 
 };
 
+// ==============================================================================================
 
 class ConfigurationLayerKeyboardShortcuts {
 public:
@@ -24,8 +25,14 @@ public:
     static const int DELETE_KEY = static_cast<int>('X');
     static const int MOVE_KEY = static_cast<int>('M');
     static const int MODULATION_KEY = static_cast<int>('Y');
+};
 
 
+// ==============================================================================================
+
+class MultiSliderKeyboardShortcuts {
+public:
+    static const int DELETE_SLIDER = static_cast<int>('D');
 };
 
 #endif //SERIALISTLOOPER_KEYBOARD_SHORTCUTS_H

@@ -4,7 +4,7 @@
 #define SERIALISTLOOPER_MODULE_FACTORY_H
 
 #include <vector>
-#include "generative_component.h"
+#include "state/generative_component_LEGACY_WIP.h"
 #include "core/generatives/oscillator.h"
 #include "core/generatives/variable.h"
 #include "modules/oscillator_module.h"
