@@ -9,7 +9,8 @@ template<typename T, int N>
     public:
         Buffer() = default;
 
-
+        // TODO: This implementation doesn't seem solid at all: why use buffer.size() instead of size?
+        //  Not safe and not fixed. Better separate FixedBuffer (std::array) and ResizeableBuffer (std::vector)
         void push(T x) {
             buffer[write_pos++] = x;
             if (write_pos == buffer.size()) {

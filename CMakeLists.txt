@@ -295,6 +295,44 @@ target_link_libraries(oscPlayground
 
 
 #####################################################################################
+## TARGET: STATE PLAYGROUND
+#####################################################################################
+
+juce_add_gui_app(statePlayground EXCLUDE_FROM_ALL
+        PRODUCT_NAME "State Playground")
+
+
+target_sources(statePlayground
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/state_playground.cpp
+        ${SOURCES})
+
+target_include_directories(statePlayground PRIVATE
+        ${INCLUDES}
+        )
+
+target_compile_definitions(statePlayground
+        PRIVATE
+        USE_JUCE=1
+        # JUCE_WEB_BROWSER and JUCE_USE_CURL would be on by default, but you might not need them.
+        JUCE_WEB_BROWSER=0  # If you remove this, add `NEEDS_WEB_BROWSER TRUE` to the `juce_add_gui_app` call
+        JUCE_USE_CURL=0     # If you remove this, add `NEEDS_CURL TRUE` to the `juce_add_gui_app` call
+        JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:serialistLooper,JUCE_PRODUCT_NAME>"
+        JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:serialistLooper,JUCE_VERSION>"
+        )
+
+target_link_libraries(statePlayground
+        INTERFACE
+        serialistCore
+        PRIVATE
+        ${MODULE_DEPENDENCIES_JUCE}
+        magicEnum
+        PUBLIC
+        ${FLAGS_JUCE})
+
+
+
+#####################################################################################
 ## TARGET: NOP PLAYGROUND
 #####################################################################################
 

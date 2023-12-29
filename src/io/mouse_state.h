@@ -7,10 +7,17 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "core/collections/circular_buffer.h"
 
-template <int DragVelocitySize=5>
 struct MouseState {
     void mouse_enter(const juce::MouseEvent& event) {
         position = event.getPosition();
+    }
+
+    /**
+     * should be called when the mouse enters a child (either directly or from parent)
+     */
+    void mouse_child_enter(const juce::MouseEvent& event) {
+        mouse_enter(event);
+        is_over_child = true;
     }
 
 
@@ -55,8 +62,15 @@ struct MouseState {
         return !was_dragging;
     }
 
+    /**
+     * should be called when the mouse exits a child without exiting the parent component
+     */
+    void mouse_child_exit() {
+        is_over_child = false;
+    }
 
     void mouse_exit() {
+        mouse_child_exit();
         is_down = false;
         is_dragging = false;
         position = std::nullopt;
@@ -67,8 +81,13 @@ struct MouseState {
         return position.has_value();
     }
 
+    bool is_directly_over_component() const {
+        return is_over_component() && !is_over_child;
+    }
+
 
     std::optional<juce::Point<int>> position = std::nullopt;
+    bool is_over_child = false;
     bool is_down = false;
     bool is_dragging = false;
     float drag_velocity_x = 0.0f;
@@ -98,7 +117,7 @@ private:
                 , [](float sum, const auto& p) { return sum + static_cast<float>(p.getY()); }
         );
 
-        std::cout << "drag velocity (" << drag_velocity_x << ", " << drag_velocity_y << ")\n";
+//        std::cout << "drag velocity (" << drag_velocity_x << ", " << drag_velocity_y << ")\n";
 
         m_previous_drag_position = pos;
 
@@ -114,7 +133,9 @@ private:
 
 
     std::optional<juce::Point<float>> m_previous_drag_position;
-    Buffer<juce::Point<float>, DragVelocitySize> m_drag_position_buffer;
+
+    // TODO: Rewrite Buffer to handle dynamic setting of drag velocity
+    Buffer<juce::Point<float>, 5> m_drag_position_buffer;
 };
 
 

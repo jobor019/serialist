@@ -178,7 +178,7 @@ protected:
     /**
      * @return true if the value was changed
      */
-    virtual bool update_state(const MouseState<>& mouse_state) = 0;
+    virtual bool update_state(const MouseState& mouse_state) = 0;
 
 
 //    virtual void draw_background(juce::Graphics&) {}

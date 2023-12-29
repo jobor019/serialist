@@ -395,6 +395,13 @@ public:
         return *this;
     }
 
+    Vec<T>& remove(std::function<bool(const T&)> pred) {
+        if (auto it = std::find_if(m_vector.begin(), m_vector.end(), pred); it != m_vector.end()) {
+            m_vector.erase(it);
+        }
+        return *this;
+    }
+
 
     template<typename SizeType, typename = std::enable_if_t<std::is_integral_v<SizeType>>>
     Vec<T>& erase(SizeType index) {
