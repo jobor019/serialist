@@ -11,7 +11,7 @@
 #include "widgets/combobox_widget.h"
 #include "views/oscillator_view.h"
 #include "socket_widget.h"
-#include "interaction_visualizations.h"
+#include "interaction_visualizations_LEGACY.h"
 #include "bases/connectable_dnd_controller.h"
 #include "bases/module_stereotypes.h"
 #include "core/generatives/unit_pulse.h"

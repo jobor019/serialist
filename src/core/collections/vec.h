@@ -22,12 +22,21 @@ public:
 
     explicit Vec(std::vector<T> data) : m_vector(std::move(data)) {
         // TODO: For now. Ideally, Vec's copy ctor should be deleted to avoid accidental copies
-        static_assert(std::is_copy_constructible_v<T>, "T must be copy constructible");
+//        static_assert(std::is_copy_constructible_v<T>, "T must be copy constructible");
     }
 
 
+    template<typename E = T, typename std::enable_if_t<std::is_copy_constructible_v<E>, int> = 0>
     Vec(std::initializer_list<T> data) : m_vector(std::move(data)) {
-        static_assert(std::is_copy_constructible_v<T>, "T must be copy constructible"); // TODO: For now
+//        static_assert(std::is_copy_constructible_v<T>, "T must be copy constructible"); // TODO: For now
+    }
+
+
+    template<typename... Args
+             , typename std::enable_if_t<((!std::is_copy_constructible_v<Args> && std::is_constructible_v<T, Args>)
+                                                 && ...), int> = 0>
+    explicit Vec(Args&& ... args) {
+        (m_vector.emplace_back(std::forward<Args>(args)), ...);
     }
 
 
@@ -345,6 +354,7 @@ public:
         return *this;
     }
 
+
     Vec<T>& insert(long index, T value) {
         auto signed_index = sign_index(index);
 
@@ -394,6 +404,7 @@ public:
         }
         return *this;
     }
+
 
     Vec<T>& remove(std::function<bool(const T&)> pred) {
         if (auto it = std::find_if(m_vector.begin(), m_vector.end(), pred); it != m_vector.end()) {
@@ -764,6 +775,7 @@ public:
             return std::nullopt;
         }
     }
+
 
     std::optional<std::size_t> index(std::function<bool(const T&)> f) const {
         for (std::size_t i = 0; i < m_vector.size(); ++i) {

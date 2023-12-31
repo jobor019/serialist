@@ -19,8 +19,8 @@ public:
     }
 
 
-    static std::vector<std::unique_ptr<InteractionVisualization>> node_visualizations(juce::Component& source) {
-        std::vector<std::unique_ptr<InteractionVisualization>> visualizations;
+    static std::vector<std::unique_ptr<InteractionVisualization_LEGACY>> node_visualizations(juce::Component& source) {
+        std::vector<std::unique_ptr<InteractionVisualization_LEGACY>> visualizations;
         visualizations.emplace_back(std::make_unique<ConnectVisualization>(source));
         visualizations.emplace_back(std::make_unique<MoveVisualization>(source));
         visualizations.emplace_back(std::make_unique<DeleteVisualization>(source));
@@ -28,8 +28,8 @@ public:
     }
 
 
-    static std::vector<std::unique_ptr<InteractionVisualization>> root_visualizations(juce::Component& source) {
-        std::vector<std::unique_ptr<InteractionVisualization>> visualizations;
+    static std::vector<std::unique_ptr<InteractionVisualization_LEGACY>> root_visualizations(juce::Component& source) {
+        std::vector<std::unique_ptr<InteractionVisualization_LEGACY>> visualizations;
         visualizations.emplace_back(std::make_unique<MoveVisualization>(source));
         visualizations.emplace_back(std::make_unique<DeleteVisualization>(source));
         return visualizations;
@@ -84,7 +84,7 @@ protected:
     virtual void on_resized(juce::Rectangle<int>& bounds) = 0;
 
 
-    std::vector<std::unique_ptr<InteractionVisualization>> create_visualizations() {
+    std::vector<std::unique_ptr<InteractionVisualization_LEGACY>> create_visualizations() {
         return ModuleStereotypeFuncs::root_visualizations(*this);
     }
 
@@ -94,7 +94,7 @@ private:
 
     HeaderWidget m_header;
 
-    InteractionVisualizer m_interaction_visualizer{*this, create_visualizations()};
+    InteractionVisualizer_LEGACY m_interaction_visualizer{*this, create_visualizations()};
 };
 
 
@@ -190,7 +190,7 @@ protected:
     virtual void on_resized(juce::Rectangle<int>& bounds) = 0;
 
 
-    std::vector<std::unique_ptr<InteractionVisualization>> create_visualizations() {
+    std::vector<std::unique_ptr<InteractionVisualization_LEGACY>> create_visualizations() {
         return ModuleStereotypeFuncs::node_visualizations(*this);
     }
 
@@ -206,7 +206,7 @@ private:
 
     HeaderWidget m_header;
 
-    InteractionVisualizer m_interaction_visualizer{*this, create_visualizations()};
+    InteractionVisualizer_LEGACY m_interaction_visualizer{*this, create_visualizations()};
     ConnectableDndController m_connectable_dnd_controller{*this, *this, &m_interaction_visualizer};
 
     bool m_header_visible = true;

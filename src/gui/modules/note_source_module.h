@@ -10,7 +10,7 @@
 #include "widgets/toggle_button_widget.h"
 #include "widgets/header_widget.h"
 #include "views/note_view.h"
-#include "interaction_visualizations.h"
+#include "interaction_visualizations_LEGACY.h"
 #include "pulsator_module.h"
 
 class NoteSourceModule : public RootModuleBase {

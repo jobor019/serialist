@@ -4,6 +4,7 @@
 
 #include "key_state.h"
 #include "state.h"
+#include "states.h"
 #include "state_condition.h"
 #include "mouse_state.h"
 #include "core/collections/vec.h"
@@ -17,7 +18,7 @@ public:
     Stateful(Stateful&&) noexcept = default;
     Stateful& operator=(Stateful&&) noexcept = default;
 
-    virtual void update_state(const State& active_state) = 0;
+    virtual void state_changed(const State& active_state, const MouseState& mouse_state) = 0;
 };
 
 
@@ -32,7 +33,7 @@ struct TriggerableState {
 // ==============================================================================================
 
 class StateHandler
-        : public GlobalKeyState::Listener5
+        : public GlobalKeyState::Listener
           , public juce::MouseListener
     // public GlobalMidiListener TODO: Add once implemented
     // public GlobalOscListener TODO: Add once implemented
@@ -41,18 +42,16 @@ public:
     StateHandler(StateHandler* parent
                  , juce::Component& mouse_source_component
                  , Vec<std::reference_wrapper<Stateful>> statefuls
-                 , Vec<TriggerableState> triggerable_states = Vec<TriggerableState>()
-                 , State initial_state = State::null_state())
+                 , Vec<TriggerableState> triggerable_states = Vec<TriggerableState>(
+            TriggerableState{std::make_unique<AlwaysTrueCondition>(), States::Default}
+    )
+                 , State initial_state = States::Default)
             : m_parent(parent)
               , m_mouse_source_component(mouse_source_component)
               , m_statefuls(std::move(statefuls))
               , m_states(std::move(triggerable_states))
               , m_active_state(initial_state) {
-        if (m_parent) {
-            m_parent->add_child_handler(*this);
-        }
-        m_mouse_source_component.addMouseListener(this, true);
-        GlobalKeyState::add_listener(*this);
+        initialize();
     }
 
 
@@ -60,11 +59,13 @@ public:
                  , juce::Component& mouse_source_component
                  , Stateful& stateful
                  , Vec<TriggerableState> triggerable_states = Vec<TriggerableState>()
-                 , State initial_state = State::null_state())
+                 , State initial_state = States::Default)
             : StateHandler(parent
                            , mouse_source_component
                            , Vec<std::reference_wrapper<Stateful>>::singular(stateful)
-                           , std::move(triggerable_states), initial_state) {}
+                           , std::move(triggerable_states), initial_state) {
+        initialize();
+    }
 
 
     ~StateHandler() override {
@@ -81,6 +82,16 @@ public:
     StateHandler& operator=(StateHandler&&) noexcept = delete;
 
 
+    void initialize() {
+        if (m_parent) {
+            m_parent->add_child_handler(*this);
+        }
+        m_mouse_source_component.addMouseListener(this, true);
+        GlobalKeyState::add_listener(*this);
+        notify();
+    }
+
+
     void mouseEnter(const juce::MouseEvent& event) override {
         bool is_directly_over = mouse_is_directly_over();
 
@@ -90,18 +101,18 @@ public:
             // entering registered child directly from outside
             if (!is_directly_over) {
                 m_last_mouse_state.mouse_child_enter(event);
-                update_state();
+                update_state(true);
 
                 // entering this component (or a non-registered child) from outside
             } else {
                 m_last_mouse_state.mouse_enter(event);
-                update_state();
+                update_state(true);
             }
 
             // entering registered child from inside this component
         } else if (m_last_mouse_state.is_directly_over_component() && !is_directly_over) {
             m_last_mouse_state.mouse_child_enter(event);
-            update_state();
+            update_state(true);
 
         }
         // entering a non-registered component from a registered child does not need to be registered,
@@ -117,11 +128,11 @@ public:
         // exit this component (from this component or any registered/unregistered child)
         if (!is_over) {
             m_last_mouse_state.mouse_exit();
-            update_state();
+            update_state(true);
         } else if (!m_last_mouse_state.is_directly_over_component() && mouse_is_directly_over()) {
             // exit a registered child into this component
             m_last_mouse_state.mouse_child_exit();
-            update_state();
+            update_state(true);
         }
     }
 
@@ -129,13 +140,13 @@ public:
     void mouseDown(const juce::MouseEvent& event) override {
         // TODO: hide mouse could be passed here
         m_last_mouse_state.mouse_down(event);
-        update_state();
+        update_state(true);
     }
 
 
     void mouseDrag(const juce::MouseEvent& event) override {
         if (m_last_mouse_state.mouse_drag(event)) {
-            update_state();
+            update_state(true);
         }
     }
 
@@ -143,28 +154,35 @@ public:
     void mouseUp(const juce::MouseEvent& event) override {
         // TODO: Restore mouse condition here
         m_last_mouse_state.mouse_up(event);
-        update_state();
+        update_state(true);
     }
 
 
     void modifier_keys_changed() override {
         if (m_last_mouse_state.is_over_component()) {
-            update_state();
+            update_state(false);
         }
     }
 
 
     void key_pressed() override {
         if (m_last_mouse_state.is_over_component()) {
-            update_state();
+            update_state(false);
         }
     }
 
 
     void key_released() override {
         if (m_last_mouse_state.is_over_component()) {
-            update_state();
+            update_state(false);
         }
+    }
+
+
+    // TODO: See old InteractionVisualizer_LEGACY for how this was implemented (commit 25be838 / 29-12-2023 or older)
+    void set_drag_and_dropping(bool is_drag_and_dropping) {
+        (void) is_drag_and_dropping;
+        throw std::runtime_error("Not implemented");
     }
 
 
@@ -182,10 +200,14 @@ public:
 
 
 private:
-    void update_state() {
+    /**
+     * @param force_update if true, notify statefuls even if the state hasn't changed
+     *                     (typically useful if only the mouse's state has changed)
+     */
+    void update_state(bool force_update) {
         for (const auto& state: m_states) {
             if (state.condition->is_met()) {
-                if (state.state != m_active_state) {
+                if (force_update || state.state != m_active_state) {
                     m_active_state = state.state;
                     notify();
                 }
@@ -193,8 +215,9 @@ private:
             }
         }
 
-        if (!m_active_state.is_null()) {
-            m_active_state = State::null_state();
+        // state has changed to a state that doesn't match any condition for this handler -> treat as NoInteraction
+        if (force_update || m_active_state != States::NoInteraction) {
+            m_active_state = States::NoInteraction;
             notify();
         }
     }
@@ -202,7 +225,7 @@ private:
 
     void notify() const {
         for (const auto& stateful: m_statefuls) {
-            stateful.get().update_state(m_active_state);
+            stateful.get().state_changed(m_active_state, m_last_mouse_state);
         }
     }
 
@@ -212,7 +235,7 @@ private:
     }
 
 
-    void remove_child_handler(StateHandler& child) {
+    void remove_child_handler(StateHandler& child) noexcept {
         m_child_handlers.remove([&child](const auto& handler) {
             return std::addressof(handler.get()) == std::addressof(child);
         });
@@ -252,7 +275,7 @@ private:
     juce::Component& m_mouse_source_component;
     Vec<std::reference_wrapper<Stateful>> m_statefuls;
 
-    Vec<TriggerableState> m_states;
+    Vec<TriggerableState> m_states; // not copy constructible, hence std::vector
 
     MouseState m_last_mouse_state;
     State m_active_state;

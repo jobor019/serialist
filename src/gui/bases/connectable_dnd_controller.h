@@ -5,13 +5,13 @@
 #include "interaction_visualizer_LEGACY.h"
 #include "connectable_module.h"
 #include "core/generative.h"
-#include "interaction_visualizations.h"
+#include "interaction_visualizations_LEGACY.h"
 
 class ConnectableDndController : public juce::MouseListener {
 public:
     ConnectableDndController(ConnectableModule& connectable
                              , juce::Component& source_component
-                             , InteractionVisualizer* parent_interaction_visualizer)
+                             , InteractionVisualizer_LEGACY* parent_interaction_visualizer)
             : m_connectable(connectable)
               , m_source_component(source_component)
               , m_interaction_visualizer(parent_interaction_visualizer) {
@@ -88,7 +88,7 @@ private:
     ConnectableModule& m_connectable;
     juce::Component& m_source_component;
 
-    InteractionVisualizer* m_interaction_visualizer;
+    InteractionVisualizer_LEGACY* m_interaction_visualizer;
 
 };
 

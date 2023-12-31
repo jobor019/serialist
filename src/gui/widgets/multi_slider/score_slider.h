@@ -168,7 +168,7 @@
 //
 //
 //protected:
-//    bool update_state(const MouseState<>& mouse_state) override {
+//    bool state_changed(const MouseState<>& mouse_state) override {
 //        if (mouse_state.is_down && !mouse_state.is_dragging) {
 //            m_value = Voice<int>::singular(m_value.first_or(0) + 1);
 //            return true;

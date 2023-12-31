@@ -106,7 +106,7 @@ set(SOURCES
         src/gui/bases/connector_component.h
         src/gui/state/generative_component_LEGACY_WIP.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/global_action_handler_LEGACY.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction_visualizations.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction_visualizations_LEGACY.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction_visualizer_LEGACY.h
         src/io/key_state.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/look_and_feel.h
@@ -122,11 +122,13 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/io/renderers.h
 
 
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/state/interaction_visualizations.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/state/interaction_visualizer.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/state/state.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/state/state_condition.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/state/state_handler.h
-
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/state/state_ids.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/state/states.h
         )
 
 

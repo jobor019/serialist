@@ -19,17 +19,37 @@ public:
 
 // ==============================================================================================
 
-class KeyCondition {
+class AlwaysTrueCondition : public Condition {
 public:
+    bool is_met() const override {
+        return true;
+    }
+};
 
+// ==============================================================================================
+
+
+
+class KeyCondition : public Condition {
+public:
     explicit KeyCondition(int key_code) : m_key_code(key_code) {}
 
-    bool is_met() const {
+    bool is_met() const override {
         return GlobalKeyState::is_down_exclusive(m_key_code);
     }
 
 private:
     int m_key_code;
+};
+
+
+// ==============================================================================================
+
+class NoKeyCondition : public Condition {
+public:
+    bool is_met() const override {
+        return !GlobalKeyState::has_held_keys();
+    }
 };
 
 #endif //SERIALISTLOOPER_STATE_CONDITION_H

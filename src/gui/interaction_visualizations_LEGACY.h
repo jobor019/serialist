@@ -1,18 +1,11 @@
 
-#ifndef SERIALISTLOOPER_INTERACTION_VISUALIZATIONS_H
-#define SERIALISTLOOPER_INTERACTION_VISUALIZATIONS_H
+#ifndef SERIALISTLOOPER_INTERACTION_VISUALIZATIONS_LEGACY_H
+#define SERIALISTLOOPER_INTERACTION_VISUALIZATIONS_LEGACY_H
 
 #include <interaction_visualizer_LEGACY.h>
 #include "bases/connectable_module.h"
 #include "keyboard_shortcuts.h"
-
-
-enum class ActionTypes {
-    move = 0
-    , remove = 1
-    , connect = 2
-};
-
+#include "state/interaction_visualizer.h"
 
 // ==============================================================================================
 
@@ -33,7 +26,6 @@ private:
     int m_border_width;
 
 };
-
 
 
 // ==============================================================================================
@@ -71,10 +63,10 @@ private:
 
 // ==============================================================================================
 
-class ConnectVisualization : public InteractionVisualization {
+class ConnectVisualization : public InteractionVisualization_LEGACY {
 public:
     explicit ConnectVisualization(juce::Component& source)
-            : InteractionVisualization(source)
+            : InteractionVisualization_LEGACY(source)
               , m_source_if_connectable(dynamic_cast<ConnectableModule*>(&source)) {
 
         addChildComponent(m_mouseover_highlight);
@@ -178,8 +170,7 @@ public:
     };
 
 
-    explicit DisconnectVisualization(juce::Component& source)
-            : InteractionVisualization(source) {
+    explicit DisconnectVisualization() {
         addChildComponent(m_mouseover_highlight);
     }
 
@@ -189,8 +180,10 @@ public:
     }
 
 
-    void update_state(bool mouse_is_over_component, Action*) override {
+    void update_state(const State& active_state, const MouseState& mouse_state) override {
         bool is_visible = m_mouseover_highlight.isVisible();
+
+
         if (GlobalKeyState::is_down_exclusive(ConfigurationLayerKeyboardShortcuts::DISCONNECT_KEY)
             && mouse_is_over_component) {
             m_mouseover_highlight.setVisible(true);
@@ -211,7 +204,7 @@ private:
 
 // ==============================================================================================
 
-class MoveVisualization : public InteractionVisualization {
+class MoveVisualization : public InteractionVisualization_LEGACY {
 public:
     class TempHighlight : public juce::Component {
     public:
@@ -231,7 +224,7 @@ public:
 
 
     explicit MoveVisualization(juce::Component& source)
-            : InteractionVisualization(source) {
+            : InteractionVisualization_LEGACY(source) {
         addChildComponent(m_mouseover_highlight);
     }
 
@@ -264,7 +257,7 @@ private:
 
 // ==============================================================================================
 
-class DeleteVisualization : public InteractionVisualization {
+class DeleteVisualization : public InteractionVisualization_LEGACY {
 public:
     class TempHighlight : public juce::Component {
     public:
@@ -286,7 +279,7 @@ public:
 
 
     explicit DeleteVisualization(juce::Component& source)
-            : InteractionVisualization(source) {
+            : InteractionVisualization_LEGACY(source) {
         addChildComponent(m_mouseover_highlight);
     }
 
@@ -317,4 +310,4 @@ private:
 };
 
 
-#endif //SERIALISTLOOPER_INTERACTION_VISUALIZATIONS_H
+#endif //SERIALISTLOOPER_INTERACTION_VISUALIZATIONS_LEGACY_H

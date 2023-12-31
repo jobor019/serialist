@@ -3,7 +3,7 @@
 #ifndef SERIALISTLOOPER_NEW_GENERATOR_COMPONENT_H
 #define SERIALISTLOOPER_NEW_GENERATOR_COMPONENT_H
 
-#include "interaction_visualizations.h"
+#include "interaction_visualizations_LEGACY.h"
 #include "state/generative_component_LEGACY_WIP.h"
 #include "core/param/parameter_policy.h"
 #include "core/generatives/generator_RM.h"

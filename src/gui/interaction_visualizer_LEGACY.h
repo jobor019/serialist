@@ -6,9 +6,9 @@
 #include "global_action_handler_LEGACY.h"
 #include "key_state.h"
 
-class InteractionVisualization : public juce::Component {
+class InteractionVisualization_LEGACY : public juce::Component {
 public:
-    explicit InteractionVisualization(juce::Component& source_component)
+    explicit InteractionVisualization_LEGACY(juce::Component& source_component)
             : m_source_component(source_component) {
         setWantsKeyboardFocus(false);
         setInterceptsMouseClicks(false, false);
@@ -30,14 +30,14 @@ private:
 
 // ==============================================================================================
 
-class InteractionVisualizer
+class InteractionVisualizer_LEGACY
         : public juce::Component
           , public GlobalActionHandler::Listener
           , public GlobalKeyState::Listener {
 
 public:
-    explicit InteractionVisualizer(juce::Component& mouse_source_component
-                                   , Vec<std::unique_ptr<InteractionVisualization>> visualizations)
+    explicit InteractionVisualizer_LEGACY(juce::Component& mouse_source_component
+                                          , Vec<std::unique_ptr<InteractionVisualization_LEGACY>> visualizations)
             : m_mouse_source_component(mouse_source_component)
               , m_visualizations(std::move(visualizations)) {
 
@@ -54,7 +54,7 @@ public:
     }
 
 
-    ~InteractionVisualizer() override {
+    ~InteractionVisualizer_LEGACY() override {
         m_mouse_source_component.removeMouseListener(this);
         GlobalActionHandler::remove_listener(*this);
         GlobalKeyState::remove_listener(*this);
@@ -68,14 +68,14 @@ public:
     }
 
 
-    void add_visualization(std::unique_ptr<InteractionVisualization> v) {
+    void add_visualization(std::unique_ptr<InteractionVisualization_LEGACY> v) {
         addAndMakeVisible(*v);
         m_visualizations.append(std::move(v));
         resized();
     }
 
 
-    void add_visualization(Vec<std::unique_ptr<InteractionVisualization>> visualizations) {
+    void add_visualization(Vec<std::unique_ptr<InteractionVisualization_LEGACY>> visualizations) {
         for (auto& v: visualizations) {
             add_visualization(std::move(v));
         }
@@ -138,7 +138,7 @@ private:
     juce::Component& m_mouse_source_component;
 
 
-    Vec<std::unique_ptr<InteractionVisualization>> m_visualizations;
+    Vec<std::unique_ptr<InteractionVisualization_LEGACY>> m_visualizations;
 
     bool m_mouse_is_over_component = false;
     bool m_is_drag_and_dropping = false;

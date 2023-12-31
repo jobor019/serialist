@@ -30,7 +30,7 @@ public:
     };
 
 
-    explicit MultiSliderElement(Vec<std::unique_ptr<InteractionVisualization>> extra_visualizations = {}
+    explicit MultiSliderElement(Vec<std::unique_ptr<InteractionVisualization_LEGACY>> extra_visualizations = {}
                                 , bool restore_mouse_on_drag_end = false)
             : m_interaction_visualizer(*this, default_visualizations())
               , m_restore_mouse_on_drag_end(restore_mouse_on_drag_end) {
@@ -53,7 +53,7 @@ public:
     MultiSliderElement& operator=(MultiSliderElement&&) noexcept = default;
 
 
-    Vec<std::unique_ptr<InteractionVisualization>> default_visualizations() {
+    Vec<std::unique_ptr<InteractionVisualization_LEGACY>> default_visualizations() {
         return {}; // TODO: mouseover(border), remove(borderandfill), maybe NEW(borderandfill) for insert slider
     }
 
@@ -210,7 +210,7 @@ private:
 //    virtual void draw_highlights(juce::Graphics& g) { }
 
 
-    InteractionVisualizer m_interaction_visualizer;
+    InteractionVisualizer_LEGACY m_interaction_visualizer;
     bool m_restore_mouse_on_drag_end;
 
     MouseState<> m_mouse_state;

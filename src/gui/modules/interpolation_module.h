@@ -86,7 +86,7 @@ private:
 
     Layout m_layout;
 
-    InteractionVisualizer m_interaction_visualizer{*this, create_visualizations()};
+    InteractionVisualizer_LEGACY m_interaction_visualizer{*this, create_visualizations()};
 };
 
 

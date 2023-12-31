@@ -2,37 +2,37 @@
 #ifndef SERIALISTLOOPER_STATE_H
 #define SERIALISTLOOPER_STATE_H
 
-namespace StateIdentifiers {
+#include "state_ids.h"
 
-const unsigned int ConfigurationLayerComponent = 1;
-const unsigned int MappingComponent = 2;
-const unsigned int TransportComponent = 3;
+class State {
+public:
+    State(int module_id, int state_id) : m_module_id(module_id), m_state_id(state_id) {}
 
-} // namespace StateIdentifiers
-
-
-// ==============================================================================================
-
-
-struct State {
-    unsigned int module_id;
-    unsigned int state_id;
-
-    static State null_state() {
-        return State{0, 0};
-    }
 
     bool operator==(const State& other) const {
-        return module_id == other.module_id && state_id == other.state_id;
+        return m_module_id == other.m_module_id && m_state_id == other.m_state_id;
     }
+
 
     bool operator!=(const State& other) const {
         return !(*this == other);
     }
 
-    bool is_null() const {
-        return module_id == 0 && state_id == 0;
+
+    bool equals( int mod,  int state) const {
+        return m_module_id == mod && m_state_id == state;
     }
+
+
+     int get_module_id() const { return m_module_id; }
+
+
+     int get_state_id() const { return m_state_id; }
+
+
+private:
+     int m_module_id;
+     int m_state_id;
 };
 
 #endif //SERIALISTLOOPER_STATE_H

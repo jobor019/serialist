@@ -9,7 +9,7 @@
 #include "keyboard_shortcuts.h"
 #include "bases/connectable_module.h"
 #include "interaction_visualizer_LEGACY.h"
-#include "interaction_visualizations.h"
+#include "interaction_visualizations_LEGACY.h"
 #include "bases/connectable_dnd_controller.h"
 
 template<typename SocketType>
@@ -61,8 +61,8 @@ public:
     }
 
 
-    std::vector<std::unique_ptr<InteractionVisualization>> create_visualizations() {
-        std::vector<std::unique_ptr<InteractionVisualization>> visualizations;
+    std::vector<std::unique_ptr<InteractionVisualization_LEGACY>> create_visualizations() {
+        std::vector<std::unique_ptr<InteractionVisualization_LEGACY>> visualizations;
         visualizations.emplace_back(std::make_unique<DisconnectVisualization>(*this));
         return visualizations;
     }
@@ -177,7 +177,7 @@ private:
 
     std::unique_ptr<GenerativeComponent> m_default_widget;
 
-    InteractionVisualizer m_interaction_visualizer{*this, create_visualizations()};
+    InteractionVisualizer_LEGACY m_interaction_visualizer{*this, create_visualizations()};
     ConnectableDndController m_connectable_dnd_controller{*this, *this, &m_interaction_visualizer};
 
 
