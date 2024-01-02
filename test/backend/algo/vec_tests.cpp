@@ -105,7 +105,6 @@ TEST_CASE("Vec operator+", "[operator]") {
 }
 
 
-
 TEST_CASE("Vec range", "[range]") {
     Vec<int> v0 = Vec<int>::range(2, 4);
     REQUIRE(v0.size() == 2);
@@ -216,6 +215,7 @@ TEST_CASE("Vec resize_fold", "[resize_fold]") {
     REQUIRE(v[0] == 1);
     REQUIRE(v[1] == 2);
 }
+
 
 TEST_CASE("Vec resize_default", "[resize_default]") {
     Vec v = {1, 2, 3};
@@ -838,8 +838,9 @@ TEST_CASE("Test shift function", "[shift]") {
     }
 }
 
+
 TEST_CASE("Test insert function", "[insert]") {
-    Vec v({1,2, 3,4});
+    Vec v({1, 2, 3, 4});
 
     SECTION("Insert at existing index") {
         v.insert(1, 5);
@@ -861,6 +862,7 @@ TEST_CASE("Test insert function", "[insert]") {
     }
 }
 
+
 TEST_CASE("Test insert with non-copyable constructible objects") {
     Vec<std::unique_ptr<std::string>> v;
     v.append(std::make_unique<std::string>("123"));
@@ -871,6 +873,7 @@ TEST_CASE("Test insert with non-copyable constructible objects") {
 
 }
 
+
 TEST_CASE("non-copyable ctor") {
     Vec<std::unique_ptr<std::string>> v{std::make_unique<std::string>("123"), std::make_unique<std::string>("456")};
     REQUIRE(*v[0] == "123");
@@ -878,7 +881,29 @@ TEST_CASE("non-copyable ctor") {
 }
 
 
+TEST_CASE("non-copyable misc functions") {
+    Vec<std::unique_ptr<std::string>> v{std::make_unique<std::string>("123"), std::make_unique<std::string>("456")};
+    SECTION("append") {
+        v.append(std::make_unique<std::string>("789"));
+        REQUIRE(*v[0] == "123");
+        REQUIRE(*v[1] == "456");
+        REQUIRE(*v[2] == "789");
+    }
 
+    SECTION("extend") {
+        v.extend(Vec<std::unique_ptr<std::string>>{
+                std::make_unique<std::string>("111")
+                , std::make_unique<std::string>("222")}
+        );
+        REQUIRE(*v[0] == "123");
+        REQUIRE(*v[1] == "456");
+        REQUIRE(*v[2] == "111");
+        REQUIRE(*v[3] == "222");
+
+    }
+
+
+}
 
 
 class Temp {

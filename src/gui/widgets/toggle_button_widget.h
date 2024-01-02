@@ -4,7 +4,7 @@
 #define SERIALISTLOOPER_TOGGLE_BUTTON_WIDGET_H
 
 #include <juce_gui_extra/juce_gui_extra.h>
-#include "state/generative_component_LEGACY_WIP.h"
+#include "state/generative_component.h"
 #include "core/generatives/variable.h"
 
 class ToggleButtonWidget : public GenerativeComponent

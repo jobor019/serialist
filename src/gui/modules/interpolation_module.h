@@ -6,7 +6,7 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "core/generatives/interpolator_RM.h"
 #include "core/generatives/variable.h"
-#include "state/generative_component_LEGACY_WIP.h"
+#include "state/generative_component.h"
 #include "core/generatives/interpolation_adapter_RM.h"
 
 class InterpolationModule : public NodeModuleBase<InterpolationStrategy> {

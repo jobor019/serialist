@@ -144,4 +144,18 @@ public:
 
 };
 
+
+// ==============================================================================================
+
+class DeleteVisualization : public SingleVisualizationBase {
+public:
+    DeleteVisualization() : SingleVisualizationBase(std::make_unique<BorderHighlight>(juce::Colours::red)) {}
+
+
+    bool is_active(const State& active_state, const MouseState& mouse_state) const override {
+        return active_state.equals(ModuleIds::ConfigurationLayerComponent, StateIds::Configuration::Delete)
+               && mouse_state.is_over_component();
+    }
+};
+
 #endif //SERIALISTLOOPER_INTERACTION_VISUALIZATIONS_H

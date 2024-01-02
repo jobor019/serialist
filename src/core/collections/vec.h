@@ -391,9 +391,14 @@ public:
 //        return *this;
 //    }
 
-
+    template<typename E = T, std::enable_if_t<std::is_copy_constructible_v<E>, int> = 0>
     Vec<T>& extend(const Vec<T>& other) {
         m_vector.insert(m_vector.end(), other.m_vector.begin(), other.m_vector.end());
+        return *this;
+    }
+
+    Vec<T>& extend(Vec<T>&& other) {
+        m_vector.insert(m_vector.end(), std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()));
         return *this;
     }
 

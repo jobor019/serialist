@@ -104,15 +104,13 @@ set(SOURCES
         src/gui/bases/connectable_module.h
         src/gui/bases/connectable_dnd_controller.h
         src/gui/bases/connector_component.h
-        src/gui/state/generative_component_LEGACY_WIP.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/global_action_handler_LEGACY.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction_visualizations_LEGACY.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction_visualizer_LEGACY.h
+        src/gui/state/generative_component.h
         src/io/key_state.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/look_and_feel.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/main_component.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/module_factory.h
         src/gui/bases/module_stereotypes.h
+        src/gui/bases/widget_stereotypes.h
         src/io/mouse_state.h
 
 

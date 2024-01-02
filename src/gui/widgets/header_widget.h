@@ -6,6 +6,7 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "core/generatives/variable.h"
 #include "toggle_button_widget.h"
+#include "slider_widget.h"
 #include "look_and_feel.h"
 
 class HeaderWidget : public juce::Component
@@ -21,8 +22,7 @@ public:
             : m_label({}, public_name)
               , m_enabled(enabled ? std::make_optional<ToggleButtonWidget>(*enabled) : std::nullopt)
               , m_stepped(stepped ? std::make_optional<ToggleButtonWidget>(*stepped) : std::nullopt)
-              , m_num_voices(num_voices ? std::make_optional<SliderWidget>(*num_voices, 0.0f, 64.0f, 1.0f, true) : std::nullopt)
-              , m_minimized("-") {
+              , m_num_voices(num_voices ? std::make_optional<SliderWidget>(*num_voices, 0.0f, 64.0f, 1.0f, true) : std::nullopt) {
         initialize_widgets();
     }
 
@@ -105,7 +105,7 @@ private:
     std::optional<ToggleButtonWidget> m_stepped;
     std::optional<SliderWidget> m_num_voices;
 
-    juce::ToggleButton m_minimized;
+    juce::ToggleButton m_minimized{"-"};
 
 };
 

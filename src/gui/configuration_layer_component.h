@@ -5,7 +5,7 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "core/param/parameter_policy.h"
-#include "state/generative_component_LEGACY_WIP.h"
+#include "state/generative_component.h"
 #include "bases/connector_component.h"
 #include "core/generatives/note_source.h"
 #include "core/generation_graph.h"

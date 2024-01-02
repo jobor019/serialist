@@ -4,7 +4,7 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 
 #include "core/generatives/oscillator.h"
-#include "state/generative_component_LEGACY_WIP.h"
+#include "state/generative_component.h"
 #include "widgets/slider_widget.h"
 #include "widgets/toggle_button_widget.h"
 #include "widgets/header_widget.h"

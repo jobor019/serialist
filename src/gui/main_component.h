@@ -2,7 +2,7 @@
 #define SERIALIST_LOOPER_MAIN_COMPONENT_H
 
 #include <juce_gui_extra/juce_gui_extra.h>
-#include "state/generative_component_LEGACY_WIP.h"
+#include "state/generative_component.h"
 #include "core/generatives/note_source.h"
 #include "bases/connector_component.h"
 #include "core/algo/time/transport.h"

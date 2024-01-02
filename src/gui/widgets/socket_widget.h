@@ -5,11 +5,9 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "core/param/socket_policy.h"
-#include "state/generative_component_LEGACY_WIP.h"
+#include "state/generative_component.h"
 #include "keyboard_shortcuts.h"
 #include "bases/connectable_module.h"
-#include "interaction_visualizer_LEGACY.h"
-#include "interaction_visualizations_LEGACY.h"
 #include "bases/connectable_dnd_controller.h"
 
 template<typename SocketType>

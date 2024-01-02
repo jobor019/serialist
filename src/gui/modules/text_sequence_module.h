@@ -3,7 +3,7 @@
 #ifndef SERIALISTLOOPER_TEXT_SEQUENCE_MODULE_H
 #define SERIALISTLOOPER_TEXT_SEQUENCE_MODULE_H
 
-#include "state/generative_component_LEGACY_WIP.h"
+#include "state/generative_component.h"
 #include "core/generatives/sequence.h"
 
 template<typename OutputType, typename StoredType = OutputType>

@@ -21,6 +21,7 @@ const int Default = 0;
 
 namespace Configuration {
 const int Move = 1;
+const int Delete = 2;
 }
 
 } // namespace StateIds

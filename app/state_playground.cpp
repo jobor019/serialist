@@ -7,6 +7,7 @@
 #include "key_state.h"
 #include "gui/state/state_handler.h"
 #include "state/interaction_visualizer.h"
+#include "bases/module_stereotypes.h"
 
 class MouseOverVisualization : public SingleVisualizationBase {
 public:
@@ -34,6 +35,16 @@ public:
     }
 };
 
+
+// ==============================================================================================
+
+class SomeGenerativeModule : public ModuleBase<Node<Facet>> {
+public:
+
+};
+
+
+// ==============================================================================================
 
 class SomeChildComponent : public juce::Component, public Stateful {
 public:
@@ -89,6 +100,9 @@ private:
     std::size_t m_count = 0;
 
 };
+
+
+// ==============================================================================================
 
 class SomeParentComponent : public juce::Component, public Stateful {
 public:

@@ -10,6 +10,7 @@ const static inline State NoInteraction = State{ModuleIds::Null, StateIds::NoInt
 const static inline State Default = State{ModuleIds::Null, StateIds::Default};
 
 const static inline State Move = State{ModuleIds::ConfigurationLayerComponent, StateIds::Configuration::Move};
+const static inline State Delete = State{ModuleIds::ConfigurationLayerComponent, StateIds::Configuration::Delete};
 
 }
 
