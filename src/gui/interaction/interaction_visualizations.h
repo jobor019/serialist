@@ -7,88 +7,20 @@
 #include "io/mouse_state.h"
 
 
-class InteractionVisualization : public juce::Component {
-public:
-    explicit InteractionVisualization() {
-        setInterceptsMouseClicks(false, false);
-    }
-
-
-    virtual void update_state(const State& active_state, const MouseState& mouse_state) = 0;
-};
-
-
-// ==============================================================================================
-
-class BorderHighlight : public juce::Component {
-public:
-    explicit BorderHighlight(juce::Colour color, int border_width = 2)
-            : m_color(color), m_border_width(border_width) {}
-
-
-    void paint(juce::Graphics& g) override {
-        g.setColour(m_color);
-        g.drawRect(getLocalBounds(), m_border_width);
-    }
-
-
-private:
-    juce::Colour m_color;
-    int m_border_width;
-
-};
+//class InteractionVisualization : public juce::Component {
+//public:
+//    explicit InteractionVisualization() {
+//        setInterceptsMouseClicks(false, false);
+//    }
+//
+//
+//    virtual void update_state(const State& active_state, const MouseState& mouse_state) = 0;
+//};
 
 
 // ==============================================================================================
 
-class FillHighlight : public juce::Component {
-public:
-    explicit FillHighlight(juce::Colour color) : m_color(color) {}
 
-
-    void paint(juce::Graphics& g) override {
-        g.setColour(m_color);
-        g.fillRect(getLocalBounds());
-    }
-
-
-private:
-    juce::Colour m_color;
-};
-
-
-
-// ==============================================================================================
-
-class BorderAndFillHighlight : public juce::Component {
-public:
-    explicit BorderAndFillHighlight(std::optional<juce::Colour> border_color
-                                    , std::optional<juce::Colour> fill_color
-                                    , int border_width = 2)
-            : m_border_color(border_color)
-              , m_fill_color(fill_color)
-              , m_border_width(border_width) {}
-
-
-    void paint(juce::Graphics& g) override {
-        if (m_fill_color) {
-            g.setColour(*m_fill_color);
-            g.fillRect(getLocalBounds());
-        }
-
-        if (m_border_color) {
-            g.setColour(*m_border_color);
-            g.drawRect(getLocalBounds(), m_border_width);
-
-        }
-    }
-
-
-private:
-    std::optional<juce::Colour> m_border_color;
-    std::optional<juce::Colour> m_fill_color;
-    int m_border_width;
-};
 
 
 // ==============================================================================================

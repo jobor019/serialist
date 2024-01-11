@@ -6,6 +6,9 @@
 #include "bases/connectable_module.h"
 #include "header_widget.h"
 #include "socket_widget.h"
+#include "state/interaction_visualizations.h"
+#include "state/state_handler.h"
+#include "state/interaction_visualizer.h"
 
 class ModuleStereotypeFuncs {
 public:

@@ -4,7 +4,6 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "key_state.h"
-#include "interaction_visualizer_LEGACY.h"
 #include "core/collections/vec.h"
 #include "core/collections/voices.h"
 #include "mouse_state.h"
@@ -16,18 +15,19 @@ class MultiSliderElement : public juce::Component
                            , public GlobalKeyState::Listener {
 public:
 
-    class Listener {
-    public:
-        Listener() = default;
-        virtual ~Listener() = default;
-        Listener(const Listener&) = delete;
-        Listener& operator=(const Listener&) = delete;
-        Listener(Listener&&) noexcept = default;
-        Listener& operator=(Listener&&) noexcept = default;
-
-        virtual void slider_value_changed(MultiSliderElement<T>& slider) = 0;
-        virtual void slider_flagged_for_deletion(MultiSliderElement<T>& slider) = 0;
-    };
+    // TODO: No need for a listener, just need access to MultiSliderWidget& parent
+//    class Listener {
+//    public:
+//        Listener() = default;
+//        virtual ~Listener() = default;
+//        Listener(const Listener&) = delete;
+//        Listener& operator=(const Listener&) = delete;
+//        Listener(Listener&&) noexcept = default;
+//        Listener& operator=(Listener&&) noexcept = default;
+//
+//        virtual void slider_value_changed(MultiSliderElement<T>& slider) = 0;
+//        virtual void slider_flagged_for_deletion(MultiSliderElement<T>& slider) = 0;
+//    };
 
 
     explicit MultiSliderElement(Vec<std::unique_ptr<InteractionVisualization_LEGACY>> extra_visualizations = {}
@@ -58,8 +58,7 @@ public:
     }
 
 
-    virtual const Voice<T>& get_rendered_value() const = 0;
-    virtual const Voice<T>& get_actual_value() const = 0;
+    virtual const Voice<T>& get_value() const = 0;
     virtual void set_value(const Voice<T>& value) = 0;
 
 

@@ -94,7 +94,7 @@ set(SOURCES
 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider/clefs.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider/multi_slider.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider/multi_slider_action.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider/multi_slider_action_LEGACY.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider/multi_slider_element.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider/score_slider.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider/bar_slider.h
@@ -104,7 +104,6 @@ set(SOURCES
         src/gui/bases/connectable_module.h
         src/gui/bases/connectable_dnd_controller.h
         src/gui/bases/connector_component.h
-        src/gui/state/generative_component.h
         src/io/key_state.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/look_and_feel.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/main_component.h
@@ -120,13 +119,19 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/io/renderers.h
 
 
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/state/interaction_visualizations.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/state/interaction_visualizer.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/state/state.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/state/state_condition.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/state/state_handler.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/state/state_ids.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/state/states.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/drag_and_drop.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/generative_component.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/input_condition.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/input_events.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/input_handler.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/input_mode.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/input_mode_map.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/interaction_visualizations.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/interaction_visualizer.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/state.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/state_handler.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/state_ids.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/states.h
         )
 
 

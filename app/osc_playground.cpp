@@ -12,6 +12,104 @@
 #include "multi_slider/multi_slider.h"
 #include "multi_slider/bar_slider.h"
 
+
+
+//
+//
+//class MultiSliderMoveMode : public InputMode {
+//public:
+//    enum class State {
+//        enabled = 0
+//        , focused = 1
+//                , drag_from = 2
+//    };
+//};
+//
+//
+//class MultiSliderMoveVisualization : public InteractionVisualization {
+//public:
+//    bool is_visible(InputMode *active_mode, int) const override {
+//        return active_mode->is<MultiSliderMoveMode>();
+//    }
+//
+//    void state_changed(InputMode *active_mode, int state, AlphaMask &alpha) override {
+//        if (!active_mode->is<MultiSliderMoveMode>()) {
+//            return;
+//        } else {
+//            if (state == static_cast<int>(MultiSliderMoveMode::State::focused)) {
+//                m_border_focus_highlight.setVisible(true);
+//                m_fill_focus_highlight.setVisible(true);
+//            } else if (state == static_cast<int>(MultiSliderMoveMode::State::drag_from)) {
+//                alpha.set_alpha(0.5f);
+//            } else {
+//                m_border_focus_highlight.setVisible(false);
+//                m_fill_focus_highlight.setVisible(false);
+//                alpha.reset();
+//            }
+//        }
+//    }
+//
+//private:
+//    juce::Component m_border_focus_highlight;
+//    juce::Component m_fill_focus_highlight;
+//};
+//
+//
+//
+//
+//class ModuleConnectMode : public InputMode {
+//public:
+//    enum class State {
+//        enabled = 0
+//        , focused = 1
+//        , drag_from = 2
+//        , drag_to = 3
+//    };
+//
+//    /* virtual */ bool supports_drag_from() const override {
+//        return true;
+//    }
+//
+//    /* virtual */ bool supports_drag_to(const juce::DragAndDropTarget::SourceDetails& source) const override {
+//        return m_component.get_generative()->/*...*/(source)
+//    }
+//
+//
+//    // returns mode if changed
+//    /* virtual */ int mouse_state_changed(const MouseState& mouse_state) override {
+//        if (mouse_state.is_dragging_from()) {
+//            return static_cast<int>(State::drag_from);
+//        } else if (mouse_state.is_dragging_to()) {
+//            return static_cast<int>(State::drag_to);
+//        } else if (m_handler.is_directly_over_component()) {
+//            return static_cast<int>(State::focused);
+//        } else {
+//            return static_cast<int>(State::enabled);
+//        }
+//    }
+//
+//
+//    // returns mode if changed
+//    /* virtual */ int input_event_registered(const InputEvent& input_event) override {
+//        if (input_event.is<DragDropped>()) {
+//            m_component.connect(input_event.get<DragDropped>().source);
+//            m_component.repaint();
+//            return static_cast<int>(State::focused);
+//        }
+//    }
+//
+//
+//private:
+//    InputHandler& m_handler; // only if needed, e.g. for checking over vs directly over, etc.
+//    GenerativeComponent& m_component;
+//
+//};
+//
+//
+//class MultiSliderMoveVisualizer : public ModeVisualizer, public juce::Component {
+//
+//};
+
 class OscPlaygroundComponent : public MainKeyboardFocusComponent
                                , private juce::HighResolutionTimer
                                , private juce::ValueTree::Listener {
@@ -124,7 +222,7 @@ private:
     OscSenderNode m_sender;
 
     Sequence<Facet, int> m_multi_slider_sequence;
-    MultiSlider<int> m_multi_slider;
+    MultiSliderWidget<int> m_multi_slider;
 //    ScoreSlider m_score_slider;
 
     long callback_count = 0;

@@ -8,7 +8,7 @@
 #include "state/interaction_visualizations.h"
 #include "state/interaction_visualizer.h"
 
-class WidgetStereotypeFuncs {
+class WidgetFuncs {
 public:
     using KeyCodes = ConfigurationLayerKeyboardShortcuts;
 
@@ -35,9 +35,8 @@ public:
 
     explicit WidgetBase(Generative& main_generative
                         , StateHandler& parent_state_handler
-                        , Vec<
-            std::unique_ptr<InteractionVisualization>> visualizations = WidgetStereotypeFuncs::default_visualizations()
-                        , Vec<TriggerableState> states = WidgetStereotypeFuncs::default_states()
+                        , Vec<std::unique_ptr<InteractionVisualization>> visualizations = WidgetFuncs::default_visualizations()
+                        , Vec<TriggerableState> states = WidgetFuncs::default_states()
                         , const State& initial_state = States::Default)
             : m_main_generative(main_generative)
               , m_interaction_visualizer(std::move(visualizations))

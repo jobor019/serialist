@@ -213,7 +213,7 @@ public:
         if (!t) // process has already been called this cycle
             return m_current_value;
 
-        // TODO: Enabled shouldn't be a single value but per voice!!!!!
+        // TODO: enabled shouldn't be a single value but per voice!!!!!
         if (!is_enabled()) {
             if (m_previous_enable_state) {
                 m_current_value = m_pulsators.flush();

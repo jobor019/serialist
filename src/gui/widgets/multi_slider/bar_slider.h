@@ -38,7 +38,7 @@ public:
 
 protected:
     bool update_state(const MouseState<>& mouse_state) override {
-        if (mouse_state.is_down and !mouse_state.is_dragging) {
+        if (mouse_state.is_down and !mouse_state.is_drag_editing) {
             m_value[0] += 1;
             return true;
         }

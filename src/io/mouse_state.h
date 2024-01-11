@@ -7,10 +7,44 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "core/collections/circular_buffer.h"
 
+class DragBehaviour {
+public:
+    struct DefaultDrag {};
+    struct HideAndRestoreCursor {};
+    struct DragAndDropFrom { std::optional<juce::ScaledImage> cursor_image = std::nullopt; };
+
+    using BehaviourType = std::variant<DefaultDrag, HideAndRestoreCursor, DragAndDropFrom>;
+
+    DragBehaviour() = default;
+
+
+    DragBehaviour(BehaviourType&& behaviour) : m_behaviour(std::move(behaviour)) {}
+
+
+    template<typename T>
+    bool is() const noexcept {
+        return std::holds_alternative<T>(m_behaviour);
+    }
+
+
+    template<typename T>
+    T as() const {
+        return std::get<T>(m_behaviour);
+    }
+
+
+private:
+    BehaviourType m_behaviour = DefaultDrag{};
+};
+
+
+// ==============================================================================================
+
 struct MouseState {
     void mouse_enter(const juce::MouseEvent& event) {
         position = event.getPosition();
     }
+
 
     /**
      * should be called when the mouse enters a child (either directly or from parent)
@@ -27,8 +61,10 @@ struct MouseState {
 
 
     void mouse_down(const juce::MouseEvent& event, bool hide_mouse = false) {
-        if (hide_mouse)
+        if (hide_mouse) {
             event.source.enableUnboundedMouseMovement(true);
+            is_hidden = true;
+        }
 
         is_down = true;
         position = event.getPosition();
@@ -38,11 +74,12 @@ struct MouseState {
 
     void mouse_up(const juce::MouseEvent& event, bool restore = false) {
         is_down = false;
-        is_dragging = false;
-        if (restore) {
-            std::cout << "restoring\n";
+
+        if (is_hidden || restore) {
             restore_mouse_to_mouse_down_position(event);
         }
+
+        is_drag_editing = false;
 
         position = event.getPosition();
         m_previous_drag_position = std::nullopt;
@@ -54,13 +91,14 @@ struct MouseState {
      * @return true if this is the start of a drag
      */
     bool mouse_drag(const juce::MouseEvent& event) {
-        bool was_dragging = is_dragging;
-        is_dragging = true;
+        bool was_dragging = is_drag_editing;
+        is_drag_editing = true;
         drag_deplacement = event.getOffsetFromDragStart();
         update_drag_velocity(event);
         position = event.getPosition();
         return !was_dragging;
     }
+
 
     /**
      * should be called when the mouse exits a child without exiting the parent component
@@ -69,17 +107,21 @@ struct MouseState {
         is_over_child = false;
     }
 
+
     void mouse_exit() {
         mouse_child_exit();
         is_down = false;
-        is_dragging = false;
+        is_drag_editing = false;
         position = std::nullopt;
         m_previous_drag_position = std::nullopt;
+        drag_deplacement = std::nullopt;
     }
+
 
     bool is_over_component() const {
         return position.has_value();
     }
+
 
     bool is_directly_over_component() const {
         return is_over_component() && !is_over_child;
@@ -89,7 +131,8 @@ struct MouseState {
     std::optional<juce::Point<int>> position = std::nullopt;
     bool is_over_child = false;
     bool is_down = false;
-    bool is_dragging = false;
+    bool is_drag_editing = false;
+    bool is_hidden = false;
     float drag_velocity_x = 0.0f;
     float drag_velocity_y = 0.0f;
     std::optional<juce::Point<int>> drag_deplacement = std::nullopt;
