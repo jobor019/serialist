@@ -5,11 +5,6 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "core/collections/vec.h"
 
-class DragAndDropState {
-}; // TODO: Shouldn't this just be part of MouseState then?
-
-
-
 class DragInfo {
 public:
     DragInfo() = default;
@@ -20,7 +15,6 @@ public:
     DragInfo& operator=(DragInfo&&) noexcept = default;
 
     virtual bool equals(const DragInfo&) const = 0;
-    virtual juce::ScaledImage get_image() const = 0;
 
 };
 
@@ -33,7 +27,7 @@ public:
 
 class DragImageComponent : public juce::Component {
 public:
-    explicit DragImageComponent(const DragInfo& info) : m_image(info.get_image()) {
+    explicit DragImageComponent(const juce::ScaledImage& image) : m_image(image) {
         setInterceptsMouseClicks(false, false);
     }
 
@@ -49,9 +43,6 @@ private:
 };
 
 
-class DragController;
-
-
 class DropListener {
 public:
     DropListener() = default;
@@ -63,14 +54,14 @@ public:
 
     virtual bool interested_in(const DragInfo& source) = 0;
 
-    virtual void drag_started(const DragInfo& source) = 0;
-    virtual void drag_ended(const DragInfo& source) = 0;
+    virtual void external_dnd_action_started(const DragInfo& source) = 0;
+    virtual void external_dnd_action_ended(const DragInfo& source) = 0;
 
-    virtual void drag_enter(const DragInfo& source, const juce::MouseEvent& event) = 0;
-    virtual void drag_exit(const DragInfo& source, const juce::MouseEvent& event) = 0;
-    virtual void drag_move(const DragInfo& source, const juce::MouseEvent& event) = 0;
+    virtual void drop_enter(const DragInfo& source, const juce::MouseEvent& event) = 0;
+    virtual void drop_exit(const DragInfo& source) = 0;
+    virtual void drop_move(const DragInfo& source, const juce::MouseEvent& event) = 0;
 
-    virtual void on_drop(const DragInfo& source) = 0;
+    virtual void item_dropped(const DragInfo& source) = 0;
 
 };
 
@@ -98,13 +89,13 @@ public:
     }
 
 
-    void start_drag(const DragInfo& source, const juce::MouseEvent& event) {
+    void start_drag(const DragInfo& source, const juce::ScaledImage& drag_image, const juce::MouseEvent& event) {
         assert(m_ongoing_drag == nullptr);
         assign_drag(&source);
 
         if (auto target = find_target(event)) {
             m_dragged_over_component = target;
-            target->get_drop_listener().drag_enter(source, event);
+            target->get_drop_listener().drop_enter(source, event);
         }
 
 //        if (!contains(source)) {
@@ -116,7 +107,7 @@ public:
 //
 //            if (auto target = find_target()) {
 //                m_dragged_over_component = target;
-//                target->get_drop_listener().drag_enter(source);
+//                target->get_drop_listener().drop_enter(source);
 //            }
 //        }
     }
@@ -125,7 +116,7 @@ public:
     void cancel_drag(const DragInfo& source) {
         if (is_dragging(source)) {
             if (has_valid_drop_target()) {
-                m_dragged_over_component->get_drop_listener().drag_exit(source);
+                m_dragged_over_component->get_drop_listener().drop_exit(source);
                 m_dragged_over_component = nullptr;
             }
 
@@ -134,13 +125,13 @@ public:
 
 //        if (auto index = index_of(source)) {
 //            if (!m_dragged_over_component.wasObjectDeleted()) {
-//                m_dragged_over_component->get_drop_listener().drag_exit(source);
+//                m_dragged_over_component->get_drop_listener().drop_exit(source);
 //                m_dragged_over_component = nullptr;
 //            }
 //
 //            if (auto drag_image = m_ongoing_drags.pop_index(*index)) {
 //                for (const auto& listener: m_listeners) {
-//                    listener.get().drag_ended(source);
+//                    listener.get().external_dnd_action_ended(source);
 //                }
 //            }
 //        }
@@ -150,7 +141,7 @@ public:
     void finalize_drag(const DragInfo& source) {
         if (is_dragging(source)) {
             if (has_valid_drop_target()) {
-                m_dragged_over_component->get_drop_listener().on_drop(source);
+                m_dragged_over_component->get_drop_listener().item_dropped(source);
                 m_dragged_over_component = nullptr;
             }
 
@@ -160,7 +151,7 @@ public:
 
 //        if (auto index = index_of(source)) {
 //            if (!m_dragged_over_component.wasObjectDeleted()) {
-//                m_dragged_over_component->get_drop_listener().on_drop(source);
+//                m_dragged_over_component->get_drop_listener().item_dropped(source);
 //                m_dragged_over_component = nullptr;
 //            }
 //
@@ -183,7 +174,7 @@ public:
     }
 
 
-    void remove_listener(const DropListener& listener) {
+    void remove_listener(const DropListener& listener) noexcept {
         m_listeners.remove([&listener](const auto& l) { return &l.get() == &listener; });
     }
 
@@ -211,19 +202,19 @@ public:
         if (auto target = find_target(event)) {
 
             if (target == m_dragged_over_component.get()) {
-                m_dragged_over_component->get_drop_listener().drag_move(*m_ongoing_drag, event);
+                m_dragged_over_component->get_drop_listener().drop_move(*m_ongoing_drag, event);
 
             } else {
                 // exit current component if existing
                 if (has_valid_drop_target()) {
-                    m_dragged_over_component->get_drop_listener().drag_exit(*m_ongoing_drag, event);
+                    m_dragged_over_component->get_drop_listener().drop_exit(*m_ongoing_drag);
                 }
 
                 m_dragged_over_component = target;
 
                 // if entering a new component, notify it
                 if (has_valid_drop_target()) {
-                    m_dragged_over_component->get_drop_listener().drag_enter(*m_ongoing_drag, event);
+                    m_dragged_over_component->get_drop_listener().drop_enter(*m_ongoing_drag, event);
                 }
             }
 
@@ -257,7 +248,7 @@ private:
     }
 
 
-    void assign_drag(const DragInfo* source) {
+    void assign_drag(const DragInfo* source, const juce::DragIn) {
         if (source) {
             m_drag_image = std::make_unique<DragImageComponent>(*source);
             addAndMakeVisible(*m_drag_image);
@@ -277,7 +268,7 @@ private:
     void notify_drag_end(const DragInfo& source) const {
         for (const auto& listener: m_listeners) {
             if (listener.get().interested_in(source)) {
-                listener.get().drag_ended(source);
+                listener.get().external_dnd_action_ended(source);
             }
         }
     }
@@ -286,7 +277,7 @@ private:
     void notify_drag_start(const DragInfo& source) const {
         for (const auto& listener: m_listeners) {
             if (listener.get().interested_in(source)) {
-                listener.get().drag_started(source);
+                listener.get().external_dnd_action_started(source);
             }
         }
     }
@@ -317,29 +308,43 @@ private:
 
 class DragController {
 public:
-    DragController(juce::Component& snapshot_component, GlobalDragAndDropContainer& global_container)
-            : m_snapshot_component(snapshot_component)
+    DragController(const juce::Component* default_snapshot_component, GlobalDragAndDropContainer& global_container)
+            : m_default_snapshot_component(default_snapshot_component)
               , m_global_container(global_container) {}
 
 
-    void start_drag(const DragInfo& source) {
-        m_global_container.start_drag(source);
+    void start_drag(std::unique_ptr<DragInfo>&& source
+                    , const juce::MouseEvent& mouse_event
+                    , const std::optional<juce::ScaledImage>& snapshot) {
+        if (m_ongoing_drag) {
+            m_global_container.cancel_drag(*m_ongoing_drag);
+        }
+
+        m_ongoing_drag = std::move(source);
+        m_global_container.start_drag(*m_ongoing_drag, mouse_event);
     }
 
 
-    void cancel_drag(const DragInfo& source) {
-        m_global_container.cancel_drag(source);
+    void cancel_drag() {
+        if (m_ongoing_drag) {
+            m_global_container.cancel_drag(*m_ongoing_drag);
+        }
     }
 
 
-    void finalize_drag(const DragInfo& source) {}
+    void finalize_drag() {
+        if (m_ongoing_drag) {
+            m_global_container.finalize_drag(*m_ongoing_drag);
+        }
+    }
 
 
     void update_drag_image(const juce::ScaledImage& image) {}
 
 
 private:
-    juce::Component& m_snapshot_component;
+    const juce::Component* m_default_snapshot_component;
+    std::unique_ptr<DragInfo> m_ongoing_drag;
 
     GlobalDragAndDropContainer& m_global_container;
 };

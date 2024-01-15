@@ -7,35 +7,42 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "core/collections/circular_buffer.h"
 
-class DragBehaviour {
-public:
-    struct DefaultDrag {};
-    struct HideAndRestoreCursor {};
-    struct DragAndDropFrom { std::optional<juce::ScaledImage> cursor_image = std::nullopt; };
-
-    using BehaviourType = std::variant<DefaultDrag, HideAndRestoreCursor, DragAndDropFrom>;
-
-    DragBehaviour() = default;
-
-
-    DragBehaviour(BehaviourType&& behaviour) : m_behaviour(std::move(behaviour)) {}
-
-
-    template<typename T>
-    bool is() const noexcept {
-        return std::holds_alternative<T>(m_behaviour);
-    }
-
-
-    template<typename T>
-    T as() const {
-        return std::get<T>(m_behaviour);
-    }
-
-
-private:
-    BehaviourType m_behaviour = DefaultDrag{};
+enum class DragBehaviour {
+    not_supported = 0
+    , drag_edit = 1
+    , hide_and_restore = 2
+    , drag_and_drop = 3
 };
+
+//class DragBehaviour {
+//public:
+//    struct DefaultDrag {};
+//    struct HideAndRestoreCursor {};
+//    struct DragAndDropFrom { std::optional<juce::ScaledImage> cursor_image = std::nullopt; };
+//
+//    using BehaviourType = std::variant<DefaultDrag, HideAndRestoreCursor, DragAndDropFrom>;
+//
+//    DragBehaviour() = default;
+//
+//
+//    DragBehaviour(BehaviourType&& behaviour) : m_behaviour(std::move(behaviour)) {}
+//
+//
+//    template<typename T>
+//    bool is() const noexcept {
+//        return std::holds_alternative<T>(m_behaviour);
+//    }
+//
+//
+//    template<typename T>
+//    T as() const {
+//        return std::get<T>(m_behaviour);
+//    }
+//
+//
+//private:
+//    BehaviourType m_behaviour = DefaultDrag{};
+//};
 
 
 // ==============================================================================================
@@ -90,7 +97,7 @@ struct MouseState {
     /**
      * @return true if this is the start of a drag
      */
-    bool mouse_drag(const juce::MouseEvent& event) {
+    bool mouse_drag_edit(const juce::MouseEvent& event) {
         bool was_dragging = is_drag_editing;
         is_drag_editing = true;
         drag_deplacement = event.getOffsetFromDragStart();
@@ -110,11 +117,47 @@ struct MouseState {
 
     void mouse_exit() {
         mouse_child_exit();
+        reset_drag_state();
         is_down = false;
-        is_drag_editing = false;
         position = std::nullopt;
-        m_previous_drag_position = std::nullopt;
+    }
+
+
+    // TODO: Not sure if these should even live in MouseState
+    void drop_enter() {
+        is_dragging_to = true;
+    }
+
+
+    void drop_exit() {
+        is_dragging_to = false;
+    }
+
+
+    void drag_start() {
+        is_dragging_from = true;
+    }
+
+
+    void drag_end() {
+        is_dragging_from = false;
+    }
+
+    void external_drag_start() {
+        has_external_ongoing_drag = true;
+    }
+
+    void external_drag_end() {
+        has_external_ongoing_drag = false;
+    }
+
+    void reset_drag_state() {
+        is_dragging_to = false;
+        is_dragging_from = false;
+        has_external_ongoing_drag = false;
+        is_drag_editing = false;
         drag_deplacement = std::nullopt;
+        m_previous_drag_position = std::nullopt;
     }
 
 
@@ -132,7 +175,13 @@ struct MouseState {
     bool is_over_child = false;
     bool is_down = false;
     bool is_drag_editing = false;
+
+    bool is_dragging_from = false;
+    bool is_dragging_to = false;
+    bool has_external_ongoing_drag = false;
+
     bool is_hidden = false;
+
     float drag_velocity_x = 0.0f;
     float drag_velocity_y = 0.0f;
     std::optional<juce::Point<int>> drag_deplacement = std::nullopt;

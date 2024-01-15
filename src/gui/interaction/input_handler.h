@@ -9,12 +9,13 @@
 #include "input_mode.h"
 #include "input_condition.h"
 #include "input_mode_map.h"
+#include "interaction/drag_and_drop/drag_and_drop.h"
 
 
 class InputHandler
         : public GlobalKeyState::Listener
           , public juce::MouseListener
-          , public DndTarget {
+          , public DropListener {
 public:
     static const int NO_STATE = -1;
 
@@ -34,21 +35,38 @@ public:
     InputHandler(InputHandler* parent
                  , juce::Component& mouse_source_component
                  , InputModeMap modes
+                 , GlobalDragAndDropContainer& global_dnd_container
                  , Vec<std::reference_wrapper<Listener>> listeners)
             : m_parent(parent)
               , m_mouse_source_component(mouse_source_component)
               , m_modes(std::move(modes))
+              , m_global_dnd_container(global_dnd_container)
+              , m_drag_controller(&mouse_source_component, global_dnd_container)
               , m_listeners(std::move(listeners)) {
         if (m_parent) {
             m_parent->add_child_handler(*this);
         }
         m_mouse_source_component.addMouseListener(this, true);
+        m_global_dnd_container.add_listener(*this);
         GlobalKeyState::add_listener(*this);
 
         if (update_active_mode()) {
             notify_listeners();
         }
     }
+
+
+    ~InputHandler() override {
+        m_mouse_source_component.removeMouseListener(this);
+        m_global_dnd_container.remove_listener(*this);
+        GlobalKeyState::remove_listener(*this);
+    }
+
+
+    InputHandler(const InputHandler&) = delete;
+    InputHandler& operator=(const InputHandler&) = delete;
+    InputHandler(InputHandler&&) noexcept = delete;
+    InputHandler& operator=(InputHandler&&) noexcept = delete;
 
 
     /**
@@ -96,27 +114,30 @@ public:
         bool is_directly_over = mouse_is_directly_over();
 
         // TODO: Not sure if the position of the mouse will be correct if passed from a child component
-        // entering this component from outside
         if (!m_last_mouse_state.is_over_component()) {
-            // entering registered child directly from outside
+            // entering this component from outside
+
             if (!is_directly_over) {
+                // entering registered child directly from outside
                 m_last_mouse_state.mouse_child_enter(event);
-                if (update_mouse_position(false)) {
+                if (mouse_changed(false)) {
                     notify_listeners();
                 }
 
-                // entering this component (or a non-registered child) from outside
+
             } else {
+                // entering this component (or a non-registered child) from outside
                 m_last_mouse_state.mouse_enter(event);
-                if (update_mouse_position(false)) {
+                if (mouse_changed(false)) {
                     notify_listeners();
                 }
             }
 
-            // entering registered child from inside this component
+
         } else if (m_last_mouse_state.is_directly_over_component() && !is_directly_over) {
+            // entering registered child from inside this component
             m_last_mouse_state.mouse_child_enter(event);
-            if (update_mouse_position(false)) {
+            if (mouse_changed(false)) {
                 notify_listeners();
             }
 
@@ -130,7 +151,7 @@ public:
 
     void mouseMove(const juce::MouseEvent& event) override {
         m_last_mouse_state.mouse_move(event);
-        if (update_mouse_position(true)) {
+        if (mouse_changed(true)) {
             notify_listeners();
         }
     }
@@ -142,13 +163,13 @@ public:
         // exit this component (from this component or any registered/unregistered child)
         if (!is_over) {
             m_last_mouse_state.mouse_exit();
-            if (update_mouse_position(false)) {
+            if (mouse_changed(false)) {
                 notify_listeners();
             }
         } else if (!m_last_mouse_state.is_directly_over_component() && mouse_is_directly_over()) {
             // exit a registered child into this component
             m_last_mouse_state.mouse_child_exit();
-            if (update_mouse_position(false)) {
+            if (mouse_changed(false)) {
                 notify_listeners();
             }
         }
@@ -156,9 +177,9 @@ public:
 
 
     void mouseDown(const juce::MouseEvent& event) override {
-        auto hide = m_active_mode && m_active_mode->get_drag_behaviour().is<DragBehaviour::HideAndRestoreCursor>();
+        auto hide = m_active_mode && m_active_mode->get_drag_behaviour() == DragBehaviour::hide_and_restore;
         m_last_mouse_state.mouse_down(event, hide);
-        if (update_mouse_position(false)) {
+        if (mouse_changed(false)) {
             notify_listeners();
         }
     }
@@ -168,38 +189,43 @@ public:
         // TODO: We probably need to implement a MouseClickEvent and determine whether a mouseUp + mouseDown
         //      was a click or a drag (to avoid minimal accidental movements during click turning into drags)
 
+        // TODO: This is also problematic for drag starts, as it doesn't check whether it's directly over the component.
+        //       To properly implement this, we need to check all registered children and see if any component under
+        //       the mouse is in a mode which actively handles drag starts. If so, it should intercept it.
+
         // ongoing drag edit within this component
         if (m_last_mouse_state.is_drag_editing) {
-            m_last_mouse_state.mouse_drag(event);
-            if (update_mouse_position(true)) {
+            m_last_mouse_state.mouse_drag_edit(event);
+            if (mouse_changed(true)) {
                 notify_listeners();
             }
             return;
         }
+
 
         // ongoing drag and drop from this component
-        if (m_dnd_state.is_dragging_from) {
-            if (update_mouse_position(true)) {
+        if (m_last_mouse_state.is_dragging_from) {
+            if (mouse_changed(true)) {
                 notify_listeners();
             }
             return;
         }
 
-        // new drag edit in this component without any active state or with default drag behaviour
-        if (!m_active_mode || m_active_mode->get_drag_behaviour().is<DragBehaviour::DefaultDrag>()) {
-            m_last_mouse_state.mouse_drag(event);
-            if (update_mouse_position(false)) {
+        // new drag edit in this component without any active state or with default drag edit behaviour
+        if (m_active_mode && m_active_mode->get_drag_behaviour() == DragBehaviour::drag_edit) {
+            m_last_mouse_state.mouse_drag_edit(event);
+            if (mouse_changed(false)) {
                 notify_listeners();
             }
             return;
         }
 
-
-        // TODO: mouse_is_directly_over isn't really relevant here: what we need to know is
-        //       if a child is in an active mode that listens to any type of drag action
-        auto dnd = m_active_mode->get_drag_behaviour();
-        if (dnd.is<DragBehaviour::DragAndDropFrom>() && mouse_is_directly_over()) {
-            start_drag_from(dnd.as<DragBehaviour::DragAndDropFrom>());
+        // new drag and drop from this component
+        if (m_active_mode && m_active_mode->get_drag_behaviour() == DragBehaviour::drag_and_drop) {
+            start_drag_from(event);
+            if (mouse_changed(false)) {
+                notify_listeners();
+            }
             return;
         }
 
@@ -208,77 +234,89 @@ public:
 
 
     void mouseUp(const juce::MouseEvent& event) override {
-        if (m_dnd_state.is_dragging_from) {
-            end_drag_from();
+        if (m_last_mouse_state.is_dragging_from) {
+            finalize_drag_from();
         } else {
-            auto restore = m_active_mode &&
-                           m_active_mode->get_drag_behaviour().is<DragBehaviour::HideAndRestoreCursor>();
+            auto restore = m_active_mode && m_active_mode->get_drag_behaviour() == DragBehaviour::hide_and_restore;
             m_last_mouse_state.mouse_up(event, restore);
-            if (update_mouse_position(false)) {
-                notify_listeners();
-            }
-        }
-        // Handle HideAndRestoreCursor case here
-        // Also need to handle END of drag and drop actions here. use `end_drag_from()`
-    }
-
-
-    bool interested_in(const DndTarget::Details& source) override {
-        return m_active_mode && m_active_mode->supports_drag_to(source);
-    }
-
-
-    void start_drag_from(const DragBehaviour::DragAndDropFrom& dnd_config) {
-        // TODO: Will probably need a more elaborate solution than findParentDragContainer to
-        //       differentiate different types of drag depending on mode (utilize parent InputHandler!).
-        auto* parent = juce::DragAndDropContainer::findParentDragContainerFor(&m_mouse_source_component);
-
-        if (parent && !parent->isDragAndDropActive()) {
-            parent->startDragging("", &m_mouse_source_component, dnd_config.cursor_image.value_or(juce::ScaledImage()));
-            m_dnd_state.is_dragging_from = true;
-            if (update_mouse_position(false)) {
+            if (mouse_changed(false)) {
                 notify_listeners();
             }
         }
     }
 
 
-    void end_drag_from() {
-        m_dnd_state.is_dragging_from = false;
-        if (update_mouse_position(false)) {
+    bool interested_in(const DragInfo& source) override {
+        return m_active_mode && m_active_mode->supports_drop_from(source);
+    }
+
+
+    /**
+     * @note exact mouse position is currently not used
+     */
+    void drop_enter(const DragInfo& source, const juce::MouseEvent&) override {
+        assert(interested_in(source)); // Transitive from caller calling interested_in
+
+        // Note: GlobalDragAndDropController will manage relation parent/child
+        //       so there's no need to check is_directly_over
+        m_last_mouse_state.drop_enter();
+        if (mouse_changed(false)) {
             notify_listeners();
         }
     }
 
 
-    void drag_enter(const DndTarget::Details&) override {
-        m_dnd_state.is_dragging_to = true;
-        if (update_mouse_position(false)) {
+    void drop_exit(const DragInfo& source) override {
+        assert(interested_in(source)); // Transitive from caller calling interested_in
+
+        m_last_mouse_state.drop_exit();
+        if (mouse_changed(false)) {
             notify_listeners();
         }
     }
 
 
-    void drag_exit(const DndTarget::Details&) override {
-        m_dnd_state.is_dragging_to = false;
-        if (update_mouse_position(false)) {
+    void drop_move(const DragInfo&, const juce::MouseEvent&) override {
+        // Unused for now
+    }
+
+
+    void item_dropped(const DragInfo& source) override {
+        assert(interested_in(source)); // Transitive from caller calling interested_in
+
+        if (update_state(m_active_mode->item_dropped(source))) {
             notify_listeners();
         }
     }
 
 
-    void drag_move(const DndTarget::Details&) override {
-        if (update_mouse_position(true)) {
+    void external_dnd_action_started(const DragInfo& source) override {
+        assert(interested_in(source)); // Transitive from caller calling interested_in
+
+        m_last_mouse_state.external_drag_start();
+        if (mouse_changed(false)) {
             notify_listeners();
         }
     }
 
 
-    void drop(const juce::DragAndDropTarget::SourceDetails& source) override {
-        if (m_active_mode) {
-            m_active_mode->input_event_registered(std::make_unique<DragDropped>(source));
+    void external_dnd_action_ended(const DragInfo& source) override {
+        assert(interested_in(source)); // Transitive from caller calling interested_in
+
+        if (mouse_changed(false)) {
+            notify_listeners();
         }
     }
+
+
+//  TODO REMOVE I THINK
+//    void end_drag_from() {
+//        assert(m_active_mode); // Transitive from caller calling interested_in
+//        m_last_mouse_state.drop_exit();
+//        if (mouse_changed(false)) {
+//            notify_listeners();
+//        }
+//    }
 
 
     void key_pressed() override {
@@ -304,7 +342,55 @@ public:
     }
 
 
+    GlobalDragAndDropContainer& get_global_dnd_container() const {
+        return m_global_dnd_container;
+    }
+
+
 private:
+    void start_drag_from(const juce::MouseEvent& mouse_event) {
+        assert(m_active_mode);
+        assert(m_active_mode->get_drag_behaviour() == DragBehaviour::drag_and_drop);
+
+        m_drag_controller.start_drag(m_active_mode->get_drag_info(), mouse_event, m_active_mode->get_drag_image());
+        m_last_mouse_state.drag_start();
+
+        if (mouse_changed(false)) {
+            notify_listeners();
+        }
+    }
+
+    void cancel_drag_from() {
+        assert(m_active_mode);
+        assert(m_active_mode->get_drag_behaviour() == DragBehaviour::drag_and_drop);
+
+        m_drag_controller.cancel_drag();
+        m_last_mouse_state.drag_end();
+
+        if (mouse_changed(false)) {
+            notify_listeners();
+        }
+
+    }
+
+    void finalize_drag_from() {
+        assert(m_active_mode);
+        assert(m_active_mode->get_drag_behaviour() == DragBehaviour::drag_and_drop);
+
+        m_drag_controller.finalize_drag();
+        m_last_mouse_state.drag_end();
+
+        if (mouse_changed(false)) {
+            notify_listeners();
+        }
+    }
+
+
+    void cancel_all_drag_and_drop_actions() {
+        m_drag_controller.cancel_drag();
+        m_last_mouse_state.reset_drag_state();
+    }
+
 
     /**
      * @return true if the active mode has changed
@@ -314,11 +400,12 @@ private:
 
             if (m_active_mode) {
                 m_active_mode->reset();
+                cancel_all_drag_and_drop_actions();
             }
 
             m_active_mode = active_mode;
             if (m_active_mode) {
-                update_mouse_position(false);
+                mouse_changed(false);
             } else {
                 m_last_state = NO_STATE;
             }
@@ -333,12 +420,12 @@ private:
     /**
      * @return true if the state of the active mode has changed
      */
-    bool update_mouse_position(bool only_internal_position_changed) {
+    bool mouse_changed(bool only_position_changed) {
         if (m_active_mode) {
-            if (only_internal_position_changed) {
-                return update_state(m_active_mode->mouse_position_changed(m_last_mouse_state, m_dnd_state));
+            if (only_position_changed) {
+                return update_state(m_active_mode->mouse_position_changed(m_last_mouse_state));
             } else {
-                return update_state(m_active_mode->mouse_state_changed(m_last_mouse_state, m_dnd_state));
+                return update_state(m_active_mode->mouse_state_changed(m_last_mouse_state));
             }
         }
 
@@ -385,13 +472,15 @@ private:
 
     InputModeMap m_modes;
 
+    GlobalDragAndDropContainer& m_global_dnd_container;
+    DragController m_drag_controller;
+
     InputMode* m_active_mode = nullptr;
     int m_last_state = NO_STATE;
 
     Vec<std::reference_wrapper<Listener>> m_listeners;
 
     MouseState m_last_mouse_state;
-    DragAndDropState m_dnd_state;
 };
 
 
