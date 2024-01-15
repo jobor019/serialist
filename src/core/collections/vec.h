@@ -418,6 +418,36 @@ public:
         return *this;
     }
 
+    std::optional<T> pop_value(const T& value) {
+        if (auto it = std::find(m_vector.begin(), m_vector.end(), value); it != m_vector.end()) {
+            pop_internal(it);
+        }
+        return std::nullopt;
+    }
+
+    std::optional<T> pop_value(std::function<bool(const T&)> pred) {
+        if (auto it = std::find_if(m_vector.begin(), m_vector.end(), pred); it != m_vector.end()) {
+            return pop_internal(it);
+        }
+        return std::nullopt;
+    }
+
+    template<typename SizeType, typename = std::enable_if_t<std::is_integral_v<SizeType>>>
+     std::optional<T> pop_index(SizeType index) {
+         long iterator_index;
+         if constexpr (std::is_signed_v<SizeType>) {
+             iterator_index = static_cast<long>(sign_index(index));
+         } else {
+             iterator_index = static_cast<long>(index);
+         }
+
+         if (static_cast<std::size_t>(iterator_index) >= size()) {
+             return std::nullopt;
+         }
+
+         return pop_internal(m_vector.begin() + iterator_index);
+     }
+
 
     template<typename SizeType, typename = std::enable_if_t<std::is_integral_v<SizeType>>>
     Vec<T>& erase(SizeType index) {
@@ -448,7 +478,6 @@ public:
         m_vector.erase(m_vector.begin() + begin_index, m_vector.begin() + end_index);
 
         return *this;
-
     }
 
 
@@ -1181,6 +1210,13 @@ private:
 
         auto diff = size_diff(new_size);
         m_vector.erase(m_vector.end() + diff, m_vector.end());
+
+    }
+
+    std::optional<T> pop_internal(typename std::vector<T>::iterator it) {
+        auto output = std::make_optional<T>(std::move(*it));
+            m_vector.erase(it);
+            return std::move(output);
 
     }
 

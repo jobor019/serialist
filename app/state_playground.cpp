@@ -411,6 +411,11 @@ public:
     }
 
 
+    void dragOperationEnded(const juce::DragAndDropTarget::SourceDetails &) override {
+        std::cout << "drag operation endede\n";
+    }
+
+
 private:
     MovableComponent m_always_movable_component{
             "Always Movable"

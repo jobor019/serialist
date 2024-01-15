@@ -3,7 +3,7 @@
 #define SERIALISTLOOPER_INPUT_EVENTS_H
 
 #include <typeinfo>
-#include "drag_and_drop.h"
+#include "drag_and_drop_LEGACY.h"
 
 // TODO: Not sure if this should be a variant or a dynamic polymorphic class
 class InputEvent {

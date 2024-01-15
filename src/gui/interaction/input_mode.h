@@ -5,7 +5,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <optional>
 #include "mouse_state.h"
-#include "drag_and_drop.h"
+#include "drag_and_drop_LEGACY.h"
 #include "input_events.h"
 
 

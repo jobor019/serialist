@@ -338,6 +338,7 @@ private:
 
     GenerationGraph& m_modular_generator;
 
+    // TODO: This should not be stored like this: bounds should live in a ValueTree. ComponentAndBounds is just a dto
     std::vector<ComponentAndBounds> m_generative_components;
     ConnectionComponentManager m_connector_manager;
 

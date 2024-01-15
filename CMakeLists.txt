@@ -119,7 +119,7 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/io/renderers.h
 
 
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/drag_and_drop.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/drag_and_drop_LEGACY.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/generative_component.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/input_condition.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/input_events.h
@@ -128,10 +128,8 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/input_mode_map.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/interaction_visualizations.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/interaction_visualizer.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/state.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/state_handler.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/state_ids.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/states.h
+
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/interaction/drag_and_drop/drag_and_drop.h
         )
 
 

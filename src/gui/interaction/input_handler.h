@@ -5,7 +5,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "generative_component.h"
 #include "key_state.h"
-#include "drag_and_drop.h"
+#include "drag_and_drop_LEGACY.h"
 #include "input_mode.h"
 #include "input_condition.h"
 #include "input_mode_map.h"

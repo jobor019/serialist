@@ -863,6 +863,72 @@ TEST_CASE("Test insert function", "[insert]") {
 }
 
 
+TEST_CASE("Test pop_value" "[pop]") {
+    Vec v({1, 2, 3, 4});
+
+    SECTION("Pop existing value") {
+        auto popped = v.pop_value(3);
+        REQUIRE(popped.has_value());
+        REQUIRE(*popped == 3);
+        REQUIRE(v == Vec({1, 2, 4}));
+    }
+
+    SECTION("Pop non-existing value") {
+        auto popped = v.pop_value(5);
+        REQUIRE(!popped.has_value());
+        REQUIRE(v == Vec({1, 2, 3, 4}));
+    }
+}
+
+
+TEST_CASE("Test pop with non-copyable objects") {
+    Vec<std::unique_ptr<std::string>> v{
+            std::make_unique<std::string>("123")
+            , std::make_unique<std::string>("456")
+            , std::make_unique<std::string>("789")
+    };
+
+    SECTION("Pop existing value") {
+        auto popped = v.pop_value([](const std::unique_ptr<std::string>& s) { return *s == "456"; });
+        REQUIRE(popped.has_value());
+        REQUIRE(*popped.value().get() == "456");
+        REQUIRE(v.size() == 2);
+        REQUIRE(!v.contains([](const std::unique_ptr<std::string>& s) { return *s == "456"; }));
+    }
+
+    SECTION("Pop non-existing value") {
+        auto popped = v.pop_value([](const std::unique_ptr<std::string>& s) { return *s == "999"; });
+        REQUIRE(!popped.has_value());
+        REQUIRE(v.size() == 3);
+    }
+}
+
+
+TEST_CASE("Test pop_index") {
+    Vec v({1, 2, 3, 4});
+
+    SECTION("Pop index in range") {
+        auto popped = v.pop_index(2);
+        REQUIRE(popped.has_value());
+        REQUIRE(*popped == 3);
+        REQUIRE(v == Vec({1, 2, 4}));
+    }
+
+    SECTION("Pop folded index") {
+        auto popped = v.pop_index(-1);
+        REQUIRE(popped.has_value());
+        REQUIRE(*popped == 4);
+        REQUIRE(v == Vec({1, 2, 3}));
+    }
+
+    SECTION("Pop index out of range") {
+        auto popped = v.pop_index(5);
+        REQUIRE(!popped.has_value());
+        REQUIRE(v == Vec({1, 2, 3, 4}));
+    }
+}
+
+
 TEST_CASE("Test insert with non-copyable constructible objects") {
     Vec<std::unique_ptr<std::string>> v;
     v.append(std::make_unique<std::string>("123"));

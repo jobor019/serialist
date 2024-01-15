@@ -1,6 +1,6 @@
 
-#ifndef SERIALISTLOOPER_DRAG_AND_DROP_H
-#define SERIALISTLOOPER_DRAG_AND_DROP_H
+#ifndef SERIALISTLOOPER_DRAG_AND_DROP_LEGACY_H
+#define SERIALISTLOOPER_DRAG_AND_DROP_LEGACY_H
 
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "input_events.h"
@@ -41,4 +41,4 @@ public:
 
 // ==============================================================================================
 
-#endif //SERIALISTLOOPER_DRAG_AND_DROP_H
+#endif //SERIALISTLOOPER_DRAG_AND_DROP_LEGACY_H
