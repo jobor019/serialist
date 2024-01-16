@@ -25,11 +25,14 @@ public:
     InputMode(InputMode&&) noexcept = default;
     InputMode& operator=(InputMode&&) noexcept = default;
 
-    virtual DragBehaviour get_drag_behaviour() { return DragBehaviour::not_supported; }
+    virtual DragBehaviour get_drag_behaviour() { return DragBehaviour::drag_edit; }
 
-    virtual std::unique_ptr<DragInfo> get_drag_info() { return nullptr; }
+    virtual std::unique_ptr<DragInfo> get_drag_info() {
+        assert(get_drag_behaviour() != DragBehaviour::drag_and_drop);
+        return nullptr;
+    }
 
-    virtual bool supports_drop_from(const DragInfo& source) const { return false; }
+    virtual bool supports_drop_from(const DragInfo& source) const { (void) source; return false; }
 
     /**
      * @note: if has_drag_image is true but get_drag_image returns nullopt,
@@ -44,7 +47,7 @@ public:
 //    virtual std::optional<int> drag_started_elsewhere(const DragInfo& source) {}
 //    virtual std::optional<int> drag_ended_elsewhere(const DragInfo& source) {}
 
-    virtual std::optional<int> item_dropped(const DragInfo& source) { return std::nullopt; }
+    virtual std::optional<int> item_dropped(const DragInfo& source) { (void) source; return std::nullopt; }
 
 
     /**

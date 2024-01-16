@@ -36,13 +36,15 @@ public:
                  , juce::Component& mouse_source_component
                  , InputModeMap modes
                  , GlobalDragAndDropContainer& global_dnd_container
-                 , Vec<std::reference_wrapper<Listener>> listeners)
+                 , Vec<std::reference_wrapper<Listener>> listeners
+                 , std::string&& identifier = "")
             : m_parent(parent)
               , m_mouse_source_component(mouse_source_component)
               , m_modes(std::move(modes))
               , m_global_dnd_container(global_dnd_container)
               , m_drag_controller(&mouse_source_component, global_dnd_container)
-              , m_listeners(std::move(listeners)) {
+              , m_listeners(std::move(listeners))
+              , m_identifier(std::move(identifier)) {
         if (m_parent) {
             m_parent->add_child_handler(*this);
         }
@@ -259,6 +261,7 @@ public:
 
         // Note: GlobalDragAndDropController will manage relation parent/child
         //       so there's no need to check is_directly_over
+        std::cout << m_identifier <<"::Drop enter\n";
         m_last_mouse_state.drop_enter();
         if (mouse_changed(false)) {
             notify_listeners();
@@ -266,9 +269,8 @@ public:
     }
 
 
-    void drop_exit(const DragInfo& source) override {
-        assert(interested_in(source)); // Transitive from caller calling interested_in
-
+    void drop_exit(const DragInfo&) override {
+        std::cout << m_identifier << "::Drop exit\n";
         m_last_mouse_state.drop_exit();
         if (mouse_changed(false)) {
             notify_listeners();
@@ -284,6 +286,7 @@ public:
     void item_dropped(const DragInfo& source) override {
         assert(interested_in(source)); // Transitive from caller calling interested_in
 
+        m_last_mouse_state.drop_exit();
         if (update_state(m_active_mode->item_dropped(source))) {
             notify_listeners();
         }
@@ -294,6 +297,7 @@ public:
         assert(interested_in(source)); // Transitive from caller calling interested_in
 
         m_last_mouse_state.external_drag_start();
+        std::cout << m_identifier << "::External drag start\n";
         if (mouse_changed(false)) {
             notify_listeners();
         }
@@ -303,6 +307,8 @@ public:
     void external_dnd_action_ended(const DragInfo& source) override {
         assert(interested_in(source)); // Transitive from caller calling interested_in
 
+        m_last_mouse_state.external_drag_end();
+        std::cout << m_identifier << "::External drag end\n";
         if (mouse_changed(false)) {
             notify_listeners();
         }
@@ -360,18 +366,18 @@ private:
         }
     }
 
-    void cancel_drag_from() {
-        assert(m_active_mode);
-        assert(m_active_mode->get_drag_behaviour() == DragBehaviour::drag_and_drop);
-
-        m_drag_controller.cancel_drag();
-        m_last_mouse_state.drag_end();
-
-        if (mouse_changed(false)) {
-            notify_listeners();
-        }
-
-    }
+//    void cancel_drag_from() {
+//        assert(m_active_mode);
+//        assert(m_active_mode->get_drag_behaviour() == DragBehaviour::drag_and_drop);
+//
+//        m_drag_controller.cancel_drag();
+//        m_last_mouse_state.drag_end();
+//
+//        if (mouse_changed(false)) {
+//            notify_listeners();
+//        }
+//
+//    }
 
     void finalize_drag_from() {
         assert(m_active_mode);
@@ -387,8 +393,9 @@ private:
 
 
     void cancel_all_drag_and_drop_actions() {
-        m_drag_controller.cancel_drag();
+        std::cout << m_identifier << "::CANCELLING ALL DND\n";
         m_last_mouse_state.reset_drag_state();
+        m_drag_controller.cancel_drag();
     }
 
 
@@ -404,10 +411,13 @@ private:
             }
 
             m_active_mode = active_mode;
+
             if (m_active_mode) {
                 mouse_changed(false);
+                std::cout << m_identifier << "::new mode\n";
             } else {
                 m_last_state = NO_STATE;
+                std::cout << m_identifier << "::no mode\n";
             }
 
             return true;
@@ -439,7 +449,7 @@ private:
     bool update_state(std::optional<int> new_state) {
         if (new_state && new_state != m_last_state) {
             m_last_state = *new_state;
-            std::cout << "new state: " << m_last_state << std::endl;
+            std::cout << m_identifier << "::new state: " << m_last_state << std::endl;
             return true;
         }
         return false;
@@ -481,6 +491,8 @@ private:
     Vec<std::reference_wrapper<Listener>> m_listeners;
 
     MouseState m_last_mouse_state;
+
+    std::string m_identifier;
 };
 
 

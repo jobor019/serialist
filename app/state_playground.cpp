@@ -7,21 +7,24 @@
 #include "gui/interaction/input_handler.h"
 #include "interaction/interaction_visualizer.h"
 
-class DummyDndInterface : public juce::Component {
+class DummyDndInterface {
 public:
-    virtual bool supports_drag_to(const DndTarget::Details& source) const = 0;
     virtual void set_text(const std::string& text) = 0;
     virtual void reset() = 0;
 };
 
+class DummyDragInfo : public DragInfo {};
+
+
 class DragAndDropMode : public InputMode {
 public:
     enum class State {
-        enabled = 0
-        , hovering = 1
-        , dragging_from = 2
-        , dragging_to = 3
-        , valid_target = 4
+        drag_disabled = 0
+        , enabled = 1
+        , hovering = 2
+        , dragging_from = 3
+        , dragging_to = 4
+        , valid_target = 5
     };
 
     class Visualization : public InteractionVisualization {
@@ -64,37 +67,47 @@ public:
         BorderHighlight m_valid_target{juce::Colours::palegoldenrod.withAlpha(0.1f)};
     };
 
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     explicit DragAndDropMode(DummyDndInterface& dnd_component) : m_dnd_component(dnd_component) {}
 
-
     DragBehaviour get_drag_behaviour() override {
-        return {DragBehaviour::DragAndDropFrom{}};
+        return DragBehaviour::drag_and_drop;
     }
 
-    bool has_drag_image() const override {
-        return true;
-    }
-
-    std::optional<juce::ScaledImage> get_drag_image() const override {
-        return juce::ScaledImage(m_dnd_component.createComponentSnapshot(m_dnd_component.getLocalBounds()));
-    }
-
-
-    bool supports_drag_to(const DndTarget::Details& source) const override {
-        return m_dnd_component.supports_drag_to(source);
+    std::unique_ptr<DragInfo> get_drag_info() override {
+        auto info = std::make_unique<DummyDragInfo>();
+//        m_source = info.get();
+        return std::move(info);
     }
 
 
-    std::optional<int> mouse_state_changed(const MouseState& mouse_state, const DragAndDropState& dnd_state) override {
-        std::cout << "mouse state changed\n";
-        if (dnd_state.is_dragging_to) {
+//    std::optional<juce::ScaledImage> get_drag_image() const override {
+//        return juce::ScaledImage(m_dnd_component.createComponentSnapshot(m_dnd_component.getLocalBounds()));
+//    }
+
+    std::optional<int> item_dropped(const DragInfo&) override {
+        std::cout << "!!!!!! ITEM DROPPED !!!!!!!!!" << std::endl;
+        m_dnd_component.set_text("Drag enabled");
+        return static_cast<int>(State::enabled);
+    }
+
+
+    bool supports_drop_from(const DragInfo& source) const override {
+        return dynamic_cast<const DummyDragInfo*>(&source) != nullptr;
+    }
+
+
+    std::optional<int> mouse_state_changed(const MouseState& mouse_state) override {
+        if (mouse_state.is_dragging_from) {
+            std::cout << "is really dragging from\n";
+            m_dnd_component.set_text("Dragging (from)...");
+            return static_cast<int>(State::dragging_from);
+
+        } else if (mouse_state.is_dragging_to) {
             m_dnd_component.set_text("Drop here!");
             return static_cast<int>(State::dragging_to);
 
-        } else if (dnd_state.is_dragging_from) {
-            m_dnd_component.set_text("Dragging (from)...");
-            return static_cast<int>(State::dragging_from);
 
         } else if (!mouse_state.is_over_component()) {
             m_dnd_component.set_text("Drag enabled");
@@ -110,7 +123,7 @@ public:
     }
 
 
-    std::optional<int> mouse_position_changed(const MouseState&, const DragAndDropState&) override {
+    std::optional<int> mouse_position_changed(const MouseState&) override {
         return std::nullopt;
     }
 
@@ -124,28 +137,38 @@ public:
 
 
     void reset() override {
+        std::cout << "resetting!\n";
         m_dnd_component.reset();
     }
 
 
 private:
     DummyDndInterface& m_dnd_component;
+
+//    DummyDragInfo* m_source = nullptr;
 };
 
 
 // ==============================================================================================
 
-class DragAndDroppableComponent : public DummyDndInterface, public juce::DragAndDropTarget  {
+class DragAndDroppableComponent : public juce::Component, public DropArea, public DummyDndInterface  {
 public:
-    DragAndDroppableComponent(const std::string& initial_text, Vec<std::unique_ptr<InputCondition>> conditions)
+    DragAndDroppableComponent(const std::string& initial_text
+                              , Vec<std::unique_ptr<InputCondition>> conditions
+                              , GlobalDragAndDropContainer& dnd_container
+                              , std::string&& identifier)
             : m_default_text(initial_text)
               , m_text(initial_text)
-              , m_input_handler(nullptr, *this, default_modes(*this, std::move(conditions)), {std::ref(m_visualizer)}) {
+              , m_input_handler(nullptr, *this
+                                , default_modes(*this, std::move(conditions))
+                                , dnd_container
+                                , {std::ref(m_visualizer)}
+                                , std::move(identifier)) {
         addAndMakeVisible(m_visualizer);
     }
 
 
-    static InputModeMap default_modes(DummyDndInterface& managed_component
+    static InputModeMap default_modes(DragAndDroppableComponent& managed_component
                                       , Vec<std::unique_ptr<InputCondition>> conditions) {
         InputModeMap map;
         map.add(std::move(conditions), std::make_unique<DragAndDropMode>(managed_component));
@@ -167,40 +190,19 @@ public:
         g.fillAll(juce::Colours::lightskyblue);
         g.setColour(juce::Colours::whitesmoke);
         g.drawFittedText(m_text, getLocalBounds(), juce::Justification::centred, 1);
+        std::cout << "~painting text: " << m_text << std::endl;
     }
 
 
-    void itemDragEnter(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
-        m_input_handler.drag_enter(dragSourceDetails);
+    DropListener & get_drop_listener() override {
+        return m_input_handler;
     }
 
 
-    void itemDragExit(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
-        m_input_handler.drag_exit(dragSourceDetails);
-
-    }
-
-
-    void itemDragMove(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
-        m_input_handler.drag_move(dragSourceDetails);
-
-    }
-
-
-    void itemDropped(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
-        m_input_handler.drop(dragSourceDetails);
-    }
-
-
-    bool isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails& dragSourceDetails) override {
-        return m_input_handler.interested_in(dragSourceDetails);
-    }
-
-
-    bool supports_drag_to(const DndTarget::Details& source) const override {
-        // note: definitely not safe!
-        return source.sourceComponent.get() != this && dynamic_cast<DragAndDroppableComponent*>(source.sourceComponent.get()) ;
-    }
+//    bool supports_drag_to(const DndTarget::Details& source) const override {
+//        // note: definitely not safe!
+//        return source.sourceComponent.get() != this && dynamic_cast<DragAndDroppableComponent*>(source.sourceComponent.get()) ;
+//    }
 
 
     void set_text(const std::string& text) override {
@@ -271,18 +273,8 @@ public:
     explicit MoveMode(juce::Component& managed_component) : m_managed_component(managed_component) {}
 
 
-    DragBehaviour get_drag_behaviour() override {
-        return {DragBehaviour::DefaultDrag{}};
-    }
 
-
-    bool supports_drag_to(const DndTarget::Details&) const override {
-        return false;
-    }
-
-
-    std::optional<int> mouse_state_changed(const MouseState& mouse_state
-                                           , const DragAndDropState&) override {
+    std::optional<int> mouse_state_changed(const MouseState& mouse_state) override {
 
         if (!mouse_state.is_over_component()) {
             return static_cast<int>(State::enabled);
@@ -305,8 +297,7 @@ public:
     }
 
 
-    std::optional<int> mouse_position_changed(const MouseState& mouse_state
-                                              , const DragAndDropState&) override {
+    std::optional<int> mouse_position_changed(const MouseState& mouse_state) override {
         if (m_mouse_down_position) {
             assert(mouse_state.position);
             auto bounds = m_managed_component.getBounds();
@@ -340,10 +331,13 @@ private:
 class MovableComponent : public juce::Component {
 public:
     MovableComponent(std::string text
-                     , Vec<std::unique_ptr<InputCondition>> move_conditions)
+                     , Vec<std::unique_ptr<InputCondition>> move_conditions
+                     , GlobalDragAndDropContainer& dnd_container)
             : m_text(std::move(text))
               , m_input_handler(nullptr, *this
-                                , default_modes(*this, std::move(move_conditions)), {std::ref(m_visualizer)}) {
+                                , default_modes(*this, std::move(move_conditions))
+                                , dnd_container
+                                , {std::ref(m_visualizer)}) {
         addAndMakeVisible(m_visualizer);
     }
 
@@ -383,13 +377,37 @@ private:
 
 // ==============================================================================================
 
-class StatePlaygroundComponent : public juce::Component, public juce::DragAndDropContainer {
+class StatePlaygroundComponent : public juce::Component {
 public:
-    StatePlaygroundComponent() {
+    StatePlaygroundComponent()
+    : m_dnd_container(*this)
+    , m_always_movable_component(
+            "Always Movable"
+            , Vec<std::unique_ptr<InputCondition>>{std::make_unique<AlwaysTrueCondition>()}
+            , m_dnd_container
+            )
+            , m_conditioned_movable_component(
+            "Movable (Q)"
+            , Vec<std::unique_ptr<InputCondition>>{std::make_unique<KeyCondition>('Q')}
+            , m_dnd_container)
+            , m_dnd_component1(
+                    "Drag & Drop (W)"
+            , Vec<std::unique_ptr<InputCondition>>{std::make_unique<KeyCondition>('W')}
+            , m_dnd_container
+            , "001"
+            )
+            , m_dnd_component2(
+                "Drag & Drop (W)"
+            , Vec<std::unique_ptr<InputCondition>>{std::make_unique<KeyCondition>('W')}
+            , m_dnd_container
+            , "002"
+            )
+             {
         addAndMakeVisible(m_always_movable_component);
         addAndMakeVisible(m_conditioned_movable_component);
         addAndMakeVisible(m_dnd_component1);
         addAndMakeVisible(m_dnd_component2);
+                 addAndMakeVisible(m_dnd_container);
     }
 
 
@@ -408,34 +426,28 @@ public:
         m_dnd_component1.setBounds(col1.removeFromTop(100));
         col1.removeFromTop(50);
         m_dnd_component2.setBounds(col1.removeFromTop(100));
+
+        m_dnd_container.setBounds(getLocalBounds());
     }
 
 
-    void dragOperationEnded(const juce::DragAndDropTarget::SourceDetails &) override {
-        std::cout << "drag operation endede\n";
-    }
+//    void dragOperationEnded(const juce::DragAndDropTarget::SourceDetails &) override {
+//        std::cout << "drag operation endede\n";
+//    }
 
 
 private:
-    MovableComponent m_always_movable_component{
-            "Always Movable"
-            , Vec<std::unique_ptr<InputCondition>>{std::make_unique<AlwaysTrueCondition>()}
-    };
+    GlobalDragAndDropContainer m_dnd_container;
 
-    MovableComponent m_conditioned_movable_component{
-            "Movable (Q)"
-            , Vec<std::unique_ptr<InputCondition>>{std::make_unique<KeyCondition>('Q')}
-    };
+    MovableComponent m_always_movable_component;
 
-    DragAndDroppableComponent m_dnd_component1{
-            "Drag & Drop (W)"
-            , Vec<std::unique_ptr<InputCondition>>{std::make_unique<KeyCondition>('W')}
-    };
+    MovableComponent m_conditioned_movable_component;
 
-    DragAndDroppableComponent m_dnd_component2{
-            "Drag & Drop (W)"
-            , Vec<std::unique_ptr<InputCondition>>{std::make_unique<KeyCondition>('W')}
-    };
+    // TODO: This should have an InputHandler and pass it to its children
+    //  (verify that no-state input handler works as intended)
+
+    DragAndDroppableComponent m_dnd_component1;
+    DragAndDroppableComponent m_dnd_component2;
 };
 
 
@@ -449,6 +461,7 @@ public:
 
     MainComponent()
             : m_some_handler(m_undo_manager) {
+
         addAndMakeVisible(m_playground);
 
         setSize(600, 600);
@@ -495,6 +508,8 @@ private:
     ParameterHandler m_some_handler;
 
     StatePlaygroundComponent m_playground;
+
+
 
     long callback_count = 0;
 

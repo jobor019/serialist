@@ -13,32 +13,36 @@ public:
     DragInfo& operator=(const DragInfo&) = delete;
     DragInfo(DragInfo&&) noexcept = default;
     DragInfo& operator=(DragInfo&&) noexcept = default;
-
-    virtual bool equals(const DragInfo&) const = 0;
-
 };
 
-class DummyDragInfo : public DragInfo {
-public:
-    bool equals(const DragInfo&) const override {
-        return true;
-    }
-};
 
 class DragImageComponent : public juce::Component {
 public:
-    explicit DragImageComponent(const juce::ScaledImage& image) : m_image(image) {
+    explicit DragImageComponent(const juce::ScaledImage& image
+                                , const juce::Point<int>& source_mouse_down_position
+                                , const juce::Point<int>& dnd_container_mouse_down_position)
+                                : m_image(image)
+                                , m_mouse_down_offset(source_mouse_down_position) {
         setInterceptsMouseClicks(false, false);
+
+        const auto bounds = image.getScaledBounds().toNearestInt();
+        setSize (bounds.getWidth(), bounds.getHeight());
+        update_position(dnd_container_mouse_down_position);
     }
 
 
     void paint(juce::Graphics& g) override {
-        g.fillAll(juce::Colours::darksalmon); // TODO
+        g.drawImage (m_image.getImage(), m_image.getScaledBounds().toFloat());
+    }
+
+    void update_position(const juce::Point<int>& container_mouse_position) {
+        setTopLeftPosition(container_mouse_position - m_mouse_down_offset);
     }
 
 
 private:
     juce::ScaledImage m_image;
+    const juce::Point<int> m_mouse_down_offset;
 
 };
 
@@ -66,32 +70,46 @@ public:
 };
 
 
-class DropAreaComponent {
+class DropArea {
 public:
-    DropAreaComponent() = default;
-    virtual ~DropAreaComponent() = default;
-    DropAreaComponent(const DropAreaComponent&) = delete;
-    DropAreaComponent& operator=(const DropAreaComponent&) = delete;
-    DropAreaComponent(DropAreaComponent&&) noexcept = delete;
-    DropAreaComponent& operator=(DropAreaComponent&&) noexcept = delete;
+    DropArea() = default;
+    virtual ~DropArea() = default;
+    DropArea(const DropArea&) = delete;
+    DropArea& operator=(const DropArea&) = delete;
+    DropArea(DropArea&&) noexcept = delete;
+    DropArea& operator=(DropArea&&) noexcept = delete;
 
     virtual DropListener& get_drop_listener() = 0;
 
 private:
-    JUCE_DECLARE_WEAK_REFERENCEABLE(DropAreaComponent)
+    JUCE_DECLARE_WEAK_REFERENCEABLE(DropArea)
 };
 
 
 class GlobalDragAndDropContainer : public juce::Component {
 public:
-    GlobalDragAndDropContainer() {
-        addMouseListener(this, true);
+    explicit GlobalDragAndDropContainer(juce::Component& root_component) : m_root_component(root_component) {
+        setInterceptsMouseClicks(false, false);
+        m_root_component.addMouseListener(this, true);
     }
+
+
+    ~GlobalDragAndDropContainer() override {
+        m_root_component.removeMouseListener(this);
+    }
+
+    GlobalDragAndDropContainer(const GlobalDragAndDropContainer&) = delete;
+    GlobalDragAndDropContainer& operator=(const GlobalDragAndDropContainer&) = delete;
+    GlobalDragAndDropContainer(GlobalDragAndDropContainer&&)  noexcept = delete;
+    GlobalDragAndDropContainer& operator=(GlobalDragAndDropContainer&&)  noexcept = delete;
 
 
     void start_drag(const DragInfo& source, const juce::ScaledImage& drag_image, const juce::MouseEvent& event) {
         assert(m_ongoing_drag == nullptr);
-        assign_drag(&source);
+        assign_drag(&source, std::make_unique<DragImageComponent>(drag_image
+                                                                  , event.getPosition()
+                                                                  , event.getEventRelativeTo(this).getPosition()));
+        std::cout << "Drag start\n";
 
         if (auto target = find_target(event)) {
             m_dragged_over_component = target;
@@ -116,11 +134,13 @@ public:
     void cancel_drag(const DragInfo& source) {
         if (is_dragging(source)) {
             if (has_valid_drop_target()) {
+                std::cout << "notifying listener on cancel\n";
                 m_dragged_over_component->get_drop_listener().drop_exit(source);
-                m_dragged_over_component = nullptr;
             }
 
-            assign_drag(nullptr);
+            m_dragged_over_component = nullptr;
+
+            assign_drag(nullptr, nullptr);
         }
 
 //        if (auto index = index_of(source)) {
@@ -142,10 +162,11 @@ public:
         if (is_dragging(source)) {
             if (has_valid_drop_target()) {
                 m_dragged_over_component->get_drop_listener().item_dropped(source);
-                m_dragged_over_component = nullptr;
             }
 
-            assign_drag(nullptr);
+            m_dragged_over_component = nullptr;
+
+            assign_drag(nullptr, nullptr);
         }
 
 
@@ -190,13 +211,17 @@ public:
 
 
     bool has_valid_drop_target() const {
-        return !m_dragged_over_component.wasObjectDeleted();
+        return static_cast<bool>(m_dragged_over_component);
     }
 
 
     void mouseDrag(const juce::MouseEvent& event) override {
         if (!is_dragging()) {
             return;
+        }
+
+        if (m_drag_image) {
+            m_drag_image->update_position(event.getEventRelativeTo(this).getPosition());
         }
 
         if (auto target = find_target(event)) {
@@ -207,6 +232,7 @@ public:
             } else {
                 // exit current component if existing
                 if (has_valid_drop_target()) {
+                    std::cout << "internal drop exit\n";
                     m_dragged_over_component->get_drop_listener().drop_exit(*m_ongoing_drag);
                 }
 
@@ -214,28 +240,30 @@ public:
 
                 // if entering a new component, notify it
                 if (has_valid_drop_target()) {
+                    std::cout << "internal drop enter\n";
                     m_dragged_over_component->get_drop_listener().drop_enter(*m_ongoing_drag, event);
                 }
             }
-
-
         }
+
     }
 
     // mouseUp etc. is NOT the responsibility of the GlobalDragAndDropContainer, it is handled by the DragController
 
     // For other listeners like the GUI visualizing ongoing connections between components
-    DropAreaComponent* get_dragged_over_component() const {
+    DropArea* get_dragged_over_component() const {
         return m_dragged_over_component.get();
     }
 
 
 private:
-    DropAreaComponent* find_target(const juce::MouseEvent& event) {
-        auto* component = getComponentAt(event.getEventRelativeTo(this).getPosition());
+    DropArea* find_target(const juce::MouseEvent& event) {
+        auto* component = m_root_component
+                .getComponentAt(event.getEventRelativeTo(&m_root_component)
+                .getPosition());
 
-        while (component && component != this) {
-            if (auto* drop_area_component = dynamic_cast<DropAreaComponent*>(component)) {
+        while (component && component != &m_root_component) {
+            if (auto* drop_area_component = dynamic_cast<DropArea*>(component)) {
                 if (drop_area_component->get_drop_listener().interested_in(*m_ongoing_drag)) {
                     return drop_area_component;
                 }
@@ -248,12 +276,13 @@ private:
     }
 
 
-    void assign_drag(const DragInfo* source, const juce::DragIn) {
+    void assign_drag(const DragInfo* source, std::unique_ptr<DragImageComponent> drag_image) {
         if (source) {
-            m_drag_image = std::make_unique<DragImageComponent>(*source);
+            m_drag_image = std::move(drag_image);
             addAndMakeVisible(*m_drag_image);
             m_ongoing_drag = source;
             notify_drag_start(*source);
+            std::cout << "Assign ON\n";
 
         } else {
             if (m_ongoing_drag)
@@ -261,7 +290,10 @@ private:
 
             m_ongoing_drag = nullptr;
             m_drag_image = nullptr;
+            std::cout << "Assign OFF\n";
         }
+
+        resized();
     }
 
 
@@ -296,19 +328,22 @@ private:
 //        });
 //    }
 
+
+    juce::Component& m_root_component;
+
     Vec<std::reference_wrapper<DropListener>> m_listeners;
 
     const DragInfo* m_ongoing_drag = nullptr;
 
     std::unique_ptr<DragImageComponent> m_drag_image = nullptr;
 
-    juce::WeakReference<DropAreaComponent> m_dragged_over_component;
+    juce::WeakReference<DropArea> m_dragged_over_component;
 
 };
 
 class DragController {
 public:
-    DragController(const juce::Component* default_snapshot_component, GlobalDragAndDropContainer& global_container)
+    DragController(juce::Component* default_snapshot_component, GlobalDragAndDropContainer& global_container)
             : m_default_snapshot_component(default_snapshot_component)
               , m_global_container(global_container) {}
 
@@ -317,17 +352,19 @@ public:
                     , const juce::MouseEvent& mouse_event
                     , const std::optional<juce::ScaledImage>& snapshot) {
         if (m_ongoing_drag) {
-            m_global_container.cancel_drag(*m_ongoing_drag);
+            cancel_drag();
         }
 
         m_ongoing_drag = std::move(source);
-        m_global_container.start_drag(*m_ongoing_drag, mouse_event);
+        m_global_container.start_drag(*m_ongoing_drag, get_drag_image(snapshot), mouse_event);
     }
 
 
     void cancel_drag() {
         if (m_ongoing_drag) {
+            std::cout << "Drag controller: cancel drag\n";
             m_global_container.cancel_drag(*m_ongoing_drag);
+            m_ongoing_drag = nullptr;
         }
     }
 
@@ -335,15 +372,31 @@ public:
     void finalize_drag() {
         if (m_ongoing_drag) {
             m_global_container.finalize_drag(*m_ongoing_drag);
+            m_ongoing_drag = nullptr;
         }
     }
 
 
-    void update_drag_image(const juce::ScaledImage& image) {}
+    void update_drag_image(const juce::ScaledImage& image) {
+        (void) image;
+        // TODO
+    }
 
 
 private:
-    const juce::Component* m_default_snapshot_component;
+    juce::ScaledImage get_drag_image(const std::optional<juce::ScaledImage>& snapshot) {
+        if (snapshot) {
+            return snapshot.value();
+        } else if (m_default_snapshot_component) {
+            return juce::ScaledImage(m_default_snapshot_component->
+                    createComponentSnapshot(m_default_snapshot_component->getLocalBounds()));
+        } else {
+            return {};
+        }
+    }
+
+
+    juce::Component* m_default_snapshot_component;
     std::unique_ptr<DragInfo> m_ongoing_drag;
 
     GlobalDragAndDropContainer& m_global_container;
