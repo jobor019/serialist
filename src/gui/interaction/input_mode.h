@@ -43,13 +43,11 @@ public:
 
     virtual std::optional<juce::ScaledImage> get_drag_image() const { return std::nullopt; }
 
-    // TODO: Should be handled in mouse_state_changed instead
-//    virtual std::optional<int> drag_started_elsewhere(const DragInfo& source) {}
-//    virtual std::optional<int> drag_ended_elsewhere(const DragInfo& source) {}
-
     virtual std::optional<int> item_dropped(const DragInfo& source) { (void) source; return std::nullopt; }
 
+    virtual std::optional<int> mode_activated() { return std::nullopt; }
 
+    virtual std::optional<int> mode_deactivated() { return std::nullopt; }
     /**
      * @return current state (std::nullopt may be used as a shortcut for no state change)
      */

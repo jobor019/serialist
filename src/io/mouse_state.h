@@ -170,6 +170,14 @@ struct MouseState {
         return is_over_component() && !is_over_child;
     }
 
+    bool is_dragging() const {
+        return is_drag_editing || is_drag_and_dropping();
+    }
+
+    bool is_drag_and_dropping() const {
+        return is_dragging_from || is_dragging_to;
+    }
+
 
     std::optional<juce::Point<int>> position = std::nullopt;
     bool is_over_child = false;

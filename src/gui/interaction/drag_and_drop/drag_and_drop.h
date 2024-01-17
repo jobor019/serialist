@@ -21,19 +21,20 @@ public:
     explicit DragImageComponent(const juce::ScaledImage& image
                                 , const juce::Point<int>& source_mouse_down_position
                                 , const juce::Point<int>& dnd_container_mouse_down_position)
-                                : m_image(image)
-                                , m_mouse_down_offset(source_mouse_down_position) {
+            : m_image(image)
+              , m_mouse_down_offset(source_mouse_down_position) {
         setInterceptsMouseClicks(false, false);
 
         const auto bounds = image.getScaledBounds().toNearestInt();
-        setSize (bounds.getWidth(), bounds.getHeight());
+        setSize(bounds.getWidth(), bounds.getHeight());
         update_position(dnd_container_mouse_down_position);
     }
 
 
     void paint(juce::Graphics& g) override {
-        g.drawImage (m_image.getImage(), m_image.getScaledBounds().toFloat());
+        g.drawImage(m_image.getImage(), m_image.getScaledBounds().toFloat());
     }
+
 
     void update_position(const juce::Point<int>& container_mouse_position) {
         setTopLeftPosition(container_mouse_position - m_mouse_down_offset);
@@ -98,10 +99,11 @@ public:
         m_root_component.removeMouseListener(this);
     }
 
+
     GlobalDragAndDropContainer(const GlobalDragAndDropContainer&) = delete;
     GlobalDragAndDropContainer& operator=(const GlobalDragAndDropContainer&) = delete;
-    GlobalDragAndDropContainer(GlobalDragAndDropContainer&&)  noexcept = delete;
-    GlobalDragAndDropContainer& operator=(GlobalDragAndDropContainer&&)  noexcept = delete;
+    GlobalDragAndDropContainer(GlobalDragAndDropContainer&&) noexcept = delete;
+    GlobalDragAndDropContainer& operator=(GlobalDragAndDropContainer&&) noexcept = delete;
 
 
     void start_drag(const DragInfo& source, const juce::ScaledImage& drag_image, const juce::MouseEvent& event) {
@@ -112,7 +114,7 @@ public:
         std::cout << "Drag start\n";
 
         if (auto target = find_target(event)) {
-            m_dragged_over_component = target;
+            m_drop_target = target;
             target->get_drop_listener().drop_enter(source, event);
         }
 
@@ -124,7 +126,7 @@ public:
 //            notify_drag_start(source);
 //
 //            if (auto target = find_target()) {
-//                m_dragged_over_component = target;
+//                m_drop_target = target;
 //                target->get_drop_listener().drop_enter(source);
 //            }
 //        }
@@ -135,18 +137,18 @@ public:
         if (is_dragging(source)) {
             if (has_valid_drop_target()) {
                 std::cout << "notifying listener on cancel\n";
-                m_dragged_over_component->get_drop_listener().drop_exit(source);
+                m_drop_target->get_drop_listener().drop_exit(source);
             }
 
-            m_dragged_over_component = nullptr;
+            m_drop_target = nullptr;
 
             assign_drag(nullptr, nullptr);
         }
 
 //        if (auto index = index_of(source)) {
-//            if (!m_dragged_over_component.wasObjectDeleted()) {
-//                m_dragged_over_component->get_drop_listener().drop_exit(source);
-//                m_dragged_over_component = nullptr;
+//            if (!m_drop_target.wasObjectDeleted()) {
+//                m_drop_target->get_drop_listener().drop_exit(source);
+//                m_drop_target = nullptr;
 //            }
 //
 //            if (auto drag_image = m_ongoing_drags.pop_index(*index)) {
@@ -161,19 +163,19 @@ public:
     void finalize_drag(const DragInfo& source) {
         if (is_dragging(source)) {
             if (has_valid_drop_target()) {
-                m_dragged_over_component->get_drop_listener().item_dropped(source);
+                m_drop_target->get_drop_listener().item_dropped(source);
             }
 
-            m_dragged_over_component = nullptr;
+            m_drop_target = nullptr;
 
             assign_drag(nullptr, nullptr);
         }
 
 
 //        if (auto index = index_of(source)) {
-//            if (!m_dragged_over_component.wasObjectDeleted()) {
-//                m_dragged_over_component->get_drop_listener().item_dropped(source);
-//                m_dragged_over_component = nullptr;
+//            if (!m_drop_target.wasObjectDeleted()) {
+//                m_drop_target->get_drop_listener().item_dropped(source);
+//                m_drop_target = nullptr;
 //            }
 //
 //            if (auto drag_image = m_ongoing_drags.pop_index(*index)) {
@@ -211,7 +213,7 @@ public:
 
 
     bool has_valid_drop_target() const {
-        return static_cast<bool>(m_dragged_over_component);
+        return static_cast<bool>(m_drop_target);
     }
 
 
@@ -224,35 +226,34 @@ public:
             m_drag_image->update_position(event.getEventRelativeTo(this).getPosition());
         }
 
-        if (auto target = find_target(event)) {
+        auto* target = find_target(event);
+        auto target_changed = m_drop_target.get() != target;
 
-            if (target == m_dragged_over_component.get()) {
-                m_dragged_over_component->get_drop_listener().drop_move(*m_ongoing_drag, event);
-
-            } else {
-                // exit current component if existing
-                if (has_valid_drop_target()) {
-                    std::cout << "internal drop exit\n";
-                    m_dragged_over_component->get_drop_listener().drop_exit(*m_ongoing_drag);
-                }
-
-                m_dragged_over_component = target;
-
-                // if entering a new component, notify it
-                if (has_valid_drop_target()) {
-                    std::cout << "internal drop enter\n";
-                    m_dragged_over_component->get_drop_listener().drop_enter(*m_ongoing_drag, event);
-                }
-            }
+        if (has_valid_drop_target() && !target_changed) {
+            m_drop_target->get_drop_listener().drop_move(*m_ongoing_drag, event);
+            return;
         }
 
+        if (has_valid_drop_target() && target_changed) {
+            // exit current component if existing
+            std::cout << "internal drop exit\n";
+            m_drop_target->get_drop_listener().drop_exit(*m_ongoing_drag);
+        }
+
+        m_drop_target = target;
+
+        if (has_valid_drop_target()) {
+            // if we just entered a new component, notify it
+            std::cout << "internal drop enter\n";
+            m_drop_target->get_drop_listener().drop_enter(*m_ongoing_drag, event);
+        }
     }
 
     // mouseUp etc. is NOT the responsibility of the GlobalDragAndDropContainer, it is handled by the DragController
 
     // For other listeners like the GUI visualizing ongoing connections between components
     DropArea* get_dragged_over_component() const {
-        return m_dragged_over_component.get();
+        return m_drop_target.get();
     }
 
 
@@ -260,7 +261,7 @@ private:
     DropArea* find_target(const juce::MouseEvent& event) {
         auto* component = m_root_component
                 .getComponentAt(event.getEventRelativeTo(&m_root_component)
-                .getPosition());
+                                        .getPosition());
 
         while (component && component != &m_root_component) {
             if (auto* drop_area_component = dynamic_cast<DropArea*>(component)) {
@@ -337,9 +338,12 @@ private:
 
     std::unique_ptr<DragImageComponent> m_drag_image = nullptr;
 
-    juce::WeakReference<DropArea> m_dragged_over_component;
+    juce::WeakReference<DropArea> m_drop_target;
 
 };
+
+
+// ==============================================================================================
 
 class DragController {
 public:
@@ -388,8 +392,12 @@ private:
         if (snapshot) {
             return snapshot.value();
         } else if (m_default_snapshot_component) {
-            return juce::ScaledImage(m_default_snapshot_component->
+            auto img =juce::ScaledImage(m_default_snapshot_component->
                     createComponentSnapshot(m_default_snapshot_component->getLocalBounds()));
+            img.getImage().multiplyAllAlphas(0.9f);
+
+            return img;
+
         } else {
             return {};
         }

@@ -7,20 +7,71 @@
 #include "gui/interaction/input_handler.h"
 #include "interaction/interaction_visualizer.h"
 
-class DummyDndInterface {
+class DummyTextInterface {
 public:
     virtual void set_text(const std::string& text) = 0;
     virtual void reset() = 0;
+
+
+    virtual std::string get_identifier() const { return ""; }
 };
 
-class DummyDragInfo : public DragInfo {};
+class DummyDragInfo : public DragInfo {
+public:
+    explicit DummyDragInfo(const DummyTextInterface& ti) : text_interface(ti) {}
 
+
+    const DummyTextInterface& text_interface;
+};
+
+
+// ==============================================================================================
+
+class DefaultMode : public InputMode {
+public:
+    DefaultMode(DummyTextInterface& text_component, std::string text)
+            : m_text_component(text_component)
+              , m_text(std::move(text)) {}
+
+
+    std::optional<int> mode_activated() override {
+        std::cout << "DEFAULT MODE ACTIVATED (text: " << m_text << ")" << std::endl;
+        m_text_component.set_text(m_text);
+        return 0;
+    }
+
+
+    std::optional<int> mouse_state_changed(const MouseState&) override {
+        return std::nullopt;
+    }
+
+
+    std::optional<int> mouse_position_changed(const MouseState&) override {
+        return std::nullopt;
+    }
+
+
+    std::optional<int> input_event_registered(std::unique_ptr<InputEvent>) override {
+        return std::nullopt;
+    }
+
+
+    void reset() override {
+    }
+
+
+private:
+    DummyTextInterface& m_text_component;
+    std::string m_text;
+};
+
+
+// ==============================================================================================
 
 class DragAndDropMode : public InputMode {
 public:
     enum class State {
-        drag_disabled = 0
-        , enabled = 1
+        enabled = 1
         , hovering = 2
         , dragging_from = 3
         , dragging_to = 4
@@ -41,7 +92,7 @@ public:
             m_enabled.setBounds(getLocalBounds());
             m_hover.setBounds(getLocalBounds());
             m_drag_to.setBounds(getLocalBounds());
-            m_valid_target.setBounds(getLocalBounds());
+            m_valid_target.setBounds(getLocalBounds().reduced(2));
         }
 
 
@@ -50,7 +101,8 @@ public:
             m_enabled.setVisible(is_active && state == static_cast<int>(State::enabled));
             m_hover.setVisible(is_active && state == static_cast<int>(State::hovering));
             m_drag_to.setVisible(is_active && state == static_cast<int>(State::dragging_to));
-            m_valid_target.setVisible(is_active && state == static_cast<int>(State::valid_target));
+            m_valid_target.setVisible(is_active && (state == static_cast<int>(State::valid_target)
+                                                    || state == static_cast<int>(State::dragging_to)));
 
             if (is_active && state == static_cast<int>(State::dragging_from)) {
                 alpha.set_alpha(0.4f);
@@ -61,22 +113,24 @@ public:
 
 
     private:
-        BorderHighlight m_enabled{juce::Colours::darkgreen.withAlpha(0.6f), 1};
-        BorderHighlight m_hover{juce::Colours::darkgreen, 2};
+        BorderHighlight m_enabled{juce::Colours::darkgreen.withAlpha(0.6f), 2};
+        BorderHighlight m_hover{juce::Colours::darkgreen, 4};
         FillHighlight m_drag_to{juce::Colours::darkturquoise.withAlpha(0.3f)};
-        BorderHighlight m_valid_target{juce::Colours::palegoldenrod.withAlpha(0.1f)};
+        BorderHighlight m_valid_target{juce::Colours::palegoldenrod.withAlpha(0.8f)};
     };
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    explicit DragAndDropMode(DummyDndInterface& dnd_component) : m_dnd_component(dnd_component) {}
+    explicit DragAndDropMode(DummyTextInterface& dnd_component) : m_dnd_component(dnd_component) {}
+
 
     DragBehaviour get_drag_behaviour() override {
         return DragBehaviour::drag_and_drop;
     }
 
+
     std::unique_ptr<DragInfo> get_drag_info() override {
-        auto info = std::make_unique<DummyDragInfo>();
+        auto info = std::make_unique<DummyDragInfo>(m_dnd_component);
 //        m_source = info.get();
         return std::move(info);
     }
@@ -94,13 +148,13 @@ public:
 
 
     bool supports_drop_from(const DragInfo& source) const override {
-        return dynamic_cast<const DummyDragInfo*>(&source) != nullptr;
+        return typeid(source) == typeid(DummyDragInfo)
+               && &dynamic_cast<const DummyDragInfo*>(&source)->text_interface != &m_dnd_component;
     }
 
 
     std::optional<int> mouse_state_changed(const MouseState& mouse_state) override {
         if (mouse_state.is_dragging_from) {
-            std::cout << "is really dragging from\n";
             m_dnd_component.set_text("Dragging (from)...");
             return static_cast<int>(State::dragging_from);
 
@@ -108,6 +162,9 @@ public:
             m_dnd_component.set_text("Drop here!");
             return static_cast<int>(State::dragging_to);
 
+        } else if (mouse_state.has_external_ongoing_drag) {
+            m_dnd_component.set_text("Can be dropped here!");
+            return static_cast<int>(State::valid_target);
 
         } else if (!mouse_state.is_over_component()) {
             m_dnd_component.set_text("Drag enabled");
@@ -137,94 +194,16 @@ public:
 
 
     void reset() override {
-        std::cout << "resetting!\n";
+        std::cout << m_dnd_component.get_identifier() << "::resetting!\n";
         m_dnd_component.reset();
     }
 
 
 private:
-    DummyDndInterface& m_dnd_component;
+    DummyTextInterface& m_dnd_component;
 
 //    DummyDragInfo* m_source = nullptr;
 };
-
-
-// ==============================================================================================
-
-class DragAndDroppableComponent : public juce::Component, public DropArea, public DummyDndInterface  {
-public:
-    DragAndDroppableComponent(const std::string& initial_text
-                              , Vec<std::unique_ptr<InputCondition>> conditions
-                              , GlobalDragAndDropContainer& dnd_container
-                              , std::string&& identifier)
-            : m_default_text(initial_text)
-              , m_text(initial_text)
-              , m_input_handler(nullptr, *this
-                                , default_modes(*this, std::move(conditions))
-                                , dnd_container
-                                , {std::ref(m_visualizer)}
-                                , std::move(identifier)) {
-        addAndMakeVisible(m_visualizer);
-    }
-
-
-    static InputModeMap default_modes(DragAndDroppableComponent& managed_component
-                                      , Vec<std::unique_ptr<InputCondition>> conditions) {
-        InputModeMap map;
-        map.add(std::move(conditions), std::make_unique<DragAndDropMode>(managed_component));
-        return map;
-    }
-
-
-    static Vec<std::unique_ptr<InteractionVisualization>> default_visualizations() {
-        return Vec<std::unique_ptr<InteractionVisualization>>{std::make_unique<DragAndDropMode::Visualization>()};
-    }
-
-
-    void resized() override {
-        m_visualizer.setBounds(getLocalBounds());
-    }
-
-
-    void paint(juce::Graphics& g) override {
-        g.fillAll(juce::Colours::lightskyblue);
-        g.setColour(juce::Colours::whitesmoke);
-        g.drawFittedText(m_text, getLocalBounds(), juce::Justification::centred, 1);
-        std::cout << "~painting text: " << m_text << std::endl;
-    }
-
-
-    DropListener & get_drop_listener() override {
-        return m_input_handler;
-    }
-
-
-//    bool supports_drag_to(const DndTarget::Details& source) const override {
-//        // note: definitely not safe!
-//        return source.sourceComponent.get() != this && dynamic_cast<DragAndDroppableComponent*>(source.sourceComponent.get()) ;
-//    }
-
-
-    void set_text(const std::string& text) override {
-        m_text = text;
-        repaint();
-    }
-
-
-    void reset() override {
-        m_text = m_default_text;
-        repaint();
-    }
-
-
-private:
-    std::string m_default_text;
-    std::string m_text;
-
-    InteractionVisualizer m_visualizer{*this, default_visualizations()};
-    InputHandler m_input_handler;
-};
-
 
 
 // ==============================================================================================
@@ -270,8 +249,18 @@ public:
     };
 
 
-    explicit MoveMode(juce::Component& managed_component) : m_managed_component(managed_component) {}
+    explicit MoveMode(juce::Component& managed_component
+                      , DummyTextInterface& text_interface
+                      , std::string text)
+            : m_text(std::move(text))
+              , m_managed_component(managed_component)
+              , m_text_component(text_interface) {}
 
+
+    std::optional<int> mode_activated() override {
+        m_text_component.set_text(m_text);
+        return std::nullopt;
+    }
 
 
     std::optional<int> mouse_state_changed(const MouseState& mouse_state) override {
@@ -321,31 +310,131 @@ public:
 
 
 private:
+    std::string m_text;
     juce::Component& m_managed_component;
+    DummyTextInterface& m_text_component;
     std::optional<juce::Point<int>> m_mouse_down_position = std::nullopt;
 };
 
 
 // ==============================================================================================
 
-class MovableComponent : public juce::Component {
+class DragAndDroppableComponent : public juce::Component, public DropArea, public DummyTextInterface {
 public:
-    MovableComponent(std::string text
-                     , Vec<std::unique_ptr<InputCondition>> move_conditions
-                     , GlobalDragAndDropContainer& dnd_container)
-            : m_text(std::move(text))
+    DragAndDroppableComponent(const std::string& initial_text
+                              , Vec<std::unique_ptr<InputCondition>> conditions
+                              , GlobalDragAndDropContainer& dnd_container
+                              , const std::string& identifier)
+            : m_default_text(initial_text)
+              , m_text(initial_text)
               , m_input_handler(nullptr, *this
-                                , default_modes(*this, std::move(move_conditions))
+                                , default_modes(*this, std::move(conditions))
                                 , dnd_container
-                                , {std::ref(m_visualizer)}) {
+                                , {std::ref(m_visualizer)}
+                                , identifier)
+              , m_identifier(identifier) {
         addAndMakeVisible(m_visualizer);
     }
 
 
-    static InputModeMap default_modes(juce::Component& managed_component
+    static InputModeMap default_modes(DragAndDroppableComponent& managed_component
                                       , Vec<std::unique_ptr<InputCondition>> conditions) {
         InputModeMap map;
-        map.add(std::move(conditions), std::make_unique<MoveMode>(managed_component));
+        map.add(std::move(conditions), std::make_unique<DragAndDropMode>(managed_component));
+        return map;
+    }
+
+
+    static Vec<std::unique_ptr<InteractionVisualization>> default_visualizations() {
+        return Vec<std::unique_ptr<InteractionVisualization>>{std::make_unique<DragAndDropMode::Visualization>()};
+    }
+
+
+    void resized() override {
+        m_visualizer.setBounds(getLocalBounds());
+    }
+
+
+    void paint(juce::Graphics& g) override {
+        g.fillAll(juce::Colours::lightskyblue);
+        g.setColour(juce::Colours::whitesmoke);
+        g.drawFittedText(m_text, getLocalBounds(), juce::Justification::centred, 1);
+        std::cout << "~" << m_identifier << "::painting text: " << m_text << std::endl;
+    }
+
+
+    DropListener& get_drop_listener() override {
+        return m_input_handler;
+    }
+
+
+//    bool supports_drag_to(const DndTarget::Details& source) const override {
+//        // note: definitely not safe!
+//        return source.sourceComponent.get() != this && dynamic_cast<DragAndDroppableComponent*>(source.sourceComponent.get()) ;
+//    }
+
+
+    void set_text(const std::string& text) override {
+        m_text = text;
+        std::cout << m_identifier << "::text set to " << m_text << std::endl;
+        repaint();
+    }
+
+
+    void reset() override {
+        m_text = m_default_text;
+        std::cout << m_identifier << "::text set to " << m_default_text << " (reset)" << std::endl;
+        repaint();
+    }
+
+
+    std::string get_identifier() const override {
+        return m_identifier;
+    }
+
+
+private:
+    std::string m_default_text;
+    std::string m_text;
+
+    InteractionVisualizer m_visualizer{*this, default_visualizations()};
+    InputHandler m_input_handler;
+
+    std::string m_identifier;
+};
+
+
+
+// ==============================================================================================
+
+
+
+
+// ==============================================================================================
+
+class MovableComponent : public juce::Component, public DummyTextInterface {
+public:
+    MovableComponent(std::string active_text
+                     , std::string default_text
+                     , Vec<std::unique_ptr<InputCondition>> move_conditions
+                     , GlobalDragAndDropContainer& dnd_container)
+            : m_input_handler(nullptr, *this
+                              , default_modes(std::move(active_text)
+                                              , std::move(default_text)
+                                              , *this, std::move(move_conditions))
+                              , dnd_container
+                              , {std::ref(m_visualizer)}) {
+        addAndMakeVisible(m_visualizer);
+    }
+
+
+    static InputModeMap default_modes(std::string active_text
+                                      , std::string disabled_text
+                                      , MovableComponent& c
+                                      , Vec<std::unique_ptr<InputCondition>> conditions) {
+        InputModeMap map;
+        map.add(std::move(conditions), std::make_unique<MoveMode>(c, c, std::move(active_text)));
+        map.add(std::make_unique<NoKeyCondition>(), std::make_unique<DefaultMode>(c, std::move(disabled_text)));
         return map;
     }
 
@@ -358,7 +447,7 @@ public:
     void paint(juce::Graphics& g) override {
         g.fillAll(juce::Colours::orchid);
         g.setColour(juce::Colours::whitesmoke);
-        g.drawFittedText(m_text, getLocalBounds(), juce::Justification::centred, 1);
+        g.drawFittedText(m_active_text, getLocalBounds(), juce::Justification::centred, 1);
     }
 
 
@@ -367,8 +456,18 @@ public:
     }
 
 
+    void set_text(const std::string& text) override {
+        m_active_text = text;
+        repaint();
+    }
+
+
+    void reset() override {}
+
+
 private:
-    std::string m_text;
+    std::string m_active_text;
+    std::string m_default_text;
 
     InteractionVisualizer m_visualizer{*this, default_visualizations()};
     InputHandler m_input_handler;//{nullptr, *this, modes(*this), {std::ref(m_visualizer)}};
@@ -380,34 +479,35 @@ private:
 class StatePlaygroundComponent : public juce::Component {
 public:
     StatePlaygroundComponent()
-    : m_dnd_container(*this)
-    , m_always_movable_component(
-            "Always Movable"
-            , Vec<std::unique_ptr<InputCondition>>{std::make_unique<AlwaysTrueCondition>()}
-            , m_dnd_container
+            : m_dnd_container(*this)
+              , m_always_movable_component(
+                    "Always Movable"
+                    , "Always Movable"
+                    , Vec<std::unique_ptr<InputCondition>>{std::make_unique<AlwaysTrueCondition>()}
+                    , m_dnd_container
             )
-            , m_conditioned_movable_component(
-            "Movable (Q)"
-            , Vec<std::unique_ptr<InputCondition>>{std::make_unique<KeyCondition>('Q')}
-            , m_dnd_container)
-            , m_dnd_component1(
+              , m_conditioned_movable_component(
+                    "Drag to move!"
+                    , "Movable (Q)"
+                    , Vec<std::unique_ptr<InputCondition>>{std::make_unique<KeyCondition>('Q')}
+                    , m_dnd_container)
+              , m_dnd_component1(
                     "Drag & Drop (W)"
-            , Vec<std::unique_ptr<InputCondition>>{std::make_unique<KeyCondition>('W')}
-            , m_dnd_container
-            , "001"
+                    , Vec<std::unique_ptr<InputCondition>>{std::make_unique<KeyCondition>('W')}
+                    , m_dnd_container
+                    , "001"
             )
-            , m_dnd_component2(
-                "Drag & Drop (W)"
-            , Vec<std::unique_ptr<InputCondition>>{std::make_unique<KeyCondition>('W')}
-            , m_dnd_container
-            , "002"
-            )
-             {
+              , m_dnd_component2(
+                    "Drag & Drop (W)"
+                    , Vec<std::unique_ptr<InputCondition>>{std::make_unique<KeyCondition>('W')}
+                    , m_dnd_container
+                    , "002"
+            ) {
         addAndMakeVisible(m_always_movable_component);
         addAndMakeVisible(m_conditioned_movable_component);
         addAndMakeVisible(m_dnd_component1);
         addAndMakeVisible(m_dnd_component2);
-                 addAndMakeVisible(m_dnd_container);
+        addAndMakeVisible(m_dnd_container);
     }
 
 
@@ -508,7 +608,6 @@ private:
     ParameterHandler m_some_handler;
 
     StatePlaygroundComponent m_playground;
-
 
 
     long callback_count = 0;

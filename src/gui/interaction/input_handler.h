@@ -37,14 +37,14 @@ public:
                  , InputModeMap modes
                  , GlobalDragAndDropContainer& global_dnd_container
                  , Vec<std::reference_wrapper<Listener>> listeners
-                 , std::string&& identifier = "")
+                 , const std::string& identifier = "")
             : m_parent(parent)
               , m_mouse_source_component(mouse_source_component)
               , m_modes(std::move(modes))
               , m_global_dnd_container(global_dnd_container)
               , m_drag_controller(&mouse_source_component, global_dnd_container)
               , m_listeners(std::move(listeners))
-              , m_identifier(std::move(identifier)) {
+              , m_identifier(identifier) {
         if (m_parent) {
             m_parent->add_child_handler(*this);
         }
@@ -113,6 +113,7 @@ public:
 
 
     void mouseEnter(const juce::MouseEvent& event) override {
+        std::cout << "¤¤¤" << m_identifier << "::Event - MouseEnter\n";
         bool is_directly_over = mouse_is_directly_over();
 
         // TODO: Not sure if the position of the mouse will be correct if passed from a child component
@@ -160,6 +161,7 @@ public:
 
 
     void mouseExit(const juce::MouseEvent&) override {
+        std::cout << "¤¤¤" << m_identifier << "::Event - MouseExit\n";
         bool is_over = mouse_is_over();
 
         // exit this component (from this component or any registered/unregistered child)
@@ -179,6 +181,7 @@ public:
 
 
     void mouseDown(const juce::MouseEvent& event) override {
+        std::cout << "¤¤¤" <<  m_identifier << "::Event - MouseDown\n";
         auto hide = m_active_mode && m_active_mode->get_drag_behaviour() == DragBehaviour::hide_and_restore;
         m_last_mouse_state.mouse_down(event, hide);
         if (mouse_changed(false)) {
@@ -194,6 +197,11 @@ public:
         // TODO: This is also problematic for drag starts, as it doesn't check whether it's directly over the component.
         //       To properly implement this, we need to check all registered children and see if any component under
         //       the mouse is in a mode which actively handles drag starts. If so, it should intercept it.
+
+        // an ongoing drag has previously been cancelled. No further actions until mouse button is released
+        if (m_drag_cancelled) {
+            return;
+        }
 
         // ongoing drag edit within this component
         if (m_last_mouse_state.is_drag_editing) {
@@ -236,6 +244,7 @@ public:
 
 
     void mouseUp(const juce::MouseEvent& event) override {
+        std::cout << "¤¤¤" << m_identifier << "::Event - MouseUp\n";
         if (m_last_mouse_state.is_dragging_from) {
             finalize_drag_from();
         } else {
@@ -245,6 +254,8 @@ public:
                 notify_listeners();
             }
         }
+
+        reset_drag_cancel();
     }
 
 
@@ -366,18 +377,6 @@ private:
         }
     }
 
-//    void cancel_drag_from() {
-//        assert(m_active_mode);
-//        assert(m_active_mode->get_drag_behaviour() == DragBehaviour::drag_and_drop);
-//
-//        m_drag_controller.cancel_drag();
-//        m_last_mouse_state.drag_end();
-//
-//        if (mouse_changed(false)) {
-//            notify_listeners();
-//        }
-//
-//    }
 
     void finalize_drag_from() {
         assert(m_active_mode);
@@ -392,10 +391,20 @@ private:
     }
 
 
-    void cancel_all_drag_and_drop_actions() {
+    void cancel_all_drag_actions() {
         std::cout << m_identifier << "::CANCELLING ALL DND\n";
-        m_last_mouse_state.reset_drag_state();
         m_drag_controller.cancel_drag();
+
+        if (m_last_mouse_state.is_dragging())
+            m_drag_cancelled = true;
+
+        m_last_mouse_state.reset_drag_state();
+
+    }
+
+
+    void reset_drag_cancel() {
+        m_drag_cancelled = false;
     }
 
 
@@ -406,13 +415,15 @@ private:
         if (auto* active_mode = m_modes.get_active(); active_mode != m_active_mode) {
 
             if (m_active_mode) {
+                cancel_all_drag_actions();
+                m_active_mode->mode_deactivated();
                 m_active_mode->reset();
-                cancel_all_drag_and_drop_actions();
             }
 
             m_active_mode = active_mode;
 
             if (m_active_mode) {
+                m_active_mode->mode_activated();
                 mouse_changed(false);
                 std::cout << m_identifier << "::new mode\n";
             } else {
@@ -493,6 +504,8 @@ private:
     MouseState m_last_mouse_state;
 
     std::string m_identifier;
+
+    bool m_drag_cancelled = false;
 };
 
 
