@@ -4,7 +4,6 @@
 
 #include <optional>
 #include "mouse_state.h"
-#include "drag_and_drop_LEGACY.h"
 #include "input_events.h"
 #include "interaction/drag_and_drop/drag_and_drop.h"
 
@@ -28,7 +27,7 @@ public:
     /**
      * @return true if mouse should be intercepted when clicking (non-intercepting) child components
      */
-//    virtual bool intercept_mouse() = 0;
+    virtual bool intercept_mouse() = 0;
 
     virtual DragBehaviour get_drag_behaviour() { return DragBehaviour::drag_edit; }
 

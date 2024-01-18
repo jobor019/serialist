@@ -53,13 +53,13 @@ struct MouseState {
     }
 
 
-    /**
-     * should be called when the mouse enters a child (either directly or from parent)
-     */
-    void mouse_child_enter(const juce::MouseEvent& event) {
-        mouse_enter(event);
-        is_over_child = true;
-    }
+    // /**
+    //  * should be called when the mouse enters a child (either directly or from parent)
+    //  */
+    // void mouse_child_enter(const juce::MouseEvent& event) {
+    //     mouse_enter(event);
+    //     is_over_child = true;
+    // }
 
 
     void mouse_move(const juce::MouseEvent& event) {
@@ -107,16 +107,16 @@ struct MouseState {
     }
 
 
-    /**
-     * should be called when the mouse exits a child without exiting the parent component
-     */
-    void mouse_child_exit() {
-        is_over_child = false;
-    }
+    // /**
+    //  * should be called when the mouse exits a child without exiting the parent component
+    //  */
+    // void mouse_child_exit() {
+    //     is_over_child = false;
+    // }
 
 
     void mouse_exit() {
-        mouse_child_exit();
+        // mouse_child_exit();
         reset_drag_state();
         is_down = false;
         position = std::nullopt;
@@ -165,10 +165,24 @@ struct MouseState {
         return position.has_value();
     }
 
-
-    bool is_directly_over_component() const {
-        return is_over_component() && !is_over_child;
+    bool is_active_over_component() const {
+        return position.has_value() && !is_intercepted;
     }
+
+    // bool is_intercepted() const {
+    //     return interception == Interception::intercepted;
+    // }
+
+    // void set_intercepting(bool intercepting) {
+    //     is_intercepting = intercepting;
+    //     if (intercepting)
+    //         is_intercepted = false;
+    // }
+
+
+    // bool is_directly_over_component() const {
+    //     return is_over_component() && !is_intercepted_by_child;
+    // }
 
     bool is_dragging() const {
         return is_drag_editing || is_drag_and_dropping();
@@ -180,7 +194,18 @@ struct MouseState {
 
 
     std::optional<juce::Point<int>> position = std::nullopt;
-    bool is_over_child = false;
+
+    // enum class Interception {
+    //     none
+    //     , intercepting
+    //     , intercepted
+    // };
+    //
+    // Interception interception;
+
+    bool is_intercepting = false;
+    bool is_intercepted = false;
+
     bool is_down = false;
     bool is_drag_editing = false;
 
