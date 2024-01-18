@@ -25,6 +25,11 @@ public:
     InputMode(InputMode&&) noexcept = default;
     InputMode& operator=(InputMode&&) noexcept = default;
 
+    /**
+     * @return true if mouse should be intercepted when clicking (non-intercepting) child components
+     */
+//    virtual bool intercept_mouse() = 0;
+
     virtual DragBehaviour get_drag_behaviour() { return DragBehaviour::drag_edit; }
 
     virtual std::unique_ptr<DragInfo> get_drag_info() {

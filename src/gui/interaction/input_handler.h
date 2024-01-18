@@ -37,18 +37,18 @@ public:
                  , InputModeMap modes
                  , GlobalDragAndDropContainer& global_dnd_container
                  , Vec<std::reference_wrapper<Listener>> listeners
-                 , const std::string& identifier = "")
+                 , std::string identifier = "")
             : m_parent(parent)
               , m_mouse_source_component(mouse_source_component)
               , m_modes(std::move(modes))
               , m_global_dnd_container(global_dnd_container)
               , m_drag_controller(&mouse_source_component, global_dnd_container)
               , m_listeners(std::move(listeners))
-              , m_identifier(identifier) {
+              , m_identifier(std::move(identifier)) {
         if (m_parent) {
             m_parent->add_child_handler(*this);
         }
-        m_mouse_source_component.addMouseListener(this, true);
+        m_mouse_source_component.addMouseListener(this, false);
         m_global_dnd_container.add_listener(*this);
         GlobalKeyState::add_listener(*this);
 
@@ -86,6 +86,11 @@ public:
         return mouse_is_over() && !mouse_is_over_child();
     }
 
+//    bool wants_to_intercept_mouse() const {
+//        return (m_active_mode && m_active_mode->intercept_mouse())
+//        || (m_parent && m_parent->wants_to_intercept_mouse());
+//    }
+
 
     /**
      * @return true if mouse is over a component that has a registered child StateHandler
@@ -97,19 +102,19 @@ public:
     }
 
 
-    juce::Component* component_under_mouse() const {
-        if (!mouse_is_over()) {
-            return nullptr;
-        }
-
-        for (const auto& handler: m_child_handlers) {
-            if (handler.get().mouse_is_over()) {
-                return &handler.get().m_mouse_source_component;
-            }
-        }
-
-        return &m_mouse_source_component;
-    }
+//    juce::Component* component_under_mouse() const {
+//        if (!mouse_is_over()) {
+//            return nullptr;
+//        }
+//
+//        for (const auto& handler: m_child_handlers) {
+//            if (handler.get().mouse_is_over()) {
+//                return &handler.get().m_mouse_source_component;
+//            }
+//        }
+//
+//        return &m_mouse_source_component;
+//    }
 
 
     void mouseEnter(const juce::MouseEvent& event) override {
@@ -194,10 +199,6 @@ public:
         // TODO: We probably need to implement a MouseClickEvent and determine whether a mouseUp + mouseDown
         //      was a click or a drag (to avoid minimal accidental movements during click turning into drags)
 
-        // TODO: This is also problematic for drag starts, as it doesn't check whether it's directly over the component.
-        //       To properly implement this, we need to check all registered children and see if any component under
-        //       the mouse is in a mode which actively handles drag starts. If so, it should intercept it.
-
         // an ongoing drag has previously been cancelled. No further actions until mouse button is released
         if (m_drag_cancelled) {
             return;
@@ -271,7 +272,7 @@ public:
         assert(interested_in(source)); // Transitive from caller calling interested_in
 
         // Note: GlobalDragAndDropController will manage relation parent/child
-        //       so there's no need to check is_directly_over
+        //       so there's no need to check interception status, etc.
         std::cout << m_identifier <<"::Drop enter\n";
         m_last_mouse_state.drop_enter();
         if (mouse_changed(false)) {

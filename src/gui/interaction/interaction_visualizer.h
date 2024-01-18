@@ -50,6 +50,10 @@ public:
         add(std::move(visualizations));
     }
 
+    void mouseMove(const juce::MouseEvent &) override {
+        std::cout << "IV Move\n";
+    }
+
 
     void state_changed(InputMode* active_mode, int state) override {
         for (const auto& v: m_visualizations) {
