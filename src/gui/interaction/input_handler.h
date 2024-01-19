@@ -85,14 +85,6 @@ public:
     }
 
 
-    /**
-     * @return true if mouse is directly over the component or over a component that doesn't have a StateHandler
-     */
-    //    bool mouse_is_directly_over() const {
-    //        return mouse_is_over() && !mouse_is_over_child();
-    //    }
-
-
     bool this_wants_to_intercept_mouse() const {
         return m_active_mode && m_active_mode->intercept_mouse();
     }
@@ -106,31 +98,6 @@ public:
     bool wants_to_intercept_mouse() const {
         return this_wants_to_intercept_mouse() || parent_wants_to_intercept_mouse();
     }
-
-
-    //    /**
-    //     * @return true if mouse is over a component that has a registered child StateHandler
-    //     */
-    //    bool mouse_is_over_child() const {
-    //        return m_child_handlers.any([](const auto& handler) {
-    //            return handler.get().mouse_is_over();
-    //        });
-    //    }
-
-
-    //    juce::Component* component_under_mouse() const {
-    //        if (!mouse_is_over()) {
-    //            return nullptr;
-    //        }
-    //
-    //        for (const auto& handler: m_child_handlers) {
-    //            if (handler.get().mouse_is_over()) {
-    //                return &handler.get().m_mouse_source_component;
-    //            }
-    //        }
-    //
-    //        return &m_mouse_source_component;
-    //    }
 
 
     bool mouse_event_targets_this(bool consumed_by_child) const {
@@ -159,10 +126,11 @@ public:
         m_last_mouse_state.mouse_enter(event);
 
         if (mouse_event_targets_this(already_consumed)) {
-            if (update_mouse_state(false)) {
-                notify_listeners();
-            }
             already_consumed = true;
+        }
+
+        if (update_mouse_state(false)) {
+                notify_listeners();
         }
 
         if (m_parent)
@@ -206,8 +174,8 @@ public:
 
 
     void mouse_exit_internal(const juce::MouseEvent& event) {
-        std::cout << "¤¤¤" << m_identifier << "::Event - MouseExit\n";
         if (!mouse_is_over()) {
+            std::cout << "¤¤¤" << m_identifier << "::Event - MouseExit\n";
             // mouse exited this (either directly or from a child)
             m_last_mouse_state.mouse_exit();
             if (update_mouse_state(false)) {
@@ -216,16 +184,11 @@ public:
 
             if (m_parent)
                 m_parent->mouse_exit_from_child(event);
-        } else {
-            // TODO Remove
-            // mouse exited a direct child but is still over this
-            // m_last_mouse_state.mouse_child_exit();
-            // if (update_mouse_state(false)) {
-            //     notify_listeners();
-            // }
-
-            // parent isn't notified here as internally exiting a grandchild into a child is irrelevant to the parent
         }
+
+        // There are two cases here where neither this nor parent are notified:
+        //  - if exiting this into a child (from this' pov, it's still over)
+        //  - if a grandchild internally exits into a child (from this' pov, it's still over)
     }
 
 
@@ -267,7 +230,7 @@ public:
 
     void mouse_drag_internal(const juce::MouseEvent& event, bool already_consumed) {
         if (mouse_event_targets_this(already_consumed)) {
-            std::cout << "¤¤¤" << m_identifier << "::Event - MouseDrag\n";
+//            std::cout << "¤¤¤" << m_identifier << "::Event - MouseDrag\n";
             process_mouse_drag(event);
             already_consumed = true;
         }
@@ -484,7 +447,7 @@ private:
 
 
     void cancel_all_drag_actions() {
-        std::cout << m_identifier << "::CANCELLING ALL DND\n";
+//        std::cout << m_identifier << "::CANCELLING ALL DND\n";
         m_drag_controller.cancel_drag();
 
         if (m_last_mouse_state.is_dragging())
@@ -515,10 +478,10 @@ private:
             if (m_active_mode) {
                 m_active_mode->mode_activated();
                 update_mouse_state(false);
-                std::cout << m_identifier << "::new mode\n";
+//                std::cout << m_identifier << "::new mode\n";
             } else {
                 m_last_state = NO_STATE;
-                std::cout << m_identifier << "::no mode\n";
+//                std::cout << m_identifier << "::no mode\n";
             }
 
             return true;
@@ -562,8 +525,7 @@ private:
         bool should_intercept = m_active_mode &&
                                 m_active_mode->intercept_mouse() &&
                                 m_last_mouse_state.is_over_component();
-        std::cout << m_identifier << "update intercepting" << std::endl;
-
+//        std::cout << m_identifier << "::intercepting (" << m_last_mouse_state.is_intercepting << " -> " << should_intercept << ")" << std::endl;
         if (should_intercept != m_last_mouse_state.is_intercepting) {
             std::cout << m_identifier << "::new intercepting state: " << should_intercept << std::endl;
             m_last_mouse_state.is_intercepting = should_intercept;
@@ -580,8 +542,6 @@ private:
     void on_child_intercepting_change(bool is_intercepting) {
         bool was_intercepted = m_last_mouse_state.is_intercepted;
         m_last_mouse_state.is_intercepted = is_intercepting;
-
-        std::cout << m_identifier << "update intercepted" << std::endl;
 
         if (was_intercepted != m_last_mouse_state.is_intercepted) {
             std::cout << m_identifier << "::new INTERCEPTED state: " << m_last_mouse_state.is_intercepted << std::endl;

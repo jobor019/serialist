@@ -102,7 +102,6 @@ struct MouseState {
         bool was_dragging = is_drag_editing;
         is_drag_editing = true;
         drag_deplacement = event.getOffsetFromDragStart();
-        std::cout << "drag deplacement: " << drag_deplacement->getY() << "\n";
         update_drag_velocity(event);
         position = event.getPosition();
         return !was_dragging;
@@ -167,7 +166,6 @@ struct MouseState {
     }
 
     bool is_active_over_component() const {
-        std::cout << "positioni has value " << position.has_value() << ", is_intercepted " << is_intercepted << "\n";
         return position.has_value() && !is_intercepted;
     }
 

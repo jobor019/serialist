@@ -73,7 +73,7 @@ public:
 
 
     std::optional<int> mode_activated() override {
-        std::cout << "DEFAULT MODE ACTIVATED (text: " << m_text << ")" << std::endl;
+//        std::cout << "DEFAULT MODE ACTIVATED (text: " << m_text << ")" << std::endl;
         m_text_component.reset();
         return 0;
     }
@@ -135,6 +135,7 @@ public:
 
         void state_changed(InputMode* active_mode, int state, AlphaMask& alpha) override {
             const auto is_active = active_mode && active_mode->is<DragAndDropMode>();
+//            std::cout << "state changed: " << state << "(is active: " << is_active << ")\n";
             m_enabled.setVisible(is_active && state == static_cast<int>(State::enabled));
             m_hover.setVisible(is_active && state == static_cast<int>(State::hovering));
             m_drag_to.setVisible(is_active && state == static_cast<int>(State::dragging_to));
@@ -184,7 +185,7 @@ public:
 
     std::optional<int> item_dropped(const DragInfo&) override {
         std::cout << "!!!!!! ITEM DROPPED !!!!!!!!!" << std::endl;
-        m_text_interface.set_text("Drag enabled");
+        m_text_interface.set_text("DnD enabled");
         return static_cast<int>(State::enabled);
     }
 
@@ -211,7 +212,7 @@ public:
             return static_cast<int>(State::valid_target);
 
         } else if (!mouse_state.is_active_over_component()) {
-            m_text_interface.set_text("Drag enabled");
+            m_text_interface.set_text("DnD enabled");
             return static_cast<int>(State::enabled);
 
         } else if (mouse_state.is_active_over_component()) {
@@ -238,7 +239,7 @@ public:
 
 
     void reset() override {
-        std::cout << m_text_interface.get_identifier() << "::resetting!\n";
+//        std::cout << m_text_interface.get_identifier() << "::resetting!\n";
         m_text_interface.reset();
     }
 
@@ -295,13 +296,15 @@ public:
 
     explicit DragEditMode(DummyTextInterface& text_interface
                           , ValueInterface& value_interface
-                          , DragBehaviour drag_behaviour)
+                          , DragBehaviour drag_behaviour
+                          , bool intercept_mouse)
             : m_text_interface(text_interface)
               , m_value_interface(value_interface)
-              , m_drag_behaviour(drag_behaviour) {}
+              , m_drag_behaviour(drag_behaviour)
+              , m_intercept(intercept_mouse) {}
 
     bool intercept_mouse() override {
-        return true;
+        return m_intercept;
     }
 
     std::optional<int> mouse_state_changed(const MouseState& mouse_state) override {
@@ -348,6 +351,8 @@ private:
     ValueInterface& m_value_interface;
 
     const DragBehaviour m_drag_behaviour;
+
+    bool m_intercept;
 
 
 };
@@ -398,7 +403,7 @@ public:
 
 
     private:
-        BorderHighlight m_enabled{juce::Colours::yellowgreen.withAlpha(0.6f), 1};
+        BorderHighlight m_enabled{juce::Colours::indigo.withAlpha(0.6f), 1};
         BorderHighlight m_hover{juce::Colours::yellowgreen, 2};
         FillHighlight m_ongoing_move{juce::Colours::palegoldenrod.withAlpha(0.1f)};
 
@@ -589,14 +594,14 @@ public:
 
     void set_text(const std::string& text) override {
         m_text = text;
-        std::cout << m_identifier << "::text set to " << m_text << std::endl;
+//        std::cout << m_identifier << "::text set to " << m_text << std::endl;
         repaint();
     }
 
 
     void reset() override {
         m_text = m_default_text;
-        std::cout << m_identifier << "::text set to " << m_default_text << " (reset)" << std::endl;
+//        std::cout << m_identifier << "::text set to " << m_default_text << " (reset)" << std::endl;
         repaint();
     }
 
@@ -631,12 +636,12 @@ private:
 class DragAndDroppableComponent : public DndBaseComponent {
 public:
     DragAndDroppableComponent(const std::string& default_text
-                              , Vec<std::unique_ptr<InputCondition>> de_conditions
+                              , Vec<std::unique_ptr<InputCondition>> dnd_conditions
                               , GlobalDragAndDropContainer& dnd_container
                               , const std::string& identifier
                               , InputHandler* parent = nullptr)
             : DndBaseComponent(default_text
-                               , default_modes(*this, std::move(de_conditions))
+                               , default_modes(*this, std::move(dnd_conditions))
                                , default_visualizations()
                                , dnd_container
                                , identifier
@@ -787,14 +792,17 @@ public:
                           , DragBehaviour drag_behaviour
                           , GlobalDragAndDropContainer& dnd_container
                           , const std::string& identifier
-                          , bool add_fallback_mode)
+                          , bool add_fallback_mode
+                          , bool intercept_mouse
+                          , InputHandler* parent = nullptr)
             : m_default_text(default_text)
-              , m_input_handler(nullptr, *this
+              , m_input_handler(parent, *this
                                 , default_modes(*this
                                                 , std::move(move_conditions)
                                                 , std::move(drag_edit_conditions)
                                                 , drag_behaviour
-                                                , add_fallback_mode)
+                                                , add_fallback_mode
+                                                , intercept_mouse)
                                 , dnd_container
                                 , {std::ref(m_visualizer)}
                                 , identifier) {
@@ -806,10 +814,11 @@ public:
                                       , Vec<std::unique_ptr<InputCondition>> move_conditions
                                       , Vec<std::unique_ptr<InputCondition>> drag_edit_conditions
                                       , DragBehaviour drag_behaviour
-                                      , bool add_fallback_mode) {
+                                      , bool add_fallback_mode
+                                      , bool intercept_mouse) {
         InputModeMap map;
         map.add(std::move(move_conditions), std::make_unique<MoveMode>(c, c));
-        map.add(std::move(drag_edit_conditions), std::make_unique<DragEditMode>(c, c, drag_behaviour));
+        map.add(std::move(drag_edit_conditions), std::make_unique<DragEditMode>(c, c, drag_behaviour, intercept_mouse));
         if (add_fallback_mode)
             map.add(std::make_unique<NoKeyCondition>(), std::make_unique<DefaultMode>(c));
         return map;
@@ -888,12 +897,16 @@ public:
                        , GlobalDragAndDropContainer& dnd_container
                        , const std::string& parent_identifier
                        , const std::string& child_tsc_identifier
-                       , const std::string& child_ade_identifier)
+                       , const std::string& child_ade_identifier
+                       , bool child_ade_intercept
+                       , InputHandler& parent)
                 : ThreeStateComponent(parent_text
                                       , std::move(move_conditions)
                                       , std::move(dnd_conditions)
                                       , dnd_container
-                                      , parent_identifier)
+                                      , parent_identifier
+                                      , juce::Colours::darkseagreen
+                                      , &parent)
                   , m_tsc(child_tsc_text
                           , std::move(child_tsc_move_conditions)
                           , std::move(child_tsc_dnd_conditions)
@@ -907,7 +920,9 @@ public:
                           , DragBehaviour::hide_and_restore
                           , dnd_container
                           , child_ade_identifier
-                          , true) {
+                          , true
+                          , child_ade_intercept
+                          , &get_input_handler()) {
             addAndMakeVisible(m_tsc, 0);
             addAndMakeVisible(m_ade, 0);
         }
@@ -944,7 +959,9 @@ public:
                          , Vec<std::unique_ptr<InputCondition>> gc_tsc_dnd_conditions
                          , Vec<std::unique_ptr<InputCondition>> gc_ade_drag_edit_conditions
                          , const std::string& gc_tsc_identifier
-                         , const std::string& gc_ade_identifier)
+                         , const std::string& gc_ade_identifier
+                         , bool c_ade_intercept
+                         , bool gc_ade_intercept)
             : DragAndDroppableComponent(
             parent_text
             , std::move(dnd_conditions)
@@ -963,6 +980,8 @@ public:
                     , child_inner_identifier
                     , gc_tsc_identifier
                     , gc_ade_identifier
+                    , gc_ade_intercept
+                    , get_input_handler()
             )
               , m_drag_edit(
                     child_ade_text
@@ -971,7 +990,8 @@ public:
                     , DragBehaviour::hide_and_restore
                     , dnd_container
                     , child_ade_identifier
-                    , false) {
+                    , false
+                    , c_ade_intercept) {
         addAndMakeVisible(m_inner, 0);
         addAndMakeVisible(m_drag_edit, 0);
     }
@@ -983,6 +1003,7 @@ public:
 
         m_inner.setBounds(bounds.removeFromTop(bounds.getHeight() * 0.8));
         m_drag_edit.setBounds(bounds);
+        DragAndDroppableComponent::resized();
     }
 
 
@@ -993,13 +1014,13 @@ private:
 
 // ==============================================================================================
 
-#define MOVE_COMPONENTS 1
-#define DND_COMPONENTS 1
-#define INCOMPATIBLE_DND_COMPONENTS 1
-#define TS_COMPONENTS 1
-#define NESTED_COMPONENTS 1
-#define RAW_DRAG_EDIT_COMPONENT 1
-#define ALWAYS_DNDABLE_COMPONENT 1
+#define MOVE_COMPONENTS 0
+#define DND_COMPONENTS 0
+#define INCOMPATIBLE_DND_COMPONENTS 0
+#define TS_COMPONENTS 0
+#define NESTED_COMPONENTS 0
+#define RAW_DRAG_EDIT_COMPONENT 0
+#define ALWAYS_DNDABLE_COMPONENT 0
 #define MULTI_NESTED_COMPONENT 1
 
 
@@ -1126,16 +1147,18 @@ public:
                     , Vec<std::unique_ptr<InputCondition>>{std::make_unique<KeyCondition>('W')}
                     , Vec<std::unique_ptr<InputCondition>>{std::make_unique<AlwaysTrueCondition>()}
                     , m_dnd_container
-                    , "M001"
-                    , "M010"
-                    , "M020"
+                    , "Mp"
+                    , "Mc1"
+                    , "Mc2"
                     , "TS"
                     , "DE (W)"
                     , Vec<std::unique_ptr<InputCondition>>{std::make_unique<KeyCondition>('Q')}
                     , Vec<std::unique_ptr<InputCondition>>{std::make_unique<KeyCondition>('W')}
                     , Vec<std::unique_ptr<InputCondition>>{std::make_unique<KeyCondition>('W')}
-                    , "M100"
-                    , "M200"
+                    , "Mgc1"
+                    , "Mgc2"
+                    , false
+                    , true
             )
 #endif
 //              , m_component_with_slider(
