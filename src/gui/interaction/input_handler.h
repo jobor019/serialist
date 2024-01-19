@@ -10,7 +10,6 @@
 #include "input_mode_map.h"
 #include "interaction/drag_and_drop/drag_and_drop.h"
 
-
 class InputHandler
         : public GlobalKeyState::Listener
           , public juce::MouseListener
@@ -21,10 +20,15 @@ public:
     class Listener {
     public:
         Listener() = default;
+
         virtual ~Listener() = default;
+
         Listener(const Listener&) = delete;
+
         Listener& operator=(const Listener&) = delete;
+
         Listener(Listener&&) noexcept = default;
+
         Listener& operator=(Listener&&) noexcept = default;
 
         virtual void state_changed(InputMode* active_mode, int state) = 0;
@@ -37,13 +41,13 @@ public:
                  , GlobalDragAndDropContainer& global_dnd_container
                  , Vec<std::reference_wrapper<Listener> > listeners
                  , std::string identifier = "")
-        : m_parent(parent)
-          , m_mouse_source_component(mouse_source_component)
-          , m_modes(std::move(modes))
-          , m_global_dnd_container(global_dnd_container)
-          , m_drag_controller(&mouse_source_component, global_dnd_container)
-          , m_listeners(std::move(listeners))
-          , m_identifier(std::move(identifier)) {
+            : m_parent(parent)
+              , m_mouse_source_component(mouse_source_component)
+              , m_modes(std::move(modes))
+              , m_global_dnd_container(global_dnd_container)
+              , m_drag_controller(&mouse_source_component, global_dnd_container)
+              , m_listeners(std::move(listeners))
+              , m_identifier(std::move(identifier)) {
         if (m_parent) {
             m_parent->add_child_handler(*this);
         }
@@ -65,8 +69,11 @@ public:
 
 
     InputHandler(const InputHandler&) = delete;
+
     InputHandler& operator=(const InputHandler&) = delete;
+
     InputHandler(InputHandler&&) noexcept = delete;
+
     InputHandler& operator=(InputHandler&&) noexcept = delete;
 
 
@@ -249,25 +256,24 @@ public:
     }
 
 
-    void mouse_drag_internal(const juce::MouseEvent& event, bool already_consumed) {
-        std::cout << "¤¤¤" << m_identifier << "::Event - MouseDrag\n";
-        if (mouse_event_targets_this(already_consumed)) {
-            process_mouse_drag(event);
-            already_consumed = true;
-        }
-
-        if (m_parent)
-            m_parent->mouse_drag_from_child(event, already_consumed);
+    void mouseDrag(const juce::MouseEvent& event) override {
+        mouse_drag_internal(event, false);
     }
-
 
     void mouse_drag_from_child(const juce::MouseEvent& source_event, bool already_consumed) {
         mouse_drag_internal(source_event.getEventRelativeTo(&m_mouse_source_component), already_consumed);
     }
 
 
-    void mouseDrag(const juce::MouseEvent& event) override {
-        mouse_drag_internal(event, false);
+    void mouse_drag_internal(const juce::MouseEvent& event, bool already_consumed) {
+        if (mouse_event_targets_this(already_consumed)) {
+            std::cout << "¤¤¤" << m_identifier << "::Event - MouseDrag\n";
+            process_mouse_drag(event);
+            already_consumed = true;
+        }
+
+        if (m_parent)
+            m_parent->mouse_drag_from_child(event, already_consumed);
     }
 
 
@@ -299,7 +305,8 @@ public:
         }
 
         // new drag edit in this component without any active state or with default drag edit behaviour
-        if (m_active_mode && m_active_mode->get_drag_behaviour() == DragBehaviour::drag_edit) {
+        if (m_active_mode && (m_active_mode->get_drag_behaviour() == DragBehaviour::drag_edit
+                              || m_active_mode->get_drag_behaviour() == DragBehaviour::hide_and_restore)) {
             m_last_mouse_state.mouse_drag_edit(event);
             if (update_mouse_state(false)) {
                 notify_listeners();
@@ -331,7 +338,6 @@ public:
 
 
     void mouse_up_internal(const juce::MouseEvent& event, bool already_consumed) {
-        // TODO: This solution is definitely not correct, but will need clear test cases to find the correct solution
         if (mouse_event_targets_this(already_consumed)) {
             std::cout << "¤¤¤" << m_identifier << "::Event - MouseUp\n";
             if (m_last_mouse_state.is_dragging_from) {
