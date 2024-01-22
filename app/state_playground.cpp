@@ -7,6 +7,7 @@
 #include "gui/interaction/input_handler.h"
 #include "interaction/interaction_visualizer.h"
 
+
 class DummyTextInterface {
 public:
     DummyTextInterface() = default;
@@ -254,6 +255,7 @@ private:
 
 //    DummyDragInfo* m_source = nullptr;
 };
+
 
 // ==============================================================================================
 
@@ -629,7 +631,6 @@ private:
 
 };
 
-
 // ==============================================================================================
 
 
@@ -991,7 +992,8 @@ public:
                     , dnd_container
                     , child_ade_identifier
                     , false
-                    , c_ade_intercept) {
+                    , c_ade_intercept
+                    , &get_input_handler()) {
         addAndMakeVisible(m_inner, 0);
         addAndMakeVisible(m_drag_edit, 0);
     }
@@ -1001,7 +1003,7 @@ public:
         bounds.removeFromRight(getWidth() / 4);
         bounds.removeFromTop(getWidth() / 4);
 
-        m_inner.setBounds(bounds.removeFromTop(bounds.getHeight() * 0.8));
+        m_inner.setBounds(bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.8)));
         m_drag_edit.setBounds(bounds);
         DragAndDroppableComponent::resized();
     }
@@ -1022,7 +1024,6 @@ private:
 #define RAW_DRAG_EDIT_COMPONENT 0
 #define ALWAYS_DNDABLE_COMPONENT 0
 #define MULTI_NESTED_COMPONENT 1
-
 
 class StatePlaygroundComponent : public juce::Component {
 public:

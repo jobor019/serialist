@@ -14,36 +14,6 @@ enum class DragBehaviour {
     , drag_and_drop = 3
 };
 
-//class DragBehaviour {
-//public:
-//    struct DefaultDrag {};
-//    struct HideAndRestoreCursor {};
-//    struct DragAndDropFrom { std::optional<juce::ScaledImage> cursor_image = std::nullopt; };
-//
-//    using BehaviourType = std::variant<DefaultDrag, HideAndRestoreCursor, DragAndDropFrom>;
-//
-//    DragBehaviour() = default;
-//
-//
-//    DragBehaviour(BehaviourType&& behaviour) : m_behaviour(std::move(behaviour)) {}
-//
-//
-//    template<typename T>
-//    bool is() const noexcept {
-//        return std::holds_alternative<T>(m_behaviour);
-//    }
-//
-//
-//    template<typename T>
-//    T as() const {
-//        return std::get<T>(m_behaviour);
-//    }
-//
-//
-//private:
-//    BehaviourType m_behaviour = DefaultDrag{};
-//};
-
 
 // ==============================================================================================
 
@@ -51,15 +21,6 @@ struct MouseState {
     void mouse_enter(const juce::MouseEvent& event) {
         position = event.getPosition();
     }
-
-
-    // /**
-    //  * should be called when the mouse enters a child (either directly or from parent)
-    //  */
-    // void mouse_child_enter(const juce::MouseEvent& event) {
-    //     mouse_enter(event);
-    //     is_over_child = true;
-    // }
 
 
     void mouse_move(const juce::MouseEvent& event) {
@@ -108,14 +69,6 @@ struct MouseState {
     }
 
 
-    // /**
-    //  * should be called when the mouse exits a child without exiting the parent component
-    //  */
-    // void mouse_child_exit() {
-    //     is_over_child = false;
-    // }
-
-
     void mouse_exit() {
         reset_drag_state();
         is_down = false;
@@ -123,7 +76,6 @@ struct MouseState {
     }
 
 
-    // TODO: Not sure if these should even live in MouseState
     void drop_enter() {
         is_dragging_to = true;
     }
@@ -155,6 +107,7 @@ struct MouseState {
         is_dragging_to = false;
         is_dragging_from = false;
         has_external_ongoing_drag = false;
+
         is_drag_editing = false;
         drag_deplacement = std::nullopt;
         m_previous_drag_position = std::nullopt;
@@ -166,23 +119,9 @@ struct MouseState {
     }
 
     bool is_active_over_component() const {
-        return position.has_value() && !is_intercepted;
+        return position.has_value() && should_receive_interceptable_event();
     }
 
-    // bool is_intercepted() const {
-    //     return interception == Interception::intercepted;
-    // }
-
-    // void set_intercepting(bool intercepting) {
-    //     is_intercepting = intercepting;
-    //     if (intercepting)
-    //         is_intercepted = false;
-    // }
-
-
-    // bool is_directly_over_component() const {
-    //     return is_over_component() && !is_intercepted_by_child;
-    // }
 
     bool is_dragging() const {
         return is_drag_editing || is_drag_and_dropping();
@@ -192,19 +131,29 @@ struct MouseState {
         return is_dragging_from || is_dragging_to;
     }
 
+    bool should_receive_interceptable_event() const {
+        // priority/interception order:
+        //  1. child
+        //  2. this if this intercepts mouse
+        //  3. parent if parent intercepts mouse
+        //  4. this if no interception occurred above
+        return !is_intercepted && (!parent_wants_to_intercept || is_intercepting);
+    }
+
+    bool parent_should_receive_interceptable_event() const {
+        return parent_wants_to_intercept && !is_intercepting && !is_intercepted;
+    }
+
+    bool child_should_receive_interceptable_event() const {
+        return is_intercepted;
+    }
 
     std::optional<juce::Point<int>> position = std::nullopt;
 
-    // enum class Interception {
-    //     none
-    //     , intercepting
-    //     , intercepted
-    // };
-    //
-    // Interception interception;
 
     bool is_intercepting = false;
     bool is_intercepted = false;
+    bool parent_wants_to_intercept = false;
 
     bool is_down = false;
     bool is_drag_editing = false;
