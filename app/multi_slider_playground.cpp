@@ -10,10 +10,29 @@ class MultiSliderPlaygroundComponent : public juce::Component {
 public:
     MultiSliderPlaygroundComponent()
             : m_dnd_container(*this)
-            , m_slider(nullptr, 0.0, Slider::Bounds(0, 100))
-    {
+              , m_slider_unit_range(nullptr)
+              , m_slider_midi_range(nullptr, SliderValue(0.0, DiscreteRange<double>::from_size(0, 128, 128), true))
+              , m_slider_initial_value(nullptr, SliderValue(0.7))
+              , m_slider_discrete(nullptr, SliderValue(0.0, DiscreteRange<double>::from_size(0, 10, 10), true))
+              , m_slider_binary(nullptr, SliderValue(0.0, DiscreteRange<double>::from_size(0, 2, 2), true))
+              , m_slider_infinitesimal(nullptr, SliderValue(0.0, DiscreteRange<double>::from_size(0, 1e-4, 200)))
+              , m_slider_exponential1(nullptr
+                                      , SliderValue(0.0, DiscreteRange<double>::from_size(0, 1000, 201, true)
+                                                    , false, std::nullopt, std::nullopt
+                                                    , Exponential<double>(2)))
+              , m_slider_exponential2(nullptr
+                                      , SliderValue(0.0, DiscreteRange<double>::from_size(0, 1000, 201, true)
+                                                    , false, std::nullopt, std::nullopt
+                                                    , Exponential<double>(8))) {
         addAndMakeVisible(m_dnd_container);
-        addAndMakeVisible(m_slider);
+        addAndMakeVisible(m_slider_unit_range);
+        addAndMakeVisible(m_slider_midi_range);
+        addAndMakeVisible(m_slider_initial_value);
+        addAndMakeVisible(m_slider_discrete);
+        addAndMakeVisible(m_slider_binary);
+        addAndMakeVisible(m_slider_infinitesimal);
+        addAndMakeVisible(m_slider_exponential1);
+        addAndMakeVisible(m_slider_exponential2);
     }
 
 
@@ -26,18 +45,47 @@ public:
         auto bounds = getLocalBounds().reduced(50);
 
         auto col = bounds.removeFromLeft(100);
-        m_slider.setBounds(col.removeFromTop(40));
+        m_slider_unit_range.setBounds(col.removeFromTop(30));
+
+        col.removeFromTop(40);
+        m_slider_midi_range.setBounds(col.removeFromTop(30));
+
+        col.removeFromTop(40);
+        m_slider_initial_value.setBounds(col.removeFromTop(30));
+
+        col.removeFromTop(40);
+        m_slider_discrete.setBounds(col.removeFromTop(30));
+
+        col.removeFromTop(40);
+        m_slider_binary.setBounds(col.removeFromTop(30));
+
+        col.removeFromTop(40);
+        m_slider_infinitesimal.setBounds(col.removeFromTop(30));
+
+        col.removeFromTop(40);
+        m_slider_exponential1.setBounds(col.removeFromTop(30));
+
+        bounds.removeFromLeft(60);
+        col = bounds.removeFromLeft(100);
+
+        m_slider_exponential2.setBounds(col.removeFromTop(30));
 
 
         m_dnd_container.setBounds(getLocalBounds());
     }
 
 
-
 private:
     GlobalDragAndDropContainer m_dnd_container;
 
-    Slider m_slider;
+    Slider m_slider_unit_range;
+    Slider m_slider_midi_range;
+    Slider m_slider_initial_value;
+    Slider m_slider_discrete;
+    Slider m_slider_binary;
+    Slider m_slider_infinitesimal;
+    Slider m_slider_exponential1;
+    Slider m_slider_exponential2;
 };
 
 
@@ -61,7 +109,6 @@ public:
     void resized() override {
         m_playground.setBounds(getLocalBounds());
     }
-
 
 
     void globalFocusChanged(juce::Component* focusedComponent) override {

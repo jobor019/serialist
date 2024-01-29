@@ -24,48 +24,48 @@ inline void eval_integral_range(const DiscreteRange<T>& range, T start, T end, s
     }
 }
 
-TEST_CASE("Integral DiscreteRange defined by num_steps") {
-    std::size_t steps = 10000;
+TEST_CASE("Integral DiscreteRange defined by size") {
+    std::size_t size = 10000;
 
     for (auto include_end: Vec<bool>{false, true}) {
 
         SECTION("Integer range from 0") {
             int start = 0;
-            int end = start + static_cast<int>(steps);
-            auto range = DiscreteRange<int>(start, end, steps, include_end);
-            eval_integral_range(range, start, end, steps, include_end);
+            int end = start + static_cast<int>(size);
+            auto range = DiscreteRange<int>::from_size(start, end, size, include_end);
+            eval_integral_range(range, start, end, size, include_end);
         }
 
         SECTION("Integer range to max") {
-            int start = std::numeric_limits<int>::max() - static_cast<int>(steps);
-            int end = start + static_cast<int>(steps);
-            auto range = DiscreteRange<int>(start, end, steps, include_end);
-            eval_integral_range(range, start, end, steps, include_end);
+            int start = std::numeric_limits<int>::max() - static_cast<int>(size);
+            int end = start + static_cast<int>(size);
+            auto range = DiscreteRange<int>::from_size(start, end, size, include_end);
+            eval_integral_range(range, start, end, size, include_end);
         }
 
         SECTION("Long range from 0") {
             long start = 0;
-            long end = start + static_cast<long>(steps);
-            auto range = DiscreteRange<long>(start, end, steps, include_end);
-            eval_integral_range(range, start, end, steps, include_end);
+            long end = start + static_cast<long>(size);
+            auto range = DiscreteRange<long>::from_size(start, end, size, include_end);
+            eval_integral_range(range, start, end, size, include_end);
         }
 
         SECTION("Long range towards double::digits") {
             // Note: Only tested up to size of the mantissa of double, will yield incorrect results above this value
             for (std::size_t i = 0; i < std::numeric_limits<double>::digits + 1; ++i) {
                 auto end = static_cast<long>(std::pow(2, i));
-                auto start = end - static_cast<long>(steps);
-                auto range = DiscreteRange<long>(start, end, steps, include_end);
-                eval_integral_range(range, start, end, steps, include_end);
+                auto start = end - static_cast<long>(size);
+                auto range = DiscreteRange<long>::from_size(start, end, size, include_end);
+                eval_integral_range(range, start, end, size, include_end);
             }
         }
 
         SECTION("Long range negative values") {
             for (std::size_t i = 0; i < std::numeric_limits<double>::digits + 1; ++i) {
                 auto start = -static_cast<long>(std::pow(2, i));
-                auto end = start + static_cast<long>(steps);
-                auto range = DiscreteRange<long>(start, end, steps, include_end);
-                eval_integral_range(range, start, end, steps, include_end);
+                auto end = start + static_cast<long>(size);
+                auto range = DiscreteRange<long>::from_size(start, end, size, include_end);
+                eval_integral_range(range, start, end, size, include_end);
             }
         }
     }
@@ -86,7 +86,7 @@ TEST_CASE("Integral DiscreteRange defined by (integral) step_size") {
                 auto start = static_cast<long>(std::pow(2, i));
                 auto end = start + step_size * num_steps;
 
-                auto range = DiscreteRange<long>(start, end, step_size, include_end);
+                auto range = DiscreteRange<long>::from_step(start, end, step_size, include_end);
 
                 REQUIRE(range.at(range.size() - 1) <= end);
 
@@ -125,15 +125,15 @@ inline void eval_floating_range(const DiscreteRange<double>& range, double start
 }
 
 TEST_CASE("Floating unit range DiscreteRange defined by num_steps") {
-    std::size_t steps = 10000;
+    std::size_t size = 10000;
 
     for (auto include_end: Vec<bool>{false, true}) {
 
         SECTION("Unit Range") {
             double start = 0.0;
             double end = 1.0;
-            auto range = DiscreteRange<double>(start, end, steps, include_end);
-            eval_floating_range(range, start, end, steps, include_end);
+            auto range = DiscreteRange<double>::from_size(start, end, size, include_end);
+            eval_floating_range(range, start, end, size, include_end);
         }
     }
 
@@ -156,3 +156,30 @@ TEST_CASE("Invalid floating ranges") {
     // TODO
 }
 
+
+TEST_CASE("Map") {
+    SECTION("Integral range") {
+        std::size_t size = 100;
+
+        auto range = DiscreteRange<std::size_t>::from_size(0, size, size, false);
+        for (std::size_t i = 0; i < size; ++i) {
+            double unit_index = static_cast<double>(i) / static_cast<double>(size - 1);
+            REQUIRE(range.map(unit_index) == i);
+        }
+    }
+
+    // TODO: More tests required
+}
+
+TEST_CASE("Inverse") {
+    SECTION("Integral range") {
+        std::size_t size = 100;
+
+        auto range = DiscreteRange<std::size_t>::from_size(0, size, size, false);
+
+        for (std::size_t i = 0; i < size; ++i) {
+            double expected_unit_index = static_cast<double>(i) / static_cast<double>(size - 1);
+            REQUIRE(range.inverse(i) == expected_unit_index);
+        }
+    }
+}

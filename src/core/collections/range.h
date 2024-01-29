@@ -43,36 +43,59 @@ class DiscreteRange {
 public:
     static constexpr double DEFAULT_EPSILON = 1e-8;
 
-    DiscreteRange(T start, T end, T step_size, bool include_end = false, double epsilon = DEFAULT_EPSILON)
-            : DiscreteRange(start
-                            , end
-                            , static_cast<double>(step_size)
-                            , num_steps_of(start, end, static_cast<double>(step_size), include_end)
-                            , include_end
-                            , epsilon) {}
+
+
+    static DiscreteRange from_step(T start, T end, T step_size
+                                , bool include_end = false, double epsilon = DEFAULT_EPSILON) {
+        return DiscreteRange(start
+                             , end
+                             , static_cast<double>(step_size)
+                             , num_steps_of(start, end, static_cast<double>(step_size), include_end)
+                             , include_end
+                             , epsilon);
+    }
+
 
     template<typename U = T, std::enable_if_t<!std::is_floating_point_v<U>, int> = 0>
-    DiscreteRange(T start, T end, double step_size, bool include_end = false, double epsilon = DEFAULT_EPSILON)
-            : DiscreteRange(start
-                            , end
-                            , step_size
-                            , num_steps_of(start, end, step_size, include_end)
-                            , include_end
-                            , epsilon) {}
+    static DiscreteRange from_step(T start, T end, double step_size
+                                , bool include_end = false, double epsilon = DEFAULT_EPSILON) {
+        return DiscreteRange(start
+                             , end
+                             , step_size
+                             , num_steps_of(start, end, step_size, include_end)
+                             , include_end
+                             , epsilon);
+    }
 
 
+    static DiscreteRange from_size(T start, T end, std::size_t num_steps
+                                  , bool include_end = false, double epsilon = DEFAULT_EPSILON) {
+        return DiscreteRange(start
+                        , end
+                        , step_size_of(start, end, num_steps, include_end)
+                        , num_steps
+                        , include_end
+                        , epsilon);
+    }
 
-    DiscreteRange(T start, T end, std::size_t num_steps, bool include_end = false, double epsilon = DEFAULT_EPSILON)
-            : DiscreteRange(start
-                            , end
-                            , step_size_of(start, end, num_steps, include_end)
-                            , num_steps
-                            , include_end
-                            , epsilon) {}
+    DiscreteRange<T> new_adjusted(std::optional<T> new_start, std::optional<T> new_end) const {
+        if (!new_start && !new_end) return cloned();
+
+        if (!new_start) new_start = m_start;
+        if (!new_end) new_end = m_end;
+
+        return from_step(*new_start, *new_end, m_step_size, m_include_end, m_epsilon);
+    }
+
+    DiscreteRange<T> cloned() const {
+        return *this;
+    }
 
 
-    bool is_in(T value) const {
+    bool contains(T value) const {
         (void) value;
+        throw std::runtime_error("not implemented: contains"); // TODO
+
 
         if constexpr (std::is_floating_point_v<T>) {
             // TODO
@@ -81,15 +104,22 @@ public:
         }
     }
 
-    T map(double unit_value) const {
+    T clip(T value) const {
+        return utils::clip(value, get_min(), get_max());
+    }
+
+    std::size_t map_index(double unit_value) const {
         unit_value = utils::clip(unit_value, 0.0, 1.0);
 
-        auto index = static_cast<std::size_t >(std::floor((m_range * unit_value + m_epsilon) / m_step_size));
-        return at(index);
+        return static_cast<std::size_t>(std::floor((m_range * unit_value + m_epsilon) / m_step_size));
+    }
+
+    T map(double unit_value) const {
+        return at(map_index(unit_value));
     }
 
     double inverse(T value) const {
-        (void) value; // TODO
+        return static_cast<double>(value - m_start) / m_range;
     }
 
     T at(std::size_t index) const {
@@ -116,6 +146,18 @@ public:
             v.append(at(i));
         }
         return v;
+    }
+
+    T get_start() const { return m_start; }
+
+    T get_end() const { return m_end; }
+
+    T get_min() const { return at(0); }
+
+    T get_max() const { return at(m_num_steps - 1); }
+
+    double get_step_size() const {
+        return m_step_size;
     }
 
 

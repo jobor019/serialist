@@ -14,7 +14,7 @@ find_package(Catch2 3 REQUIRED)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
 add_library(serialistCore INTERFACE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/bounded_value.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/exponential.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/connectable.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/events.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/exceptions.h
