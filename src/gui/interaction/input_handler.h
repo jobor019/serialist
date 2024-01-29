@@ -38,21 +38,28 @@ public:
     InputHandler(InputHandler* parent
                  , juce::Component& mouse_source_component
                  , InputModeMap modes
-                 , GlobalDragAndDropContainer& global_dnd_container
-                 , Vec<std::reference_wrapper<Listener> > listeners
+                 , Vec<std::reference_wrapper<Listener>> listeners
+                 , GlobalDragAndDropContainer* global_dnd_container
                  , std::string identifier = "")
             : m_parent(parent)
               , m_mouse_source_component(mouse_source_component)
               , m_modes(std::move(modes))
-              , m_global_dnd_container(global_dnd_container)
-              , m_drag_controller(&mouse_source_component, global_dnd_container)
               , m_listeners(std::move(listeners))
+              , m_global_dnd_container(global_dnd_container)
+              , m_drag_controller(global_dnd_container
+                                  ? std::make_unique<DragController>(&mouse_source_component, *global_dnd_container)
+                                  : nullptr)
               , m_identifier(std::move(identifier)) {
+
         if (m_parent) {
             m_parent->add_child_handler(*this);
         }
         m_mouse_source_component.addMouseListener(this, false);
-        m_global_dnd_container.add_listener(*this);
+
+        if (m_global_dnd_container) {
+            m_global_dnd_container->add_listener(*this);
+        }
+
         GlobalKeyState::add_listener(*this);
 
         if (update_active_mode()) {
@@ -63,8 +70,16 @@ public:
 
 
     ~InputHandler() override {
+        if (m_parent) {
+            m_parent->remove_child_handler(*this);
+        }
+
         m_mouse_source_component.removeMouseListener(this);
-        m_global_dnd_container.remove_listener(*this);
+
+        if (m_global_dnd_container) {
+            m_global_dnd_container->remove_listener(*this);
+        }
+
         GlobalKeyState::remove_listener(*this);
     }
 
@@ -402,16 +417,17 @@ public:
     }
 
 
-    GlobalDragAndDropContainer& get_global_dnd_container() const {
+    GlobalDragAndDropContainer* get_global_dnd_container() const {
         return m_global_dnd_container;
     }
 
 private:
     void start_drag_from(const juce::MouseEvent& mouse_event) {
+        assert(m_drag_controller);
         assert(m_active_mode);
         assert(m_active_mode->get_drag_behaviour() == DragBehaviour::drag_and_drop);
 
-        m_drag_controller.start_drag(m_active_mode->get_drag_info(), mouse_event, m_active_mode->get_drag_image());
+        m_drag_controller->start_drag(m_active_mode->get_drag_info(), mouse_event, m_active_mode->get_drag_image());
         m_last_mouse_state.drag_start();
 
         if (update_mouse_state(false)) {
@@ -421,10 +437,11 @@ private:
 
 
     void finalize_drag_from() {
+        assert(m_drag_controller);
         assert(m_active_mode);
         assert(m_active_mode->get_drag_behaviour() == DragBehaviour::drag_and_drop);
 
-        m_drag_controller.finalize_drag();
+        m_drag_controller->finalize_drag();
         m_last_mouse_state.drag_end();
 
         if (update_mouse_state(false)) {
@@ -435,7 +452,8 @@ private:
 
     void cancel_all_drag_actions() {
 //        std::cout << m_identifier << "::CANCELLING ALL DND\n";
-        m_drag_controller.cancel_drag();
+        if (m_drag_controller)
+            m_drag_controller->cancel_drag();
 
         if (m_last_mouse_state.is_dragging())
             m_drag_cancelled = true;
@@ -601,13 +619,14 @@ private:
 
     InputModeMap m_modes;
 
-    GlobalDragAndDropContainer& m_global_dnd_container;
-    DragController m_drag_controller;
+    Vec<std::reference_wrapper<Listener>> m_listeners;
+
+    GlobalDragAndDropContainer* m_global_dnd_container;
+    std::unique_ptr<DragController> m_drag_controller;
 
     InputMode* m_active_mode = nullptr;
     int m_last_state = NO_STATE;
 
-    Vec<std::reference_wrapper<Listener> > m_listeners;
 
     MouseState m_last_mouse_state;
 

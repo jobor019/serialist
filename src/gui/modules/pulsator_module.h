@@ -3,7 +3,7 @@
 #define SERIALISTLOOPER_PULSATOR_MODULE_H
 
 #include "bases/module_stereotypes.h"
-#include "slider_widget.h"
+#include "slider_widget_LEGACY.h"
 #include "core/generatives/pulsator.h"
 #include "socket_widget.h"
 #include "header_widget.h"

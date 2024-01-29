@@ -14,6 +14,7 @@ find_package(Catch2 3 REQUIRED)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
 add_library(serialistCore INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/bounded_value.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/connectable.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/events.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/exceptions.h
@@ -90,6 +91,7 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/combobox_widget.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/header_widget.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/slider_widget.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/slider_widget_LEGACY.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/toggle_button_widget.h
 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider/clefs.h
@@ -334,6 +336,43 @@ target_link_libraries(statePlayground
         ${FLAGS_JUCE})
 
 
+#####################################################################################
+## TARGET : MULTISLIDER PLAYGROUND
+#####################################################################################
+
+juce_add_gui_app(multiSliderPlayground EXCLUDE_FROM_ALL
+        PRODUCT_NAME "MultiSlider Playground")
+
+
+target_sources(multiSliderPlayground
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/multi_slider_playground.cpp
+        ${SOURCES})
+
+target_include_directories(multiSliderPlayground PRIVATE
+        ${INCLUDES}
+        )
+
+target_compile_definitions(multiSliderPlayground
+        PRIVATE
+        USE_JUCE=1
+        # JUCE_WEB_BROWSER and JUCE_USE_CURL would be on by default, but you might not need them.
+        JUCE_WEB_BROWSER=0  # If you remove this, add `NEEDS_WEB_BROWSER TRUE` to the `juce_add_gui_app` call
+        JUCE_USE_CURL=0     # If you remove this, add `NEEDS_CURL TRUE` to the `juce_add_gui_app` call
+        JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:serialistLooper,JUCE_PRODUCT_NAME>"
+        JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:serialistLooper,JUCE_VERSION>"
+        )
+
+target_link_libraries(multiSliderPlayground
+        INTERFACE
+        serialistCore
+        PRIVATE
+        ${MODULE_DEPENDENCIES_JUCE}
+        magicEnum
+        PUBLIC
+        ${FLAGS_JUCE})
+
+
 
 #####################################################################################
 ## TARGET: NOP PLAYGROUND
@@ -360,7 +399,8 @@ target_include_directories(nopPlayground
 #####################################################################################
 
 add_executable(tests EXCLUDE_FROM_ALL
-        test/backend/algo/vec_tests.cpp
+        test/backend/collections/range_tests.cpp
+        test/backend/collections/vec_tests.cpp
         test/backend/algo/voices_tests.cpp
         test/backend/algo/random_tests.cpp
         test/backend/algo/histogram_tests.cpp

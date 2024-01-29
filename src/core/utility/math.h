@@ -45,6 +45,12 @@ inline T clip(T position
     return position;
 }
 
+// Overload for cases where both lower and upper bounds are provided directly
+template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+inline T clip(T position, T lower_bound, T upper_bound) {
+    return clip(position, std::optional<T>(lower_bound), std::optional<T>(upper_bound));
+}
+
 
 // ==============================================================================================
 
@@ -64,6 +70,13 @@ inline std::size_t double2index(double d, std::size_t index_range, double epsilo
 
 inline double index2double(std::size_t index, std::size_t index_range) {
     return static_cast<double>(index) / static_cast<double>(index_range);
+}
+
+
+// ==============================================================================================
+
+inline bool equals(double a, double b, double epsilon = 1e-6) {
+    return std::abs(a - b) < epsilon;
 }
 
 

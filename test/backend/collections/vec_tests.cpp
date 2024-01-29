@@ -939,6 +939,26 @@ TEST_CASE("Test insert with non-copyable constructible objects") {
 
 }
 
+class NonCopyableObj {
+public:
+    explicit NonCopyableObj(const std::string& s) : str(s) {}
+    virtual ~NonCopyableObj() = default;
+    NonCopyableObj(const NonCopyableObj&) = delete;
+    NonCopyableObj& operator=(const NonCopyableObj&) = delete;
+    NonCopyableObj(NonCopyableObj&&)  noexcept = default;
+    NonCopyableObj& operator=(NonCopyableObj&&)  noexcept = default;
+
+    std::string str;
+};
+
+TEST_CASE("Append with dereferenced non-copyable object") {
+    auto s = NonCopyableObj("123");
+    Vec<NonCopyableObj*> v;
+    v.append(&s);
+    REQUIRE(v[0]->str == "123");
+    REQUIRE(s.str == "123");
+}
+
 
 TEST_CASE("non-copyable ctor") {
     Vec<std::unique_ptr<std::string>> v{std::make_unique<std::string>("123"), std::make_unique<std::string>("456")};

@@ -329,8 +329,8 @@ public:
     }
 
     std::optional<int> mouse_position_changed(const MouseState& mouse_state) override {
-        if (mouse_state.drag_deplacement) {
-            m_value_interface.set_value(-static_cast<float>(mouse_state.drag_deplacement.value().getY()));
+        if (mouse_state.drag_displacement) {
+            m_value_interface.set_value(-static_cast<float>(mouse_state.drag_displacement.value().getY()));
         }
         return std::nullopt;
     }
@@ -1016,13 +1016,13 @@ private:
 
 // ==============================================================================================
 
-#define MOVE_COMPONENTS 0
-#define DND_COMPONENTS 0
-#define INCOMPATIBLE_DND_COMPONENTS 0
-#define TS_COMPONENTS 0
-#define NESTED_COMPONENTS 0
-#define RAW_DRAG_EDIT_COMPONENT 0
-#define ALWAYS_DNDABLE_COMPONENT 0
+#define MOVE_COMPONENTS 1
+#define DND_COMPONENTS 1
+#define INCOMPATIBLE_DND_COMPONENTS 1
+#define TS_COMPONENTS 1
+#define NESTED_COMPONENTS 1
+#define RAW_DRAG_EDIT_COMPONENT 1
+#define ALWAYS_DNDABLE_COMPONENT 1
 #define MULTI_NESTED_COMPONENT 1
 
 class StatePlaygroundComponent : public juce::Component {
@@ -1104,6 +1104,7 @@ public:
                     , m_dnd_container
                     , "DE1"
                     , true
+                    , true
             )
               , m_drag_edit_component2(
                     "Hide&Restore (R)"
@@ -1112,6 +1113,7 @@ public:
                     , DragBehaviour::hide_and_restore
                     , m_dnd_container
                     , "DE2"
+                    , true
                     , true
             )
               , m_drag_edit_component3(
@@ -1122,6 +1124,7 @@ public:
                     , m_dnd_container
                     , "DE3"
                     , false
+                    , true
             )
 #endif
 #if ALWAYS_DNDABLE_COMPONENT

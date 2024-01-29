@@ -38,13 +38,15 @@ public:
     virtual void state_changed(InputMode* active_mode, int state, AlphaMask& alpha) = 0;
 };
 
+using VisualizationVec  = Vec<std::unique_ptr<InteractionVisualization>>;
+
 
 // ==============================================================================================
 
 class InteractionVisualizer : public juce::Component, public InputHandler::Listener {
 public:
     explicit InteractionVisualizer(juce::Component& parent
-                                   , Vec<std::unique_ptr<InteractionVisualization>> visualizations)
+                                   , VisualizationVec visualizations)
             : m_alpha_mask(parent) {
         setInterceptsMouseClicks(false, false);
         add(std::move(visualizations));
@@ -83,7 +85,7 @@ public:
 
 
 private:
-    Vec<std::unique_ptr<InteractionVisualization>> m_visualizations;
+    VisualizationVec m_visualizations;
     AlphaMask m_alpha_mask;
 };
 

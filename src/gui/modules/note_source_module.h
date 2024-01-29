@@ -6,7 +6,7 @@
 #include "core/generatives/note_source.h"
 #include "state/generative_component.h"
 #include "midi_config.h"
-#include "widgets/slider_widget.h"
+#include "widgets/slider_widget_LEGACY.h"
 #include "widgets/toggle_button_widget.h"
 #include "widgets/header_widget.h"
 #include "views/note_view.h"

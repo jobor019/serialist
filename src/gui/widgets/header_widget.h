@@ -6,7 +6,7 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "core/generatives/variable.h"
 #include "toggle_button_widget.h"
-#include "slider_widget.h"
+#include "slider_widget_LEGACY.h"
 #include "look_and_feel.h"
 
 class HeaderWidget : public juce::Component

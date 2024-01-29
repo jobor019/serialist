@@ -5,16 +5,22 @@
 #ifndef SERIALISTLOOPER_KEYBOARD_SHORTCUTS_H
 #define SERIALISTLOOPER_KEYBOARD_SHORTCUTS_H
 
-class GlobalKeyboardShortcuts {
-public:
-
+struct GlobalKeyboardShortcuts {
 
 };
 
+
+
 // ==============================================================================================
 
-class ConfigurationLayerKeyboardShortcuts {
-public:
+// TODO LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY
+// TODO
+// TODO: Not sure if this file should be used at all given how InputHandler
+// TODO  solves most of the problems that this file was intended to solve
+// TODO
+// TODO LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY LEGACY
+
+struct ConfigurationLayerKeyboardShortcuts {
     static const int NEW_GENERATOR_KEY = static_cast<int>('Q');
     static const int NEW_OSCILLATOR_KEY = static_cast<int>('W');
     static const int NEW_MIDI_SOURCE_KEY = static_cast<int>('E');
@@ -30,9 +36,11 @@ public:
 
 // ==============================================================================================
 
-class MultiSliderKeyboardShortcuts {
-public:
+struct MultiSliderKeyboardShortcuts {
     static const int DELETE_SLIDER = static_cast<int>('D');
 };
+
+
+
 
 #endif //SERIALISTLOOPER_KEYBOARD_SHORTCUTS_H

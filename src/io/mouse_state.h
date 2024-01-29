@@ -52,7 +52,7 @@ struct MouseState {
 
         position = event.getPosition();
         m_previous_drag_position = std::nullopt;
-        drag_deplacement = std::nullopt;
+        drag_displacement = std::nullopt;
     }
 
 
@@ -62,7 +62,7 @@ struct MouseState {
     bool mouse_drag_edit(const juce::MouseEvent& event) {
         bool was_dragging = is_drag_editing;
         is_drag_editing = true;
-        drag_deplacement = event.getOffsetFromDragStart();
+        drag_displacement = event.getOffsetFromDragStart();
         update_drag_velocity(event);
         position = event.getPosition();
         return !was_dragging;
@@ -109,7 +109,7 @@ struct MouseState {
         has_external_ongoing_drag = false;
 
         is_drag_editing = false;
-        drag_deplacement = std::nullopt;
+        drag_displacement = std::nullopt;
         m_previous_drag_position = std::nullopt;
     }
 
@@ -166,7 +166,7 @@ struct MouseState {
 
     float drag_velocity_x = 0.0f;
     float drag_velocity_y = 0.0f;
-    std::optional<juce::Point<int>> drag_deplacement = std::nullopt;
+    std::optional<juce::Point<int>> drag_displacement = std::nullopt;
 
 
 private:
