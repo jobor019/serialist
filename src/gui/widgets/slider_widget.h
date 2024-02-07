@@ -512,19 +512,33 @@ public:
 //    void remove_listener(Listener& listener) { m_listeners.remove(&listener); }
 
     void paint(juce::Graphics& g) override {
-
-        auto component_width = getWidth();
-        auto slider_width = static_cast<double>(component_width) * m_value.get_quantized_raw_value();
-
         g.setColour(juce::Colours::cornflowerblue);
-        g.fillRect(getLocalBounds().withTrimmedRight(component_width - static_cast<int>(slider_width)));
+
+        if (m_layout == Layout::horizontal) {
+            paint_horizontal_bar(g);
+        } else {
+            paint_vertical_bar(g);
+        }
 
         g.setColour(juce::Colours::whitesmoke);
         g.drawFittedText(juce::String(m_value.get_scaled_value(), static_cast<int>(m_value.get_num_decimals()))
-                         , getLocalBounds()
+                         , getLocalBounds().reduced(4)
                          , juce::Justification::centred, 1);
 
         g.drawRect(getLocalBounds());
+    }
+
+    void paint_horizontal_bar(juce::Graphics& g) {
+        auto component_width = getWidth();
+        auto slider_width = static_cast<double>(component_width) * m_value.get_quantized_raw_value();
+        g.fillRect(getLocalBounds().withTrimmedRight(component_width - static_cast<int>(slider_width)));
+
+    }
+
+    void paint_vertical_bar(juce::Graphics& g) {
+        auto component_height = getHeight();
+        auto slider_height = static_cast<double>(component_height) * m_value.get_quantized_raw_value();
+        g.fillRect(getLocalBounds().withTrimmedTop(component_height - static_cast<int>(slider_height)));
     }
 
     void resized() override {
@@ -552,6 +566,8 @@ public:
         m_layout = layout;
         repaint();
     }
+
+    SliderValue& get_value()  { return m_value; }
 
 
 private:
@@ -604,7 +620,10 @@ private:
 
 // ==============================================================================================
 
-class SliderWidget {
+class SliderWidget : public GenerativeComponent, public SliderValue::Listener {
+public:
+    //    SliderWidget(InputHandler*, juce::ValueTree& gui_state_vt, Variable<Facet> variable, ...)
+
 private:
     Slider m_value;
     juce::Label m_label;

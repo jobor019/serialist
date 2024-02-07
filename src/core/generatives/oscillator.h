@@ -239,6 +239,7 @@ public:
         }
 
 //        m_previous_values.push(output); // TODO: Update to use Facet
+        // TODO: std::move??
         m_current_value = output;
 
         return m_current_value;

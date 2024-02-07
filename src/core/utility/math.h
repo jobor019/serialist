@@ -5,6 +5,8 @@
 #include <type_traits>
 #include <cmath>
 #include <stdexcept>
+#include <optional>
+#include <algorithm>
 
 namespace utils {
 

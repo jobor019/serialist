@@ -2,7 +2,7 @@
 #ifndef SERIALISTLOOPER_BAR_SLIDER_H
 #define SERIALISTLOOPER_BAR_SLIDER_H
 
-#include "multi_slider.h"
+#include "multi_slider_LEGACY.h"
 
 template<typename T>
 class BarSlider : public MultiSliderElement<T> {

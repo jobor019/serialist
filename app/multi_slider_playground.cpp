@@ -4,6 +4,7 @@
 #include "key_state.h"
 #include "core/param/parameter_policy.h"
 #include "slider_widget.h"
+#include "multi_slider.h"
 
 
 class MultiSliderPlaygroundComponent : public juce::Component {
@@ -23,7 +24,9 @@ public:
               , m_slider_exponential2(nullptr
                                       , SliderValue(0.0, DiscreteRange<double>::from_size(0, 1000, 201, true)
                                                     , false, std::nullopt, std::nullopt
-                                                    , Exponential<double>(8))) {
+                                                    , Exponential<double>(8)))
+              , m_slider_vertical(nullptr, SliderValue(), Slider::Layout::vertical)
+              , m_multi_slider(nullptr, m_dnd_container) {
         addAndMakeVisible(m_dnd_container);
         addAndMakeVisible(m_slider_unit_range);
         addAndMakeVisible(m_slider_midi_range);
@@ -33,6 +36,13 @@ public:
         addAndMakeVisible(m_slider_infinitesimal);
         addAndMakeVisible(m_slider_exponential1);
         addAndMakeVisible(m_slider_exponential2);
+        addAndMakeVisible(m_slider_vertical);
+
+        for (std::size_t i = 0; i < 8; ++i) {
+            m_multi_slider.add_slider();
+        }
+
+        addAndMakeVisible(m_multi_slider);
     }
 
 
@@ -70,6 +80,18 @@ public:
 
         m_slider_exponential2.setBounds(col.removeFromTop(30));
 
+        // vertical
+        bounds.removeFromLeft(60);
+        col = bounds.removeFromLeft(30);
+
+        m_slider_vertical.setBounds(col.removeFromTop(100));
+
+        // multislider
+        bounds.removeFromLeft(60);
+        col = bounds.removeFromLeft(150);
+
+        m_multi_slider.setBounds(bounds.removeFromTop(100));
+
 
         m_dnd_container.setBounds(getLocalBounds());
     }
@@ -86,6 +108,9 @@ private:
     Slider m_slider_infinitesimal;
     Slider m_slider_exponential1;
     Slider m_slider_exponential2;
+    Slider m_slider_vertical;
+
+    MultiSlider m_multi_slider;
 };
 
 

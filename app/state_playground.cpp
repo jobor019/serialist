@@ -494,8 +494,8 @@ public:
             : m_default_text(default_text)
               , m_input_handler(nullptr, *this
                                 , default_modes(*this, std::move(move_conditions), add_fallback_mode)
-                                , dnd_container
                                 , {std::ref(m_visualizer)}
+                                , &dnd_container
                                 , identifier) {
         addAndMakeVisible(m_visualizer);
     }
@@ -568,8 +568,8 @@ public:
               , m_visualizer(*this, std::move(visualizations))
               , m_input_handler(parent, *this
                                 , std::move(input_mode_map)
-                                , dnd_container
                                 , {std::ref(m_visualizer)}
+                                , &dnd_container
                                 , identifier)
               , m_identifier(identifier)
               , m_background(bg_color) {
@@ -804,8 +804,9 @@ public:
                                                 , drag_behaviour
                                                 , add_fallback_mode
                                                 , intercept_mouse)
-                                , dnd_container
                                 , {std::ref(m_visualizer)}
+                                , &dnd_container
+
                                 , identifier) {
         addAndMakeVisible(m_visualizer);
     }
@@ -1013,6 +1014,30 @@ private:
     InnerComponent m_inner;
     DragEditableComponent m_drag_edit;
 };
+
+
+// ==============================================================================================
+
+//class DragEditFlowComponent {
+//public:
+//    class SimpleDragEditMode : public InputMode {
+//    public:
+//        SimpleDragEditMode(DragEditFlowComponent& c) : m_c(c) {}
+//
+//        bool intercept_mouse() override {
+//            return true;
+//        }
+//
+//        std::optional<int> mouse_position_changed(const MouseState &mouse_state) override {
+//            std::cout << "mpos\n";
+//        }
+//
+//        void reset() override {}
+//
+//    private:
+//        DragEditFlowComponent& m_c;
+//    };
+//};
 
 // ==============================================================================================
 

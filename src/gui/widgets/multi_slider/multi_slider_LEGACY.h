@@ -1,6 +1,6 @@
 
-#ifndef SERIALISTLOOPER_MULTI_SLIDER_H
-#define SERIALISTLOOPER_MULTI_SLIDER_H
+#ifndef SERIALISTLOOPER_MULTI_SLIDER_LEGACY_H
+#define SERIALISTLOOPER_MULTI_SLIDER_LEGACY_H
 
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "state/generative_component.h"
@@ -497,4 +497,4 @@ private:
 };
 
 
-#endif //SERIALISTLOOPER_MULTI_SLIDER_H
+#endif //SERIALISTLOOPER_MULTI_SLIDER_LEGACY_H

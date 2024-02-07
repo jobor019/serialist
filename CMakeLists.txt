@@ -23,6 +23,7 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generative.h
 #        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/note_source.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/nop_parameter.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/operator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/oscillator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/parameter_policy.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/phasor.h
@@ -62,6 +63,7 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/jump_gate.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/equal_duration_sampling.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/math.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/optionals.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/queue.h
         src/core/algo/time/filters.h
         src/core/generatives/interpolator.h
@@ -93,9 +95,10 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/slider_widget.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/slider_widget_LEGACY.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/toggle_button_widget.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider.h
 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider/clefs.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider/multi_slider.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider/multi_slider_LEGACY.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider/multi_slider_action_LEGACY.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider/multi_slider_element.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/widgets/multi_slider/score_slider.h
@@ -412,6 +415,7 @@ add_executable(tests EXCLUDE_FROM_ALL
         test/backend/generatives/random_pulsator_tests.cpp
         test/backend/algo/filters_tests.cpp
         test/backend/generatives/oscillator_tests.cpp
+        test/backend/generatives/operator_tests.cpp
         test/backend/generatives/interpolator_tests.cpp
         test/backend/algo/facet_tests.cpp
         test/backend/generatives/selector_tests.cpp

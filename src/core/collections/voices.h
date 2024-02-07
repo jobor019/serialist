@@ -48,6 +48,10 @@ public:
         return one_hot(value, 0, num_voices);
     }
 
+    static Voices<T> singular(const Voice<T>& value, std::size_t num_voices = 1) {
+        return one_hot(value, 0, num_voices);
+    }
+
 
     static Voices<T> one_hot(const T& value, std::size_t index, std::size_t num_voices) {
         auto voices = Voices<T>::zeros(num_voices);
