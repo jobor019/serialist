@@ -51,6 +51,9 @@ struct is_container<
 > : public std::true_type {
 };
 
+template<typename T>
+inline constexpr bool is_container_v = is_container<T>::value;
+
 
 // ==============================================================================================
 

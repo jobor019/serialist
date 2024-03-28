@@ -109,7 +109,7 @@ TEST_CASE("Oscillator Ctor") {
 //    float increment = 0.3f; // stepped increment 0.3f is equivalent to 0.3 cycles per trigger = 0.3 freq
 //
 //    auto wrapper = OscillatorWrapper();
-//    wrapper.type.try_set_value(OscillatorNode::Type::phasor);
+//    wrapper.type.try_set_value(OscillatorNode::Mode::phasor);
 //    wrapper.freq.try_set_value(increment);
 //    wrapper.m_stepped.try_set_value(true);
 //
@@ -136,7 +136,7 @@ TEST_CASE("Oscillator Ctor") {
 //    float freq = 0.25f;
 //
 //    auto wrapper = OscillatorWrapper();
-//    wrapper.type.try_set_value(OscillatorNode::Type::phasor);
+//    wrapper.type.try_set_value(OscillatorNode::Mode::phasor);
 //    wrapper.freq.try_set_value(freq);
 //    wrapper.m_stepped.try_set_value(false);
 //
@@ -169,7 +169,7 @@ TEST_CASE("Oscillator Ctor") {
 //
 //TEST_CASE("Unity Phasor Drifting") {
 //    auto oscillator = OscillatorWrapper();
-//    oscillator.osc_type.try_set_value(Oscillator::Type::phasor);
+//    oscillator.osc_type.try_set_value(Oscillator::Mode::phasor);
 //    oscillator.freq.try_set_value(0.1f);
 //
 //    TimePoint t;
@@ -185,7 +185,7 @@ TEST_CASE("Oscillator Ctor") {
 //
 //TEST_CASE("Sin Oscillator with Add Value") {
 //    auto oscillator = OscillatorWrapper();
-//    oscillator.osc_type.try_set_value(Oscillator::Type::sin);
+//    oscillator.osc_type.try_set_value(Oscillator::Mode::sin);
 //    oscillator.freq.try_set_value(0.25f);
 //    oscillator.add.try_set_value(2.0f);
 //
@@ -201,7 +201,7 @@ TEST_CASE("Oscillator Ctor") {
 //
 //TEST_CASE("Phasor Oscillator") {
 //    OscillatorWrapper oscillator;
-//    oscillator.osc_type.try_set_value(Oscillator::Type::phasor);
+//    oscillator.osc_type.try_set_value(Oscillator::Mode::phasor);
 //    oscillator.freq.try_set_value(0.25f);
 //
 //    TimePoint t;

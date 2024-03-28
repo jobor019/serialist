@@ -5,6 +5,9 @@
 #include <optional>
 #include "core/algo/time/transport.h"
 
+/**
+ * Detect jumps in time
+ */
 class JumpGate {
 public:
     static constexpr double JUMP_THRESHOLD_TICKS = 1.0;   // quarter note

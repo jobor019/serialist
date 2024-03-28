@@ -2,7 +2,7 @@
 #ifndef SERIALISTLOOPER_OSC_SENDER_H
 #define SERIALISTLOOPER_OSC_SENDER_H
 
-#include "core/generative_stereotypes.h"
+#include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/algo/time/trigger.h"
 #include "osc.h"
 

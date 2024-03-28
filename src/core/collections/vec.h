@@ -17,6 +17,12 @@ public:
 
     // =========================== CONSTRUCTORS ==========================
 
+    using value_type = T;
+    using size_type = std::size_t;
+    using allocator_type = std::allocator<T>;
+    using iterator = typename std::vector<T>::iterator;
+    using const_iterator = typename std::vector<T>::const_iterator;
+
     Vec() = default;
 
 
@@ -130,6 +136,74 @@ public:
         auto v = Vec<T>::zeros(size);
         v[index] = value;
         return std::move(v);
+    }
+
+
+    // TODO: Quite a bit of code duplication in these two functions
+    /**
+     * Takes a lambda function with any number of arguments and any number of Vecs of any type corresponding to the
+     * types of the arguments of the lambda, and computes the function for each entry in the vector
+     * after broadcasting the size of the Vecs to the largest size.
+     *
+     * Example:
+     * @code
+     *   auto lambda = [](int a, double b, const std::string& c) {
+     *       return std::to_string(a) + c + std::to_string(b);
+     *   };
+     *
+     *   auto a = Vec<int>({1, 2, 3, 4});
+     *   auto b = Vec<double>({4.0, 5.0, 6.0});
+     *   auto c = Vec<std::string>({"a", "b"});
+     *
+     *   auto result = Vec<std::string>::broadcast_apply(lambda, std::move(a), std::move(b), std::move(c));
+     * @endcode
+     */
+    template<typename Callable
+             , typename... Containers
+             , typename = std::enable_if_t<(std::is_same_v<Containers, Vec<typename Containers::value_type>> && ...)>>
+    static auto broadcast_apply(Callable&& func
+                                , Containers&& ... containers
+    ) -> Vec<decltype(std::forward<Callable>(func)(*(containers.begin())...))> {
+
+        using ResultType = decltype(std::forward<Callable>(func)(*(containers.begin())...));
+
+        auto max_size = std::max({containers.size()...});
+
+        ((containers.resize_fold(max_size)), ...);
+
+        auto results = Vec<ResultType>::allocated(max_size);
+
+        for (size_t i = 0; i < max_size; ++i) {
+            results.append(std::forward<Callable>(func)((*(containers.begin() + i))...));
+        }
+
+        return results;
+    }
+
+    /**
+     * Same as broadcast_apply but without moving / mutating the original Vecs
+     * @see broadcast_apply
+     */
+    template<typename Callable
+             , typename... Containers
+             , typename = std::enable_if_t<(std::is_same_v<Containers, Vec<typename Containers::value_type>> && ...)> >
+    static auto broadcast_apply(Callable&& func, const Containers& ... containers) -> Vec<
+            decltype(std::forward<Callable>(func)(*(containers.begin())...))> {
+        using ResultType = decltype(std::forward<Callable>(func)(*(containers.begin())...));
+
+        auto max_size = std::max({containers.size()...});
+
+        auto resized_containers = std::make_tuple(std::move(containers.cloned().resize_fold(max_size))...);
+
+        auto results = Vec<ResultType>::allocated(max_size);
+
+        for (size_t i = 0; i < max_size; ++i) {
+            results.append(std::apply([&func, i](auto&& ... args) {
+                return std::forward<Callable>(func)(*(args.begin() + i)...);
+            }, resized_containers));
+        }
+
+        return results;
     }
 
 
@@ -253,16 +327,24 @@ public:
     }
 
 
+    // TODO: Should probably use `iterator` and `const_iterator` instead of decltype(auto) for consistency
+
     decltype(auto) begin() { return m_vector.begin(); }
 
 
     decltype(auto) begin() const { return m_vector.begin(); }
 
 
+    decltype(auto) cbegin() const noexcept { return m_vector.cbegin(); }
+
+
     decltype(auto) end() { return m_vector.end(); }
 
 
     decltype(auto) end() const { return m_vector.end(); }
+
+
+    decltype(auto) cend() const noexcept { return m_vector.cend(); }
 
 
     decltype(auto) back() { return m_vector.back(); }
@@ -418,6 +500,10 @@ public:
         return *this;
     }
 
+    void clear() {
+        m_vector.clear();
+    }
+
     std::optional<T> pop_value(const T& value) {
         if (auto it = std::find(m_vector.begin(), m_vector.end(), value); it != m_vector.end()) {
             pop_internal(it);
@@ -433,20 +519,20 @@ public:
     }
 
     template<typename SizeType, typename = std::enable_if_t<std::is_integral_v<SizeType>>>
-     std::optional<T> pop_index(SizeType index) {
-         long iterator_index;
-         if constexpr (std::is_signed_v<SizeType>) {
-             iterator_index = static_cast<long>(sign_index(index));
-         } else {
-             iterator_index = static_cast<long>(index);
-         }
+    std::optional<T> pop_index(SizeType index) {
+        long iterator_index;
+        if constexpr (std::is_signed_v<SizeType>) {
+            iterator_index = static_cast<long>(sign_index(index));
+        } else {
+            iterator_index = static_cast<long>(index);
+        }
 
-         if (static_cast<std::size_t>(iterator_index) >= size()) {
-             return std::nullopt;
-         }
+        if (static_cast<std::size_t>(iterator_index) >= size()) {
+            return std::nullopt;
+        }
 
-         return pop_internal(m_vector.begin() + iterator_index);
-     }
+        return pop_internal(m_vector.begin() + iterator_index);
+    }
 
 
     template<typename SizeType, typename = std::enable_if_t<std::is_integral_v<SizeType>>>
@@ -731,7 +817,7 @@ public:
     /**
      * Removes all elements for which `f` returns false from the original Vec and returns them as a separate vector
      */
-    Vec<T> filter_drain(std::function<bool(T)> f) {
+    Vec<T> filter_drain(std::function<bool(const T&)> f) {
         auto drain_iterator = std::stable_partition(m_vector.begin(), m_vector.end(), f);
 
         std::vector<T> drained;
@@ -984,6 +1070,11 @@ public:
         return *this;
     }
 
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    Vec<T>& clip(T low_thresh, T high_thresh) {
+        return clip({low_thresh}, {high_thresh});
+    }
+
 
     template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
     Vec<T>& clip_remove(std::optional<T> low_thresh, std::optional<T> high_thresh) {
@@ -1215,8 +1306,8 @@ private:
 
     std::optional<T> pop_internal(typename std::vector<T>::iterator it) {
         auto output = std::make_optional<T>(std::move(*it));
-            m_vector.erase(it);
-            return std::move(output);
+        m_vector.erase(it);
+        return std::move(output);
 
     }
 

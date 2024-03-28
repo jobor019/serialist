@@ -105,8 +105,6 @@ private:
 
 class Note {
 public:
-
-
     enum class Type {
         note_off
         , note_on
@@ -146,9 +144,14 @@ private:
 
 // ==============================================================================================
 
-using HeldNotes = Held<NoteNumber>;
+struct ChanneledHeld {
+    NoteNumber note;
+    unsigned int channel;
+};
 
-using MultiVoiceHeldNotes = MultiVoiceHeld<NoteNumber>;
+using HeldNotes = Held<ChanneledHeld>;
+
+using MultiVoiceHeldNotes = MultiVoiceHeld<ChanneledHeld>;
 
 
 #endif //SERIALISTLOOPER_NOTES_H

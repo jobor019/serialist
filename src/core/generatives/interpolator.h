@@ -6,7 +6,7 @@
 #include <optional>
 #include "core/collections/voices.h"
 #include "core/algo/facet.h"
-#include "core/generative_stereotypes.h"
+#include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/algo/time/trigger.h"
 #include "core/utility/math.h"
 #include "sequence.h"
@@ -30,7 +30,7 @@
 //
 //    iss >> type >> dump >> pivot;
 //
-//    return SelectionStrategy(static_cast<Type>(type), pivot);
+//    return SelectionStrategy(static_cast<Mode>(type), pivot);
 //}
 
 

@@ -21,6 +21,12 @@ class Voices {
 public:
     const static inline std::size_t AUTO_VOICES = 0;
 
+    using value_type = T;
+    using size_type = std::size_t;
+    using allocator_type = std::allocator<T>;
+    using iterator = typename std::vector<T>::iterator;
+    using const_iterator = typename std::vector<T>::const_iterator;
+
 
     // =========================== CONSTRUCTORS ==========================
 

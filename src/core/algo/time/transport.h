@@ -71,6 +71,22 @@ public:
         return m_tick - diff + q;   // schedule on next quantization level
     }
 
+    bool operator<(const TimePoint& other) const {
+        return m_tick < other.m_tick;
+    }
+
+    bool operator<=(const TimePoint& other) const {
+        return m_tick <= other.m_tick;
+    }
+
+    bool operator>(const TimePoint& other) const {
+        return m_tick > other.m_tick;
+    }
+
+    bool operator>=(const TimePoint& other) const {
+        return m_tick >= other.m_tick;
+    }
+
 
     [[nodiscard]] double get_tick() const { return m_tick; }
 

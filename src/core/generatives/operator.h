@@ -5,7 +5,7 @@
 #include "core/utility/math.h"
 #include "core/utility/optionals.h"
 #include "core/algo/facet.h"
-#include "core/generative_stereotypes.h"
+#include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/algo/time/trigger.h"
 #include "sequence.h"
 #include "variable.h"
@@ -143,6 +143,67 @@ public:
         }
     }
 
+    /**
+     * @throw std::domain_error if str cannot be parsed
+     */
+    static Type from_string(const std::string& str) {
+        if (str == "add" || str == "+")
+            return Type::add;
+        if (str == "sub" || str == "-")
+            return Type::sub;
+        if (str == "mul" || str == "*")
+            return Type::mul;
+        if (str == "div" || str == "/")
+            return Type::div;
+        if (str == "mod" || str == "%")
+            return Type::mod;
+        if (str == "pow" || str == "**")
+            return Type::pow;
+        if (str == "and" || str == "&&")
+            return Type::and_op;
+        if (str == "or" || str == "||")
+            return Type::or_op;
+        if (str == "eq" || str == "==")
+            return Type::eq;
+        if (str == "ne" || str == "!=")
+            return Type::ne;
+        if (str == "lt" || str == "<")
+            return Type::lt;
+        if (str == "le" || str == "<=")
+            return Type::le;
+        if (str == "gt" || str == ">")
+            return Type::gt;
+        if (str == "ge" || str == ">=")
+            return Type::ge;
+        if (str == "min")
+            return Type::min;
+        if (str == "max")
+            return Type::max;
+        if (str == "abs")
+            return Type::abs;
+        if (str == "ceil")
+            return Type::ceil;
+        if (str == "floor")
+            return Type::floor;
+        if (str == "round")
+            return Type::round;
+        if (str == "sqrt")
+            return Type::sqrt;
+        if (str == "sin")
+            return Type::sin;
+        if (str == "cos")
+            return Type::cos;
+        if (str == "tan")
+            return Type::tan;
+        if (str == "exp")
+            return Type::exp;
+        if (str == "log")
+            return Type::log;
+        if (str == "nop")
+            return Type::nop;
+        throw std::domain_error("Unknown operator type");
+    }
+
 
 private:
 
@@ -277,8 +338,8 @@ struct OperatorWrapper {
     Sequence<Trigger> trigger{ParameterKeys::TRIGGER, parameter_handler, Trigger::pulse_on};
     Sequence<Facet, Operator::Type> type{Keys::TYPE, parameter_handler
                                          , Voices<Operator::Type>::singular(Operator::Type::add)};
-    Sequence<Facet> lhs{Keys::LHS, parameter_handler};
-    Sequence<Facet> rhs{Keys::RHS, parameter_handler};
+    Sequence<Facet, FloatType> lhs{Keys::LHS, parameter_handler};
+    Sequence<Facet, FloatType> rhs{Keys::RHS, parameter_handler};
 
     Sequence<Facet, bool> enabled{ParameterKeys::ENABLED, parameter_handler, Voices<bool>::singular(true)};
     Variable<Facet, std::size_t> num_voices{ParameterKeys::NUM_VOICES, parameter_handler, 0};

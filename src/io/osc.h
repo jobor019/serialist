@@ -4,7 +4,7 @@
 
 #include <juce_osc/juce_osc.h>
 #include "core/generative.h"
-#include "core/generative_stereotypes.h"
+#include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/algo/time/trigger.h"
 
 class OscParser {

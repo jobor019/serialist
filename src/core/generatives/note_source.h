@@ -4,24 +4,26 @@
 #define SERIALISTLOOPER_NOTE_SOURCE_H
 
 #include <vector>
-#include "core/algo/time/events.h"
-#include "core/algo/time/scheduler.h"
+#include "core/algo/time/LEGACY_events.h"
+#include "core/collections/scheduler.h"
+#include "core/algo/pitch/notes.h"
 #include "core/generative.h"
 #include "core/utility/enums.h"
 #include "core/param/parameter_policy.h"
 #include "core/param/socket_policy.h"
 #include "core/param/socket_handler.h"
 #include "io/renderers.h"
-#include "core/generative_stereotypes.h"
+#include "core/generatives/stereotypes/base_stereotypes.h"
 
 
 // TODO: Lots of refactoring needed here: Separate out NoteSource from NoteSourceNode + update accordingly
 class NoteSource : public Root {
 public:
 
+
     static const int HISTORY_LENGTH = 300;
 
-    class NoteSourceKeys {
+    class Keys {
     public:
         static const inline std::string PULSE = "pulse_on";
         static const inline std::string PITCH = "pitch";
@@ -43,21 +45,23 @@ public:
                , Node<Facet>* num_voices = nullptr)
             : m_parameter_handler(id, parent)
               , m_socket_handler(m_parameter_handler)
-              , m_trigger_pulse(m_socket_handler.create_socket(NoteSourceKeys::PULSE, trigger_pulse))
-              , m_pitch(m_socket_handler.create_socket(NoteSourceKeys::PITCH, pitch))
-              , m_velocity(m_socket_handler.create_socket(NoteSourceKeys::VELOCITY, velocity))
-              , m_channel(m_socket_handler.create_socket(NoteSourceKeys::CHANNEL, channel))
-              , m_enabled(m_socket_handler.create_socket(NoteSourceKeys::ENABLED, enabled))
+              , m_trigger_pulse(m_socket_handler.create_socket(Keys::PULSE, trigger_pulse))
+              , m_pitch(m_socket_handler.create_socket(Keys::PITCH, pitch))
+              , m_velocity(m_socket_handler.create_socket(Keys::VELOCITY, velocity))
+              , m_channel(m_socket_handler.create_socket(Keys::CHANNEL, channel))
+              , m_enabled(m_socket_handler.create_socket(Keys::ENABLED, enabled))
               , m_num_voices(m_socket_handler.create_socket(ParameterKeys::NUM_VOICES, num_voices))
               , m_played_notes(HISTORY_LENGTH) {
-        m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, NoteSourceKeys::CLASS_NAME);
+        m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, Keys::CLASS_NAME);
     }
 
     void update_time(const TimePoint &t) override {
         m_time_point = t;
     }
 
+
     void process() override {
+        // TODO: Don't forget to handle legatissimo case!!!
         if (!is_enabled() || !is_valid()) {
             if (m_previous_enabled_state) {
                 for (auto& note_off: flush_all(m_time_point)) {
@@ -189,21 +193,23 @@ private:
 
     [[nodiscard]] std::vector<MidiEvent> process_voice(const TimePoint& t
                                                        , std::size_t voice_index
-                                                       , const Voice<TriggerEvent>& triggers
+                                                       , const Voice<Trigger>& triggers
                                                        , const Voice<Facet>& midi_cents
                                                        , const Voice<Facet>& velocities
                                                        , const Voice<Facet>& channels) {
         if (triggers.empty())
             return {};
 
-        std::vector<MidiEvent> midi_events;
+        Vec<MidiEvent> midi_events;
 
-        if (contains_pulse_off(triggers)) {
-            auto note_offs = m_held_notes.at(voice_index).flush(t);
-            midi_events.insert(midi_events.end(), note_offs.begin(), note_offs.end());
+        if (triggers.contains(Trigger::pulse_off)) {
+            auto note_offs = m_held_notes.flush(voice_index);
+            midi_events.extend(note_offs.as_type<MidiEvent>([&t](const auto& e) {
+                return MidiEvent::note_off(t.get_tick(), e.note, e.channel);
+            }));
         }
 
-        if (contains_pulse_on(triggers)) {
+        if (triggers.contains(Trigger::pulse_on)) {
             auto note_ons = create_chord(t, midi_cents, velocities, channels);
             midi_events.insert(midi_events.end(), note_ons.begin(), note_ons.end());
             m_held_notes.at(voice_index).extend(note_ons);
@@ -213,59 +219,58 @@ private:
     }
 
 
-    static std::vector<MidiEvent> create_chord(const TimePoint& t
-                                               , const Voice<Facet>& midi_cents
-                                               , const Voice<Facet>& velocities
-                                               , const Voice<Facet>& channels) {
+    static Vec<MidiEvent> create_chord(const TimePoint& t
+                                               , Voice<Facet>&& midi_cents
+                                               , Voice<Facet>&& velocities
+                                               , Voice<Facet>&& channels) {
         if (midi_cents.empty() || velocities.empty() || channels.empty()) {
             return {};
         }
 
+        // Only midi_cent and channel: no need to broadcast notes based on velocity only
         auto num_notes = std::max(midi_cents.size(), channels.size());
 
-        std::vector<int> mcs = midi_cents.adapted_to<int>(num_notes);
-        std::vector<int> vs = velocities.adapted_to<int>(num_notes);
-        std::vector<int> cs = channels.adapted_to<int>(num_notes);
+        auto mcs = std::move(midi_cents).resize_fold(num_notes).as_type<int>();
+        auto vs = std::move(velocities).resize_fold(num_notes).as_type<int>();
+        auto cs = std::move(channels).resize_fold(num_notes).as_type<int>();
 
-        std::vector<MidiEvent> notes;
+        auto notes = Vec<MidiEvent>::allocated(num_notes);
 
         for (std::size_t i = 0; i < num_notes; ++i) {
-            notes.emplace_back(t.get_tick(), mcs.at(i), vs.at(i), cs.at(i));
+            notes.append({t.get_tick(), mcs[i], vs[i], cs[i]});
         }
 
         return notes;
-
-
     }
 
 
-    std::vector<MidiEvent> flush_all(const TimePoint& t) {
-        std::vector<MidiEvent> note_offs;
-        for (auto& held_notes_container: m_held_notes) {
-            auto flushed = held_notes_container.flush(t);
-            note_offs.insert(note_offs.end(), flushed.begin(), flushed.end());
-        }
-        return note_offs;
-    }
+//    std::vector<MidiEvent> flush_all(const TimePoint& t) {
+//        std::vector<MidiEvent> note_offs;
+//        for (auto& held_notes_container: m_held_notes) {
+//            auto flushed = held_notes_container.flush(t);
+//            note_offs.insert(note_offs.end(), flushed.begin(), flushed.end());
+//        }
+//        return note_offs;
+//    }
 
 
-    static bool contains_pulse_off(const Voice<TriggerEvent>& triggers) {
-        return contains(triggers, TriggerEvent::Type::pulse_off);
-    }
-
-
-    static bool contains_pulse_on(const Voice<TriggerEvent>& triggers) {
-        return contains(triggers, TriggerEvent::Type::pulse_on);
-    }
-
-
-    static bool contains(const Voice<TriggerEvent>& triggers, TriggerEvent::Type type) {
-        return std::find_if(
-                triggers.vector().begin()
-                , triggers.vector().end()
-                , [&type](const auto& trigger) { return trigger.get_type() == type; }
-        ) != triggers.vector().end();
-    }
+//    static bool contains_pulse_off(const Voice<TriggerEvent>& triggers) {
+//        return contains(triggers, TriggerEvent::Mode::pulse_off);
+//    }
+//
+//
+//    static bool contains_pulse_on(const Voice<TriggerEvent>& triggers) {
+//        return contains(triggers, TriggerEvent::Mode::pulse_on);
+//    }
+//
+//
+//    static bool contains(const Voice<TriggerEvent>& triggers, TriggerEvent::Mode type) {
+//        return std::find_if(
+//                triggers.vector().begin()
+//                , triggers.vector().end()
+//                , [&type](const auto& trigger) { return trigger.get_type() == type; }
+//        ) != triggers.vector().end();
+//    }
 
 
     bool is_enabled() {
@@ -288,7 +293,7 @@ private:
     Scheduler<MidiEvent> m_scheduler;
     MidiRenderer m_midi_renderer;
 
-    Socket<TriggerEvent>& m_trigger_pulse;
+    Socket<Trigger>& m_trigger_pulse;
     Socket<Facet>& m_pitch;
     Socket<Facet>& m_velocity;
     Socket<Facet>& m_channel;
@@ -296,8 +301,9 @@ private:
     Socket<Facet>& m_enabled;
     Socket<Facet>& m_num_voices;
 
-    utils::LockingQueue<MidiEvent> m_played_notes;
-    std::vector<HeldNotes> m_held_notes;
+//    utils::LockingQueue<MidiEvent> m_played_notes;
+    MultiVoiceHeldNotes m_held_notes;
+
 
     bool m_previous_enabled_state = false;
 

@@ -28,7 +28,7 @@ public:
 
 class MouseClick : public InputEvent {};
 
-class Trigger : public InputEvent {};
+class InputTrigger : public InputEvent {};
 
 class DragDropped : public InputEvent {
 public:

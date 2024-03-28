@@ -1,8 +1,8 @@
 
-#ifndef SERIALISTLOOPER_GENERATIVE_STEREOTYPES_H
-#define SERIALISTLOOPER_GENERATIVE_STEREOTYPES_H
+#ifndef SERIALISTLOOPER_BASE_STEREOTYPES_H
+#define SERIALISTLOOPER_BASE_STEREOTYPES_H
 
-#include "generative.h"
+#include "core/generative.h"
 #include "core/param/socket_handler.h"
 #include "core/param/parameter_keys.h"
 #include "core/algo/time/time_gate.h"
@@ -151,4 +151,4 @@ private:
 };
 
 
-#endif //SERIALISTLOOPER_GENERATIVE_STEREOTYPES_H
+#endif //SERIALISTLOOPER_BASE_STEREOTYPES_H

@@ -3,7 +3,7 @@
 #define SERIALISTLOOPER_UNIT_PULSE_H
 
 
-#include "core/algo/time/events.h"
+#include "core/algo/time/LEGACY_events.h"
 #include "core/generative.h"
 #include "core/param/parameter_keys.h"
 

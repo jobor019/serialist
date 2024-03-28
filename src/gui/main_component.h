@@ -6,7 +6,7 @@
 #include "core/generatives/note_source.h"
 #include "bases/connector_component.h"
 #include "core/algo/time/transport.h"
-#include "core/algo/time/scheduler.h"
+#include "core/collections/scheduler.h"
 #include "io/renderers.h"
 #include "core/param/parameter_policy.h"
 #include "configuration_layer_component.h"

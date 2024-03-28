@@ -3,7 +3,7 @@
 
 
 
-#include "core/generatives/pulsator.h"
+#include "core/generatives/auto_pulsator.h"
 #include "core/generatives/oscillator.h"
 //#include "core/generator.h"
 #include "core/generatives/note_source.h"

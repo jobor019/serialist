@@ -16,7 +16,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/exponential.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/connectable.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/events.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/LEGACY_events.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/exceptions.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/facet.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generation_graph.h
@@ -27,8 +27,10 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/oscillator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/parameter_policy.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/phasor.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/pulsator.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/scheduler.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/auto_pulsator.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/triggered_pulsator.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/variable_state_pulsator.h
+        src/core/collections/scheduler.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/transport.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/sequence.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/selector.h
@@ -46,7 +48,8 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/socket_base.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/random_pulsator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/weighted_random.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generative_stereotypes.h
+        src/core/generatives/stereotypes/base_stereotypes.h
+        src/core/generatives/stereotypes/pulsator_stereotypes.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/partial_note.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/allocator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/vec.h
@@ -61,6 +64,7 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/trigger.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/traits.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/jump_gate.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/pulse.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/equal_duration_sampling.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/math.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/optionals.h
@@ -404,6 +408,7 @@ target_include_directories(nopPlayground
 add_executable(tests EXCLUDE_FROM_ALL
         test/backend/collections/range_tests.cpp
         test/backend/collections/vec_tests.cpp
+        test/backend/collections/scheduler_tests.cpp
         test/backend/algo/voices_tests.cpp
         test/backend/algo/random_tests.cpp
         test/backend/algo/histogram_tests.cpp

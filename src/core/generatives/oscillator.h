@@ -13,9 +13,9 @@
 #include "core/generatives/variable.h"
 #include "core/algo/facet.h"
 #include "core/param/socket_handler.h"
-#include "core/algo/time/events.h"
+#include "core/algo/time/LEGACY_events.h"
 #include "core/algo/time/time_gate.h"
-#include "core/generative_stereotypes.h"
+#include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/algo/random.h"
 #include "core/algo/time/filters.h"
 #include "core/collections/queue.h"
@@ -232,15 +232,14 @@ public:
 
         auto output = Voices<Facet>::zeros(num_voices);
         for (std::size_t i = 0; i < num_voices; ++i) {
-            bool increment = triggers[i].contains(Trigger::pulse_on);
+            bool increment = Trigger::contains_pulse_on(triggers[i]);
             auto y = m_oscillators[i].process(t->get_tick(), types[i], freqs[i], phases[i], muls[i]
                                               , adds[i], dutys[i], curves[i], steppeds[i], taus[i], increment);
             output[i].append(static_cast<Facet>(y));
         }
 
 //        m_previous_values.push(output); // TODO: Update to use Facet
-        // TODO: std::move??
-        m_current_value = output;
+        m_current_value = std::move(output);
 
         return m_current_value;
     }

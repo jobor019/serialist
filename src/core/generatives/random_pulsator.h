@@ -5,19 +5,21 @@
 #include <functional>
 #include <cmath>
 #include "core/algo/weighted_random.h"
-#include "core/algo/time/events.h"
+#include "core/algo/time/LEGACY_events.h"
 #include "core/algo/time/time_gate.h"
 #include "core/param/parameter_policy.h"
 #include "core/param/socket_handler.h"
 #include "core/param/parameter_keys.h"
-#include "core/generative_stereotypes.h"
+#include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/algo/time/equal_duration_sampling.h"
 #include "core/algo/time/jump_gate.h"
 #include "core/algo/voice/multi_voiced.h"
 #include "sequence.h"
 #include "variable.h"
+#include "auto_pulsator.h"
 
-class RandomPulsator : public Flushable<Trigger> {
+
+class RandomPulsator : public Pulsator {
 public:
     static constexpr double DURATION_BOUND_THRESHOLD = 0.015625;   // 256d-note
     static constexpr double OFFSET_RATIO_THRESHOLD = 0.1;
@@ -29,10 +31,10 @@ public:
                             , double relative_offset = 1.0
                             , std::optional<unsigned int> seed = std::nullopt)
             : m_duration_rnd(lower_bound, upper_bound, seed)
-              , m_pulse_width(utils::clip(relative_offset, {0.0}, {1.0})) {}
+              , m_pulse_width(utils::clip(relative_offset, 0.0, 1.0)) {}
 
 
-    Voice<Trigger> process(double time) {
+    Voice<Trigger> process(double time) override {
         if (m_configuration_changed) {
             recompute_existing(time);
             m_configuration_changed = false;
@@ -59,15 +61,17 @@ public:
     Voice<Trigger> flush() override {
         if (m_next_pulse_off_time) {
             m_next_pulse_off_time = std::nullopt;
-            return Voice<Trigger>::singular(Trigger::pulse_off);
+            return Voice<Trigger>::singular(Trigger::pulse_off));
         }
         return {};
     }
 
 
-    Voice<Trigger> reset_time() {
-        m_next_pulse_on_time = std::nullopt;
-        return flush();
+    Voice<Trigger> handle_time_skip(double new_time) override {
+        // TODO: Bad implementation
+        throw std::runtime_error("Not implemented: RandomPulsator::handle_time_skip");
+//        m_next_pulse_on_time = std::nullopt;
+//        return flush();
     }
 
 
@@ -84,7 +88,7 @@ public:
 
 
     void set_pulse_width(double pw) {
-        m_pulse_width = utils::clip(pw, {0.0}, {1.0});
+        m_pulse_width = utils::clip(pw, 0.0, 1.0);
         m_configuration_changed = true;
     }
 
@@ -138,7 +142,8 @@ private:
         auto p_current_duration = m_duration_rnd.pdf(current_duration);
 
         if (p_current_duration < PROBABILITY_RECOMPUTE_THRESHOLD) {
-            std::cout << "recomputing full pulse (old duration: " << current_duration << ", p=" << p_current_duration << ")\n";
+            std::cout << "recomputing full pulse (old duration: " << current_duration << ", p=" << p_current_duration
+                      << ")\n";
             // note: new duration is generated relative to last trigger, not current time
             schedule_next(m_previous_trigger_time, !m_next_pulse_off_time.has_value());
             return true;
@@ -292,14 +297,14 @@ struct RandomPulsatorWrapper {
     ParameterHandler parameter_handler;
 
     Sequence<Facet, FloatType> lower_bound{RandomPulsatorNode::RandomPulsatorKeys::LOWER_BOUND
-                                       , parameter_handler
-                                       , Voices<FloatType>::singular(0.25f)};
+                                           , parameter_handler
+                                           , Voices<FloatType>::singular(0.25f)};
     Sequence<Facet, FloatType> upper_bound{RandomPulsatorNode::RandomPulsatorKeys::UPPER_BOUND
-                                       , parameter_handler
-                                       , Voices<FloatType>::singular(2.0f)};
+                                           , parameter_handler
+                                           , Voices<FloatType>::singular(2.0f)};
     Sequence<Facet, FloatType> pulse_width{RandomPulsatorNode::RandomPulsatorKeys::PULSE_WIDTH
-                                       , parameter_handler
-                                       , Voices<FloatType>::singular(1.0f)};
+                                           , parameter_handler
+                                           , Voices<FloatType>::singular(1.0f)};
 
     Sequence<Facet, bool> enabled{ParameterKeys::ENABLED, parameter_handler, Voices<bool>::singular(true)};
     Variable<Facet, std::size_t> num_voices{ParameterKeys::NUM_VOICES, parameter_handler, 1};

@@ -1,7 +1,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include <memory>
-#include "../src/core/algo/time/scheduler.h"
+#include "../src/core/collections/scheduler.h"
 #include "../src/io/renderers.h"
 #include "../src/core/algo/time/transport.h"
 #include "../src/core/generation_graph.h"
