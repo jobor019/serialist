@@ -17,11 +17,18 @@ public:
 
     virtual bool is_running() const = 0;
 
-    virtual Voice<Trigger> process(double time) = 0;
+    virtual Voice<Trigger> handle_external_triggers(double time, const Voice<Trigger>& triggers) = 0;
+
+    virtual Voice<Trigger> poll(double time) = 0;
 
     virtual Voice<Trigger> handle_time_skip(double new_time) = 0;
 
+    virtual Vec<Pulse<>> export_pulses() = 0;
+
+    virtual void import_pulses(const Vec<Pulse<>>& pulses) = 0;
+
 };
+
 
 
 // ==============================================================================================
@@ -69,9 +76,12 @@ public:
 
         update_parameters(num_voices, resized);
 
+        auto incoming_triggers = get_incoming_triggers(*t, num_voices);
+
         auto time = t->get_tick();
         for (std::size_t i = 0; i < m_pulsators.size(); ++i) {
-            output[i].extend(m_pulsators[i].process(time));
+            output[i].extend(m_pulsators[i].handle_external_triggers(time, incoming_triggers[i]));
+            output[i].extend(m_pulsators[i].poll(time));
         }
 
         m_current_value = output;
@@ -82,6 +92,16 @@ protected:
     virtual std::size_t get_voice_count() = 0;
 
     virtual void update_parameters(std::size_t num_voices, bool size_has_changed) = 0;
+
+    virtual Voices<Trigger> get_incoming_triggers(const TimePoint& t, std::size_t num_voices) = 0;
+
+    const MultiVoiced<PulsatorType, Trigger>& get_pulsators() const {
+        return m_pulsators;
+    }
+
+    MultiVoiced<PulsatorType, Trigger>& get_pulsators_mut() {
+        return m_pulsators;
+    }
 
 private:
     /**

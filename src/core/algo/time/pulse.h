@@ -21,7 +21,7 @@ public:
     }
 
     bool has_pulse_off() const {
-        return m_pulse_off_time;
+        return static_cast<bool>(m_pulse_off_time);
     }
 
     int get_id() const { return m_id; }
@@ -62,14 +62,14 @@ public:
                 });
     }
 
-    Vec<Pulse<TimePointType>> drain_elapsed(double time) {
-        return m_pulses.filter_drain([time](const Pulse<TimePointType>& p) {
-            return !p.elapsed(time);
+    Vec<Pulse<TimePointType>> drain_elapsed(double time, bool include_missing_pulse_offs = false) {
+        return m_pulses.filter_drain([time, include_missing_pulse_offs](const Pulse<TimePointType>& p) {
+            return !(p.elapsed(time) || (include_missing_pulse_offs && !p.has_pulse_off()));
         });
     }
 
-    Voice<Trigger> drain_elapsed_as_triggers(double time) {
-        return drain_elapsed(time)
+    Voice<Trigger> drain_elapsed_as_triggers(double time, bool include_missing_pulse_offs = false) {
+        return drain_elapsed(time, include_missing_pulse_offs)
                 .template as_type<Trigger>([](const Pulse<TimePointType>& p) {
                     return Trigger::pulse_off(p.get_id());
                 });
@@ -78,6 +78,14 @@ public:
     Voice<Trigger> reset() {
         m_last_scheduled_id = Trigger::NO_ID;
         return flush();
+    }
+
+    const Vec<Pulse<TimePointType>>& vec() const {
+        return m_pulses;
+    }
+
+    Vec<Pulse<TimePointType>>& vec_mut() {
+        return m_pulses;
     }
 
 

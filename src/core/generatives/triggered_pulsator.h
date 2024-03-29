@@ -25,11 +25,7 @@ public:
         return m_running;
     }
 
-    Voice<Trigger> schedule_pulse(double time) {
-        return Voice<Trigger>::singular(m_pulses.new_pulse(time, std::nullopt));
-    }
-
-    Voice<Trigger> process(double time) override {
+    Voice<Trigger> poll(double time) override {
         if (!is_running())
             return {};
 
@@ -38,7 +34,18 @@ public:
         }
         m_configuration_changed = false;
 
-        auto output = m_pulses.drain_elapsed_as_triggers(time);
+        return m_pulses.drain_elapsed_as_triggers(time);
+    }
+
+    Voice<Trigger> handle_external_triggers(double time, const Voice<Trigger>& triggers) override {
+        if (!is_running())
+            return {};
+
+        if (auto index = triggers.contains([](const Trigger& t) {
+            return t.is(Trigger::Type::pulse_on);
+        })) {
+            return schedule_pulse(time);
+        }
     }
 
     Voice<Trigger> handle_time_skip(double new_time) override {
@@ -56,7 +63,25 @@ public:
         m_configuration_changed = true;
     }
 
+    void import_pulses(const Vec<Pulse<>> &pulses) override {
+        for (auto &pulse : pulses) {
+            if (!pulse.has_pulse_off()) {
+                m_pulses.vec_mut().append(Pulse<>(pulse.get_id(), pulse.get_trigger_time(), 0.0));
+            } else {
+                m_pulses.vec_mut().append(pulse);
+            }
+        }
+    }
+
+    Vec<Pulse<>> export_pulses() override {
+        return m_pulses.vec_mut().drain();
+    }
+
 private:
+        Voice<Trigger> schedule_pulse(double time) {
+        return Voice<Trigger>::singular(m_pulses.new_pulse(time, time + m_duration));
+    }
+
     void reschedule() {
         // TODO
         throw std::runtime_error("TriggeredPulsator::reschedule() not implemented");
