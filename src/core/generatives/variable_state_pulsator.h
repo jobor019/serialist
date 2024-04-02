@@ -5,6 +5,8 @@
 #include "core/generatives/stereotypes/pulsator_stereotypes.h"
 #include "auto_pulsator.h"
 #include "triggered_pulsator.h"
+#include "sequence.h"
+#include "variable.h"
 
 class ThruPulsator : public Pulsator {
 public:
@@ -205,12 +207,15 @@ private:
 
 class VariableStatePulsatorNode : public PulsatorBase<VariableStatePulsator> {
 public:
-    static const inline std::string TRIGGER = "trigger";
-    static const inline std::string DURATION = "duration";
-    static const inline std::string LEGATO = "legato";
-    static const inline std::string SAMPLE_AND_HOLD = "sample_and_hold";
+    struct Keys {
+        static const inline std::string TRIGGER = "trigger";
+        static const inline std::string DURATION = "duration";
+        static const inline std::string LEGATO = "legato";
+        static const inline std::string SAMPLE_AND_HOLD = "sample_and_hold";
 
-    static const inline std::string CLASS_NAME = "VariableStatePulsatorNode";
+        static const inline std::string CLASS_NAME = "variable_state_pulsator";
+
+    };
 
     VariableStatePulsatorNode(const std::string& id
                               , ParameterHandler& parent
@@ -220,11 +225,23 @@ public:
                               , Node<Facet>* sample_and_hold = nullptr
                               , Node<Facet>* enabled = nullptr
                               , Node<Facet>* num_voices = nullptr)
-            : PulsatorBase<VariableStatePulsator>(id, parent, enabled, num_voices, CLASS_NAME)
+            : PulsatorBase<VariableStatePulsator>(id, parent, enabled, num_voices, Keys::CLASS_NAME)
               , m_trigger(add_socket(ParameterKeys::TRIGGER, trigger))
-              , m_duration(add_socket(DURATION, duration))
-              , m_legato_amount(add_socket(LEGATO, legato_amount))
-              , m_sample_and_hold(add_socket(SAMPLE_AND_HOLD, sample_and_hold)) {}
+              , m_duration(add_socket(Keys::DURATION, duration))
+              , m_legato_amount(add_socket(Keys::LEGATO, legato_amount))
+              , m_sample_and_hold(add_socket(Keys::SAMPLE_AND_HOLD, sample_and_hold))
+              , m_previous_mode(get_mode()) {}
+
+
+    VariableStatePulsator::Mode get_mode() const {
+        if (!m_trigger.is_connected()) {
+            return VariableStatePulsator::Mode::auto_pulsator;
+        } else if (!m_duration.is_connected()) {
+            return VariableStatePulsator::Mode::thru_pulsator;
+        } else {
+            return VariableStatePulsator::Mode::triggered_pulsator;
+        }
+    }
 
     std::size_t get_voice_count() override {
         return voice_count(m_trigger.voice_count()
@@ -234,19 +251,26 @@ public:
     }
 
     void update_parameters(std::size_t num_voices, bool size_has_changed) override {
+        auto mode = get_mode();
+        if (size_has_changed || mode != m_previous_mode) {
+            pulsators().set(&VariableStatePulsator::set_mode
+                            , Vec<VariableStatePulsator::Mode>::repeated(pulsators().size(), mode));
+            m_previous_mode = mode;
+        }
+
         if (size_has_changed || m_duration.has_changed()) {
             auto duration = m_duration.process().adapted_to(num_voices).firsts_or(1.0);
-            get_pulsators_mut().set(&VariableStatePulsator::set_duration, duration.as_type<double>());
+            pulsators().set(&VariableStatePulsator::set_duration, duration.as_type<double>());
         }
 
         if (size_has_changed || m_legato_amount.has_changed()) {
             auto legato_amount = m_legato_amount.process().adapted_to(num_voices).firsts_or(1.0);
-            get_pulsators_mut().set(&VariableStatePulsator::set_legato_amount, legato_amount.as_type<double>());
+            pulsators().set(&VariableStatePulsator::set_legato_amount, legato_amount.as_type<double>());
         }
 
         if (size_has_changed || m_sample_and_hold.has_changed()) {
             auto sample_and_hold = m_sample_and_hold.process().adapted_to(num_voices).firsts_or(true);
-            get_pulsators_mut().set(&VariableStatePulsator::set_sample_and_hold, sample_and_hold.as_type<bool>());
+            pulsators().set(&VariableStatePulsator::set_sample_and_hold, sample_and_hold.as_type<bool>());
         }
     }
 
@@ -259,6 +283,35 @@ private:
     Socket<Facet>& m_duration;
     Socket<Facet>& m_legato_amount;
     Socket<Facet>& m_sample_and_hold;
+
+    VariableStatePulsator::Mode m_previous_mode;
+};
+
+
+// ==============================================================================================
+
+template<typename FloatType = float>
+struct VariableStatePulsatorWrapper {
+    using Keys = VariableStatePulsatorNode::Keys;
+
+    ParameterHandler parameter_handler;
+
+    Sequence<Trigger> trigger{ParameterKeys::TRIGGER, parameter_handler, Voices<Trigger>::empty_like()};
+    Sequence<Facet, FloatType> duration{Keys::DURATION, parameter_handler, Voices<FloatType>::singular(1.0)};
+    Sequence<Facet, FloatType> legato_amount{Keys::LEGATO, parameter_handler, Voices<FloatType>::singular(1.0)};
+    Sequence<Facet, bool> sample_and_hold{Keys::SAMPLE_AND_HOLD, parameter_handler, Voices<bool>::singular(true)};
+    Sequence<Facet, bool> enabled{ParameterKeys::ENABLED, parameter_handler, Voices<bool>::singular(true)};
+    Variable<Facet, std::size_t> num_voices{ParameterKeys::NUM_VOICES, parameter_handler, 0};
+
+    VariableStatePulsatorNode pulsator_node{Keys::CLASS_NAME
+                                            , parameter_handler
+                                            , &trigger
+                                            , &duration
+                                            , &legato_amount
+                                            , &sample_and_hold
+                                            , &enabled
+                                            , &num_voices};
+
 };
 
 #endif //SERIALISTLOOPER_THREE_STATE_PULSATOR_H

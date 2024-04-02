@@ -182,6 +182,7 @@ TEST_CASE("Voices::merge") {
 
 
 TEST_CASE("Voices::merge_uneven") {
+    // TODO: Clean up + test offset parameter of merge_uneven
     auto voice1 = Voice<int>{1, 2, 3};
     auto voice2 = Voice<int>{4, 5, 6, 7};
     Voices<int> voices1({voice1});
@@ -199,6 +200,7 @@ TEST_CASE("Voices::merge_uneven") {
 
     REQUIRE(voices3.size() == 1);
     REQUIRE(voices3.vec()[0] == Voice<int>({1, 2, 3, 4, 5, 6, 7}));
+
 }
 
 

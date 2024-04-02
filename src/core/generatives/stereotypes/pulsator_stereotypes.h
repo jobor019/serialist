@@ -46,6 +46,9 @@ public:
         static_assert(std::is_base_of_v<Pulsator, PulsatorType>);
     }
 
+    /**
+     * Note: can be overridden if a less standardized procedure is required
+     */
     Voices<Trigger> process() override {
         auto t = pop_time();
         if (!t) // process has already been called this cycle
@@ -59,19 +62,15 @@ public:
         Voices<Trigger> output = Voices<Trigger>::zeros(num_voices);
 
         bool resized = false;
-        if (num_voices != m_pulsators.size()) {
-            auto initial_size = m_pulsators.size();
-            output.merge_uneven(update_size(num_voices), true);
-            start(*t, initial_size, num_voices);
+        if (auto flushed = update_size(num_voices, *t)) {
+            // from this point on, size of output may be different from num_voices,
+            //   but this is the only point where resizing should be allowed
+            output.merge_uneven(*flushed, true);
             resized = true;
         }
 
-        if (m_jump_gate.poll(*t)) {
-            // TODO: This is not a good strategy, shouldn't automatically flush here!!!
-            output.merge_uneven(m_pulsators.flush(), true);
-            for (auto& pulsator: m_pulsators) {
-                pulsator.handle_time_skip(t->get_tick());
-            }
+        if (auto flushed = handle_jump_gate(*t)) {
+            output.merge_uneven(*flushed, false);
         }
 
         update_parameters(num_voices, resized);
@@ -95,18 +94,22 @@ protected:
 
     virtual Voices<Trigger> get_incoming_triggers(const TimePoint& t, std::size_t num_voices) = 0;
 
-    const MultiVoiced<PulsatorType, Trigger>& get_pulsators() const {
-        return m_pulsators;
+    std::optional<Voices<Trigger>> handle_jump_gate(const TimePoint& t) {
+        if (m_jump_gate.poll(t)) {
+            // TODO: This is not a good strategy, shouldn't automatically flush all here!!!
+            auto flushed = m_pulsators.flush();
+            for (auto& pulsator: m_pulsators) {
+                pulsator.handle_time_skip(t.get_tick());
+            }
+            return flushed;
+        }
+        return std::nullopt;
     }
 
-    MultiVoiced<PulsatorType, Trigger>& get_pulsators_mut() {
-        return m_pulsators;
-    }
 
-private:
     /**
-     * @return true if enabled, false otherwise
-     */
+ * @return true if enabled, false otherwise
+ */
     bool update_enabled_state() {
         if (!is_enabled()) {
             if (m_previous_enable_state) {
@@ -121,8 +124,21 @@ private:
         return m_previous_enable_state;
     }
 
-    Voices<Trigger> update_size(std::size_t num_voices) {
-        return m_pulsators.resize(num_voices);
+    /**
+     * @return flushed triggers (Voices<Trigger>) if num_voices has changed, std::nullopt otherwise
+     *         note that the flushed triggers will have the same size as the previous num_voices, hence
+     *         merge_uneven(.., true) is required
+     */
+    std::optional<Voices<Trigger>> update_size(std::size_t num_voices, const TimePoint& t) {
+        if (num_voices != m_pulsators.size()) {
+            auto initial_size = m_pulsators.size();
+            auto flushed = m_pulsators.resize(num_voices);
+            start(t, initial_size, num_voices);
+
+            return flushed;
+        }
+
+        return std::nullopt;
     }
 
     void start(const TimePoint& t) {
@@ -145,6 +161,19 @@ private:
         return flushed;
     }
 
+    const MultiVoiced<PulsatorType, Trigger>& pulsators() const { return m_pulsators; }
+
+    MultiVoiced<PulsatorType, Trigger>& pulsators() { return m_pulsators; }
+
+    const Voices<Trigger>& current_value() const {
+        return m_current_value;
+    }
+
+    Voices<Trigger>& current_value() {
+        return m_current_value;
+    }
+
+private:
     MultiVoiced<PulsatorType, Trigger> m_pulsators;
 
     Voices<Trigger> m_current_value = Voices<Trigger>::empty_like();

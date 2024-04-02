@@ -196,14 +196,17 @@ public:
     /**
      * merges two `Voices<T>` of different sizes.
      */
-    Voices<T>& merge_uneven(const Voices<T>& other, bool allow_expand) {
-        if (allow_expand && other.size() > m_voices.size()) {
-            m_voices.resize_append(other.size(), Voice<T>());
+    Voices<T>& merge_uneven(const Voices<T>& other
+                            , bool allow_expand
+                            , std::size_t offset = 0) {
+        auto other_size = other.size() + offset;
+        if (allow_expand && other_size > m_voices.size()) {
+            m_voices.resize_append(other_size, Voice<T>());
         }
 
-        std::size_t num_voices = std::min(m_voices.size(), other.size());
-        for (std::size_t i = 0; i < num_voices; ++i) {
-            m_voices[i].extend(other.vec()[i]);
+        std::size_t num_voices = std::min(m_voices.size(), other_size);
+        for (std::size_t i = offset; i < num_voices; ++i) {
+            m_voices[i].extend(other.vec()[i - offset]);
         }
 
         return *this;
