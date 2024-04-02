@@ -6,9 +6,9 @@
 #include "core/generatives/auto_pulsator.h"
 #include "core/generatives/oscillator.h"
 //#include "core/generator.h"
-#include "core/generatives/note_source.h"
+#include "core/generatives/note_source_LEGACY.h"
 #include "midi_config.h"
-#include "core/generatives/note_source.h"
+#include "core/generatives/note_source_LEGACY.h"
 //#include "midi_config.h"
 
 class PulsatorWrapper {

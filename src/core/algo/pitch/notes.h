@@ -103,43 +103,41 @@ private:
 };
 
 
-class Note {
-public:
-    enum class Type {
-        note_off
-        , note_on
-    };
-
-
-    Note(Type type, NoteNumber pitch) : m_type(type), m_pitch(pitch) {}
-
-
-    static Note note_on(NoteNumber pitch) { return {Type::note_on, pitch}; }
-
-
-    static Note note_off(NoteNumber pitch) { return {Type::note_off, pitch}; }
-
-
-    bool operator==(const Note& other) const { return m_type == other.m_type && m_pitch == other.m_pitch; }
-
-
-    bool is_note_off_for(NoteNumber note_on) const {
-        return m_type == Note::Type::note_off && m_pitch == note_on;
-    }
-
-
-    Type get_type() const { return m_type; }
-
-
-    NoteNumber get_pitch() const { return m_pitch; }
-
-
-private:
-
-    Type m_type;
-    NoteNumber m_pitch;
-
-};
+//class Note {
+//public:
+//    enum class Type {
+//        note_off
+//        , note_on
+//    };
+//
+//
+//    Note(Type type, NoteNumber pitch) : m_type(type), m_pitch(pitch) {}
+//
+//
+//    static Note note_on(NoteNumber pitch) { return {Type::note_on, pitch}; }
+//
+//
+//    static Note note_off(NoteNumber pitch) { return {Type::note_off, pitch}; }
+//
+//
+//    bool operator==(const Note& other) const { return m_type == other.m_type && m_pitch == other.m_pitch; }
+//
+//
+//    bool is_note_off_for(NoteNumber note_on) const {
+//        return m_type == Note::Type::note_off && m_pitch == note_on;
+//    }
+//
+//
+//    Type get_type() const { return m_type; }
+//
+//
+//    NoteNumber get_pitch() const { return m_pitch; }
+//
+//
+//private:
+//    Type m_type;
+//    NoteNumber m_pitch;
+//};
 
 
 // ==============================================================================================
@@ -149,7 +147,18 @@ struct ChanneledHeld {
     unsigned int channel;
 };
 
+struct IdentifiedChanneledHeld {
+    int id;
+    NoteNumber note;
+    unsigned int channel;
+
+    bool operator==(const IdentifiedChanneledHeld& other) const {
+        return id == other.id;
+    }
+};
+
 using HeldNotes = Held<ChanneledHeld>;
+using HeldNotesWithIds = Held<IdentifiedChanneledHeld>;
 
 using MultiVoiceHeldNotes = MultiVoiceHeld<ChanneledHeld>;
 

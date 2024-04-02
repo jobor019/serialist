@@ -43,6 +43,10 @@ public:
         return m_held;
     }
 
+    Vec<T>& get_held_mut() {
+        return m_held;
+    }
+
 
 private:
     Vec<T> m_held;

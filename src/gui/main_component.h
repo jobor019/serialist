@@ -3,7 +3,7 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "state/generative_component.h"
-#include "core/generatives/note_source.h"
+#include "core/generatives/note_source_LEGACY.h"
 #include "bases/connector_component.h"
 #include "core/algo/time/transport.h"
 #include "core/collections/scheduler.h"

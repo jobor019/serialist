@@ -16,12 +16,13 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/exponential.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/connectable.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/LEGACY_events.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/exceptions.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/facet.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generation_graph.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generative.h
 #        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/note_source.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/makenote.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/event.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/nop_parameter.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/operator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/oscillator.h

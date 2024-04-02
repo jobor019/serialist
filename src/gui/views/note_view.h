@@ -5,7 +5,7 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "look_and_feel.h"
-#include "core/generatives/note_source.h"
+#include "core/generatives/note_source_LEGACY.h"
 
 class NoteView : public juce::Component
                  , private juce::Timer {

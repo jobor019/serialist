@@ -3,7 +3,7 @@
 #ifndef SERIALISTLOOPER_NOTE_SOURCE_MODULE_H
 #define SERIALISTLOOPER_NOTE_SOURCE_MODULE_H
 
-#include "core/generatives/note_source.h"
+#include "core/generatives/note_source_LEGACY.h"
 #include "state/generative_component.h"
 #include "midi_config.h"
 #include "widgets/slider_widget_LEGACY.h"

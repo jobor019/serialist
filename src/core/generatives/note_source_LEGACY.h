@@ -1,7 +1,7 @@
 
 
-#ifndef SERIALISTLOOPER_NOTE_SOURCE_H
-#define SERIALISTLOOPER_NOTE_SOURCE_H
+#ifndef SERIALISTLOOPER_NOTE_SOURCE_LEGACY_H
+#define SERIALISTLOOPER_NOTE_SOURCE_LEGACY_H
 
 #include <vector>
 #include "core/algo/time/LEGACY_events.h"
@@ -61,6 +61,13 @@ public:
 
 
     void process() override {
+        // TODO: OUTDATED: USE MAKENOTE (and see X2. NoteSource in Obsidian)
+        // TODO: OUTDATED: USE MAKENOTE (and see X2. NoteSource in Obsidian)
+        // TODO: OUTDATED: USE MAKENOTE (and see X2. NoteSource in Obsidian)
+        // TODO: OUTDATED: USE MAKENOTE (and see X2. NoteSource in Obsidian)
+        // TODO: OUTDATED: USE MAKENOTE (and see X2. NoteSource in Obsidian)
+
+
         // TODO: Don't forget to handle legatissimo case!!!
         if (!is_enabled() || !is_valid()) {
             if (m_previous_enabled_state) {
@@ -313,4 +320,4 @@ private:
 };
 
 
-#endif //SERIALISTLOOPER_NOTE_SOURCE_H
+#endif //SERIALISTLOOPER_NOTE_SOURCE_LEGACY_H
