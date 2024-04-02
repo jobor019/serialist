@@ -273,7 +273,7 @@ public:
 
         auto output = Voices<T>::zeros(num_voices);
         for (std::size_t i = 0; i < trigger.size(); ++i) {
-            if (triggers[i].contains(Trigger::pulse_on)) {
+            if (Trigger::contains_pulse_on(triggers[i])) {
                 output[i] = m_selectors[i].process(materials[i], strategies[i]);
             }
         }

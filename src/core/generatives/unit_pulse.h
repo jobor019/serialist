@@ -3,9 +3,9 @@
 #define SERIALISTLOOPER_UNIT_PULSE_H
 
 
-#include "core/algo/time/LEGACY_events.h"
 #include "core/generative.h"
 #include "core/param/parameter_keys.h"
+#include "core/algo/time/trigger.h"
 
 class UnitPulse : public Node<Trigger> {
 public:
@@ -35,7 +35,7 @@ public:
 private:
     ParameterHandler m_parameter_handler;
 
-    Voices<Trigger> m_current_value = Voices<Trigger>::singular(Trigger::pulse_on);
+    Voices<Trigger> m_current_value = Voices<Trigger>::singular(Trigger::without_id(Trigger::Type::pulse_on));
 
 };
 

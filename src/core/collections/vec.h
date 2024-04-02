@@ -506,7 +506,7 @@ public:
 
     std::optional<T> pop_value(const T& value) {
         if (auto it = std::find(m_vector.begin(), m_vector.end(), value); it != m_vector.end()) {
-            pop_internal(it);
+            return pop_internal(it);
         }
         return std::nullopt;
     }
@@ -877,7 +877,6 @@ public:
         });
     }
 
-
     bool contains(std::function<bool(const T&)> f) const {
         for (const T& element: m_vector) {
             if (f(element)) {
@@ -1072,7 +1071,7 @@ public:
 
     template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
     Vec<T>& clip(T low_thresh, T high_thresh) {
-        return clip({low_thresh}, {high_thresh});
+        return clip(std::optional<T>(low_thresh), std::optional<T>(high_thresh));
     }
 
 

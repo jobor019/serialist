@@ -315,7 +315,7 @@ public:
 
         auto output = Voices<OutputType>::zeros(num_voices);
         for (std::size_t i = 0; i < trigger.size(); ++i) {
-            if (triggers[i].contains(Trigger::pulse_on)) {
+            if (Trigger::contains_pulse_on(triggers[i])) {
                 output[i] = Interpolator<OutputType>::process(cursors[i], corpus, strategies[i]);
             }
         }

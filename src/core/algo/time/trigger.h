@@ -6,7 +6,7 @@
 
 class Trigger {
 public:
-    static const int NO_ID = -1;
+    static inline const int NO_ID = -1;
 
     enum class Type {
         pulse_off = 0
@@ -19,12 +19,12 @@ public:
         return Trigger(type, NO_ID);
     }
 
-    static Trigger pulse_off(int id) {
-        return Trigger(Type::pulse_off, id);
+    static Trigger pulse_off(std::optional<int> id) {
+        return Trigger(Type::pulse_off, id.value_or(NO_ID));
     }
 
-    static Trigger pulse_on(int id) {
-        return Trigger(Type::pulse_on, id);
+    static Trigger pulse_on(std::optional<int> id) {
+        return Trigger(Type::pulse_on, id.value_or(NO_ID));
     }
 
     static bool contains(const Vec<Trigger>& triggers, const Type& t) {
@@ -33,8 +33,22 @@ public:
         });
     }
 
+    static bool contains_any(const Vec<Trigger>& triggers, const Vec<Type>& types) {
+        return std::any_of(types.begin(), types.end(), [&triggers](const Type& t) {
+            return contains(triggers, t);
+        });
+    }
+
     static bool contains_pulse_on(const Vec<Trigger>& triggers) {
         return contains(triggers, Type::pulse_on);
+    }
+
+    static bool contains_pulse_off(const Vec<Trigger>& triggers) {
+        return contains(triggers, Type::pulse_off);
+    }
+
+    static bool contains_any_pulse(const Vec<Trigger>& triggers) {
+        return contains_pulse_on(triggers) || contains_pulse_off(triggers);
     }
 
     bool operator==(const Trigger& other) const {

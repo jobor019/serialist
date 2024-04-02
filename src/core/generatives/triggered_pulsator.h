@@ -8,8 +8,9 @@
 
 class TriggeredPulsator : public Pulsator {
 public:
-    explicit TriggeredPulsator(double duration = 1.0)
-            : m_duration(duration) {}
+    explicit TriggeredPulsator(double duration = 1.0, bool sample_and_hold = true)
+            : m_duration(duration)
+            , m_sample_and_hold(sample_and_hold) {}
 
     void start(double time) override {
         m_last_callback_time = time;
@@ -41,9 +42,7 @@ public:
         if (!is_running())
             return {};
 
-        if (auto index = triggers.contains([](const Trigger& t) {
-            return t.is(Trigger::Type::pulse_on);
-        })) {
+        if (Trigger::contains_pulse_on(triggers)) {
             return schedule_pulse(time);
         }
     }
