@@ -48,7 +48,7 @@ inline T clip(T position
 }
 
 // Overload for cases where both lower and upper bounds are provided directly
-template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
 inline T clip(T position, T lower_bound, T upper_bound) {
     return clip(position, std::optional<T>(lower_bound), std::optional<T>(upper_bound));
 }
@@ -72,6 +72,19 @@ inline std::size_t double2index(double d, std::size_t index_range, double epsilo
 
 inline double index2double(std::size_t index, std::size_t index_range) {
     return static_cast<double>(index) / static_cast<double>(index_range);
+}
+
+
+// ==============================================================================================
+
+template<typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+inline T increment(T value, T fold_value = std::numeric_limits<T>::min()) {
+    return (value == std::numeric_limits<T>::max()) ? fold_value : value + 1;
+}
+
+template<typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+inline T decrement(T value, T fold_value = std::numeric_limits<T>::max()) {
+    return (value == std::numeric_limits<T>::min()) ? fold_value : value - 1;
 }
 
 

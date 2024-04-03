@@ -278,6 +278,22 @@ public:
         return m_trigger.process(num_voices);
     }
 
+    void set_trigger(Node<Trigger>* trigger) { m_trigger = trigger; }
+
+    void set_duration(Node<Facet>* duration) { m_duration = duration; }
+
+    void set_legato_amount(Node<Facet>* legato_amount) { m_legato_amount = legato_amount; }
+
+    void set_sample_and_hold(Node<Facet>* sample_and_hold) { m_sample_and_hold = sample_and_hold; }
+
+    Socket<Trigger>& get_trigger() { return m_trigger; }
+
+    Socket<Facet>& get_duration() { return m_duration; }
+
+    Socket<Facet>& get_legato_amount() { return m_legato_amount; }
+
+    Socket<Facet>& get_sample_and_hold() { return m_sample_and_hold; }
+
 private:
     Socket<Trigger>& m_trigger;
     Socket<Facet>& m_duration;

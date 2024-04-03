@@ -21,6 +21,10 @@ public:
 
 
     void start(double time) override {
+        if (m_running) {
+            return;
+        }
+
         schedule_pulse(time);
         m_last_callback_time = time;
         m_running = true;
@@ -67,6 +71,7 @@ public:
     Voice<Trigger> handle_time_skip(double new_time) override {
         // TODO: Ideal strategy would be to reschedule based on elapsed time
         //  (i.e. Pulse.trigger_time - m_last_callback_time), but it also needs to take quantization into consideration
+        (void) new_time;
         throw std::runtime_error("AutoPulsator::handle_time_skip not implemented");
     }
 
@@ -159,12 +164,12 @@ public:
     void update_parameters(std::size_t num_voices, bool size_has_changed) override {
         if (size_has_changed || m_duration.has_changed()) {
             auto duration = m_duration.process().adapted_to(num_voices).firsts_or(1.0);
-            get_pulsators_mut().set(&AutoPulsator::set_duration, duration.as_type<double>());
+            pulsators().set(&AutoPulsator::set_duration, duration.as_type<double>());
         }
 
         if (size_has_changed || m_legato_amount.has_changed()) {
             auto legato = m_legato_amount.process().adapted_to(num_voices).firsts_or(1.0);
-            get_pulsators_mut().set(&AutoPulsator::set_legato_amount, legato.as_type<double>());
+            pulsators().set(&AutoPulsator::set_legato_amount, legato.as_type<double>());
         }
     }
 

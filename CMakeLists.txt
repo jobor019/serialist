@@ -425,6 +425,7 @@ add_executable(tests EXCLUDE_FROM_ALL
         test/backend/generatives/interpolator_tests.cpp
         test/backend/algo/facet_tests.cpp
         test/backend/generatives/selector_tests.cpp
+        test/backend/generatives/auto_pulsator_tests.cpp
         test/backend/utility/math_tests.cpp
 )
 

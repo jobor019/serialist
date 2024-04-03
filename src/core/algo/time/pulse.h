@@ -10,7 +10,7 @@
 template<typename TimePointType = double>
 class Pulse {
 public:
-    Pulse(int id, TimePointType trigger_time, std::optional<TimePointType> pulse_off_time = std::nullopt)
+    Pulse(std::size_t id, TimePointType trigger_time, std::optional<TimePointType> pulse_off_time = std::nullopt)
             : m_id(id)
               , m_trigger_time(trigger_time)
               , m_pulse_off_time(pulse_off_time) {
@@ -24,7 +24,7 @@ public:
         return static_cast<bool>(m_pulse_off_time);
     }
 
-    int get_id() const { return m_id; }
+    std::size_t get_id() const { return m_id; }
 
     void set_pulse_off(TimePointType time) {
         m_pulse_off_time = time;
@@ -35,7 +35,7 @@ public:
     const std::optional<TimePointType>& get_pulse_off_time() const { return m_pulse_off_time; }
 
 private:
-    int m_id;
+    std::size_t m_id;
     TimePointType m_trigger_time;
     std::optional<TimePointType> m_pulse_off_time;
 };
@@ -48,7 +48,7 @@ template<typename TimePointType = double>
 class Pulses : public Flushable<Trigger> {
 public:
     Trigger new_pulse(TimePointType pulse_on_time, std::optional<TimePointType> pulse_off_time) {
-        m_last_scheduled_id = (m_last_scheduled_id + 1) % std::numeric_limits<int>::max();
+        m_last_scheduled_id = utils::increment(m_last_scheduled_id, Trigger::NO_ID + 1);
 
         m_pulses.append(Pulse<>(m_last_scheduled_id, pulse_on_time, pulse_off_time));
 
@@ -92,7 +92,7 @@ public:
 private:
     Vec<Pulse<TimePointType>> m_pulses;
 
-    int m_last_scheduled_id = Trigger::NO_ID;
+    std::size_t m_last_scheduled_id = Trigger::NO_ID;
 };
 
 

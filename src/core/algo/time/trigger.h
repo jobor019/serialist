@@ -6,30 +6,36 @@
 
 class Trigger {
 public:
-    static inline const int NO_ID = -1;
+    static inline const std::size_t NO_ID = 0;
 
     enum class Type {
         pulse_off = 0
         , pulse_on = 1
     };
 
-    explicit Trigger(const Type& type, int id) : m_type(type), m_id(id) {}
+    explicit Trigger(const Type& type, std::size_t id) : m_type(type), m_id(id) {}
 
     static Trigger without_id(const Type& type) {
         return Trigger(type, NO_ID);
     }
 
-    static Trigger pulse_off(std::optional<int> id) {
+    static Trigger pulse_off(std::optional<std::size_t> id) {
         return Trigger(Type::pulse_off, id.value_or(NO_ID));
     }
 
-    static Trigger pulse_on(std::optional<int> id) {
+    static Trigger pulse_on(std::optional<std::size_t> id) {
         return Trigger(Type::pulse_on, id.value_or(NO_ID));
     }
 
     static bool contains(const Vec<Trigger>& triggers, const Type& t) {
         return triggers.contains([&t](const Trigger& trigger) {
             return trigger.get_type() == t;
+        });
+    }
+
+    static bool contains(const Vec<Trigger>& triggers, const Type& t, std::size_t id) {
+        return triggers.contains([&t, id](const Trigger& trigger) {
+            return trigger.get_type() == t && trigger.get_id() == id;
         });
     }
 
@@ -43,8 +49,16 @@ public:
         return contains(triggers, Type::pulse_on);
     }
 
+    static bool contains_pulse_on(const Vec<Trigger>& triggers, std::size_t id) {
+        return contains(triggers, Type::pulse_on, id);
+    }
+
     static bool contains_pulse_off(const Vec<Trigger>& triggers) {
         return contains(triggers, Type::pulse_off);
+    }
+
+    static bool contains_pulse_off(const Vec<Trigger>& triggers, std::size_t id) {
+        return contains(triggers, Type::pulse_off, id);
     }
 
     static bool contains_any_pulse(const Vec<Trigger>& triggers) {
@@ -69,12 +83,12 @@ public:
 
     Type get_type() const { return m_type; }
 
-    int get_id() const { return m_id; }
+    std::size_t get_id() const { return m_id; }
 
 
 private:
     Type m_type;
-    int m_id;
+    std::size_t m_id;
 
 };
 
