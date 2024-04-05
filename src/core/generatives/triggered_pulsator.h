@@ -12,7 +12,7 @@ public:
             : m_duration(duration)
             , m_sample_and_hold(sample_and_hold) {}
 
-    void start(double time) override {
+    void start(double time, std::optional<double>) override {
         m_last_callback_time = time;
         m_running = true;
     }
@@ -42,14 +42,17 @@ public:
         if (!is_running())
             return {};
 
-        if (Trigger::contains_pulse_on(triggers)) {
-            return schedule_pulse(time);
+        if (auto index = triggers.index([](const Trigger& t) { return t.is(Trigger::Type::pulse_on); })) {
+            return schedule_pulse(time, triggers[*index].get_id());
         }
+
+        return {};
     }
 
     Voice<Trigger> handle_time_skip(double new_time) override {
         // TODO: Ideal strategy would be to reschedule based on elapsed time
         //  (i.e. Pulse.trigger_time - m_last_callback_time), but it also needs to take quantization into consideration
+        (void) new_time;
         throw std::runtime_error("AutoPulsator::handle_time_skip not implemented");
     }
 
@@ -76,9 +79,13 @@ public:
         return m_pulses.vec_mut().drain();
     }
 
+    std::optional<double> next_scheduled_pulse_on() override {
+        return std::nullopt;
+    }
+
 private:
-        Voice<Trigger> schedule_pulse(double time) {
-        return Voice<Trigger>::singular(m_pulses.new_pulse(time, time + m_duration));
+        Voice<Trigger> schedule_pulse(double time, std::optional<std::size_t> id) {
+        return Voice<Trigger>::singular(m_pulses.new_pulse(time, time + m_duration, id));
     }
 
     void reschedule() {
@@ -94,8 +101,6 @@ private:
     bool m_configuration_changed = false;
     double m_last_callback_time = 0.0;
     bool m_running = false;
-    // TODO: double m_sample_and_hold ?
-
 };
 
 #endif //SERIALISTLOOPER_TRIGGERED_PULSATOR_H

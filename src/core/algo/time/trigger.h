@@ -4,27 +4,72 @@
 
 #include "core/collections/vec.h"
 
-class Trigger {
+class TriggerIds {
 public:
     static inline const std::size_t NO_ID = 0;
+    static inline const std::size_t FIRST_ID = NO_ID + 1;
+
+    static TriggerIds& get_instance() {
+        static TriggerIds instance;
+        return instance;
+    }
+
+    ~TriggerIds() = default;
+
+    TriggerIds(TriggerIds const&) = delete;
+
+    void operator=(TriggerIds const&) = delete;
+
+    TriggerIds(TriggerIds&&) noexcept = delete;
+
+    TriggerIds& operator=(TriggerIds&&) noexcept = delete;
+
+    std::size_t next_id() {
+        std::lock_guard lock{m_mutex};
+        auto id = m_next_id;
+        m_next_id = utils::increment(m_next_id, FIRST_ID);
+        std::cout << "outputting id: " << id << std::endl;
+        return id;
+    }
+
+    std::size_t peek_next_id() {
+        std::lock_guard lock{m_mutex};
+        return m_next_id;
+    }
+
+private:
+    TriggerIds() = default;
+
+    std::mutex m_mutex;
+
+    std::size_t m_next_id = FIRST_ID;
+};
+
+
+// ==============================================================================================
+
+class Trigger {
+public:
 
     enum class Type {
         pulse_off = 0
         , pulse_on = 1
     };
 
-    explicit Trigger(const Type& type, std::size_t id) : m_type(type), m_id(id) {}
-
     static Trigger without_id(const Type& type) {
-        return Trigger(type, NO_ID);
+        return {type, TriggerIds::NO_ID};
+    }
+
+    static Trigger with_manual_id(const Type& type, std::size_t id) {
+        return Trigger(type, id);
     }
 
     static Trigger pulse_off(std::optional<std::size_t> id) {
-        return Trigger(Type::pulse_off, id.value_or(NO_ID));
+        return {Type::pulse_off, id.value_or(TriggerIds::NO_ID)};
     }
 
-    static Trigger pulse_on(std::optional<std::size_t> id) {
-        return Trigger(Type::pulse_on, id.value_or(NO_ID));
+    static Trigger pulse_on() {
+        return {Type::pulse_on, TriggerIds::get_instance().next_id()};
     }
 
     static bool contains(const Vec<Trigger>& triggers, const Type& t) {
@@ -87,6 +132,8 @@ public:
 
 
 private:
+    Trigger(const Type& type, std::size_t id) : m_type(type), m_id(id) {}
+
     Type m_type;
     std::size_t m_id;
 

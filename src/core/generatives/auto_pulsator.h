@@ -20,12 +20,12 @@ public:
               , m_sample_and_hold(sample_and_hold) {}
 
 
-    void start(double time) override {
+    void start(double time, std::optional<double> first_pulse_time) override {
         if (m_running) {
             return;
         }
 
-        schedule_pulse(time);
+        m_next_trigger_time = first_pulse_time.value_or(time);
         m_last_callback_time = time;
         m_running = true;
         m_configuration_changed = false;
@@ -102,6 +102,10 @@ public:
 
     double get_legato_amount() const { return m_legato_amount; }
 
+    std::optional<double> next_scheduled_pulse_on() override {
+        return m_next_trigger_time;
+    }
+
 
 private:
     void reschedule() {
@@ -133,7 +137,7 @@ private:
 
 // ==============================================================================================
 
-class AutoPulsatorNode : public PulsatorBase<AutoPulsator> {
+class AutoPulsatorNode : public PulsatorNodeBase<AutoPulsator> {
 public:
 
     static const inline std::string DURATION = "duration";
@@ -148,7 +152,7 @@ public:
                      , Node<Facet>* legato_amount = nullptr
                      , Node<Facet>* enabled = nullptr
                      , Node<Facet>* num_voices = nullptr)
-            : PulsatorBase<AutoPulsator>(id, parent, enabled, num_voices, CLASS_NAME)
+            : PulsatorNodeBase<AutoPulsator>(id, parent, enabled, num_voices, CLASS_NAME)
 //              , m_trigger(add_socket(ParameterKeys::TRIGGER, trigger))
               , m_duration(add_socket(DURATION, duration))
               , m_legato_amount(add_socket(LEGATO, legato_amount)) {}

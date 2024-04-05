@@ -37,11 +37,11 @@ public:
 
     Voice<Trigger> flush() override {
         return export_pulses().as_type<Trigger>([](const Pulse<>& pulse) {
-            return Trigger(Trigger::Type::pulse_off, pulse.get_id());
+            return Trigger::pulse_off(pulse.get_id());
         });
     }
 
-    void start(double) override { m_running = true; }
+    void start(double, std::optional<double>) override { m_running = true; }
 
     Voice<Trigger> stop() override {
         m_running = false;
@@ -68,6 +68,10 @@ public:
         m_pulses.extend(pulses);
     }
 
+    std::optional<double> next_scheduled_pulse_on() override {
+        return std::nullopt;
+    }
+
 private:
     Vec<Pulse<>> m_pulses;
     bool m_running = false;
@@ -87,21 +91,34 @@ public:
 
 
     Voice<Trigger> poll(double time) override {
-        Voice<Trigger> output;
         if (m_new_mode) {
-            output.extend(update_mode(*m_new_mode, time));
+            update_mode(*m_new_mode, time);
             m_new_mode = std::nullopt;
         }
 
         return get_active_pulsator().poll(time);
     }
 
+    Voice<Trigger> handle_external_triggers(double time, const Voice<Trigger>& triggers) override {
+        if (m_new_mode) {
+            update_mode(*m_new_mode, time);
+            m_new_mode = std::nullopt;
+        }
+
+        return get_active_pulsator().handle_external_triggers(time, triggers);
+    }
+
     Voice<Trigger> flush() override {
         return get_active_pulsator().flush();
     }
 
-    void start(double time) override {
-        get_active_pulsator().start(time);
+    void start(double time, std::optional<double> first_pulse_time) override {
+        if (m_new_mode) {
+            update_mode(*m_new_mode, time);
+            m_new_mode = std::nullopt;
+        }
+
+        get_active_pulsator().start(time, first_pulse_time);
     }
 
     Voice<Trigger> stop() override {
@@ -110,10 +127,6 @@ public:
 
     bool is_running() const override {
         return get_active_pulsator().is_running();
-    }
-
-    Voice<Trigger> handle_external_triggers(double time, const Voice<Trigger>& triggers) override {
-        return get_active_pulsator().handle_external_triggers(time, triggers);
     }
 
     Voice<Trigger> handle_time_skip(double new_time) override {
@@ -148,18 +161,27 @@ public:
         m_new_mode = mode;
     }
 
+    std::optional<double> next_scheduled_pulse_on() override {
+        return get_active_pulsator().next_scheduled_pulse_on();
+    }
+
 private:
-    Voice<Trigger> update_mode(Mode new_mode, double current_time) {
+    void update_mode(Mode new_mode, double current_time) {
         auto& old_pulsator = get_pulsator(m_mode);
         auto& new_pulsator = get_pulsator(new_mode);
 
+        bool is_running = old_pulsator.is_running();
+
         new_pulsator.import_pulses(old_pulsator.export_pulses());
-        auto output = old_pulsator.stop();
-        new_pulsator.start(current_time);
+        auto flushed = old_pulsator.stop();
+
+        assert(flushed.empty());
+
+        if (is_running) {
+            new_pulsator.start(current_time, old_pulsator.next_scheduled_pulse_on());
+        }
+
         m_mode = new_mode;
-
-        return output;
-
     }
 
     Pulsator& get_pulsator(Mode mode) {
@@ -205,7 +227,7 @@ private:
 
 // ==============================================================================================
 
-class VariableStatePulsatorNode : public PulsatorBase<VariableStatePulsator> {
+class VariableStatePulsatorNode : public PulsatorNodeBase<VariableStatePulsator> {
 public:
     struct Keys {
         static const inline std::string TRIGGER = "trigger";
@@ -225,12 +247,13 @@ public:
                               , Node<Facet>* sample_and_hold = nullptr
                               , Node<Facet>* enabled = nullptr
                               , Node<Facet>* num_voices = nullptr)
-            : PulsatorBase<VariableStatePulsator>(id, parent, enabled, num_voices, Keys::CLASS_NAME)
+            : PulsatorNodeBase<VariableStatePulsator>(id, parent, enabled, num_voices, Keys::CLASS_NAME)
               , m_trigger(add_socket(ParameterKeys::TRIGGER, trigger))
               , m_duration(add_socket(Keys::DURATION, duration))
               , m_legato_amount(add_socket(Keys::LEGATO, legato_amount))
-              , m_sample_and_hold(add_socket(Keys::SAMPLE_AND_HOLD, sample_and_hold))
-              , m_previous_mode(get_mode()) {}
+              , m_sample_and_hold(add_socket(Keys::SAMPLE_AND_HOLD, sample_and_hold)) {
+        set_mode(get_mode());
+    }
 
 
     VariableStatePulsator::Mode get_mode() const {
@@ -253,9 +276,7 @@ public:
     void update_parameters(std::size_t num_voices, bool size_has_changed) override {
         auto mode = get_mode();
         if (size_has_changed || mode != m_previous_mode) {
-            pulsators().set(&VariableStatePulsator::set_mode
-                            , Vec<VariableStatePulsator::Mode>::repeated(pulsators().size(), mode));
-            m_previous_mode = mode;
+            set_mode(mode);
         }
 
         if (size_has_changed || m_duration.has_changed()) {
@@ -295,12 +316,19 @@ public:
     Socket<Facet>& get_sample_and_hold() { return m_sample_and_hold; }
 
 private:
+    void set_mode(VariableStatePulsator::Mode mode) {
+        pulsators().set(&VariableStatePulsator::set_mode
+                        , Vec<VariableStatePulsator::Mode>::repeated(pulsators().size(), mode));
+        m_previous_mode = mode;
+    }
+
+
     Socket<Trigger>& m_trigger;
     Socket<Facet>& m_duration;
     Socket<Facet>& m_legato_amount;
     Socket<Facet>& m_sample_and_hold;
 
-    VariableStatePulsator::Mode m_previous_mode;
+    VariableStatePulsator::Mode m_previous_mode = VariableStatePulsator::Mode::triggered_pulsator;
 };
 
 

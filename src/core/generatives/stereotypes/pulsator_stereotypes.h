@@ -11,7 +11,7 @@
 
 class Pulsator : public Flushable<Trigger> {
 public:
-    virtual void start(double time) = 0;
+    virtual void start(double time, std::optional<double> first_pulse_time) = 0;
 
     virtual Voice<Trigger> stop() = 0;
 
@@ -27,6 +27,8 @@ public:
 
     virtual void import_pulses(const Vec<Pulse<>>& pulses) = 0;
 
+    virtual std::optional<double> next_scheduled_pulse_on() = 0;
+
 };
 
 
@@ -34,14 +36,14 @@ public:
 // ==============================================================================================
 
 template<typename PulsatorType>
-class PulsatorBase : public NodeBase<Trigger> {
+class PulsatorNodeBase : public NodeBase<Trigger> {
 public:
 
-    PulsatorBase(const std::string& id
-                 , ParameterHandler& parent
-                 , Node<Facet>* enabled
-                 , Node<Facet>* num_voices
-                 , const std::string& class_name)
+    PulsatorNodeBase(const std::string& id
+                     , ParameterHandler& parent
+                     , Node<Facet>* enabled
+                     , Node<Facet>* num_voices
+                     , const std::string& class_name)
             : NodeBase<Trigger>(id, parent, enabled, num_voices, class_name) {
         static_assert(std::is_base_of_v<Pulsator, PulsatorType>);
     }
@@ -54,7 +56,7 @@ public:
         if (!t) // process has already been called this cycle
             return m_current_value;
 
-        if (!update_enabled_state()) {
+        if (!update_enabled_state(*t)) {
             return m_current_value;
         }
 
@@ -106,22 +108,27 @@ protected:
         return std::nullopt;
     }
 
-
-    /**
- * @return true if enabled, false otherwise
+ /**
+ * @return returns current enable state
  */
-    bool update_enabled_state() {
-        if (!is_enabled()) {
+    bool update_enabled_state(const TimePoint& t) {
+        bool enabled = is_enabled();
+        if (!enabled) {
             if (m_previous_enable_state) {
                 m_current_value = stop();
             } else {
                 m_current_value = Voices<Trigger>::empty_like();
             }
             m_previous_enable_state = false;
-        }
-        m_previous_enable_state = true;
 
-        return m_previous_enable_state;
+        } else if (!m_previous_enable_state) {
+            // enabled now but wasn't before => need to start all pulsators
+            start(t);
+        }
+
+        m_previous_enable_state = enabled;
+
+        return enabled;
     }
 
     /**
@@ -147,7 +154,7 @@ protected:
 
     void start(const TimePoint& t, std::size_t start_index, std::size_t end_index_excl) {
         for (std::size_t i = start_index; i < end_index_excl; ++i) {
-            m_pulsators.get_objects()[i].start(t.get_tick());
+            m_pulsators.get_objects()[i].start(t.get_tick(), std::nullopt);
         }
     }
 
@@ -177,7 +184,7 @@ private:
     MultiVoiced<PulsatorType, Trigger> m_pulsators;
 
     Voices<Trigger> m_current_value = Voices<Trigger>::empty_like();
-    bool m_previous_enable_state = true;
+    bool m_previous_enable_state = false;
 
     JumpGate m_jump_gate;
 };

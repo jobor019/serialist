@@ -337,7 +337,7 @@ TEST_CASE("Interpolation using corpora with sizes between 1 and 1000 ") {
 TEST_CASE("InterpolatorWrapper") {
     InterpolatorWrapper<Facet, int, double> interp;
 
-    interp.trigger.set_values(Trigger::pulse_on(std::nullopt));
+    interp.trigger.set_values(Trigger::pulse_on());
 
     auto corpus = Voices<int>{{0}, {1, 5}, {2, 6}, {3, 7}, {4}};
     interp.corpus.set_values(corpus);

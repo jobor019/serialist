@@ -47,18 +47,29 @@ private:
 template<typename TimePointType = double>
 class Pulses : public Flushable<Trigger> {
 public:
-    Trigger new_pulse(TimePointType pulse_on_time, std::optional<TimePointType> pulse_off_time) {
-        m_last_scheduled_id = utils::increment(m_last_scheduled_id, Trigger::NO_ID + 1);
 
-        m_pulses.append(Pulse<>(m_last_scheduled_id, pulse_on_time, pulse_off_time));
+    Trigger new_pulse(TimePointType pulse_on_time
+                      , std::optional<TimePointType> pulse_off_time
+                      , std::optional<std::size_t> id = std::nullopt) {
+        std::size_t pulse_id;
 
-        return Trigger::pulse_on(m_last_scheduled_id);
+        // Note: value_or is not a good solution here as that will unnecessarily call
+        //       TriggerIds::next_id even when `id` is defined
+        if (id) {
+            pulse_id = id.value();
+        } else {
+            pulse_id = TriggerIds::get_instance().next_id();
+        }
+
+        m_pulses.append(Pulse<>(pulse_id, pulse_on_time, pulse_off_time));
+
+        return Trigger::with_manual_id(Trigger::Type::pulse_on, pulse_id);
     }
 
     Voice<Trigger> flush() override {
         return m_pulses.drain()
                 .template as_type<Trigger>([](const Pulse<TimePointType>& p) {
-                    return Trigger(Trigger::Type::pulse_off, p.get_id());
+                    return Trigger::pulse_off(p.get_id());
                 });
     }
 
@@ -76,7 +87,6 @@ public:
     }
 
     Voice<Trigger> reset() {
-        m_last_scheduled_id = Trigger::NO_ID;
         return flush();
     }
 
@@ -91,8 +101,6 @@ public:
 
 private:
     Vec<Pulse<TimePointType>> m_pulses;
-
-    std::size_t m_last_scheduled_id = Trigger::NO_ID;
 };
 
 

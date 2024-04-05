@@ -259,7 +259,7 @@ TEST_CASE("Oscillator Ctor") {
 TEST_CASE("Triangle Oscillator") {
     OscillatorWrapper oscillator;
     oscillator.type.set_values(Voices<Oscillator::Type>::singular(Oscillator::Type::tri));
-    oscillator.trigger.set_values(Voices<Trigger>::singular(Trigger::pulse_on(std::nullopt)));
+    oscillator.trigger.set_values(Voices<Trigger>::singular(Trigger::pulse_on()));
     for (std::size_t i = 0; i < 10; ++i) {
         oscillator.oscillator.update_time(TimePoint());
         oscillator.oscillator.process().print();

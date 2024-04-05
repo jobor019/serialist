@@ -335,7 +335,7 @@ struct OperatorWrapper {
 
     ParameterHandler parameter_handler;
 
-    Sequence<Trigger> trigger{ParameterKeys::TRIGGER, parameter_handler, Trigger::pulse_on(std::nullopt)};
+    Sequence<Trigger> trigger{ParameterKeys::TRIGGER, parameter_handler, Trigger::pulse_on()};
     Sequence<Facet, Operator::Type> type{Keys::TYPE, parameter_handler
                                          , Voices<Operator::Type>::singular(Operator::Type::add)};
     Sequence<Facet, FloatType> lhs{Keys::LHS, parameter_handler};
