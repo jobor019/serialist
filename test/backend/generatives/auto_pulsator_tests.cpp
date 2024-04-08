@@ -189,4 +189,3 @@ TEST_CASE("Export/Import") {
     REQUIRE(Trigger::contains_pulse_off(triggers, TriggerIds::FIRST_ID + 1));
     REQUIRE(Trigger::contains_pulse_on(triggers, TriggerIds::FIRST_ID + 2));
 }
-

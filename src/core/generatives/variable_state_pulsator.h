@@ -158,6 +158,10 @@ public:
     }
 
     void set_mode(Mode mode) {
+        if (m_mode == mode) {
+            return;
+        }
+
         m_new_mode = mode;
     }
 

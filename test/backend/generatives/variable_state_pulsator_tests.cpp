@@ -138,3 +138,68 @@ TEST_CASE("VariableStatePulsatorWrapper: triggered_pulsator") {
 TEST_CASE("VariableStatePulsatorWrapper: auto_pulsator") {
 
 }
+
+TEST_CASE("VariableStatePulsatorWrapper: auto_pulsator multiple triggers") {
+    VariableStatePulsatorWrapper<double> v;
+
+    auto& p = v.pulsator_node;
+
+    // Switch to AutoPulsator
+    p.set_trigger(nullptr);
+
+    auto t = TimePoint(0.0);
+
+    // start of initial pulse
+    p.update_time(t);
+    auto triggers = p.process();
+    REQUIRE(triggers.size() == 1);
+    REQUIRE(triggers[0].size() == 1);
+    REQUIRE(Trigger::contains_pulse_on(triggers[0]));
+
+    v.num_voices.set_value(2);
+
+    // same time: new voice should have a pulse_on
+    p.update_time(t);
+    triggers = p.process();
+
+    REQUIRE(triggers.size() == 2);
+    REQUIRE(triggers[0].empty()); // no trigger in first voice as this was already handled
+    REQUIRE(triggers[1].size() == 1);
+    REQUIRE(Trigger::contains_pulse_on(triggers[1]));
+    triggers.print();
+}
+
+TEST_CASE("VariableStatePulsatorWrapper: triggered_pulsator multiple triggers") {
+    VariableStatePulsatorWrapper<double> v;
+
+    double duration = 2.0;
+    v.duration.set_values(duration);
+    v.legato_amount.set_values(1.0); // for triggered_pulsator, actual_duration = duration * legato
+
+    auto& p = v.pulsator_node;
+    auto& incoming_triggers = v.trigger;
+
+    auto t = TimePoint(0.0);
+    incoming_triggers.set_values(Voices<Trigger>::transposed({Trigger::pulse_on(), Trigger::pulse_on()}));
+    p.update_time(t);
+    auto outgoing_triggers = p.process();
+    REQUIRE(outgoing_triggers.size() == 2);
+    REQUIRE(outgoing_triggers[0].size() == 1);
+    REQUIRE(Trigger::contains_pulse_on(outgoing_triggers[0]));
+    REQUIRE(outgoing_triggers[1].size() == 1);
+    REQUIRE(Trigger::contains_pulse_on(outgoing_triggers[1]));
+
+
+    t = TimePoint(duration - epsilon);
+    incoming_triggers.set_values(Voices<Trigger>::empty_like());
+    p.update_time(t);
+    outgoing_triggers = p.process();
+
+    outgoing_triggers.print();
+
+
+
+
+
+
+}

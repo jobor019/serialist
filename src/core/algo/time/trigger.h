@@ -28,7 +28,6 @@ public:
         std::lock_guard lock{m_mutex};
         auto id = m_next_id;
         m_next_id = utils::increment(m_next_id, FIRST_ID);
-        std::cout << "outputting id: " << id << std::endl;
         return id;
     }
 
@@ -116,6 +115,17 @@ public:
 
     bool operator==(const Type& type) const {
         return is(type);
+    }
+
+    explicit operator std::string() const {
+        return std::string("Trigger(type=") + std::to_string(static_cast<int>(m_type)) +
+               ", id=" + std::to_string(m_id) + ")";
+    }
+
+
+    friend std::ostream& operator<<(std::ostream& os, const Trigger& trigger) {
+        os << static_cast<std::string>(trigger) << ")";
+        return os;
     }
 
     bool terminates(const Trigger& start) const {

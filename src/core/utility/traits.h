@@ -27,6 +27,29 @@ template<typename T>
 inline constexpr bool is_printable_v = is_printable<T>::value;
 
 
+/**
+ * Struct for checking whether an object is an output stream (useful for replacing std::cout with other streams)
+ */
+template<typename OutputStream>
+struct is_output_stream {
+private:
+    template<typename U>
+    static auto test(int) -> decltype(std::cout << std::__1::declval<U>(), std::true_type{});
+
+    template<typename U>
+    static std::false_type test(...);
+
+public:
+    static constexpr bool value = decltype(test<OutputStream>(0))::value;
+};
+
+
+template<typename T>
+inline constexpr bool is_output_stream_v = is_output_stream<T>::value;
+
+
+
+
 // ==============================================================================================
 
 template<typename T, typename _ = void>
@@ -75,10 +98,10 @@ inline constexpr bool is_serializable_v = is_serializable<T>::value;
 /**
  * Checks whether `T` is implicitly convertible into an OSC-protocol compatible type
  */
-template <typename T>
+template<typename T>
 using is_osc_convertible = std::disjunction<std::is_arithmetic<T>, std::is_convertible<T, std::string>>;
 
-template <typename T>
+template<typename T>
 inline constexpr bool is_osc_convertible_v = is_osc_convertible<T>::value;
 
 
@@ -87,11 +110,12 @@ inline constexpr bool is_osc_convertible_v = is_osc_convertible<T>::value;
 /**
  * Workaround to handle std::atomic<T>::is_always_lock_free for non-trivially copyable types
  */
-template <typename T>
+template<typename T>
 struct is_always_lock_free_internal
-: std::integral_constant<bool, std::atomic<T>::is_always_lock_free> { };
+        : std::integral_constant<bool, std::atomic<T>::is_always_lock_free> {
+};
 
-template <typename T>
+template<typename T>
 using is_always_lock_free = std::conjunction<std::is_trivially_copyable<T>, is_always_lock_free_internal<T>>;
 
 template<typename T>

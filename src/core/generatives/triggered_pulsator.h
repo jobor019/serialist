@@ -61,8 +61,10 @@ public:
     }
 
     void set_duration(double duration) {
-        m_duration = duration;
-        m_configuration_changed = true;
+        if (!utils::equals(duration, m_duration)) {
+            m_duration = duration;
+            m_configuration_changed = true;
+        }
     }
 
     void import_pulses(const Vec<Pulse<>> &pulses) override {
