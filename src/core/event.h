@@ -4,14 +4,36 @@
 
 #include "core/algo/pitch/notes.h"
 
+
 struct MidiNoteEvent {
-    NoteNumber note_number;
-    unsigned int velocity;
-    unsigned int channel;
+        std::size_t note_number;
+        std::size_t velocity;
+        std::size_t channel;
+    };
+
+class Event {
+public:
+    using EventType = std::variant<MidiNoteEvent>;
+
+    explicit Event(const EventType& e) : m_event(e) {}
+
+    template<typename T>
+    bool is() const noexcept {
+        return std::holds_alternative<T>(m_event);
+    }
+
+
+    template<typename T>
+    T as() const {
+        return std::get<T>(m_event);
+    }
+
+private:
+    EventType m_event;
+
 };
 
-
-using Event = std::variant<MidiNoteEvent>;
+//using Event = std::variant<MidiNoteEvent>;
 
 
 //class Event {

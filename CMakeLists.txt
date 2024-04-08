@@ -21,7 +21,7 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generation_graph.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generative.h
 #        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/note_source.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/makenote.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/make_note.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/event.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/nop_parameter.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/operator.h
@@ -428,6 +428,7 @@ add_executable(tests EXCLUDE_FROM_ALL
         test/backend/generatives/auto_pulsator_tests.cpp
         test/backend/generatives/triggered_pulsator_tests.cpp
         test/backend/generatives/variable_state_pulsator_tests.cpp
+        test/backend/generatives/make_note_tests.cpp
         test/backend/utility/math_tests.cpp
 )
 

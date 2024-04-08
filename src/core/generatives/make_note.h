@@ -1,6 +1,6 @@
 
-#ifndef SERIALISTLOOPER_MAKENOTE_H
-#define SERIALISTLOOPER_MAKENOTE_H
+#ifndef SERIALISTLOOPER_MAKE_NOTE_H
+#define SERIALISTLOOPER_MAKE_NOTE_H
 
 #include "core/event.h"
 #include "core/generative.h"
@@ -9,6 +9,8 @@
 #include "core/param/socket_policy.h"
 #include "core/algo/facet.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
+#include "sequence.h"
+#include "variable.h"
 
 class MakeNote {
 public:
@@ -36,32 +38,32 @@ public:
     Voice<Event> flush() {
         return m_held_notes.flush()
                 .as_type<Event>([](const IdentifiedChanneledHeld& note) {
-                    return MidiNoteEvent{note.note, 0, note.channel};
+                    return Event(MidiNoteEvent{note.note, 0, note.channel});
                 });
     }
 
 private:
 
-    Voice<Event> process_pulse_on(int id
+    Voice<Event> process_pulse_on(std::size_t id
                                   , const Voice<NoteNumber>& notes
                                   , unsigned int velocity
                                   , unsigned int channel) {
         auto events = Voice<Event>::allocated(notes.size());
         for (const auto& note: notes) {
             m_held_notes.bind({id, note, channel});
-            events.append(MidiNoteEvent{note, velocity, channel});
+            events.append(Event(MidiNoteEvent{note, velocity, channel}));
         }
 
         return events;
     }
 
-    Voice<Event> process_pulse_off(int id) {
+    Voice<Event> process_pulse_off(std::size_t id) {
         return m_held_notes.get_held_mut()
                 .filter_drain([&id](const IdentifiedChanneledHeld& v) {
                     return v.id != id;
                 })
                 .as_type<Event>([](const IdentifiedChanneledHeld& note) {
-                    return MidiNoteEvent{note.note, 0, note.channel};
+                    return Event(MidiNoteEvent{note.note, 0, note.channel});
                 });
 
     }
@@ -74,11 +76,13 @@ private:
 
 class MakeNoteNode : public NodeBase<Event> {
 public:
-    static const inline std::string NOTE_NUMBER = "note_number";
-    static const inline std::string VELOCITY = "velocity";
-    static const inline std::string CHANNEL = "channel";
+    struct Keys {
+        static const inline std::string NOTE_NUMBER = "note_number";
+        static const inline std::string VELOCITY = "velocity";
+        static const inline std::string CHANNEL = "channel";
 
-    static const inline std::string CLASS_NAME = "makenote";
+        static const inline std::string CLASS_NAME = "makenote";
+    };
 
     MakeNoteNode(const std::string& identifier
                  , ParameterHandler& parent
@@ -88,11 +92,11 @@ public:
                  , Node<Facet>* channel = nullptr
                  , Node<Facet>* enabled = nullptr
                  , Node<Facet>* num_voices = nullptr)
-            : NodeBase(identifier, parent, enabled, num_voices, CLASS_NAME)
+            : NodeBase(identifier, parent, enabled, num_voices, Keys::CLASS_NAME)
               , m_trigger(add_socket(ParameterKeys::TRIGGER, trigger))
-              , m_note_number(add_socket(NOTE_NUMBER, note_number))
-              , m_velocity(add_socket(VELOCITY, velocity))
-              , m_channel(add_socket(CHANNEL, channel)) {}
+              , m_note_number(add_socket(Keys::NOTE_NUMBER, note_number))
+              , m_velocity(add_socket(Keys::VELOCITY, velocity))
+              , m_channel(add_socket(Keys::CHANNEL, channel)) {}
 
     Voices<Event> process() override {
         auto t = pop_time();
@@ -115,7 +119,7 @@ public:
 
         auto num_voices = voice_count(trigger.size(), note_number.size(), velocity.size(), channel.size());
 
-        if(num_voices != m_make_notes.size()) {
+        if (num_voices != m_make_notes.size()) {
             m_make_notes.resize(num_voices);
         }
 
@@ -161,4 +165,31 @@ private:
     Voices<Event> m_current_value = Voices<Event>::empty_like();
 };
 
-#endif //SERIALISTLOOPER_MAKENOTE_H
+
+// ==============================================================================================
+
+struct MakeNoteWrapper {
+    using Keys = MakeNoteNode::Keys;
+
+    ParameterHandler parameter_handler;
+
+    Sequence<Trigger> trigger{ParameterKeys::TRIGGER, parameter_handler, Voices<Trigger>::empty_like()};
+    Sequence<Facet, std::size_t> note_number{Keys::NOTE_NUMBER, parameter_handler, Voices<std::size_t>::singular(60)};
+    Sequence<Facet, std::size_t> velocity{Keys::VELOCITY, parameter_handler, Voices<std::size_t>::singular(100)};
+    Sequence<Facet, std::size_t> channel{Keys::CHANNEL, parameter_handler, Voices<std::size_t>::singular(true)};
+    Sequence<Facet, bool> enabled{ParameterKeys::ENABLED, parameter_handler, Voices<bool>::singular(true)};
+    Variable<Facet, std::size_t> num_voices{ParameterKeys::NUM_VOICES, parameter_handler, 0};
+
+    MakeNoteNode make_note_node{Keys::CLASS_NAME
+                                , parameter_handler
+                                , &trigger
+                                , &note_number
+                                , &velocity
+                                , &channel
+                                , &enabled
+                                , &num_voices};
+
+};
+
+
+#endif //SERIALISTLOOPER_MAKE_NOTE_H

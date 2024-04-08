@@ -148,7 +148,7 @@ struct ChanneledHeld {
 };
 
 struct IdentifiedChanneledHeld {
-    int id;
+    std::size_t id;
     NoteNumber note;
     unsigned int channel;
 
