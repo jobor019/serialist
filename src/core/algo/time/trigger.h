@@ -3,6 +3,7 @@
 #define SERIALISTLOOPER_TRIGGER_H
 
 #include "core/collections/vec.h"
+#include "core/collections/voices.h"
 
 class TriggerIds {
 public:
@@ -60,7 +61,7 @@ public:
     }
 
     static Trigger with_manual_id(const Type& type, std::size_t id) {
-        return Trigger(type, id);
+        return {type, id};
     }
 
     static Trigger pulse_off(std::optional<std::size_t> id) {
@@ -74,6 +75,12 @@ public:
     static bool contains(const Vec<Trigger>& triggers, const Type& t) {
         return triggers.contains([&t](const Trigger& trigger) {
             return trigger.get_type() == t;
+        });
+    }
+
+    static bool contains(const Voices<Trigger>& triggers, const Type& t) {
+        return triggers.vec().any([&t](const Vec<Trigger>& trigger) {
+            return Trigger::contains(trigger, t);
         });
     }
 
@@ -93,6 +100,10 @@ public:
         return contains(triggers, Type::pulse_on);
     }
 
+    static bool contains_pulse_on(const Voices<Trigger>& triggers) {
+        return contains(triggers, Type::pulse_on);
+    }
+
     static bool contains_pulse_on(const Vec<Trigger>& triggers, std::size_t id) {
         return contains(triggers, Type::pulse_on, id);
     }
@@ -103,6 +114,10 @@ public:
 
     static bool contains_pulse_off(const Vec<Trigger>& triggers, std::size_t id) {
         return contains(triggers, Type::pulse_off, id);
+    }
+
+    static bool contains_pulse_off(const Voices<Trigger>& triggers) {
+        return contains(triggers, Type::pulse_off);
     }
 
     static bool contains_any_pulse(const Vec<Trigger>& triggers) {

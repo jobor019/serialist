@@ -107,6 +107,18 @@ inline constexpr bool is_osc_convertible_v = is_osc_convertible<T>::value;
 
 // ==============================================================================================
 
+template<typename T>
+struct is_optional : std::false_type {};
+
+template<typename T>
+struct is_optional<std::optional<T>> : std::true_type {};
+
+template<typename T>
+constexpr bool is_optional_v = is_optional<std::decay_t<T>>::value;
+
+
+// ==============================================================================================
+
 /**
  * Workaround to handle std::atomic<T>::is_always_lock_free for non-trivially copyable types
  */

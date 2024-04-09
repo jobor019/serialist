@@ -196,10 +196,4 @@ TEST_CASE("VariableStatePulsatorWrapper: triggered_pulsator multiple triggers") 
     outgoing_triggers = p.process();
 
     outgoing_triggers.print();
-
-
-
-
-
-
 }

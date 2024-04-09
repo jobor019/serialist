@@ -346,7 +346,6 @@ TEST_CASE("InterpolatorWrapper") {
         interp.cursor.set_values(static_cast<double>(utils::modulo(i, corpus.size())) / static_cast<double>(corpus.size()));
         interp.interpolator.update_time(TimePoint());
         auto s  = interp.interpolator.process();
-        s.print();
     }
 }
 

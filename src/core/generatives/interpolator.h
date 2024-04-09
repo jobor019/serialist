@@ -99,7 +99,7 @@ private:
         auto index = static_cast<std::size_t>(utils::modulo(index_of(cursor, corpus.size())
                                                             , static_cast<long>(corpus.size())));
         auto multiplier = static_cast<T>(std::floor(cursor / 1.0));
-        std::cout << "continuation (cursor=" << cursor << ", index=" << index << ", multiplier=" << multiplier << ")" << std::endl;
+//        std::cout << "continuation (cursor=" << cursor << ", index=" << index << ", multiplier=" << multiplier << ")" << std::endl;
         return corpus[index] + pivot * multiplier;
     }
 
@@ -107,7 +107,7 @@ private:
     static Voice<T> modulo(double cursor, const Voices<T>& corpus) {
         auto index = static_cast<std::size_t>(utils::modulo(index_of(cursor, corpus.size())
                                                             , static_cast<long>(corpus.size())));
-        std::cout << "modulo (cursor=" << cursor << ", index=" << index << ")" << std::endl;
+//        std::cout << "modulo (cursor=" << cursor << ", index=" << index << ")" << std::endl;
         return corpus[index];
     }
 
@@ -115,7 +115,7 @@ private:
     static Voice<T> clip(double cursor, const Voices<T>& corpus) {
         auto index = static_cast<std::size_t>(utils::clip(index_of(cursor, corpus.size())
                                                           , {0L}, {static_cast<long>(corpus.size() - 1)}));
-        std::cout << "clip (cursor=" << cursor << ", index=" << index << ")" << std::endl;
+//        std::cout << "clip (cursor=" << cursor << ", index=" << index << ")" << std::endl;
         return corpus[index];
     }
 
@@ -124,11 +124,11 @@ private:
         auto index = index_of(cursor, corpus.size());
 
         if (index < 0 || index >= static_cast<long>(corpus.size())) {
-            std::cout << "pass INVALID (cursor=" << cursor << ", index=" << index << ")" << std::endl;
+//            std::cout << "pass INVALID (cursor=" << cursor << ", index=" << index << ")" << std::endl;
             return {};
         }
 
-        std::cout << "pass VALID (cursor=" << cursor << ", index=" << index << ")" << std::endl;
+//        std::cout << "pass VALID (cursor=" << cursor << ", index=" << index << ")" << std::endl;
         return corpus[static_cast<std::size_t>(index)];
     }
 

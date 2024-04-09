@@ -121,6 +121,18 @@ TEST_CASE("Operator - addition") {
         REQUIRE(output.is_empty_like());
     }
 
+    SECTION("voices x voices with empty elements in both") {
+        op.lhs.set_values(Voices<double>({{}, {2}, {3}}));
+        op.rhs.set_values(Voices<double>({{4}, {}, {6}}));
+        op.operator_node.update_time(TimePoint());
+        auto output = op.operator_node.process();
+        REQUIRE(output.size() == 3);
+        REQUIRE(output[0].empty());
+        REQUIRE(output[1].empty());
+        REQUIRE(output[2].size() == 1);
+        REQUIRE_THAT(static_cast<double>(output[2][0]), Catch::Matchers::WithinAbs(9, 1e-8));
+    }
+
     SECTION("scalar x voices") {
         op.lhs.set_values(2);
         op.rhs.set_values(Voices<double>::transposed({1, 2, 3}));

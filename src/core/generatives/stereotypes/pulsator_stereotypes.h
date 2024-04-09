@@ -64,10 +64,12 @@ public:
         Voices<Trigger> output = Voices<Trigger>::zeros(num_voices);
 
         bool resized = false;
-        if (auto flushed = update_size(num_voices, *t); flushed && !flushed->is_empty_like()) {
-            // from this point on, size of output may be different from num_voices,
-            //   but this is the only point where resizing should be allowed
-            output.merge_uneven(*flushed, true);
+        if (auto flushed = update_size(num_voices, *t)) {
+            if (!flushed->is_empty_like()) {
+                // from this point on, size of output may be different from num_voices,
+                //   but this is the only point where resizing should be allowed
+                output.merge_uneven(*flushed, true);
+            }
             resized = true;
         }
 
@@ -108,9 +110,9 @@ protected:
         return std::nullopt;
     }
 
- /**
- * @return returns current enable state
- */
+    /**
+    * @return returns current enable state
+    */
     bool update_enabled_state(const TimePoint& t) {
         bool enabled = is_enabled();
         if (!enabled) {
