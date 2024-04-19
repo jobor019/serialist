@@ -15,7 +15,8 @@ class Event {
 public:
     using EventType = std::variant<MidiNoteEvent>;
 
-    explicit Event(const EventType& e) : m_event(e) {}
+    // ReSharper disable once CppNonExplicitConvertingConstructor
+    Event(const EventType& e) : m_event(e) {} // NOLINT(*-explicit-constructor)
 
     template<typename T>
     bool is() const noexcept {

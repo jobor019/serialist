@@ -930,6 +930,18 @@ TEST_CASE("Test pop_index") {
 }
 
 
+TEST_CASE("Test argwhere") {
+    Vec v({1, 2, 3, 4});
+    REQUIRE(v.argwhere([](int i) { return i >= 3; }) == Vec<std::size_t>({2, 3}));
+    REQUIRE(v.argwhere([](int i) { return i >= 0; }) == Vec<std::size_t>({0, 1, 2, 3}));
+    REQUIRE(v.argwhere([](int i) { return i >= 5; }) == Vec<std::size_t>());
+}
+
+
+// ==============================================================================================
+
+
+
 TEST_CASE("Test insert with non-copyable constructible objects") {
     Vec<std::unique_ptr<std::string>> v;
     v.append(std::make_unique<std::string>("123"));

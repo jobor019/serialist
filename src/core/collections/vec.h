@@ -1,4 +1,3 @@
-
 #ifndef SERIALISTLOOPER_VEC_H
 #define SERIALISTLOOPER_VEC_H
 
@@ -14,7 +13,6 @@
 template<typename T>
 class Vec {
 public:
-
     // =========================== CONSTRUCTORS ==========================
 
     using value_type = T;
@@ -28,20 +26,20 @@ public:
 
     explicit Vec(std::vector<T> data) : m_vector(std::move(data)) {
         // TODO: For now. Ideally, Vec's copy ctor should be deleted to avoid accidental copies
-//        static_assert(std::is_copy_constructible_v<T>, "T must be copy constructible");
+        //        static_assert(std::is_copy_constructible_v<T>, "T must be copy constructible");
     }
 
 
-    template<typename E = T, typename std::enable_if_t<std::is_copy_constructible_v<E>, int> = 0>
+    template<typename E = T, typename std::enable_if_t<std::is_copy_constructible_v<E>, int>  = 0>
     Vec(std::initializer_list<T> data) : m_vector(std::move(data)) {
-//        static_assert(std::is_copy_constructible_v<T>, "T must be copy constructible"); // TODO: For now
+        //        static_assert(std::is_copy_constructible_v<T>, "T must be copy constructible"); // TODO: For now
     }
 
 
     template<typename... Args
              , typename std::enable_if_t<((!std::is_copy_constructible_v<Args> && std::is_constructible_v<T, Args>)
-                                                 && ...), int> = 0>
-    explicit Vec(Args&& ... args) {
+                                             && ...), int>  = 0>
+    explicit Vec(Args&&... args) {
         (m_vector.emplace_back(std::forward<Args>(args)), ...);
     }
 
@@ -58,7 +56,7 @@ public:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     static Vec<T> range(T begin, T end, T step = static_cast<T>(1)) {
         // TODO: ensure begin <= end, etc.
         std::vector<T> output;
@@ -72,13 +70,13 @@ public:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     static Vec<T> range(T end) {
         return Vec<T>::range(0, end);
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     static Vec<T> linspace(T start, T end, std::size_t num, bool include_endpoint = true) {
         if (num == 0) {
             return {};
@@ -98,7 +96,6 @@ public:
             result.append(static_cast<T>(start + static_cast<T>(i) * step));
         }
         return result;
-
     }
 
 
@@ -119,19 +116,19 @@ public:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     static Vec<T> ones(std::size_t size) {
         return Vec<T>::repeated(size, static_cast<T>(1));
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     static Vec<T> zeros(std::size_t size) {
         return Vec<T>::repeated(size, static_cast<T>(0));
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     static Vec<T> one_hot(const T& value, std::size_t index, std::size_t size) {
         auto v = Vec<T>::zeros(size);
         v[index] = value;
@@ -160,11 +157,10 @@ public:
      */
     template<typename Callable
              , typename... Containers
-             , typename = std::enable_if_t<(std::is_same_v<Containers, Vec<typename Containers::value_type>> && ...)>>
+             , typename = std::enable_if_t<(std::is_same_v<Containers, Vec<typename Containers::value_type> > && ...)> >
     static auto broadcast_apply(Callable&& func
-                                , Containers&& ... containers
+                                , Containers&&... containers
     ) -> Vec<decltype(std::forward<Callable>(func)(*(containers.begin())...))> {
-
         using ResultType = decltype(std::forward<Callable>(func)(*(containers.begin())...));
 
         auto max_size = std::max({containers.size()...});
@@ -180,15 +176,16 @@ public:
         return results;
     }
 
+
     /**
      * Same as broadcast_apply but without moving / mutating the original Vecs
      * @see broadcast_apply
      */
     template<typename Callable
              , typename... Containers
-             , typename = std::enable_if_t<(std::is_same_v<Containers, Vec<typename Containers::value_type>> && ...)> >
-    static auto broadcast_apply(Callable&& func, const Containers& ... containers) -> Vec<
-            decltype(std::forward<Callable>(func)(*(containers.begin())...))> {
+             , typename = std::enable_if_t<(std::is_same_v<Containers, Vec<typename Containers::value_type> > && ...)> >
+    static auto broadcast_apply(Callable&& func, const Containers&... containers) -> Vec<
+        decltype(std::forward<Callable>(func)(*(containers.begin())...))> {
         using ResultType = decltype(std::forward<Callable>(func)(*(containers.begin())...));
 
         auto max_size = std::max({containers.size()...});
@@ -198,7 +195,7 @@ public:
         auto results = Vec<ResultType>::allocated(max_size);
 
         for (size_t i = 0; i < max_size; ++i) {
-            results.append(std::apply([&func, i](auto&& ... args) {
+            results.append(std::apply([&func, i](auto&&... args) {
                 return std::forward<Callable>(func)(*(args.begin() + i)...);
             }, resized_containers));
         }
@@ -219,76 +216,76 @@ public:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T> operator+(const T& operand2) const {
         return elementwise_operation(operand2, std::plus());
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T> operator+(const Vec<T>& other) const {
         return elementwise_operation(other, std::plus());
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T> operator-(const Vec<T>& other) const {
         return elementwise_operation(other, std::minus());
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T> operator-(const T& operand2) const {
         return elementwise_operation(operand2, std::minus());
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T> operator*(const Vec<T>& other) const {
         return elementwise_operation(other, std::multiplies());
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T> operator*(const T& operand2) const {
         return elementwise_operation(operand2, std::multiplies());
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T> operator/(const Vec<T>& other) const {
         return elementwise_operation(other, std::divides());
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T> operator/(const T& operand2) const {
         return elementwise_operation(operand2, std::divides());
     }
 
 
-    template<typename... Args, typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename... Args, typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T>& operator+=(Args... args) {
         add(args...);
         return *this;
     }
 
 
-    template<typename... Args, typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename... Args, typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T>& operator-=(Args... args) {
         subtract(args...);
         return *this;
     }
 
 
-    template<typename... Args, typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename... Args, typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T>& operator*=(Args... args) {
         multiply(args...);
         return *this;
     }
 
 
-    template<typename... Args, typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename... Args, typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T>& operator/=(Args... args) {
         divide(args...);
         return *this;
@@ -407,7 +404,7 @@ public:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_integral_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_integral_v<E> > >
     Vec<bool> boolean_mask(std::optional<std::size_t> size = std::nullopt) const {
         Vec<bool> output = Vec<bool>::repeated(size.value_or(max() + 1), false);
         for (const auto& index: m_vector) {
@@ -417,7 +414,7 @@ public:
     }
 
 
-    template<typename U, typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool>>>
+    template<typename U, typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool> > >
     Vec<U> index_map() {
         Vec<T> output;
         for (std::size_t i = 0; i < m_vector.size(); ++i) {
@@ -448,36 +445,38 @@ public:
         return *this;
     }
 
+
     // TODO: Insert with padding. Will require quite some work to work with non-copy constructible objects,
     //  e.g. Vec<std::unique_ptr<std::string>
-//    Vec<T>& insert(long index, T value, std::optional<T> pad_value = std::nullopt) {
-//        auto signed_index = sign_index(index);
-//
-//        if (signed_index == size()) {
-//            return append(std::move(value));
-//        } else if (signed_index > size()) {
-//            if (pad_value) {
-//                auto extension = Vec<T>::repeated(signed_index - size(), *pad_value);
-//                extension.append(std::move(value));
-//                m_vector.insert(m_vector.end()
-//                                , std::make_move_iterator(extension.begin())
-//                                , std::make_move_iterator(extension.end()));
-//
-//                return *this;
-//            } else {
-//                throw std::out_of_range("insert: index out of range");
-//            }
-//        }
-//
-//        m_vector.insert(m_vector.begin() + static_cast<long>(signed_index), std::move(value));
-//        return *this;
-//    }
+    //    Vec<T>& insert(long index, T value, std::optional<T> pad_value = std::nullopt) {
+    //        auto signed_index = sign_index(index);
+    //
+    //        if (signed_index == size()) {
+    //            return append(std::move(value));
+    //        } else if (signed_index > size()) {
+    //            if (pad_value) {
+    //                auto extension = Vec<T>::repeated(signed_index - size(), *pad_value);
+    //                extension.append(std::move(value));
+    //                m_vector.insert(m_vector.end()
+    //                                , std::make_move_iterator(extension.begin())
+    //                                , std::make_move_iterator(extension.end()));
+    //
+    //                return *this;
+    //            } else {
+    //                throw std::out_of_range("insert: index out of range");
+    //            }
+    //        }
+    //
+    //        m_vector.insert(m_vector.begin() + static_cast<long>(signed_index), std::move(value));
+    //        return *this;
+    //    }
 
-    template<typename E = T, std::enable_if_t<std::is_copy_constructible_v<E>, int> = 0>
+    template<typename E = T, std::enable_if_t<std::is_copy_constructible_v<E>, int>  = 0>
     Vec<T>& extend(const Vec<T>& other) {
         m_vector.insert(m_vector.end(), other.m_vector.begin(), other.m_vector.end());
         return *this;
     }
+
 
     Vec<T>& extend(Vec<T>&& other) {
         m_vector.insert(m_vector.end(), std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()));
@@ -500,9 +499,11 @@ public:
         return *this;
     }
 
+
     void clear() {
         m_vector.clear();
     }
+
 
     std::optional<T> pop_value(const T& value) {
         if (auto it = std::find(m_vector.begin(), m_vector.end(), value); it != m_vector.end()) {
@@ -511,6 +512,7 @@ public:
         return std::nullopt;
     }
 
+
     std::optional<T> pop_value(std::function<bool(const T&)> pred) {
         if (auto it = std::find_if(m_vector.begin(), m_vector.end(), pred); it != m_vector.end()) {
             return pop_internal(it);
@@ -518,7 +520,8 @@ public:
         return std::nullopt;
     }
 
-    template<typename SizeType, typename = std::enable_if_t<std::is_integral_v<SizeType>>>
+
+    template<typename SizeType, typename = std::enable_if_t<std::is_integral_v<SizeType> > >
     std::optional<T> pop_index(SizeType index) {
         long iterator_index;
         if constexpr (std::is_signed_v<SizeType>) {
@@ -535,7 +538,7 @@ public:
     }
 
 
-    template<typename SizeType, typename = std::enable_if_t<std::is_integral_v<SizeType>>>
+    template<typename SizeType, typename = std::enable_if_t<std::is_integral_v<SizeType> > >
     Vec<T>& erase(SizeType index) {
         long iterator_index;
         if constexpr (std::is_signed_v<SizeType>) {
@@ -549,7 +552,7 @@ public:
     }
 
 
-    template<typename SizeType, typename = std::enable_if_t<std::is_integral_v<SizeType>>>
+    template<typename SizeType, typename = std::enable_if_t<std::is_integral_v<SizeType> > >
     Vec<T>& erase(SizeType begin, SizeType end) {
         // TODO: check begin <= end, etc.
         long begin_index;
@@ -570,7 +573,7 @@ public:
     /**
      * Resize and append copies of the provided element
      */
-    template<typename E = T, typename = std::enable_if_t<std::is_copy_constructible_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_copy_constructible_v<E> > >
     Vec<T>& resize_append(std::size_t new_size, const T& append_value) {
         if (auto diff = size_diff(new_size); diff < 0) {
             shrink_internal(new_size);
@@ -585,7 +588,7 @@ public:
     /**
      * Resize and append default-constructed elements (useful for seeded elements where identical copies aren't desired)
      */
-    template<typename E = T, typename = std::enable_if_t<std::is_default_constructible_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_default_constructible_v<E> > >
     Vec<T>& resize_default(std::size_t new_size) {
         if (auto diff = size_diff(new_size); diff < 0) {
             shrink_internal(new_size);
@@ -601,7 +604,7 @@ public:
     /**
      * Resize and append copies of the last element
      */
-    template<typename E = T, typename = std::enable_if_t<std::is_copy_constructible_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_copy_constructible_v<E> > >
     Vec<T>& resize_extend(std::size_t new_size) {
         if (m_vector.empty()) {
             throw std::invalid_argument("cannot resize_extend empty vector");
@@ -620,7 +623,7 @@ public:
     /**
     * Resize and append copies of existing elements in the vector (consecutive folded)
     */
-    template<typename E = T, typename = std::enable_if_t<std::is_copy_constructible_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_copy_constructible_v<E> > >
     Vec<T>& resize_fold(std::size_t new_size) {
         if (m_vector.empty()) {
             throw std::invalid_argument("cannot resize_fold empty vector");
@@ -637,6 +640,7 @@ public:
 
         return *this;
     }
+
 
 
     // =========================== FUNCTIONAL ==========================
@@ -734,17 +738,16 @@ public:
 
 
     // TODO: Not tested
-//    Vec& rotate(long amount) {
-//        if (amount >= 0) {
-//            auto rotation_position = amount % static_cast<long>(m_vector.size());
-//            std::rotate(m_vector.begin(), m_vector.begin() + rotation_position, m_vector.end());
-//        } else {
-//            auto rotation_position = -amount % static_cast<long>(m_vector.size());
-//            std::rotate(m_vector.begin(), m_vector.begin() + rotation_position, m_vector.end());
-//        }
-//        return *this;
-//    }
-
+    //    Vec& rotate(long amount) {
+    //        if (amount >= 0) {
+    //            auto rotation_position = amount % static_cast<long>(m_vector.size());
+    //            std::rotate(m_vector.begin(), m_vector.begin() + rotation_position, m_vector.end());
+    //        } else {
+    //            auto rotation_position = -amount % static_cast<long>(m_vector.size());
+    //            std::rotate(m_vector.begin(), m_vector.begin() + rotation_position, m_vector.end());
+    //        }
+    //        return *this;
+    //    }
 
 
     Vec<T>& shift(long amount) {
@@ -790,25 +793,25 @@ public:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<!std::is_same_v<E, bool>>>
+    template<typename E = T, typename = std::enable_if_t<!std::is_same_v<E, bool>> >
     bool all(std::function<bool(T)> f) const {
         return std::all_of(m_vector.begin(), m_vector.end(), f);
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool> > >
     bool all() const {
         return std::all_of(m_vector.begin(), m_vector.end(), [](const T& element) { return element; });
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<!std::is_same_v<E, bool>>>
+    template<typename E = T, typename = std::enable_if_t<!std::is_same_v<E, bool>> >
     bool any(std::function<bool(T)> f) const {
         return std::any_of(m_vector.begin(), m_vector.end(), f);
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool> > >
     bool any() const {
         return std::any_of(m_vector.begin(), m_vector.end(), [](const T& element) { return element; });
     }
@@ -831,11 +834,10 @@ public:
     }
 
 
-
     // =========================== MISC ==========================
 
 
-    template<typename E = T, typename = std::enable_if_t<utils::is_printable_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<utils::is_printable_v<E> > >
     void print() const {
         std::cout << "[";
         for (const T& element: m_vector) {
@@ -877,6 +879,7 @@ public:
         });
     }
 
+
     bool contains(std::function<bool(const T&)> f) const {
         for (const T& element: m_vector) {
             if (f(element)) {
@@ -905,8 +908,18 @@ public:
         return std::nullopt;
     }
 
+    Vec<std::size_t> argwhere(std::function<bool(const T&)> f) const {
+        Vec<std::size_t> indices;
+        for (std::size_t i = 0; i < m_vector.size(); ++i) {
+            if (f(m_vector[i])) {
+                indices.append(i);
+            }
+        }
+        return indices;
+    }
 
-    template<typename E = T, typename = std::enable_if_t<std::is_floating_point_v<E>>>
+
+    template<typename E = T, typename = std::enable_if_t<std::is_floating_point_v<E> > >
     bool approx_equals(const Vec<T>& other, double epsilon = 1e-6) const {
         if (other.size() != m_vector.size()) {
             return false;
@@ -956,42 +969,42 @@ public:
     // ======================== ARITHMETIC OPERATIONS ========================
 
 
-    template<typename... Args, typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename... Args, typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T>& add(Args... args) {
         apply_base(std::plus<T>(), args...);
         return *this;
     }
 
 
-    template<typename... Args, typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename... Args, typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T>& subtract(Args... args) {
         apply_base(std::minus<T>(), args...);
         return *this;
     }
 
 
-    template<typename... Args, typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename... Args, typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T>& multiply(Args... args) {
         apply_base(std::multiplies<T>(), args...);
         return *this;
     }
 
 
-    template<typename... Args, typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename... Args, typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T>& divide(Args... args) {
         apply_base(std::divides<T>(), args...);
         return *this;
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T>& pow(const T& exponent) {
         apply_base([](const T& a, const T& b) { return std::pow(a, b); }, exponent);
         return *this;
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_floating_point_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_floating_point_v<E> > >
     Vec<T>& normalize_max() {
         if (auto max_value = max(); max_value != static_cast<T>(0.0)) {
             auto scale_factor = 1 / max_value;
@@ -1004,7 +1017,7 @@ public:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_floating_point_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_floating_point_v<E> > >
     Vec<T>& normalize_l1() {
         auto sum = static_cast<T>(0.0);
         for (const auto& e: m_vector) {
@@ -1022,7 +1035,7 @@ public:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_floating_point_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_floating_point_v<E> > >
     Vec<T>& normalize_l2() {
         auto sum_of_squares = static_cast<T>(0.0);
         for (const auto& e: m_vector) {
@@ -1040,7 +1053,7 @@ public:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T>& min_of(const T& value) {
         for (auto& e: m_vector) {
             e = std::min(e, value);
@@ -1049,7 +1062,7 @@ public:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T>& max_of(const T& value) {
         for (auto& e: m_vector) {
             e = std::max(e, value);
@@ -1058,7 +1071,7 @@ public:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T>& clip(std::optional<T> low_thresh, std::optional<T> high_thresh) {
         if (low_thresh) {
             max_of(*low_thresh);
@@ -1069,13 +1082,14 @@ public:
         return *this;
     }
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T>& clip(T low_thresh, T high_thresh) {
         return clip(std::optional<T>(low_thresh), std::optional<T>(high_thresh));
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T>& clip_remove(std::optional<T> low_thresh, std::optional<T> high_thresh) {
         filter_drain([low_thresh, high_thresh](const T& e) {
             return (!low_thresh || e >= *low_thresh) && (!high_thresh || e <= *high_thresh);
@@ -1084,7 +1098,7 @@ public:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T>& sort(bool ascending = true) {
         if (ascending)
             std::sort(m_vector.begin(), m_vector.end());
@@ -1139,20 +1153,20 @@ public:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     T sum() const {
         return std::accumulate(m_vector.begin(), m_vector.end(), T(0));
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     Vec<T>& cumsum() {
         std::partial_sum(m_vector.begin(), m_vector.end(), m_vector.begin());
         return *this;
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     T mean() const {
         if (m_vector.empty()) {
             throw std::logic_error("Cannot compute mean of an empty vector");
@@ -1161,19 +1175,19 @@ public:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     T max() const {
         return *std::max_element(m_vector.begin(), m_vector.end());
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     T min() const {
         return *std::min_element(m_vector.begin(), m_vector.end());
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     T peak() const {
         std::vector<T> abs_values;
         abs_values.reserve(m_vector.size());
@@ -1188,7 +1202,7 @@ public:
 
     // ======================== BOOLEAN MASK OPERATORS =============================
 
-    template<typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool> > >
     Vec<T>& logical_not() {
         for (std::size_t i = 0; i < m_vector.size(); ++i) {
             m_vector.at(i) = !m_vector.at(i);
@@ -1198,7 +1212,7 @@ public:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool> > >
     Vec<T>& logical_and(const Vec<T>& other) {
         if (other.size() != m_vector.size()) {
             throw std::out_of_range("vectors must have the same size for element-wise operation");
@@ -1212,7 +1226,7 @@ public:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_same_v<E, bool> > >
     Vec<T>& logical_or(const Vec<T>& other) {
         if (other.size() != m_vector.size()) {
             throw std::out_of_range("vectors must have the same size for element-wise operation");
@@ -1225,9 +1239,7 @@ public:
         return *this;
     }
 
-
 private:
-
     std::size_t sign_index(long index) const {
         // Note that if `std::abs(index) > m_vector.size()`,
         //  this will return std::numeric_limits<std::size_t>::max() - index`
@@ -1236,7 +1248,8 @@ private:
     }
 
 
-    template<typename SizeType, typename = std::enable_if_t<std::is_integral_v<SizeType> && std::is_signed_v<SizeType>>>
+    template<typename SizeType, typename = std::enable_if_t<
+                 std::is_integral_v<SizeType> && std::is_signed_v<SizeType>> >
     Vec<std::size_t> sign_indices(const Vec<SizeType>& indices) const {
         std::vector<std::size_t> result;
         result.reserve(indices.size());
@@ -1278,10 +1291,7 @@ private:
 
 
     enum class ResizeType {
-        append
-        , extend
-        , fold
-        , default_ctor
+        append, extend, fold, default_ctor
     };
 
 
@@ -1300,19 +1310,17 @@ private:
 
         auto diff = size_diff(new_size);
         m_vector.erase(m_vector.end() + diff, m_vector.end());
-
     }
+
 
     std::optional<T> pop_internal(typename std::vector<T>::iterator it) {
         auto output = std::make_optional<T>(std::move(*it));
         m_vector.erase(it);
         return std::move(output);
-
     }
 
 
     std::vector<T> m_vector;
-
 };
 
 

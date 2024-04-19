@@ -294,11 +294,9 @@ void test_variable_size_interpolation(typename InterpolatorType::Strategy strate
             corpus[i] = (Voice<int>{static_cast<int>(i)});
         }
 
-
         double position = 0;
         double increment = 1.0 / static_cast<double>(mapping_size);
         for (std::size_t i = 0; i < mapping_size; ++i) {
-
             REQUIRE(InterpolatorType::process(position, corpus, strategy) == corpus[i]);
             position += increment;
         }

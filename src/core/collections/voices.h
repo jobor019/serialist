@@ -19,7 +19,7 @@ using Voice = Vec<T>;
 template<typename T>
 class Voices {
 public:
-    const static inline std::size_t AUTO_VOICES = 0;
+    static constexpr std::size_t AUTO_VOICES = 0;
 
     using value_type = T;
     using size_type = std::size_t;
@@ -222,6 +222,19 @@ public:
     }
 
 
+    /**
+     * @return a `Voices<T>` where all empty elements of this `Voices<T>` are replaced with the corresponding values in `other`
+     */
+    Voices& elementwise_or(const Voices& other) {
+        for (const auto& i : empty_indices()) {
+            if (other.size() > i) {
+                m_voices[i] = other.vec()[i];
+            }
+        }
+        return *this;
+    }
+
+
     // =========================== ACCESSORS ==========================
 
     /**
@@ -370,6 +383,10 @@ public:
     bool is_empty_like() const {
         auto& v = m_voices.vector();
         return !std::any_of(v.begin(), v.end(), [](const Voice<T>& voice) { return !voice.empty(); });
+    }
+
+    Vec<std::size_t> empty_indices() const {
+        return m_voices.argwhere([](const Vec<T>& voice) { return voice.empty(); });
     }
 
 

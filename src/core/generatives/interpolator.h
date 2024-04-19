@@ -1,4 +1,3 @@
-
 #ifndef SERIALISTLOOPER_INTERPOLATOR_H
 #define SERIALISTLOOPER_INTERPOLATOR_H
 
@@ -45,12 +44,15 @@ public:
         T pivot;
         // TODO: Implement to_string and from_string (utils::is_serializable)
     };
+
     struct Modulo {
         // TODO: Implement to_string and from_string (utils::is_serializable)
     };
+
     struct Clip {
         // TODO: Implement to_string and from_string (utils::is_serializable)
     };
+
     struct Pass {
         // TODO: Implement to_string and from_string (utils::is_serializable)
     };
@@ -73,7 +75,6 @@ public:
         }, strategy);
     }
 
-
 private:
     static Voice<T> match(const Strategy& strategy, double cursor, const Voices<T>& corpus) {
         if (std::holds_alternative<Continue>(strategy)) {
@@ -94,12 +95,12 @@ private:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
     static Voice<T> continuation(double cursor, const Voices<T>& corpus, const T& pivot) {
         auto index = static_cast<std::size_t>(utils::modulo(index_of(cursor, corpus.size())
                                                             , static_cast<long>(corpus.size())));
         auto multiplier = static_cast<T>(std::floor(cursor / 1.0));
-//        std::cout << "continuation (cursor=" << cursor << ", index=" << index << ", multiplier=" << multiplier << ")" << std::endl;
+        //        std::cout << "continuation (cursor=" << cursor << ", index=" << index << ", multiplier=" << multiplier << ")" << std::endl;
         return corpus[index] + pivot * multiplier;
     }
 
@@ -107,7 +108,7 @@ private:
     static Voice<T> modulo(double cursor, const Voices<T>& corpus) {
         auto index = static_cast<std::size_t>(utils::modulo(index_of(cursor, corpus.size())
                                                             , static_cast<long>(corpus.size())));
-//        std::cout << "modulo (cursor=" << cursor << ", index=" << index << ")" << std::endl;
+        //        std::cout << "modulo (cursor=" << cursor << ", index=" << index << ")" << std::endl;
         return corpus[index];
     }
 
@@ -115,7 +116,7 @@ private:
     static Voice<T> clip(double cursor, const Voices<T>& corpus) {
         auto index = static_cast<std::size_t>(utils::clip(index_of(cursor, corpus.size())
                                                           , {0L}, {static_cast<long>(corpus.size() - 1)}));
-//        std::cout << "clip (cursor=" << cursor << ", index=" << index << ")" << std::endl;
+        //        std::cout << "clip (cursor=" << cursor << ", index=" << index << ")" << std::endl;
         return corpus[index];
     }
 
@@ -124,11 +125,11 @@ private:
         auto index = index_of(cursor, corpus.size());
 
         if (index < 0 || index >= static_cast<long>(corpus.size())) {
-//            std::cout << "pass INVALID (cursor=" << cursor << ", index=" << index << ")" << std::endl;
+            //            std::cout << "pass INVALID (cursor=" << cursor << ", index=" << index << ")" << std::endl;
             return {};
         }
 
-//        std::cout << "pass VALID (cursor=" << cursor << ", index=" << index << ")" << std::endl;
+        //        std::cout << "pass VALID (cursor=" << cursor << ", index=" << index << ")" << std::endl;
         return corpus[static_cast<std::size_t>(index)];
     }
 
@@ -136,7 +137,7 @@ private:
     static long index_of(double position, std::size_t map_size) {
         // This should work correctly up to Mappings of size 67_108_864,
         //   assuming doubles of 8 bytes (tested up to 10_000)
-        return static_cast<long>( std::floor(position * static_cast<double>(map_size) + epsilon));
+        return static_cast<long>(std::floor(position * static_cast<double>(map_size) + epsilon));
     }
 };
 
@@ -146,7 +147,6 @@ private:
 template<typename PivotType>
 class InterpolationAdapter : public Node<typename Interpolator<PivotType>::Strategy> {
 public:
-
     using Strategy = typename Interpolator<PivotType>::Strategy;
 
     static const inline std::string PIVOT = "pivot";
@@ -160,10 +160,10 @@ public:
                          , ParameterHandler& parent
                          , Node<Facet>* strategy = nullptr
                          , Node<PivotType>* pivot = nullptr)
-            : m_parameter_handler(id, parent)
-              , m_socket_handler(m_parameter_handler)
-              , m_strategy(m_socket_handler.create_socket(STRATEGY, strategy))
-              , m_pivot(m_socket_handler.create_socket(PIVOT, pivot)) {
+        : m_parameter_handler(id, parent)
+          , m_socket_handler(m_parameter_handler)
+          , m_strategy(m_socket_handler.create_socket(STRATEGY, strategy))
+          , m_pivot(m_socket_handler.create_socket(PIVOT, pivot)) {
         m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, CLASS_NAME);
     }
 
@@ -226,7 +226,6 @@ public:
                 return typename Interpolator<PivotType>::Continue{*pivot};
             }
             return typename Interpolator<PivotType>::Modulo();
-
         } else if (index == 1) {
             return typename Interpolator<PivotType>::Modulo();
         } else if (index == 2) {
@@ -236,10 +235,10 @@ public:
         }
     }
 
+
     static double index2double(std::size_t index) {
         return utils::index2double(index, NUM_STRATEGIES);
     }
-
 
 private:
     ParameterHandler m_parameter_handler;
@@ -270,7 +269,6 @@ struct InterpolatorKeys {
 template<typename OutputType>
 class InterpolatorNode : public NodeBase<OutputType> {
 public:
-
     InterpolatorNode(const std::string& id
                      , ParameterHandler& parent
                      , Node<Trigger>* trigger
@@ -279,14 +277,18 @@ public:
                      , Node<typename Interpolator<OutputType>::Strategy>* strategy
                      , Node<Facet>* enabled
                      , Node<Facet>* num_voices)
-            : NodeBase<OutputType>(id, parent, enabled, num_voices, InterpolatorKeys::CLASS_NAME)
-              , m_trigger(NodeBase<OutputType>::add_socket(InterpolatorKeys::TRIGGER, trigger))
-              , m_cursor(NodeBase<OutputType>::add_socket(InterpolatorKeys::CURSOR, cursor))
-              , m_corpus(NodeBase<OutputType>::add_socket(InterpolatorKeys::CORPUS, corpus))
-              , m_strategy(NodeBase<OutputType>::add_socket(InterpolatorKeys::STRATEGY, strategy)) {}
+        : NodeBase<OutputType>(id, parent, enabled, num_voices, InterpolatorKeys::CLASS_NAME)
+          , m_trigger(NodeBase<OutputType>::add_socket(InterpolatorKeys::TRIGGER, trigger))
+          , m_cursor(NodeBase<OutputType>::add_socket(InterpolatorKeys::CURSOR, cursor))
+          , m_corpus(NodeBase<OutputType>::add_socket(InterpolatorKeys::CORPUS, corpus))
+          , m_strategy(NodeBase<OutputType>::add_socket(InterpolatorKeys::STRATEGY, strategy)) {
+    }
 
 
-    Voices<OutputType> process() {
+
+
+
+    Voices<OutputType> process() override {
         if (auto t = NodeBase<OutputType>::pop_time(); !t) {
             return m_current_value;
         }
@@ -308,22 +310,21 @@ public:
         auto num_voices = NodeBase<OutputType>::voice_count(trigger.size(), cursor.size(), strategy.size());
 
         auto triggers = trigger.adapted_to(num_voices);
-        auto cursors = cursor.adapted_to(num_voices).firsts_or(0.0);
+        auto cursors = cursor.adapted_to(num_voices).firsts();
         auto strategies = strategy.adapted_to(num_voices).firsts_or(Interpolator<OutputType>::default_strategy());
 
         auto corpus = m_corpus.process();
 
         auto output = Voices<OutputType>::zeros(num_voices);
         for (std::size_t i = 0; i < trigger.size(); ++i) {
-            if (Trigger::contains_pulse_on(triggers[i])) {
-                output[i] = Interpolator<OutputType>::process(cursors[i], corpus, strategies[i]);
+            if (Trigger::contains_pulse_on(triggers[i]) && cursors[i].has_value()) {
+                output[i] = Interpolator<OutputType>::process(static_cast<double>(*cursors[i]), corpus, strategies[i]);
             }
         }
 
-        m_current_value = std::move(output);
+        m_current_value = output.elementwise_or(m_current_value);
         return m_current_value;
     }
-
 
 private:
     Socket<Trigger>& m_trigger;
@@ -351,8 +352,9 @@ struct InterpolatorWrapper {
     Sequence<Facet, bool> enabled{ParameterKeys::ENABLED, parameter_handler, true};
     Variable<Facet, std::size_t> num_voices{ParameterKeys::NUM_VOICES, parameter_handler, 1};
 
-    InterpolatorNode<OutputType> interpolator{InterpolatorKeys::CLASS_NAME, parameter_handler
-                                              , &trigger, &cursor, &corpus, &strategy, &enabled, &num_voices};
+    InterpolatorNode<OutputType> interpolator{
+        InterpolatorKeys::CLASS_NAME, parameter_handler, &trigger, &cursor, &corpus, &strategy, &enabled, &num_voices
+    };
 };
 
 

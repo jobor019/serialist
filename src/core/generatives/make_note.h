@@ -15,9 +15,9 @@
 class MakeNote {
 public:
     Voice<Event> process(const Voice<Trigger>& triggers
-                         , const Voice<NoteNumber>& notes
-                         , unsigned int velocity
-                         , unsigned int channel) {
+                         , const Voice<NoteNumber>& chord
+                         , const unsigned int velocity
+                         , const unsigned int channel) {
         Voice<Event> events;
 
         if (auto index = triggers.index([](const Trigger& trigger) {
@@ -29,8 +29,10 @@ public:
         if (auto index = triggers.index([](const Trigger& trigger) {
             return trigger.is(Trigger::Type::pulse_on);
         })) {
-            events.extend(process_pulse_on(triggers[*index].get_id(), notes, velocity, channel));
+            events.extend(process_pulse_on(triggers[*index].get_id(), chord, velocity, channel));
         }
+
+        std::cout << "num held: " << m_held_notes.get_held().size() << std::endl;
 
         return events;
     }
@@ -44,10 +46,10 @@ public:
 
 private:
 
-    Voice<Event> process_pulse_on(std::size_t id
+    Voice<Event> process_pulse_on(const std::size_t id
                                   , const Voice<NoteNumber>& notes
-                                  , unsigned int velocity
-                                  , unsigned int channel) {
+                                  , const unsigned int velocity
+                                  , const unsigned int channel) {
         auto events = Voice<Event>::allocated(notes.size());
         for (const auto& note: notes) {
             m_held_notes.bind({id, note, channel});

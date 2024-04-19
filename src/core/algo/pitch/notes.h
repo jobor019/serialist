@@ -158,7 +158,7 @@ struct IdentifiedChanneledHeld {
 };
 
 using HeldNotes = Held<ChanneledHeld>;
-using HeldNotesWithIds = Held<IdentifiedChanneledHeld>;
+using HeldNotesWithIds = Held<IdentifiedChanneledHeld, true>;
 
 using MultiVoiceHeldNotes = MultiVoiceHeld<ChanneledHeld>;
 

@@ -6,16 +6,21 @@
 #include "core/collections/vec.h"
 #include "core/algo/voice/multi_voiced.h"
 
-template<typename T>
+template<typename T, bool AllowDuplicates = false>
 class Held : public Flushable<T> {
 public:
-    Held() {
+    explicit Held()  {
         static_assert(std::is_same<decltype(std::declval<T>() == std::declval<T>()), bool>::value
                       , "T must implement the == operator");
     }
 
 
     bool bind(const T& v) {
+        if constexpr (AllowDuplicates) {
+            m_held.append(v);
+            return true;
+        }
+
         if (!m_held.contains(v)) {
             m_held.append(v);
             return true;
