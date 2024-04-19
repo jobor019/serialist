@@ -32,8 +32,6 @@ public:
             events.extend(process_pulse_on(triggers[*index].get_id(), chord, velocity, channel));
         }
 
-        std::cout << "num held: " << m_held_notes.get_held().size() << std::endl;
-
         return events;
     }
 

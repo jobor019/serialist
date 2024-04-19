@@ -54,6 +54,16 @@ TEST_CASE("Test Interpolator: Continue (Integral)") {
         REQUIRE(result.empty());
     }
 
+    SECTION("Test get with mixed mappings") {
+        auto mixed_corpus = Voices{Voice<int>{0, 2}, Voice<int>(), Voice<int>{8, 10}};
+        auto result = Interp::process(0.0, mixed_corpus, strategy);
+        REQUIRE(result == Voice<int>{0, 2});
+        result = Interp::process(0.4, mixed_corpus, strategy);
+        REQUIRE(result.empty());
+        result = Interp::process(0.8, mixed_corpus, strategy);
+        REQUIRE(result == Voice<int>{8, 10});
+    }
+
     SECTION("Immutability") {
         auto result = Interp::process(0.0, corpus, strategy);
         REQUIRE(result.size() == 2);

@@ -315,14 +315,13 @@ public:
 
         auto corpus = m_corpus.process();
 
-        auto output = Voices<OutputType>::zeros(num_voices);
+        m_current_value.adapted_to(num_voices);
         for (std::size_t i = 0; i < trigger.size(); ++i) {
             if (Trigger::contains_pulse_on(triggers[i]) && cursors[i].has_value()) {
-                output[i] = Interpolator<OutputType>::process(static_cast<double>(*cursors[i]), corpus, strategies[i]);
+                m_current_value[i] = Interpolator<OutputType>::process(static_cast<double>(*cursors[i]), corpus, strategies[i]);
             }
         }
 
-        m_current_value = output.elementwise_or(m_current_value);
         return m_current_value;
     }
 
