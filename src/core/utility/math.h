@@ -29,6 +29,13 @@ inline T modulo(T n, T d) {
     }
 }
 
+template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+inline std::pair<T, T> divmod(T n, T d) {
+    T remainder = modulo(n, d);
+    T quotient = (n - remainder) / d;
+    return std::make_pair(quotient, remainder);
+}
+
 
 // ==============================================================================================
 

@@ -105,11 +105,13 @@ public:
         }
 
         if (!is_enabled() || !m_trigger.is_connected() || !m_note_number.is_connected()) {
+            // TODO: Should flush here or return empty vector!!
             return m_current_value;
         }
 
         auto trigger = m_trigger.process();
         if (trigger.is_empty_like()) {
+            // TODO: return empty vector!!
             return m_current_value;
         }
 

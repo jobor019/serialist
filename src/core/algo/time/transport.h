@@ -5,27 +5,15 @@
 
 #include <chrono>
 #include <cmath>
-
-class Fraction {
-public:
-    Fraction(int num, int denom) : n(num), d(denom) {}
-
-
-    explicit operator double() const {
-        return n / static_cast<double>(d);
-    }
-
-
-    int n;
-    int d;
-};
+#include "core/algo/fraction.h"
+#include "core/utility/math.h"
 
 class Meter {
 public:
     explicit Meter(int numerator = 4, int denominator = 4) : m_fraction(numerator, denominator) {}
 
 
-    double duration() const { return static_cast<double>(m_fraction); }
+    double duration() const { return 4.0 * static_cast<double>(m_fraction); }
 
 
     int get_numerator() const { return m_fraction.n; }
@@ -34,7 +22,39 @@ public:
     int get_denominator() const { return m_fraction.d; }
 
     double subdivision_duration() const {
-        return 1.0 / static_cast<double>(m_fraction.d);
+        return 4.0 / static_cast<double>(m_fraction.d);
+    }
+
+    double ticks2bars(double ticks) const {
+        return ticks / duration();
+    }
+
+    double bars2ticks(double bars) const {
+        return bars * duration();
+    }
+
+    double ticks2beats(double ticks) const {
+        return ticks / subdivision_duration();
+    }
+
+    double beats2ticks(double beats) const {
+        return beats * subdivision_duration();
+    }
+
+    double beats2bars(double beats) const {
+        return beats / m_fraction.n;
+    }
+    double bars2beats(double bars) const {
+        return bars * m_fraction.n;
+    }
+
+    std::pair<double, double> ticks2bars_beats(double ticks) const {
+        auto beats = ticks2beats(ticks);
+        return utils::divmod(beats, duration());
+    }
+
+    double bars_beats2ticks(double bars, double beats) const {
+        return bars2ticks(bars) + beats2ticks(beats);
     }
 
 
@@ -47,8 +67,18 @@ private:
 
 class TimePoint {
 public:
-    explicit TimePoint(double tick = 0.0, double tempo = 120.0, double beat = 0.0, Meter meter = Meter())
-            : m_tick(tick), m_tempo(tempo), m_beat(beat), m_meter(meter) {}
+    explicit TimePoint(double tick = 0.0
+                       , double tempo = 120.0
+                       , std::optional<double> absolute_beat = std::nullopt
+                       , std::optional<double> relative_beat = std::nullopt
+                       , std::optional<double> bar = std::nullopt
+                       , Meter meter = Meter())
+            : m_tick(tick)
+              , m_tempo(tempo)
+              , m_absolute_beat(absolute_beat.value_or(meter.ticks2beats(tick)))
+              , m_relative_beat(relative_beat.value_or(meter.ticks2bars_beats(tick).second))
+              , m_bar(bar.value_or(meter.ticks2bars(tick)))
+              , m_meter(meter) {}
 
 
     void increment(int64_t delta_nanos) {
@@ -57,18 +87,23 @@ public:
 
     void increment(double tick_increment) {
         m_tick += tick_increment;
-        m_beat = fmod(m_beat + tick_increment, m_meter.duration());
+        auto beat_increment = m_meter.ticks2beats(tick_increment);
+        m_absolute_beat += beat_increment;
+        m_relative_beat = utils::modulo(m_relative_beat + beat_increment, m_meter.duration());
+        m_bar += m_meter.ticks2bars(tick_increment);
     }
 
 
     double next_tick_of(const Fraction& quantization_level = {1, 4}) const {
-        auto q = static_cast<double>(quantization_level);
-        auto diff = fmod(m_beat, q);
-
-        if (diff < 1e-4)
-            return m_tick - diff; // schedule up to 0.0001 ticks in the past
-
-        return m_tick - diff + q;   // schedule on next quantization level
+        (void) quantization_level;
+        throw std::runtime_error("not implemented"); // TODO: Probably not the right place to implement quantization
+//        auto q = static_cast<double>(quantization_level);
+//        auto diff = fmod(m_beat, q);
+//
+//        if (diff < 1e-4)
+//            return m_tick - diff; // schedule up to 0.0001 ticks in the past
+//
+//        return m_tick - diff + q;   // schedule on next quantization level
     }
 
     bool operator<(const TimePoint& other) const {
@@ -90,12 +125,13 @@ public:
 
     [[nodiscard]] double get_tick() const { return m_tick; }
 
-
     [[nodiscard]] double get_tempo() const { return m_tempo; }
 
+    [[nodiscard]] double get_relative_beat() const { return m_relative_beat; }
 
-    [[nodiscard]] double get_beat() const { return m_beat; }
+    [[nodiscard]] double get_absolute_beat() const { return m_absolute_beat; }
 
+    [[nodiscard]] double get_bar() const { return m_bar; }
 
     [[nodiscard]] const Meter& get_meter() const { return m_meter; }
 
@@ -103,7 +139,9 @@ public:
 private:
     double m_tick;
     double m_tempo;
-    double m_beat;
+    double m_absolute_beat;
+    double m_relative_beat;
+    double m_bar;
     Meter m_meter;
 };
 

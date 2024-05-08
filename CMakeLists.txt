@@ -413,6 +413,7 @@ add_executable(tests EXCLUDE_FROM_ALL
         test/backend/algo/voices_tests.cpp
         test/backend/algo/random_tests.cpp
         test/backend/algo/histogram_tests.cpp
+        test/backend/algo/transport_tests.cpp
         test/backend/algo/classifiers_tests.cpp
         test/backend/generatives/allocator_tests.cpp
         test/backend/generatives/sequence_tests.cpp
