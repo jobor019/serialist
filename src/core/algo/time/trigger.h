@@ -19,6 +19,16 @@ public:
 
     TriggerIds(TriggerIds const&) = delete;
 
+    static std::size_t new_or(const std::optional<std::size_t>& id) {
+        // Note: using std::optional::value_or is not a good solution here as that will
+        //       unnecessarily call next_id even when `id` is defined
+        if (id) {
+            return *id;
+        } else {
+            return get_instance().next_id();
+        }
+    }
+
     void operator=(TriggerIds const&) = delete;
 
     TriggerIds(TriggerIds&&) noexcept = delete;

@@ -8,6 +8,7 @@
 #include "core/algo/time/time_gate.h"
 #include "core/collections/voices.h"
 #include "core/algo/facet.h"
+#include "time_point.h"
 
 class GenerativeCommons {
 public:

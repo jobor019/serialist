@@ -2,6 +2,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "core/generatives/operator.h"
+#include "time_point.h"
 
 
 TEST_CASE("OperatorWrapper ctor") {

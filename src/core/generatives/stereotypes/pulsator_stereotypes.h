@@ -7,27 +7,28 @@
 #include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/algo/voice/multi_voiced.h"
 #include "core/algo/time/jump_gate.h"
+#include "core/algo/time/time_point.h"
 
 
 class Pulsator : public Flushable<Trigger> {
 public:
-    virtual void start(double time, std::optional<double> first_pulse_time) = 0;
+    virtual void start(const TimePoint& time, const std::optional<DomainTimePoint>& first_pulse_time) = 0;
 
     virtual Voice<Trigger> stop() = 0;
 
     virtual bool is_running() const = 0;
 
-    virtual Voice<Trigger> handle_external_triggers(double time, const Voice<Trigger>& triggers) = 0;
+    virtual Voice<Trigger> handle_external_triggers(const TimePoint& time, const Voice<Trigger>& triggers) = 0;
 
-    virtual Voice<Trigger> poll(double time) = 0;
+    virtual Voice<Trigger> poll(const TimePoint& time) = 0;
 
-    virtual Voice<Trigger> handle_time_skip(double new_time) = 0;
+    virtual Voice<Trigger> handle_time_skip(const TimePoint& new_time) = 0;
 
-    virtual Vec<Pulse<>> export_pulses() = 0;
+    virtual Vec<Pulse> export_pulses() = 0;
 
-    virtual void import_pulses(const Vec<Pulse<>>& pulses) = 0;
+    virtual void import_pulses(const Vec<Pulse>& pulses) = 0;
 
-    virtual std::optional<double> next_scheduled_pulse_on() = 0;
+    virtual std::optional<DomainTimePoint> next_scheduled_pulse_on() = 0;
 
 };
 
@@ -46,6 +47,7 @@ public:
                      , const std::string& class_name)
             : NodeBase<Trigger>(id, parent, enabled, num_voices, class_name) {
         static_assert(std::is_base_of_v<Pulsator, PulsatorType>);
+        static_assert(std::is_copy_constructible_v<PulsatorType>); // required due to voice resizing
     }
 
     /**
@@ -81,10 +83,9 @@ public:
 
         auto incoming_triggers = get_incoming_triggers(*t, num_voices);
 
-        auto time = t->get_tick();
         for (std::size_t i = 0; i < m_pulsators.size(); ++i) {
-            output[i].extend(m_pulsators[i].handle_external_triggers(time, incoming_triggers[i]));
-            output[i].extend(m_pulsators[i].poll(time));
+            output[i].extend(m_pulsators[i].handle_external_triggers(*t, incoming_triggers[i]));
+            output[i].extend(m_pulsators[i].poll(*t));
         }
 
         m_current_value = output;
@@ -103,7 +104,7 @@ protected:
             // TODO: This is not a good strategy, shouldn't automatically flush all here!!!
             auto flushed = m_pulsators.flush();
             for (auto& pulsator: m_pulsators) {
-                pulsator.handle_time_skip(t.get_tick());
+                pulsator.handle_time_skip(t);
             }
             return flushed;
         }
@@ -156,7 +157,7 @@ protected:
 
     void start(const TimePoint& t, std::size_t start_index, std::size_t end_index_excl) {
         for (std::size_t i = start_index; i < end_index_excl; ++i) {
-            m_pulsators.get_objects()[i].start(t.get_tick(), std::nullopt);
+            m_pulsators.get_objects()[i].start(t, std::nullopt);
         }
     }
 

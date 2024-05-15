@@ -5,6 +5,7 @@
 #include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/algo/time/trigger.h"
 #include "osc.h"
+#include "time_point.h"
 
 class OscSenderNode : public RootBase {
 public:

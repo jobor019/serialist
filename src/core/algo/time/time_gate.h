@@ -4,6 +4,7 @@
 
 #include <optional>
 #include "core/algo/time/transport.h"
+#include "time_point.h"
 
 class TimeGate {
 public:

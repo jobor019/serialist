@@ -11,6 +11,7 @@
 #include "multi_slider/score_slider.h"
 #include "multi_slider/multi_slider_LEGACY.h"
 #include "multi_slider/bar_slider.h"
+#include "time_point.h"
 
 
 

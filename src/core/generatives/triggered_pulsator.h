@@ -12,7 +12,7 @@ public:
             : m_duration(duration)
             , m_sample_and_hold(sample_and_hold) {}
 
-    void start(double time, std::optional<double>) override {
+    void start(double time) override {
         m_last_callback_time = time;
         m_running = true;
     }

@@ -6,18 +6,20 @@
 #include "core/algo/time/trigger.h"
 #include "core/collections/vec.h"
 #include "core/collections/held.h"
+#include "time_specification.h"
+#include "core/exceptions.h"
 
-template<typename TimePointType = double>
 class Pulse {
 public:
-    Pulse(std::size_t id, TimePointType trigger_time, std::optional<TimePointType> pulse_off_time = std::nullopt)
+    Pulse(std::size_t id, const DomainTimePoint& trigger_time
+          , const std::optional<DomainTimePoint>& pulse_off_time = std::nullopt)
             : m_id(id)
               , m_trigger_time(trigger_time)
               , m_pulse_off_time(pulse_off_time) {
     }
 
-    bool elapsed(TimePointType time) const {
-        return m_pulse_off_time && time >= *m_pulse_off_time;
+    bool elapsed(const TimePoint& current_time) const {
+        return m_pulse_off_time && m_pulse_off_time->elapsed(current_time);
     }
 
     bool has_pulse_off() const {
@@ -26,62 +28,70 @@ public:
 
     std::size_t get_id() const { return m_id; }
 
-    void set_pulse_off(TimePointType time) {
+    void set_pulse_off(const DomainTimePoint& time) {
         m_pulse_off_time = time;
     }
 
-    TimePointType get_trigger_time() const { return m_trigger_time; }
+//    void set_type(DomainType type, const TimePoint& last_transport_time) {
+//        if (m_pulse_off_time) {
+//            m_pulse_off_time = m_pulse_off_time->as_type(type, last_transport_time);
+//        }
+//
+//        m_trigger_time = m_trigger_time.as_type(type, last_transport_time);
+//    }
 
-    const std::optional<TimePointType>& get_pulse_off_time() const { return m_pulse_off_time; }
+    DomainTimePoint get_trigger_time() const { return m_trigger_time; }
+
+    const std::optional<DomainTimePoint>& get_pulse_off_time() const { return m_pulse_off_time; }
 
 private:
     std::size_t m_id;
-    TimePointType m_trigger_time;
-    std::optional<TimePointType> m_pulse_off_time;
+    DomainTimePoint m_trigger_time;
+    std::optional<DomainTimePoint> m_pulse_off_time;
 };
 
 
 // ==============================================================================================
 
 
-template<typename TimePointType = double>
 class Pulses : public Flushable<Trigger> {
 public:
 
-    Trigger new_pulse(TimePointType pulse_on_time
-                      , std::optional<TimePointType> pulse_off_time
+    std::optional<Trigger> new_pulse(const DomainTimePoint& pulse_on_time
+                      , const std::optional<DomainTimePoint>& pulse_off_time
                       , std::optional<std::size_t> id = std::nullopt) {
-        std::size_t pulse_id;
+//        if (pulse_on_time.get_type() != m_type) {
+//            throw ParameterError("pulse_on_time must be of the same type as the pulses");
+//        }
+//
+//        if (pulse_off_time && pulse_off_time->get_type() != m_type) {
+//            throw ParameterError("pulse_off_time must be of the same type as the pulses");
+//        }
 
-        // Note: value_or is not a good solution here as that will unnecessarily call
-        //       TriggerIds::next_id even when `id` is defined
-        if (id) {
-            pulse_id = id.value();
-        } else {
-            pulse_id = TriggerIds::get_instance().next_id();
-        }
+        auto pulse_id = TriggerIds::new_or(id);
 
-        m_pulses.append(Pulse<>(pulse_id, pulse_on_time, pulse_off_time));
+        m_pulses.append(Pulse(pulse_id, pulse_on_time, pulse_off_time));
 
         return Trigger::with_manual_id(Trigger::Type::pulse_on, pulse_id);
     }
 
+
     Voice<Trigger> flush() override {
         return m_pulses.drain()
-                .template as_type<Trigger>([](const Pulse<TimePointType>& p) {
+                .template as_type<Trigger>([](const Pulse& p) {
                     return Trigger::pulse_off(p.get_id());
                 });
     }
 
-    Vec<Pulse<TimePointType>> drain_elapsed(double time, bool include_missing_pulse_offs = false) {
-        return m_pulses.filter_drain([time, include_missing_pulse_offs](const Pulse<TimePointType>& p) {
+    Vec<Pulse> drain_elapsed(const TimePoint& time, bool include_missing_pulse_offs = false) {
+        return m_pulses.filter_drain([time, include_missing_pulse_offs](const Pulse& p) {
             return !(p.elapsed(time) || (include_missing_pulse_offs && !p.has_pulse_off()));
         });
     }
 
-    Voice<Trigger> drain_elapsed_as_triggers(double time, bool include_missing_pulse_offs = false) {
+    Voice<Trigger> drain_elapsed_as_triggers(const TimePoint& time, bool include_missing_pulse_offs = false) {
         return drain_elapsed(time, include_missing_pulse_offs)
-                .template as_type<Trigger>([](const Pulse<TimePointType>& p) {
+                .template as_type<Trigger>([](const Pulse& p) {
                     return Trigger::pulse_off(p.get_id());
                 });
     }
@@ -90,17 +100,28 @@ public:
         return flush();
     }
 
-    const Vec<Pulse<TimePointType>>& vec() const {
-        return m_pulses;
-    }
+//    void set_type(DomainType type, const TimePoint& last_transport_time) {
+//        if (m_type == type) {
+//            return;
+//        }
+//
+//        for (Pulse& p : m_pulses) {
+//            p.set_type(type, last_transport_time);
+//        }
+//
+//        m_type = type;
+//    }
 
-    Vec<Pulse<TimePointType>>& vec_mut() {
-        return m_pulses;
-    }
+//    DomainType get_type() const { return m_type; }
+
+    const Vec<Pulse>& vec() const { return m_pulses; }
+
+    Vec<Pulse>& vec_mut() { return m_pulses; }
 
 
 private:
-    Vec<Pulse<TimePointType>> m_pulses;
+    Vec<Pulse> m_pulses;
+//    DomainType m_type;
 };
 
 

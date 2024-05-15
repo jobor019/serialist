@@ -97,8 +97,17 @@ inline T decrement(T value, T fold_value = std::numeric_limits<T>::max()) {
 
 // ==============================================================================================
 
-inline bool equals(double a, double b, double epsilon = 1e-6) {
+template<typename T = double, typename = std::enable_if_t<std::is_floating_point_v<T>>>
+inline bool equals(T a, T b, T epsilon = 1e-6) {
     return std::abs(a - b) < epsilon;
+}
+
+template<typename T = double, typename = std::enable_if_t<std::is_floating_point_v<T>>>
+inline bool equals(std::optional<T> a, std::optional<T> b, T epsilon = 1e-6) {
+    if (!a.has_value() || !b.has_value()) {
+        return !a.has_value() && !b.has_value();
+    }
+    return equals(*a, *b, epsilon);
 }
 
 

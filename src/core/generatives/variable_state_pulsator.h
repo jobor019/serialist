@@ -7,6 +7,7 @@
 #include "triggered_pulsator.h"
 #include "sequence.h"
 #include "variable.h"
+#include "time_point.h"
 
 class ThruPulsator : public Pulsator {
 public:
@@ -41,7 +42,7 @@ public:
         });
     }
 
-    void start(double, std::optional<double>) override { m_running = true; }
+    void start(double) override { m_running = true; }
 
     Voice<Trigger> stop() override {
         m_running = false;

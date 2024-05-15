@@ -101,13 +101,13 @@ public:
 
 
     template<typename Setter, typename ArgType, typename = std::enable_if_t<std::is_member_function_pointer_v<Setter>>>
-    void set(Setter func, const Vec<ArgType>& values) {
+    void set(Setter func, Vec<ArgType>&& values) {
         if (values.size() != m_objects.size()) {
             throw std::invalid_argument("values.size() != m_vector.size()");
         }
 
         for (std::size_t i = 0; i < values.size(); ++i) {
-            (m_objects[i].*func)(values[i]);
+            (m_objects[i].*func)(std::move(values[i]));
         }
     }
 

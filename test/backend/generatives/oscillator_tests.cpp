@@ -6,6 +6,7 @@
 #include "core/generatives/oscillator.h"
 #include "core/param/parameter_policy.h"
 #include "core/generatives/unit_pulse.h"
+#include "time_point.h"
 
 #include <thread>
 #include <cmath>

@@ -38,6 +38,8 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/socket_handler.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/socket_policy.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/time_gate.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/time_point.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/meter.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/transform.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/vt_socket.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/unit_pulse.h
@@ -56,7 +58,6 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/vec.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/pitch/notes.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/random.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/time.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/voice/multi_voiced.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/held.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/histogram.h
@@ -66,12 +67,17 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/traits.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/jump_gate.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/pulse.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/time_specification.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/equal_duration_sampling.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/beat_grid_position.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/domain_time.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/math.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/optionals.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/time.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/queue.h
         src/core/algo/time/filters.h
         src/core/generatives/interpolator.h
+        src/core/generatives/beat_grid_pulsator.h
         src/core/generatives/osc_sender.h
 )
 

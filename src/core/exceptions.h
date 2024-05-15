@@ -18,4 +18,11 @@ public:
     using runtime_error::runtime_error;
 };
 
+// ==============================================================================================
+
+class TimeDomainError : public  std::runtime_error {
+public:
+    using runtime_error::runtime_error;
+};
+
 #endif //SERIALIST_LOOPER_EXCEPTIONS_H

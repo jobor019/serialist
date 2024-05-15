@@ -2,6 +2,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "core/generatives/variable_state_pulsator.h"
+#include "time_point.h"
 
 TEST_CASE("VariableStatePulsator ctor") {
     VariableStatePulsator p;
