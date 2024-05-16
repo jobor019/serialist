@@ -3,7 +3,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "core/generatives/interpolator.h"
-#include "time_point.h"
+#include "core/algo/time/time_point.h"
 
 
 TEST_CASE("Test Interpolator: Continue (Integral)") {

@@ -7,42 +7,13 @@
 #include "triggered_pulsator.h"
 #include "sequence.h"
 #include "variable.h"
-#include "time_point.h"
+#include "core/algo/time/time_point.h"
 
 class ThruPulsator : public Pulsator {
 public:
-    Voice<Trigger> handle_external_triggers(double time, const Voice<Trigger>& triggers) override {
-        if (!is_running()) {
-            return {};
-        }
+    static const DomainType TYPE = DomainType::ticks;
 
-        for (const auto& trigger: triggers) {
-            if (trigger.is(Trigger::Type::pulse_on)) {
-                m_pulses.append(Pulse<>(trigger.get_id(), time, std::nullopt));
-
-            } else if (trigger.is(Trigger::Type::pulse_off)) {
-                m_pulses.remove([trigger](const Pulse<>& pulse) {
-                    return pulse.get_id() == trigger.get_id();
-                });
-            }
-        }
-
-        return triggers;
-    }
-
-
-    Vec<Pulse<>> export_pulses() override {
-        return m_pulses.drain();
-    }
-
-
-    Voice<Trigger> flush() override {
-        return export_pulses().as_type<Trigger>([](const Pulse<>& pulse) {
-            return Trigger::pulse_off(pulse.get_id());
-        });
-    }
-
-    void start(double) override { m_running = true; }
+    void start(const TimePoint&, const std::optional<DomainTimePoint>&) override { m_running = true; }
 
     Voice<Trigger> stop() override {
         m_running = false;
@@ -53,28 +24,64 @@ public:
         return m_running;
     }
 
-    Voice<Trigger> poll(double) override {
+    Voice<Trigger> handle_external_triggers(const TimePoint& time, const Voice<Trigger>& triggers) override {
+        if (!is_running()) {
+            return {};
+        }
+
+        for (const auto& trigger: triggers) {
+            if (trigger.is(Trigger::Type::pulse_on)) {
+                m_pulses.append(Pulse(trigger.get_id(), as_dtp(time)));
+
+            } else if (trigger.is(Trigger::Type::pulse_off)) {
+                m_pulses.remove([trigger](const Pulse& pulse) {
+                    return pulse.get_id() == trigger.get_id();
+                });
+            }
+        }
+
+        return triggers;
+    }
+
+    Voice<Trigger> poll(const TimePoint&) override {
         // Irrelevant for ThruPulsator
         return {};
     }
 
-    Voice<Trigger> handle_time_skip(double) override {
+
+    Voice<Trigger> handle_time_skip(const TimePoint&) override {
         // Since no scheduling occurs, time skips are unproblematic
         return {};
     }
 
-    void import_pulses(const Vec<Pulse<>>& pulses) override {
+    Vec<Pulse> export_pulses() override {
+        return m_pulses.drain();
+    }
+
+
+    void import_pulses(const Vec<Pulse>& pulses) override {
         // TODO: This situation seems quite problematic, as we cannot guarantee that
         //  associated pulse_offs ever will be received
         m_pulses.extend(pulses);
     }
 
-    std::optional<double> next_scheduled_pulse_on() override {
+    std::optional<DomainTimePoint> next_scheduled_pulse_on() override {
         return std::nullopt;
     }
 
+    Voice<Trigger> flush() override {
+        return export_pulses().as_type<Trigger>([](const Pulse& pulse) {
+            return Trigger::pulse_off(pulse.get_id());
+        });
+    }
+
+
 private:
-    Vec<Pulse<>> m_pulses;
+    static DomainTimePoint as_dtp(const TimePoint& time) {
+        return DomainTimePoint::from_time_point(time, DomainType::ticks);
+    }
+
+    Vec<Pulse> m_pulses;
     bool m_running = false;
 
 };
@@ -90,30 +97,14 @@ public:
         , thru_pulsator
     };
 
-
-    Voice<Trigger> poll(double time) override {
-        if (m_new_mode) {
-            update_mode(*m_new_mode, time);
-            m_new_mode = std::nullopt;
-        }
-
-        return get_active_pulsator().poll(time);
+    VariableStatePulsator(const DomainDuration& duration = DomainDuration(1.0, DomainType::ticks)
+            , const std::optional<DomainDuration>& offset = std::nullopt
+                    , double legato = 1.0)
+                    : m_auto_pulsator(utils::ts_from_duration_offset(duration, offset), legato)
+                    , m_triggered_pulsator(duration * legato) {
     }
 
-    Voice<Trigger> handle_external_triggers(double time, const Voice<Trigger>& triggers) override {
-        if (m_new_mode) {
-            update_mode(*m_new_mode, time);
-            m_new_mode = std::nullopt;
-        }
-
-        return get_active_pulsator().handle_external_triggers(time, triggers);
-    }
-
-    Voice<Trigger> flush() override {
-        return get_active_pulsator().flush();
-    }
-
-    void start(double time, std::optional<double> first_pulse_time) override {
+    void start(const TimePoint& time, const std::optional<DomainTimePoint>& first_pulse_time) override {
         if (m_new_mode) {
             update_mode(*m_new_mode, time);
             m_new_mode = std::nullopt;
@@ -121,6 +112,7 @@ public:
 
         get_active_pulsator().start(time, first_pulse_time);
     }
+
 
     Voice<Trigger> stop() override {
         return get_active_pulsator().stop();
@@ -130,27 +122,62 @@ public:
         return get_active_pulsator().is_running();
     }
 
-    Voice<Trigger> handle_time_skip(double new_time) override {
+    Voice<Trigger> handle_external_triggers(const TimePoint& time, const Voice<Trigger>& triggers) override {
+        if (m_new_mode) {
+            update_mode(*m_new_mode, time);
+            m_new_mode = std::nullopt;
+        }
+
+        return get_active_pulsator().handle_external_triggers(time, triggers);
+    }
+
+    Voice<Trigger> poll(const TimePoint& time) override {
+        if (m_new_mode) {
+            update_mode(*m_new_mode, time);
+            m_new_mode = std::nullopt;
+        }
+
+        return get_active_pulsator().poll(time);
+    }
+
+
+    Voice<Trigger> handle_time_skip(const TimePoint& new_time) override {
         return get_active_pulsator().handle_time_skip(new_time);
     }
 
-    Vec<Pulse<>> export_pulses() override {
+    Vec<Pulse> export_pulses() override {
         return get_active_pulsator().export_pulses();
     }
 
-    void import_pulses(const Vec<Pulse<>>& pulses) override {
+    void import_pulses(const Vec<Pulse>& pulses) override {
         get_active_pulsator().import_pulses(pulses);
     }
 
-    void set_duration(double duration) {
-        m_auto_pulsator.set_duration(duration);
-        m_triggered_pulsator.set_duration(m_auto_pulsator.get_legato_amount() * m_auto_pulsator.get_duration());
-
+    std::optional<DomainTimePoint> next_scheduled_pulse_on() override {
+        return get_active_pulsator().next_scheduled_pulse_on();
     }
 
+    Voice<Trigger> flush() override {
+        return get_active_pulsator().flush();
+    }
+
+
+    void set_duration(const DomainDuration& duration) {
+        m_duration = duration;
+        m_auto_pulsator.set_ts(utils::ts_from_duration_offset(m_duration, m_offset));
+        m_triggered_pulsator.set_duration(Period(m_duration * m_legato));
+    }
+
+    void set_offset(const std::optional<DomainDuration>& offset) {
+        m_offset = offset;
+        m_auto_pulsator.set_ts(utils::ts_from_duration_offset(m_duration, m_offset));
+    }
+
+
     void set_legato_amount(double legato_amount) {
+        m_legato = legato_amount;
         m_auto_pulsator.set_legato_amount(legato_amount);
-        m_triggered_pulsator.set_duration(m_auto_pulsator.get_legato_amount() * m_auto_pulsator.get_duration());
+        m_triggered_pulsator.set_duration(Period(m_duration * m_legato));
     }
 
     void set_sample_and_hold(bool sample_and_hold) {
@@ -166,12 +193,9 @@ public:
         m_new_mode = mode;
     }
 
-    std::optional<double> next_scheduled_pulse_on() override {
-        return get_active_pulsator().next_scheduled_pulse_on();
-    }
 
 private:
-    void update_mode(Mode new_mode, double current_time) {
+    void update_mode(Mode new_mode, const TimePoint& current_time) {
         auto& old_pulsator = get_pulsator(m_mode);
         auto& new_pulsator = get_pulsator(new_mode);
 
@@ -219,13 +243,16 @@ private:
         return get_pulsator(m_mode);
     }
 
-
     AutoPulsator m_auto_pulsator;
     TriggeredPulsator m_triggered_pulsator;
     ThruPulsator m_thru_pulsator;
 
     Mode m_mode = Mode::auto_pulsator;
     std::optional<Mode> m_new_mode = std::nullopt;
+
+    DomainDuration m_duration;
+    std::optional<DomainDuration> m_offset;
+    double m_legato;
 
 };
 
@@ -237,6 +264,9 @@ public:
     struct Keys {
         static const inline std::string TRIGGER = "trigger";
         static const inline std::string DURATION = "duration";
+        static const inline std::string DURATION_TYPE = "duration_type";
+        static const inline std::string OFFSET = "offset_type";
+        static const inline std::string OFFSET_TYPE = "offset_type";
         static const inline std::string LEGATO = "legato";
         static const inline std::string SAMPLE_AND_HOLD = "sample_and_hold";
 
@@ -248,6 +278,9 @@ public:
                               , ParameterHandler& parent
                               , Node<Trigger>* trigger = nullptr
                               , Node<Facet>* duration = nullptr
+                              , Node<Facet>* duration_type = nullptr
+                              , Node<Facet>* offset = nullptr
+                              , Node<Facet>* offset_type = nullptr
                               , Node<Facet>* legato_amount = nullptr
                               , Node<Facet>* sample_and_hold = nullptr
                               , Node<Facet>* enabled = nullptr
@@ -255,6 +288,9 @@ public:
             : PulsatorNodeBase<VariableStatePulsator>(id, parent, enabled, num_voices, Keys::CLASS_NAME)
               , m_trigger(add_socket(ParameterKeys::TRIGGER, trigger))
               , m_duration(add_socket(Keys::DURATION, duration))
+              , m_duration_type(add_socket(Keys::DURATION_TYPE, duration_type))
+              , m_offset(add_socket(Keys::OFFSET, offset))
+              , m_offset_type(add_socket(Keys::OFFSET_TYPE, offset_type))
               , m_legato_amount(add_socket(Keys::LEGATO, legato_amount))
               , m_sample_and_hold(add_socket(Keys::SAMPLE_AND_HOLD, sample_and_hold)) {
         set_mode(get_mode());
@@ -284,9 +320,22 @@ public:
             set_mode(mode);
         }
 
-        if (size_has_changed || m_duration.has_changed()) {
+        if (size_has_changed || m_duration.has_changed() || m_duration_type.has_changed()) {
             auto duration = m_duration.process().adapted_to(num_voices).firsts_or(1.0);
-            pulsators().set(&VariableStatePulsator::set_duration, duration.as_type<double>());
+            auto duration_type = m_duration_type.process().first_or(DomainType::ticks);
+            pulsators().set(&VariableStatePulsator::set_duration
+                            , duration.as_type<DomainDuration>([&duration_type](const double dur) {
+                                return DomainDuration(dur, duration_type);
+                            }));
+        }
+
+        if (size_has_changed || m_offset.has_changed() || m_offset_type.has_changed()) {
+            auto offset = m_offset.process().adapted_to(num_voices).firsts_or(0.0);
+            auto offset_type = m_offset_type.process().first_or(DomainType::ticks);
+            pulsators().set(&VariableStatePulsator::set_offset
+                            , offset.as_type<DomainDuration>([&offset_type](const double ot) {
+                                return DomainDuration(ot, offset_type);
+                            }));
         }
 
         if (size_has_changed || m_legato_amount.has_changed()) {
@@ -307,6 +356,9 @@ public:
     void set_trigger(Node<Trigger>* trigger) { m_trigger = trigger; }
 
     void set_duration(Node<Facet>* duration) { m_duration = duration; }
+    void set_duration_type(Node<Facet>* duration_type) { m_duration_type = duration_type; }
+    void set_offset(Node<Facet>* offset) { m_offset = offset; }
+    void set_offset_type(Node<Facet>* offset_type) { m_offset_type = offset_type; }
 
     void set_legato_amount(Node<Facet>* legato_amount) { m_legato_amount = legato_amount; }
 
@@ -315,6 +367,12 @@ public:
     Socket<Trigger>& get_trigger() { return m_trigger; }
 
     Socket<Facet>& get_duration() { return m_duration; }
+
+    Socket<Facet>& get_duration_type() { return m_duration_type; }
+
+    Socket<Facet>& get_offset() { return m_offset; }
+
+    Socket<Facet>& get_offset_type() { return m_offset_type; }
 
     Socket<Facet>& get_legato_amount() { return m_legato_amount; }
 
@@ -330,6 +388,9 @@ private:
 
     Socket<Trigger>& m_trigger;
     Socket<Facet>& m_duration;
+    Socket<Facet>& m_duration_type;
+    Socket<Facet>& m_offset;
+    Socket<Facet>& m_offset_type;
     Socket<Facet>& m_legato_amount;
     Socket<Facet>& m_sample_and_hold;
 
@@ -347,6 +408,9 @@ struct VariableStatePulsatorWrapper {
 
     Sequence<Trigger> trigger{ParameterKeys::TRIGGER, parameter_handler, Voices<Trigger>::empty_like()};
     Sequence<Facet, FloatType> duration{Keys::DURATION, parameter_handler, Voices<FloatType>::singular(1.0)};
+    Sequence<Facet, DomainType> duration_type{Keys::DURATION_TYPE, parameter_handler, Voices<DomainType>::singular(DomainType::ticks)};
+    Sequence<Facet, FloatType> offset{Keys::OFFSET, parameter_handler, Voices<FloatType>::singular(0.0)};
+    Sequence<Facet, DomainType> offset_type{Keys::OFFSET_TYPE, parameter_handler, Voices<DomainType>::singular(DomainType::ticks)};
     Sequence<Facet, FloatType> legato_amount{Keys::LEGATO, parameter_handler, Voices<FloatType>::singular(1.0)};
     Sequence<Facet, bool> sample_and_hold{Keys::SAMPLE_AND_HOLD, parameter_handler, Voices<bool>::singular(true)};
     Sequence<Facet, bool> enabled{ParameterKeys::ENABLED, parameter_handler, Voices<bool>::singular(true)};
@@ -356,6 +420,9 @@ struct VariableStatePulsatorWrapper {
                                             , parameter_handler
                                             , &trigger
                                             , &duration
+                                            , &duration_type
+                                            , &offset
+                                            , &offset_type
                                             , &legato_amount
                                             , &sample_and_hold
                                             , &enabled

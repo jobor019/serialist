@@ -57,7 +57,7 @@ private:
 class Pulses : public Flushable<Trigger> {
 public:
 
-    std::optional<Trigger> new_pulse(const DomainTimePoint& pulse_on_time
+    Trigger new_pulse(const DomainTimePoint& pulse_on_time
                       , const std::optional<DomainTimePoint>& pulse_off_time
                       , std::optional<std::size_t> id = std::nullopt) {
 //        if (pulse_on_time.get_type() != m_type) {

@@ -3,7 +3,7 @@
 #define SERIALISTLOOPER_BEAT_POSITION_H
 
 #include "relative_time.h"
-#include "time_point.h"
+#include "core/algo/time/time_point.h"
 
 class BeatGridPosition {
 public:

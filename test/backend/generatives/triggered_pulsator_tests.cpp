@@ -7,9 +7,9 @@ TEST_CASE("TriggeredPulsator ctor") {
     TriggeredPulsator p;
 }
 
-static TriggeredPulsator init_pulsator(double duration, double time) {
+static TriggeredPulsator init_pulsator(double duration, const TimePoint& time) {
     TriggeredPulsator p;
-    p.set_duration(duration);
+    p.set_duration(Period(duration));
     p.start(time, std::nullopt);
     return p;
 }
@@ -18,7 +18,7 @@ const inline double epsilon = 1e-8;
 
 TEST_CASE("TriggeredPulsator: non-overlapping pulses") {
     double duration = 2.0;
-    double time = 0.0;
+    auto time = TimePoint::zero();
 
     TriggeredPulsator p = init_pulsator(duration, time);
 

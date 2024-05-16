@@ -14,7 +14,7 @@
 #include "core/param/socket_handler.h"
 #include "io/renderers.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
-#include "time_point.h"
+#include "core/algo/time/time_point.h"
 
 
 // TODO: Lots of refactoring needed here: Separate out NoteSource from NoteSourceNode + update accordingly

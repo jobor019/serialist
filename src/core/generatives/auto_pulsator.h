@@ -53,12 +53,12 @@ public:
     AutoPulsator& operator=(AutoPulsator&&) noexcept = default;
 
 
-    void start(const TimePoint& time, const std::optional<DomainTimePoint>& first_pulse_time) override {
+    void start(const TimePoint& time, const std::optional<DomainTimePoint>&) override {
         if (m_running) {
             return;
         }
 
-        m_next_trigger_time = m_ts->next(time);
+        m_next_trigger_time = m_ts->next(time, true);
         m_last_callback_time = time;
         m_running = true;
         m_configuration_changed = false;

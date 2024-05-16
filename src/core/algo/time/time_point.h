@@ -33,6 +33,28 @@ public:
 
     static TimePoint zero() { return TimePoint(); }
 
+    TimePoint operator+(double tick_increment) {
+        TimePoint t(*this);
+        t.increment(tick_increment);
+        return t;
+    }
+
+    TimePoint& operator+=(double tick_increment) {
+        increment(tick_increment);
+        return *this;
+    }
+
+    TimePoint operator-(double tick_decrement) {
+        TimePoint t(*this);
+        t.increment(-tick_decrement);
+        return t;
+    }
+
+    TimePoint operator-=(double tick_decrement) {
+        increment(-tick_decrement);
+        return *this;
+    }
+
 
     void increment(int64_t delta_nanos) {
         increment(static_cast<double>(delta_nanos) * 1e-9 * m_tempo / 60.0);
@@ -212,6 +234,14 @@ public:
         return {lhs.get_value() - rhs.m_value, lhs.get_type()};
     }
 
+    bool operator==(const DomainDuration& other) const {
+        return m_type == other.m_type && utils::equals(m_value, other.m_value);
+    }
+
+    bool operator!=(const DomainDuration& other) const {
+        return !(*this == other);
+    }
+
     // TODO: Not a valid function
 //    /** throws TimeTypeError if `other` has a different type */
 //    friend DomainDuration operator-(const DomainTimePoint& lhs, const DomainTimePoint& rhs) {
@@ -270,7 +300,7 @@ public:
 
 // ==============================================================================================
 
-DomainTimePoint DomainTimePoint::as_type(DomainType target_type, const TimePoint& last_transport_tp) const {
+inline DomainTimePoint DomainTimePoint::as_type(DomainType target_type, const TimePoint& last_transport_tp) const {
     if (m_type == target_type) {
         return *this;
     }
@@ -282,14 +312,14 @@ DomainTimePoint DomainTimePoint::as_type(DomainType target_type, const TimePoint
     return {time_in_target_type, target_type};
 }
 
-DomainDuration DomainTimePoint::operator-(const DomainTimePoint& other) const {
+inline DomainDuration DomainTimePoint::operator-(const DomainTimePoint& other) const {
     return DomainDuration::distance(other, *this);
 }
 
 // ==============================================================================================
 
 
-DomainDuration DomainDuration::as_type(DomainType target_type, const Meter& meter) const {
+inline DomainDuration DomainDuration::as_type(DomainType target_type, const Meter& meter) const {
     if (m_type == target_type) {
         return *this;
     }

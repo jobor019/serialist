@@ -2,16 +2,16 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "core/generatives/variable_state_pulsator.h"
-#include "time_point.h"
+#include "core/algo/time/time_point.h"
 
 TEST_CASE("VariableStatePulsator ctor") {
     VariableStatePulsator p;
 }
 
-static VariableStatePulsator init_pulsator(double duration
+static VariableStatePulsator init_pulsator(const DomainDuration& duration
                                            , double legato
                                            , VariableStatePulsator::Mode mode
-                                           , double time) {
+                                           , const TimePoint& time) {
     VariableStatePulsator p;
     p.set_duration(duration);
     p.set_legato_amount(legato);
@@ -23,9 +23,9 @@ static VariableStatePulsator init_pulsator(double duration
 const inline double epsilon = 1e-8;
 
 TEST_CASE("VariableStatePulsator: Mode::auto_pulsator") {
-    double duration = 2.0;
+    DomainDuration duration(2.0, DomainType::ticks);
     double legato = 1.0;
-    double time = 0.0;
+    auto time = TimePoint::zero();
 
     VariableStatePulsator p = init_pulsator(duration, legato, VariableStatePulsator::Mode::auto_pulsator, time);
     auto triggers = p.poll(time + epsilon);
@@ -34,7 +34,7 @@ TEST_CASE("VariableStatePulsator: Mode::auto_pulsator") {
 
 
     for (std::size_t i = 1; i < 10; ++i) {
-        time += duration;
+        time += duration.get_value();
         REQUIRE(p.poll(time - epsilon).empty());
 
         triggers = p.poll(time + epsilon);
@@ -45,9 +45,9 @@ TEST_CASE("VariableStatePulsator: Mode::auto_pulsator") {
 }
 
 TEST_CASE("VariableStatePulsator: Mode::triggered_pulsator") {
-    double duration = 2.0;
+    DomainDuration duration(2.0, DomainType::ticks);
     double legato = 1.0;
-    double time = 0.0;
+    auto time = TimePoint::zero();
 
     VariableStatePulsator p = init_pulsator(duration, legato, VariableStatePulsator::Mode::triggered_pulsator, time);
 
@@ -61,7 +61,7 @@ TEST_CASE("VariableStatePulsator: Mode::triggered_pulsator") {
 
         REQUIRE(p.poll(time + epsilon).empty());
 
-        time += duration * legato;
+        time += duration.get_value() * legato;
         REQUIRE(p.poll(time - epsilon).empty());
 
         triggers = p.poll(time + epsilon);
@@ -151,7 +151,7 @@ TEST_CASE("VariableStatePulsatorWrapper: auto_pulsator multiple triggers") {
     auto t = TimePoint(0.0);
 
     // start of initial pulse
-    p.update_time(t);
+    p.update_time(t + epsilon);
     auto triggers = p.process();
     REQUIRE(triggers.size() == 1);
     REQUIRE(triggers[0].size() == 1);
