@@ -57,6 +57,7 @@ public:
 
 private:
     double with_phase(double x, double phase) const {
+        // TODO: Replace this with utils::modulo(..., m_max, epsilon), which handles rounding errors implicitly;
         auto output = utils::modulo(x + phase * m_max, m_max);
 
         // Handle rounding errors

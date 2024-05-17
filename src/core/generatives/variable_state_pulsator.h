@@ -97,11 +97,16 @@ public:
         , thru_pulsator
     };
 
-    VariableStatePulsator(const DomainDuration& duration = DomainDuration(1.0, DomainType::ticks)
-            , const std::optional<DomainDuration>& offset = std::nullopt
-                    , double legato = 1.0)
-                    : m_auto_pulsator(utils::ts_from_duration_offset(duration, offset), legato)
-                    , m_triggered_pulsator(duration * legato) {
+    explicit VariableStatePulsator(const DomainDuration& duration = DomainDuration(1.0, DomainType::ticks)
+                                   , const DomainDuration& offset = DomainDuration(1.0, DomainType::ticks)
+                                   , double legato = 1.0
+                                   , bool offset_enabled = false)
+            : m_duration(duration)
+              , m_offset(offset)
+              , m_offset_enabled(offset_enabled)
+              , m_legato(legato)
+              , m_auto_pulsator(utils::ts_from_duration_offset(duration, offset, offset_enabled), legato)
+              , m_triggered_pulsator(duration * legato) {
     }
 
     void start(const TimePoint& time, const std::optional<DomainTimePoint>& first_pulse_time) override {
@@ -164,14 +169,20 @@ public:
 
     void set_duration(const DomainDuration& duration) {
         m_duration = duration;
-        m_auto_pulsator.set_ts(utils::ts_from_duration_offset(m_duration, m_offset));
+        m_auto_pulsator.set_ts(utils::ts_from_duration_offset(m_duration, m_offset, m_offset_enabled));
         m_triggered_pulsator.set_duration(Period(m_duration * m_legato));
     }
 
-    void set_offset(const std::optional<DomainDuration>& offset) {
+    void set_offset(const DomainDuration& offset) {
         m_offset = offset;
-        m_auto_pulsator.set_ts(utils::ts_from_duration_offset(m_duration, m_offset));
+        m_auto_pulsator.set_ts(utils::ts_from_duration_offset(m_duration, m_offset, m_offset_enabled));
     }
+
+    void set_offset_enabled(bool enabled) {
+        m_offset_enabled = enabled;
+        m_auto_pulsator.set_ts(utils::ts_from_duration_offset(m_duration, m_offset, m_offset_enabled));
+    }
+
 
 
     void set_legato_amount(double legato_amount) {
@@ -243,16 +254,17 @@ private:
         return get_pulsator(m_mode);
     }
 
+    DomainDuration m_duration;
+    DomainDuration m_offset;
+    bool m_offset_enabled;
+    double m_legato;
+
     AutoPulsator m_auto_pulsator;
     TriggeredPulsator m_triggered_pulsator;
     ThruPulsator m_thru_pulsator;
 
     Mode m_mode = Mode::auto_pulsator;
     std::optional<Mode> m_new_mode = std::nullopt;
-
-    DomainDuration m_duration;
-    std::optional<DomainDuration> m_offset;
-    double m_legato;
 
 };
 
@@ -267,6 +279,7 @@ public:
         static const inline std::string DURATION_TYPE = "duration_type";
         static const inline std::string OFFSET = "offset_type";
         static const inline std::string OFFSET_TYPE = "offset_type";
+        static const inline std::string OFFSET_ENABLED = "offset_type";
         static const inline std::string LEGATO = "legato";
         static const inline std::string SAMPLE_AND_HOLD = "sample_and_hold";
 
@@ -281,6 +294,7 @@ public:
                               , Node<Facet>* duration_type = nullptr
                               , Node<Facet>* offset = nullptr
                               , Node<Facet>* offset_type = nullptr
+                              , Node<Facet>* offset_enabled = nullptr
                               , Node<Facet>* legato_amount = nullptr
                               , Node<Facet>* sample_and_hold = nullptr
                               , Node<Facet>* enabled = nullptr
@@ -291,6 +305,7 @@ public:
               , m_duration_type(add_socket(Keys::DURATION_TYPE, duration_type))
               , m_offset(add_socket(Keys::OFFSET, offset))
               , m_offset_type(add_socket(Keys::OFFSET_TYPE, offset_type))
+              , m_offset_enabled(add_socket(Keys::OFFSET_ENABLED, offset_enabled))
               , m_legato_amount(add_socket(Keys::LEGATO, legato_amount))
               , m_sample_and_hold(add_socket(Keys::SAMPLE_AND_HOLD, sample_and_hold)) {
         set_mode(get_mode());
@@ -325,17 +340,21 @@ public:
             auto duration_type = m_duration_type.process().first_or(DomainType::ticks);
             pulsators().set(&VariableStatePulsator::set_duration
                             , duration.as_type<DomainDuration>([&duration_type](const double dur) {
-                                return DomainDuration(dur, duration_type);
-                            }));
+                        return DomainDuration(dur, duration_type);
+                    }));
         }
 
-        if (size_has_changed || m_offset.has_changed() || m_offset_type.has_changed()) {
+        if (size_has_changed || m_offset.has_changed() || m_offset_type.has_changed() || m_offset_enabled.has_changed()) {
             auto offset = m_offset.process().adapted_to(num_voices).firsts_or(0.0);
             auto offset_type = m_offset_type.process().first_or(DomainType::ticks);
+            auto offset_enable = m_offset_enabled.process().first_or(false);
+
             pulsators().set(&VariableStatePulsator::set_offset
                             , offset.as_type<DomainDuration>([&offset_type](const double ot) {
                                 return DomainDuration(ot, offset_type);
                             }));
+
+            pulsators().set(&VariableStatePulsator::set_offset_enabled, Vec<bool>::repeated(num_voices, offset_enable));
         }
 
         if (size_has_changed || m_legato_amount.has_changed()) {
@@ -356,8 +375,11 @@ public:
     void set_trigger(Node<Trigger>* trigger) { m_trigger = trigger; }
 
     void set_duration(Node<Facet>* duration) { m_duration = duration; }
+
     void set_duration_type(Node<Facet>* duration_type) { m_duration_type = duration_type; }
+
     void set_offset(Node<Facet>* offset) { m_offset = offset; }
+
     void set_offset_type(Node<Facet>* offset_type) { m_offset_type = offset_type; }
 
     void set_legato_amount(Node<Facet>* legato_amount) { m_legato_amount = legato_amount; }
@@ -391,6 +413,7 @@ private:
     Socket<Facet>& m_duration_type;
     Socket<Facet>& m_offset;
     Socket<Facet>& m_offset_type;
+    Socket<Facet>& m_offset_enabled;
     Socket<Facet>& m_legato_amount;
     Socket<Facet>& m_sample_and_hold;
 
@@ -408,9 +431,10 @@ struct VariableStatePulsatorWrapper {
 
     Sequence<Trigger> trigger{ParameterKeys::TRIGGER, parameter_handler, Voices<Trigger>::empty_like()};
     Sequence<Facet, FloatType> duration{Keys::DURATION, parameter_handler, Voices<FloatType>::singular(1.0)};
-    Sequence<Facet, DomainType> duration_type{Keys::DURATION_TYPE, parameter_handler, Voices<DomainType>::singular(DomainType::ticks)};
+    Variable<Facet, DomainType> duration_type{Keys::DURATION_TYPE, parameter_handler, DomainType::ticks};
     Sequence<Facet, FloatType> offset{Keys::OFFSET, parameter_handler, Voices<FloatType>::singular(0.0)};
-    Sequence<Facet, DomainType> offset_type{Keys::OFFSET_TYPE, parameter_handler, Voices<DomainType>::singular(DomainType::ticks)};
+    Variable<Facet, DomainType> offset_type{Keys::OFFSET_TYPE, parameter_handler, DomainType::ticks};
+    Variable<Facet, bool> offset_enabled{Keys::OFFSET_ENABLED, parameter_handler, false};
     Sequence<Facet, FloatType> legato_amount{Keys::LEGATO, parameter_handler, Voices<FloatType>::singular(1.0)};
     Sequence<Facet, bool> sample_and_hold{Keys::SAMPLE_AND_HOLD, parameter_handler, Voices<bool>::singular(true)};
     Sequence<Facet, bool> enabled{ParameterKeys::ENABLED, parameter_handler, Voices<bool>::singular(true)};
@@ -423,6 +447,7 @@ struct VariableStatePulsatorWrapper {
                                             , &duration_type
                                             , &offset
                                             , &offset_type
+                                            , &offset_enabled
                                             , &legato_amount
                                             , &sample_and_hold
                                             , &enabled

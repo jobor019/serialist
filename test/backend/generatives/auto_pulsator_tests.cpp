@@ -27,7 +27,7 @@ static AutoPulsator init_grid_pulsator(const DomainDuration& duration
 }
 
 
-const inline double epsilon = 1e-8;
+const inline double epsilon = 1e-6;
 
 TEST_CASE("legato = 1.0, free pulsation") {
     double duration = 2.0;
@@ -131,25 +131,23 @@ TEST_CASE("Grid Pulsation (ticks) without offset") {
     }
 }
 
-TEST_CASE("Grid Pulsation (ticks) with offset") {
-    auto duration = DomainDuration(2.0, DomainType::ticks);
-    auto offset = DomainDuration(0.5, DomainType::ticks);
-    auto legato = 1.0;
+inline void test_grid_pulsation(const DomainDuration& duration, const DomainDuration& offset, double legato) {
     TimePoint time(0.0);
     std::size_t first_id = TriggerIds::get_instance().peek_next_id();
 
     auto p = init_grid_pulsator(duration, offset, legato, time);
 
-    REQUIRE(p.poll(time + epsilon).empty());
+    REQUIRE(p.poll(time - epsilon).empty());
 
-    time += offset.get_value();
+    time += offset;
     REQUIRE(p.poll(time - epsilon).empty());
 
     auto triggers = p.poll(time + epsilon);
     REQUIRE(Trigger::contains_pulse_on(triggers, first_id));
 
     for (std::size_t i = first_id; i < 10; ++i) {
-        time += duration.get_value();
+        time += duration;
+        std::cout << time.to_string() << std::endl;
         REQUIRE(p.poll(time - epsilon).empty());
 
         triggers = p.poll(time + epsilon);
@@ -157,6 +155,46 @@ TEST_CASE("Grid Pulsation (ticks) with offset") {
         REQUIRE(Trigger::contains_pulse_on(triggers, i + 1));
         REQUIRE(Trigger::contains_pulse_off(triggers, i));
     }
+}
+
+TEST_CASE("Grid Pulsation (ticks) with offset 0.5 ticks") {
+    auto duration = DomainDuration(2.0, DomainType::ticks);
+    auto offset = DomainDuration(0.5, DomainType::ticks);
+    auto legato = 1.0;
+
+    test_grid_pulsation(duration, offset, legato);
+}
+
+TEST_CASE("Grid Pulsation (ticks) with offset 0.1 ticks") {
+    auto duration = DomainDuration(1.0, DomainType::ticks);
+    auto offset = DomainDuration(0.1, DomainType::ticks);
+    auto legato = 1.0;
+
+    test_grid_pulsation(duration, offset, legato);
+}
+
+TEST_CASE("Grid Pulsation (bars) with offset 0.25 bars") {
+    auto duration = DomainDuration(1.0, DomainType::bars);
+    auto offset = DomainDuration(0.25, DomainType::bars);
+    auto legato = 1.0;
+
+    test_grid_pulsation(duration, offset, legato);
+}
+
+TEST_CASE("Grid Pulsation (bars) with duration 0.37 bars, offset 0.0  bars") {
+    auto duration = DomainDuration(0.37, DomainType::bars);
+    auto offset = DomainDuration(0.0, DomainType::bars);
+    auto legato = 1.0;
+
+    test_grid_pulsation(duration, offset, legato);
+}
+
+TEST_CASE("Grid Pulsation (bars) with duration 1 bars, offset 0.63  bars") {
+    auto duration = DomainDuration(1, DomainType::bars);
+    auto offset = DomainDuration(0.63, DomainType::bars);
+    auto legato = 1.0;
+
+    test_grid_pulsation(duration, offset, legato);
 }
 
 

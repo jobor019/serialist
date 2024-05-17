@@ -107,6 +107,8 @@ private:
 
 class GridPosition : public TimeSpecification {
 public:
+    static constexpr double EPSILON = 1e-8;
+
     GridPosition(const DomainDuration& period
                  , const DomainDuration& offset)
             : m_period(period)
@@ -151,11 +153,15 @@ public:
 
 private:
     static double compute_next(double current_time, double period, double offset, bool is_first_value = false) {
-        auto rem = utils::modulo(current_time, period);
-        if (rem < offset || (is_first_value && utils::equals(rem, offset, 1e-8))) {
-            return current_time + offset - rem;
+        auto rem = utils::modulo(current_time - offset, period);
+
+        if (is_first_value && utils::equals(rem, 0.0, EPSILON)) {
+            return current_time - rem;
+        } else if (period - rem < EPSILON) {
+            return current_time - rem + 2 * period;
+        } else {
+            return current_time - rem + period;
         }
-        return current_time + offset - rem + period;
     }
 
 
@@ -168,15 +174,11 @@ private:
 
 namespace utils {
 
-constexpr inline double NO_OFFSET = -1.0;
-
-// ==============================================================================================
-
 inline std::unique_ptr<TimeSpecification> ts_from_duration_offset(const DomainDuration& duration
-                                                                  , const std::optional<DomainDuration>& offset) {
-    if (offset) {
-        return std::make_unique<GridPosition>(duration, *offset);
-    }
+                                                                  , const DomainDuration& offset
+                                                                  , bool offset_enabled) {
+    if (offset_enabled)
+        return std::make_unique<GridPosition>(duration, offset);
 
     return std::make_unique<Period>(duration);
 }
@@ -184,21 +186,27 @@ inline std::unique_ptr<TimeSpecification> ts_from_duration_offset(const DomainDu
 inline std::unique_ptr<TimeSpecification> ts_from_duration_offset(double duration_value
                                                                   , DomainType duration_type
                                                                   , double offset_value
-                                                                  , std::optional<DomainType> offset_type) {
+                                                                  , DomainType offset_type
+                                                                  , bool offset_enabled) {
     auto duration = DomainDuration(duration_value, duration_type);
-    auto offset = offset_type ? std::make_optional<DomainDuration>(offset_value, *offset_type) : std::nullopt;
-    return ts_from_duration_offset(duration, offset);
+    auto offset = DomainDuration(offset_value, offset_type);
+    return ts_from_duration_offset(duration, offset, offset_enabled);
 }
 
-inline Vec <std::unique_ptr<TimeSpecification>> ts_from_durations_offsets(const Vec<double>& duration_values
-                                                                          , DomainType duration_type
-                                                                          , const Vec<double>& offset_values
-                                                                          , std::optional<DomainType> offset_type) {
+inline Vec<std::unique_ptr<TimeSpecification>> ts_from_durations_offsets(const Vec<double>& duration_values
+                                                                         , DomainType duration_type
+                                                                         , const Vec<double>& offset_values
+                                                                         , DomainType offset_type
+                                                                         , bool offset_enabled) {
     assert(duration_values.size() == offset_values.size());
 
-    Vec <std::unique_ptr<TimeSpecification>> time_specs;
+    Vec<std::unique_ptr<TimeSpecification>> time_specs;
     for (std::size_t i = 0; i < duration_values.size(); ++i) {
-        time_specs.append(ts_from_duration_offset(duration_values[i], duration_type, offset_values[i], offset_type));
+        time_specs.append(ts_from_duration_offset(duration_values[i]
+                                                  , duration_type
+                                                  , offset_values[i]
+                                                  , offset_type
+                                                  , offset_enabled));
     }
 
     return time_specs;
@@ -207,19 +215,35 @@ inline Vec <std::unique_ptr<TimeSpecification>> ts_from_durations_offsets(const 
 // ==============================================================================================
 
 
-inline std::optional<DomainType> parse_offset_type(const Facet& offset_type) {
-    if (offset_type >= 0.0) {
-        return static_cast<DomainType>(offset_type);
-    }
-    return std::nullopt;
-}
-
-inline std::optional<DomainType> parse_offset_type(const std::optional<Facet>& offset_type) {
-    if (offset_type) {
-        return parse_offset_type(*offset_type);
-    }
-    return std::nullopt;
-}
+//inline std::optional<DomainType> parse_offset_type(const Facet& offset_type) {
+//    if (offset_type >= 0.0) {
+//        return static_cast<DomainType>(offset_type);
+//    }
+//    return std::nullopt;
+//}
+//
+//inline std::optional<DomainType> parse_offset_type(const std::optional<Facet>& offset_type) {
+//    if (offset_type) {
+//        return parse_offset_type(*offset_type);
+//    }
+//    return std::nullopt;
+//}
+//
+//inline std::optional<DomainDuration> parse_offset(double offset, const std::optional<Facet>& offset_type) {
+//    if (auto ot = parse_offset_type(offset_type)) {
+//        return DomainDuration(offset, *ot);
+//    }
+//    return std::nullopt;
+//}
+//
+//inline Vec<std::optional<DomainDuration>> parse_offsets(const Vec<double>& offsets
+//                                                        , const std::optional<Facet>& offset_type) {
+//    Vec<std::optional<DomainDuration>> offsets_opt;
+//    for (auto offset: offsets) {
+//        offsets_opt.append(parse_offset(offset, offset_type));
+//    }
+//    return offsets_opt;
+//}
 
 } // utils
 

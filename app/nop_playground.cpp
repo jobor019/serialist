@@ -1,5 +1,6 @@
 #include <string>
 #include "core/generatives/auto_pulsator.h"
+#include "core/generatives/variable_state_pulsator.h"
 #include <iomanip>
 
 void print_pulses(const Voice<Trigger>& pulse) {
@@ -15,22 +16,7 @@ void print_pulses(const Voice<Trigger>& pulse) {
 int main() {
 //    auto transport = Transport();
 
-    TimePoint time;
-
-    auto pulsator = AutoPulsator();
-    pulsator.start(time, std::nullopt);
-
-    auto pulse = pulsator.poll(time);
-    print_pulses(pulse);
-
-    for (std::size_t i = 0; i < 1000; ++i) {
-        time.increment(0.1);
-        pulse = pulsator.poll(time);
-        std::cout << std::setprecision(16) << "tick=" << time.get_tick() << std::endl;
-        print_pulses(pulse);
-        std::cout << "----------------" << std::endl;
-
-    }
+    VariableStatePulsatorWrapper w;
 
 
     return 0;

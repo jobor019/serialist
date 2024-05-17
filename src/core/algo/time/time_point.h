@@ -16,6 +16,10 @@ enum class DomainType {
 
 // ==============================================================================================
 
+ class DomainDuration;
+
+// ==============================================================================================
+
 class TimePoint {
 public:
     explicit TimePoint(double tick = 0.0
@@ -43,6 +47,8 @@ public:
         increment(tick_increment);
         return *this;
     }
+
+    TimePoint& operator+=(const DomainDuration& duration);
 
     TimePoint operator-(double tick_decrement) {
         TimePoint t(*this);
@@ -132,6 +138,16 @@ public:
 
     const Meter& get_meter() const { return m_meter; }
 
+    std::string to_string() const {
+        return "TimePoint("
+               "tick=" + std::to_string(m_tick)
+               + ", beat=" + std::to_string(m_absolute_beat)
+               + ", bar=" + std::to_string(m_bar)
+               + ", tempo=" + std::to_string(m_tempo)
+               + ", meter=" + m_meter.to_string()
+               + ")";
+    }
+
 
 private:
     double m_tick;
@@ -144,8 +160,6 @@ private:
 
 
 // ==============================================================================================
-
-class DomainDuration;
 
 
 class DomainTimePoint {
@@ -297,6 +311,14 @@ public:
     }
 };
 
+
+// ==============================================================================================
+
+inline TimePoint& TimePoint::operator+=(const DomainDuration& duration) {
+    auto tick_increment = duration.as_type(DomainType::ticks, m_meter).get_value();
+    increment(tick_increment);
+    return *this;
+}
 
 // ==============================================================================================
 

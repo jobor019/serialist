@@ -29,6 +29,15 @@ inline T modulo(T n, T d) {
     }
 }
 
+template<typename T, typename = std::enable_if_t<std::is_floating_point_v<T>>>
+inline T modulo(T n, T d, T epsilon) {
+    auto r = modulo(n, d);
+    if (std::abs(r - d) < epsilon) {
+        return 0.0;
+    }
+    return r;
+}
+
 template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
 inline std::pair<T, T> divmod(T n, T d) {
     T remainder = modulo(n, d);

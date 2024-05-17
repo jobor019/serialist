@@ -56,6 +56,10 @@ public:
         return bars2ticks(bars) + beats2ticks(beats);
     }
 
+    std::string to_string() const {
+        return std::to_string(m_fraction.n) + "/" + std::to_string(m_fraction.d);
+    }
+
 
 private:
     Fraction m_fraction;

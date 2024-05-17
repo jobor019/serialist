@@ -191,6 +191,7 @@ public:
     static const inline std::string DURATION_TYPE = "duration_type";
     static const inline std::string OFFSET = "offset_type";
     static const inline std::string OFFSET_TYPE = "offset_type";
+    static const inline std::string OFFSET_ENABLED = "offset_enabled";
     static const inline std::string LEGATO = "legato";
 
     static const inline std::string CLASS_NAME = "pulsator";
@@ -201,6 +202,7 @@ public:
                      , Node<Facet>* duration_type = nullptr
                      , Node<Facet>* offset = nullptr
                      , Node<Facet>* offset_type = nullptr
+                     , Node<Facet>* offset_enabled = nullptr
                      , Node<Facet>* legato_amount = nullptr
                      , Node<Facet>* enabled = nullptr
                      , Node<Facet>* num_voices = nullptr)
@@ -210,6 +212,7 @@ public:
               , m_duration_type(add_socket(DURATION_TYPE, duration_type))
               , m_offset(add_socket(OFFSET, offset))
               , m_offset_type(add_socket(OFFSET_TYPE, offset_type))
+              , m_offset_enabled(add_socket(OFFSET_ENABLED, offset_enabled))
               , m_legato_amount(add_socket(LEGATO, legato_amount)) {
     }
 
@@ -217,6 +220,7 @@ public:
         return voice_count(
 //                m_trigger.voice_count()
                 m_duration.voice_count()
+                , m_offset.voice_count()
                 , m_legato_amount.voice_count());
 
     }
@@ -230,10 +234,11 @@ public:
             auto duration_type = m_duration_type.process().first_or(DomainType::ticks);
 
             auto offset = m_offset.process().adapted_to(num_voices).firsts_or(0.0);
-            auto offset_type = utils::parse_offset_type(m_offset_type.process().first());
+            auto offset_type = m_offset_type.process().first_or(DomainType::ticks);
+            auto offset_enabled = m_offset_enabled.process().first_or(false);
 
 
-            auto tses = utils::ts_from_durations_offsets(duration, duration_type, offset, offset_type);
+            auto tses = utils::ts_from_durations_offsets(duration, duration_type, offset, offset_type, offset_enabled);
             pulsators().set(&AutoPulsator::set_ts, std::move(tses));
         }
 
@@ -253,6 +258,7 @@ private:
     Socket<Facet>& m_duration_type;
     Socket<Facet>& m_offset;
     Socket<Facet>& m_offset_type;
+    Socket<Facet>& m_offset_enabled;
     Socket<Facet>& m_legato_amount;
 };
 
