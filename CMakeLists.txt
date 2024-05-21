@@ -65,7 +65,7 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/range.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/trigger.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/traits.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/jump_gate.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/time_event_gate.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/pulse.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/time_specification.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/equal_duration_sampling.h

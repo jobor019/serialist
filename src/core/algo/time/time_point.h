@@ -16,7 +16,7 @@ enum class DomainType {
 
 // ==============================================================================================
 
- class DomainDuration;
+class DomainDuration;
 
 // ==============================================================================================
 
@@ -27,13 +27,15 @@ public:
                        , std::optional<double> absolute_beat = std::nullopt
                        , std::optional<double> relative_beat = std::nullopt
                        , std::optional<double> bar = std::nullopt
-                       , Meter meter = Meter())
+                       , Meter meter = Meter()
+                       , bool transport_running = true)
             : m_tick(tick)
               , m_tempo(tempo)
               , m_absolute_beat(absolute_beat.value_or(meter.ticks2beats(tick)))
               , m_relative_beat(relative_beat.value_or(meter.ticks2bars_beats(tick).second))
               , m_bar(bar.value_or(meter.ticks2bars(tick)))
-              , m_meter(meter) {}
+              , m_meter(meter)
+              , m_transport_running(transport_running) {}
 
     static TimePoint zero() { return TimePoint(); }
 
@@ -138,6 +140,8 @@ public:
 
     const Meter& get_meter() const { return m_meter; }
 
+    bool get_transport_running() const { return m_transport_running; }
+
     std::string to_string() const {
         return "TimePoint("
                "tick=" + std::to_string(m_tick)
@@ -145,6 +149,7 @@ public:
                + ", bar=" + std::to_string(m_bar)
                + ", tempo=" + std::to_string(m_tempo)
                + ", meter=" + m_meter.to_string()
+               + ", transport_running=" + (m_transport_running ? "true" : "false")
                + ")";
     }
 
@@ -156,6 +161,9 @@ private:
     double m_relative_beat;
     double m_bar;
     Meter m_meter;
+    bool m_transport_running;
+
+
 };
 
 

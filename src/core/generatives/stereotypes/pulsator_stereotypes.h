@@ -6,7 +6,7 @@
 #include "core/algo/time/trigger.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/algo/voice/multi_voiced.h"
-#include "core/algo/time/jump_gate.h"
+#include "core/algo/time/time_event_gate.h"
 #include "core/algo/time/time_point.h"
 
 
@@ -75,7 +75,7 @@ public:
             resized = true;
         }
 
-        if (auto flushed = handle_jump_gate(*t)) {
+        if (auto flushed = handle_transport_state(*t)) {
             output.merge_uneven(*flushed, false);
         }
 
@@ -99,15 +99,22 @@ protected:
 
     virtual Voices<Trigger> get_incoming_triggers(const TimePoint& t, std::size_t num_voices) = 0;
 
-    std::optional<Voices<Trigger>> handle_jump_gate(const TimePoint& t) {
-        if (m_jump_gate.poll(t)) {
-            // TODO: This is not a good strategy, shouldn't automatically flush all here!!!
-            auto flushed = m_pulsators.flush();
-            for (auto& pulsator: m_pulsators) {
-                pulsator.handle_time_skip(t);
+    std::optional<Voices<Trigger>> handle_transport_state(const TimePoint& t) {
+        auto events = m_time_event_gate.poll(t);
+
+        if (events.contains(TimeEvent::transport_paused)) {
+            return m_pulsators.flush();
+        }
+
+        if (events.contains(TimeEvent::time_skip)) {
+            auto num_voices = m_pulsators.size();
+            auto flushed = Voices<Trigger>::zeros(num_voices);
+            for (std::size_t i = 0; i < num_voices; ++i) {
+                flushed[i] = m_pulsators[i].handle_time_skip(t);
             }
             return flushed;
         }
+
         return std::nullopt;
     }
 
@@ -156,12 +163,14 @@ protected:
     }
 
     void start(const TimePoint& t, std::size_t start_index, std::size_t end_index_excl) {
+        m_time_event_gate.reset();
         for (std::size_t i = start_index; i < end_index_excl; ++i) {
             m_pulsators.get_objects()[i].start(t, std::nullopt);
         }
     }
 
     Voices<Trigger> stop() {
+        m_time_event_gate.reset();
         auto flushed = Voices<Trigger>::zeros(m_pulsators.size());
 
         for (std::size_t i = 0; i < m_pulsators.size(); ++i) {
@@ -189,7 +198,7 @@ private:
     Voices<Trigger> m_current_value = Voices<Trigger>::empty_like();
     bool m_previous_enable_state = false;
 
-    JumpGate m_jump_gate;
+    TimeEventGate m_time_event_gate;
 };
 
 #endif //SERIALISTLOOPER_PULSATOR_STEREOTYPES_H

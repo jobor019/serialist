@@ -241,7 +241,7 @@
 //        }
 //
 //
-//        if (m_jump_gate.poll(*t)) {
+//        if (m_time_event_gate.poll(*t)) {
 //            output.merge_uneven(m_pulsators.flush(), true);
 //            for (auto& pulsator: m_pulsators) {
 //                pulsator.reset_time();
@@ -274,7 +274,7 @@
 //
 //
 //private:
-//    JumpGate m_jump_gate;
+//    TimeEventGate m_time_event_gate;
 //
 //
 //    Socket<Facet>& m_lower_bound;

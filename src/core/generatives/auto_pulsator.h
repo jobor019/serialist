@@ -103,10 +103,13 @@ public:
     }
 
     Voice<Trigger> handle_time_skip(const TimePoint& new_time) override {
-        // TODO: Ideal strategy would be to reschedule based on elapsed time
-        //  (i.e. Pulse.trigger_time - m_last_callback_time), but it also needs to take quantization into consideration
-        (void) new_time;
-        throw std::runtime_error("AutoPulsator::handle_time_skip not implemented");
+        // TODO: Not sure if this strategy is ideal for all instances of ts.
+        //       For non-pulse-based ts'es, we may want to compute the elapsed time
+        //       (i.e. up until m_last_callback_time and reschedule based on remanining time)
+        auto flushed = flush();
+        m_next_trigger_time = m_ts->next(new_time, false);
+        m_last_callback_time = new_time;
+        return flushed;
     }
 
     Vec<Pulse> export_pulses() override {
