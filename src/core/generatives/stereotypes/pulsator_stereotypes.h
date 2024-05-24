@@ -2,12 +2,12 @@
 #ifndef SERIALISTLOOPER_PULSATOR_STEREOTYPES_H
 #define SERIALISTLOOPER_PULSATOR_STEREOTYPES_H
 
-#include "core/algo/time/pulse.h"
-#include "core/algo/time/trigger.h"
+#include "core/algo/temporal/pulse.h"
+#include "core/algo/temporal/trigger.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
-#include "core/algo/voice/multi_voiced.h"
-#include "core/algo/time/time_event_gate.h"
-#include "core/algo/time/time_point.h"
+#include "core/collections/multi_voiced.h"
+#include "core/algo/temporal/time_event_gate.h"
+#include "core/algo/temporal/time_point.h"
 
 
 class Pulsator : public Flushable<Trigger> {

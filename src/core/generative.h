@@ -3,10 +3,10 @@
 #ifndef SERIALIST_LOOPER_GENERATIVE_H
 #define SERIALIST_LOOPER_GENERATIVE_H
 
-#include "core/algo/time/transport.h"
+#include "core/algo/temporal/transport.h"
 #include "core/param/parameter_policy.h"
 #include "core/collections/voices.h"
-#include "core/algo/time/time_point.h"
+#include "core/algo/temporal/time_point.h"
 
 #include <optional>
 

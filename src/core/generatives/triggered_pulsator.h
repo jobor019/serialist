@@ -2,7 +2,7 @@
 #ifndef SERIALISTLOOPER_TRIGGERED_PULSATOR_H
 #define SERIALISTLOOPER_TRIGGERED_PULSATOR_H
 
-#include "core/algo/time/pulse.h"
+#include "core/algo/temporal/pulse.h"
 #include "core/generatives/stereotypes/pulsator_stereotypes.h"
 
 
@@ -61,7 +61,7 @@ public:
         return m_pulses.flush();
     }
 
-    void set_duration(const Period& duration) {
+    void set_duration(const FreePeriodicTimePoint& duration) {
         m_duration = duration;
         m_configuration_changed = true;
     }
@@ -98,7 +98,7 @@ private:
 
     Pulses m_pulses;
 
-    Period m_duration; // offset determined by input from user, so this pulsator is always free
+    FreePeriodicTimePoint m_duration; // offset determined by input from user, so this pulsator is always free
     bool m_sample_and_hold;
 
     bool m_configuration_changed = false;

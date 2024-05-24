@@ -13,15 +13,15 @@
 #include "core/generatives/variable.h"
 #include "core/algo/facet.h"
 #include "core/param/socket_handler.h"
-#include "core/algo/time/time_gate.h"
+#include "core/algo/temporal/time_gate.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/algo/random.h"
-#include "core/algo/time/filters.h"
+#include "core/algo/temporal/filters.h"
 #include "core/collections/queue.h"
-#include "core/algo/voice/multi_voiced.h"
+#include "core/collections/multi_voiced.h"
 #include "unit_pulse.h"
 #include "sequence.h"
-#include "core/algo/time/trigger.h"
+#include "core/algo/temporal/trigger.h"
 
 class Oscillator {
 public:

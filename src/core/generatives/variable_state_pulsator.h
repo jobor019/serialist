@@ -7,7 +7,7 @@
 #include "triggered_pulsator.h"
 #include "sequence.h"
 #include "variable.h"
-#include "core/algo/time/time_point.h"
+#include "core/algo/temporal/time_point.h"
 
 class ThruPulsator : public Pulsator {
 public:
@@ -105,7 +105,7 @@ public:
               , m_offset(offset)
               , m_offset_enabled(offset_enabled)
               , m_legato(legato)
-              , m_auto_pulsator(utils::ts_from_duration_offset(duration, offset, offset_enabled), legato)
+              , m_auto_pulsator(temporal::ts_from_duration_offset(duration, offset, offset_enabled), legato)
               , m_triggered_pulsator(duration * legato) {
     }
 
@@ -169,18 +169,18 @@ public:
 
     void set_duration(const DomainDuration& duration) {
         m_duration = duration;
-        m_auto_pulsator.set_ts(utils::ts_from_duration_offset(m_duration, m_offset, m_offset_enabled));
-        m_triggered_pulsator.set_duration(Period(m_duration * m_legato));
+        m_auto_pulsator.set_ts(temporal::ts_from_duration_offset(m_duration, m_offset, m_offset_enabled));
+        m_triggered_pulsator.set_duration(FreePeriodicTimePoint(m_duration * m_legato));
     }
 
     void set_offset(const DomainDuration& offset) {
         m_offset = offset;
-        m_auto_pulsator.set_ts(utils::ts_from_duration_offset(m_duration, m_offset, m_offset_enabled));
+        m_auto_pulsator.set_ts(temporal::ts_from_duration_offset(m_duration, m_offset, m_offset_enabled));
     }
 
     void set_offset_enabled(bool enabled) {
         m_offset_enabled = enabled;
-        m_auto_pulsator.set_ts(utils::ts_from_duration_offset(m_duration, m_offset, m_offset_enabled));
+        m_auto_pulsator.set_ts(temporal::ts_from_duration_offset(m_duration, m_offset, m_offset_enabled));
     }
 
 
@@ -188,7 +188,7 @@ public:
     void set_legato_amount(double legato_amount) {
         m_legato = legato_amount;
         m_auto_pulsator.set_legato_amount(legato_amount);
-        m_triggered_pulsator.set_duration(Period(m_duration * m_legato));
+        m_triggered_pulsator.set_duration(FreePeriodicTimePoint(m_duration * m_legato));
     }
 
     void set_sample_and_hold(bool sample_and_hold) {

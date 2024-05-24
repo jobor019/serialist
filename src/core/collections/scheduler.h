@@ -4,9 +4,9 @@
 #define SERIALIST_LOOPER_SCHEDULER_H
 
 #include <memory>
-#include "core/algo/time/transport.h"
+#include "core/algo/temporal/transport.h"
 #include "voices.h"
-#include "core/algo/voice/multi_voiced.h"
+#include "multi_voiced.h"
 
 template<typename EventType, typename TimePointType = double
          , typename = std::enable_if_t<std::is_convertible_v<

@@ -3,10 +3,10 @@
 #define SERIALISTLOOPER_PULSE_H
 
 #include <optional>
-#include "core/algo/time/trigger.h"
+#include "core/algo/temporal/trigger.h"
 #include "core/collections/vec.h"
 #include "core/collections/held.h"
-#include "time_specification.h"
+#include "time_point_generators.h"
 #include "core/exceptions.h"
 
 class Pulse {

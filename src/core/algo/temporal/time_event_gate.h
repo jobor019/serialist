@@ -3,8 +3,8 @@
 #define SERIALISTLOOPER_TIME_EVENT_GATE_H
 
 #include <optional>
-#include "core/algo/time/transport.h"
-#include "core/algo/time/time_point.h"
+#include "core/algo/temporal/transport.h"
+#include "core/algo/temporal/time_point.h"
 
 enum class TimeEvent {
     time_skip

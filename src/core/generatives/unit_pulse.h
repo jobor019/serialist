@@ -5,8 +5,8 @@
 
 #include "core/generative.h"
 #include "core/param/parameter_keys.h"
-#include "core/algo/time/trigger.h"
-#include "core/algo/time/time_point.h"
+#include "core/algo/temporal/trigger.h"
+#include "core/algo/temporal/time_point.h"
 
 class UnitPulse : public Node<Trigger> {
 public:

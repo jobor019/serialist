@@ -1,7 +1,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include "core/algo/time/equal_duration_sampling.h"
+#include "core/algo/temporal/equal_duration_sampling.h"
 #include "core/algo/histogram.h"
 
 TEST_CASE("Equal Duration Sampling Tests") {

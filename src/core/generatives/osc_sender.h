@@ -3,9 +3,9 @@
 #define SERIALISTLOOPER_OSC_SENDER_H
 
 #include "core/generatives/stereotypes/base_stereotypes.h"
-#include "core/algo/time/trigger.h"
+#include "core/algo/temporal/trigger.h"
 #include "osc.h"
-#include "core/algo/time/time_point.h"
+#include "core/algo/temporal/time_point.h"
 
 class OscSenderNode : public RootBase {
 public:

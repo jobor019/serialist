@@ -58,7 +58,7 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/vec.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/pitch/notes.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/random.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/voice/multi_voiced.h
+        src/core/collections/multi_voiced.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/held.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/histogram.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/classifiers.h
@@ -67,7 +67,7 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/traits.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/time_event_gate.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/pulse.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/time_specification.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/time_point_generators.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/equal_duration_sampling.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/beat_grid_position.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/domain_time.h

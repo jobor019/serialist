@@ -6,7 +6,7 @@
 #include "core/utility/optionals.h"
 #include "core/algo/facet.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
-#include "core/algo/time/trigger.h"
+#include "core/algo/temporal/trigger.h"
 #include "sequence.h"
 #include "variable.h"
 

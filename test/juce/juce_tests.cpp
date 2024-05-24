@@ -9,7 +9,7 @@
 #include "core/generatives/note_source_LEGACY.h"
 #include "midi_config.h"
 #include "core/generatives/note_source_LEGACY.h"
-#include "core/algo/time/time_point.h"
+#include "core/algo/temporal/time_point.h"
 //#include "midi_config.h"
 
 class PulsatorWrapper {

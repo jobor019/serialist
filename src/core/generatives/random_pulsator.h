@@ -5,13 +5,13 @@
 //#include <functional>
 //#include <cmath>
 //#include "core/algo/weighted_random.h"
-//#include "core/algo/time/time_gate.h"
+//#include "core/algo/temporal/time_gate.h"
 //#include "core/param/parameter_policy.h"
 //#include "core/param/socket_handler.h"
 //#include "core/param/parameter_keys.h"
 //#include "core/generatives/stereotypes/base_stereotypes.h"
-//#include "core/algo/time/equal_duration_sampling.h"
-//#include "core/algo/time/jump_gate.h"
+//#include "core/algo/temporal/equal_duration_sampling.h"
+//#include "core/algo/temporal/jump_gate.h"
 //#include "core/algo/voice/multi_voiced.h"
 //#include "sequence.h"
 //#include "variable.h"

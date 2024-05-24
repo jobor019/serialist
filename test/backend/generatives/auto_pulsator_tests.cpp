@@ -9,7 +9,7 @@ TEST_CASE("AutoPulsator ctor") {
 
 static AutoPulsator init_free_pulsator(double duration, double legato, const TimePoint& time) {
     AutoPulsator p;
-    p.set_ts(std::make_unique<Period>(duration));
+    p.set_ts(std::make_unique<FreePeriodicTimePoint>(duration));
     p.set_legato_amount(legato);
     p.start(time, std::nullopt);
     return p;
@@ -20,7 +20,7 @@ static AutoPulsator init_grid_pulsator(const DomainDuration& duration
                                        , double legato
                                        , const TimePoint& time) {
     AutoPulsator p;
-    p.set_ts(std::make_unique<GridPosition>(duration, offset));
+    p.set_ts(std::make_unique<TransportLockedTimePoint>(duration, offset));
     p.set_legato_amount(legato);
     p.start(time, std::nullopt);
     return p;
@@ -199,7 +199,7 @@ TEST_CASE("Grid Pulsation (bars) with duration 1 bars, offset 0.63  bars") {
 
 
 TEST_CASE("Start/Stop/Flush") {
-    auto p = AutoPulsator(std::make_unique<Period>(1.0), 0.5);
+    auto p = AutoPulsator(std::make_unique<FreePeriodicTimePoint>(1.0), 0.5);
 
     TimePoint time(0.0);
 

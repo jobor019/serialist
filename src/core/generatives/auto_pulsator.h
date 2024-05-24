@@ -3,11 +3,11 @@
 #define SERIALISTLOOPER_AUTO_PULSATOR_H
 
 #include "core/collections/scheduler.h"
-#include "core/algo/time/pulse.h"
-#include "core/algo/time/trigger.h"
+#include "core/algo/temporal/pulse.h"
+#include "core/algo/temporal/trigger.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/generatives/stereotypes/pulsator_stereotypes.h"
-#include "core/algo/time/time_point.h"
+#include "core/algo/temporal/time_point.h"
 
 
 
@@ -15,7 +15,7 @@
 
 class AutoPulsator : public Pulsator {
 public:
-    explicit AutoPulsator(std::unique_ptr<TimeSpecification> ts = std::make_unique<Period>()
+    explicit AutoPulsator(std::unique_ptr<TimePointGenerator> ts = std::make_unique<FreePeriodicTimePoint>()
                           , double legato_amount = 1.0
                           , bool sample_and_hold = true)
             : m_ts(std::move(ts))
@@ -121,7 +121,7 @@ public:
         m_pulses.vec_mut().extend(pulses);
     }
 
-    void set_ts(std::unique_ptr<TimeSpecification> ts) {
+    void set_ts(std::unique_ptr<TimePointGenerator> ts) {
         m_ts = std::move(ts);
         m_configuration_changed = true;
     }
@@ -135,7 +135,7 @@ public:
         m_sample_and_hold = sample_and_hold;
     }
 
-    const TimeSpecification& get_ts() const { return *m_ts; }
+    const TimePointGenerator& get_ts() const { return *m_ts; }
 
     double get_legato_amount() const { return m_legato_amount; }
 
@@ -172,7 +172,7 @@ private:
 
     Pulses m_pulses;
 
-    std::unique_ptr<TimeSpecification> m_ts;
+    std::unique_ptr<TimePointGenerator> m_ts;
     double m_legato_amount;
     bool m_sample_and_hold;
 
@@ -241,7 +241,7 @@ public:
             auto offset_enabled = m_offset_enabled.process().first_or(false);
 
 
-            auto tses = utils::ts_from_durations_offsets(duration, duration_type, offset, offset_type, offset_enabled);
+            auto tses = temporal::ts_from_durations_offsets(duration, duration_type, offset, offset_type, offset_enabled);
             pulsators().set(&AutoPulsator::set_ts, std::move(tses));
         }
 

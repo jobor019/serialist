@@ -3,7 +3,7 @@
 //#define SERIALISTLOOPER_PARTIAL_NOTE_H
 //
 //#include <optional>
-//#include "core/algo/time/LEGACY_events.h"
+//#include "core/algo/temporal/LEGACY_events.h"
 //#include "core/algo/facet.h"
 //
 //

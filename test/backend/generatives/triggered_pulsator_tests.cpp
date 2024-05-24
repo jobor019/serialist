@@ -9,7 +9,7 @@ TEST_CASE("TriggeredPulsator ctor") {
 
 static TriggeredPulsator init_pulsator(double duration, const TimePoint& time) {
     TriggeredPulsator p;
-    p.set_duration(Period(duration));
+    p.set_duration(FreePeriodicTimePoint(duration));
     p.start(time, std::nullopt);
     return p;
 }

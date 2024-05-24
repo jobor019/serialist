@@ -300,6 +300,16 @@ private:
 
 // ==============================================================================================
 
+
+/**
+ * Placeholder for a class describing a directed duration of time. That is, the interval between two DomainTimePoints
+ * (or equivalently, the positive or negative interval described by a DomainTimePoint and a DomainDuration).
+ */
+class DomainInterval {};
+
+
+// ==============================================================================================
+
 class DomainConverter {
 public:
     DomainConverter() = delete;

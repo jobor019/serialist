@@ -4,7 +4,7 @@
 #define SERIALISTLOOPER_NOTE_SOURCE_LEGACY_H
 
 #include <vector>
-#include "core/algo/time/LEGACY_events.h"
+#include "core/algo/temporal/LEGACY_events.h"
 #include "core/collections/scheduler.h"
 #include "core/algo/pitch/notes.h"
 #include "core/generative.h"
@@ -14,7 +14,7 @@
 #include "core/param/socket_handler.h"
 #include "io/renderers.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
-#include "core/algo/time/time_point.h"
+#include "core/algo/temporal/time_point.h"
 
 
 // TODO: Lots of refactoring needed here: Separate out NoteSource from NoteSourceNode + update accordingly

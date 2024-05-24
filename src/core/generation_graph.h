@@ -8,7 +8,7 @@
 #include "core/generative.h"
 #include "core/param/parameter_policy.h"
 #include "core/param/parameter_keys.h"
-#include "core/algo/time/time_point.h"
+#include "core/algo/temporal/time_point.h"
 
 class GraphUtils {
 public:

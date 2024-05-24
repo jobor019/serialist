@@ -4,7 +4,7 @@
 
 #include <type_traits>
 #include "core/collections/vec.h"
-#include "core/algo/voice/multi_voiced.h"
+#include "multi_voiced.h"
 
 template<typename T, bool AllowDuplicates = false>
 class Held : public Flushable<T> {
