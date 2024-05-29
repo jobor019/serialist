@@ -183,25 +183,25 @@
 //
 //    Voices<PartialNote> process() override {
 //        if (auto t = pop_time(); !t) // process has already been called this cycle
-//            return m_current_value;
+//            return m_current_phase;
 //
 //        if (!(is_enabled() && m_pulse.is_connected()
 //              && m_pitch_classes.is_connected() && m_distribution.is_connected())) {
-//            m_current_value = Voices<PartialNote>::empty_like();
+//            m_current_phase = Voices<PartialNote>::empty_like();
 //
 //            // first callback since it was disabled: flush any held notes
 //            if (m_previous_enable_state) {
 //                m_previous_enable_state = false;
-//                m_current_value = as_partial(m_allocator.flush(), Trigger::pulse_off);
+//                m_current_phase = as_partial(m_allocator.flush(), Trigger::pulse_off);
 //            }
 //
-//            return m_current_value;
+//            return m_current_phase;
 //        }
 //
 //        auto triggers = m_pulse.process();
 //
 //        if (triggers.is_empty_like()) {
-//            return m_current_value;
+//            return m_current_phase;
 //        }
 //
 //        auto num_voices = voice_count(triggers.size());
@@ -222,8 +222,8 @@
 //        output.merge_uneven(as_partial(m_allocator.release(triggers, num_voices), Trigger::pulse_off), false);
 //        output.merge_uneven(as_partial(m_allocator.bind(triggers, num_voices), Trigger::pulse_on), false);
 //
-//        m_current_value = output;
-//        return m_current_value;
+//        m_current_phase = output;
+//        return m_current_phase;
 //    }
 //
 //
@@ -275,7 +275,7 @@
 //    Socket<Facet>& m_distribution;
 //    Socket<Facet>& m_flush_on_change;
 //
-//    Voices<PartialNote> m_current_value = Voices<PartialNote>::empty_like();
+//    Voices<PartialNote> m_current_phase = Voices<PartialNote>::empty_like();
 //
 //    bool m_previous_enable_state = true;
 //    std::size_t m_previous_num_voices = 0;

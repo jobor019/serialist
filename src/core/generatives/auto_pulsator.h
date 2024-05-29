@@ -107,6 +107,8 @@ public:
         //       For non-pulse-based ts'es, we may want to compute the elapsed time
         //       (i.e. up until m_last_callback_time and reschedule based on remanining time)
         auto flushed = flush();
+
+        // TODO: Handle exception or explain why this is safe!
         m_next_trigger_time = m_ts->next(new_time, false);
         m_last_callback_time = new_time;
         return flushed;
@@ -161,6 +163,7 @@ private:
                                        ? m_next_trigger_time
                                        : m_next_trigger_time.as_type(m_ts->get_type(), m_last_callback_time);
 
+        // TODO: Handle exception or explain why this is safe!
         m_next_trigger_time = m_ts->next(trigger_time, current_time);
 
         auto duration = (m_next_trigger_time - trigger_time) * m_legato_amount;

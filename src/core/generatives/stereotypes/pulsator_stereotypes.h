@@ -6,7 +6,7 @@
 #include "core/algo/temporal/trigger.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/collections/multi_voiced.h"
-#include "core/algo/temporal/time_event_gate.h"
+#include "core/algo/temporal/OLD_time_event_gate.h"
 #include "core/algo/temporal/time_point.h"
 
 

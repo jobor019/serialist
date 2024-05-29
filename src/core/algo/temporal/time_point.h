@@ -178,7 +178,33 @@ public:
 
     static DomainTimePoint zero() { return {0.0, DomainType::ticks}; }
 
+    /** @throws TimeDomainError if `other` has a different type */
+    static DomainTimePoint min(const DomainTimePoint& a, const DomainTimePoint& b) {
+        if (a.m_type != b.m_type)
+            throw TimeDomainError("DomainTypes are incompatible");
+
+        return {std::min(a.m_value, b.m_value), a.m_type};
+    }
+
+    /** @throws TimeDomainError if `other` has a different type */
+    static DomainTimePoint max(const DomainTimePoint& a, const DomainTimePoint& b) {
+        if (a.m_type != b.m_type)
+            throw TimeDomainError("DomainTypes are incompatible");
+
+        return {std::max(a.m_value, b.m_value), a.m_type};
+    }
+
     DomainDuration operator-(const DomainTimePoint& other) const;
+
+    bool operator<(const TimePoint& t) const { return m_value < t.get(m_type); }
+    bool operator<=(const TimePoint& t) const { return m_value <= t.get(m_type); }
+    bool operator>(const TimePoint& t) const { return m_value > t.get(m_type); }
+    bool operator>=(const TimePoint& t) const { return m_value >= t.get(m_type); }
+
+    friend bool operator<(const TimePoint& t, const DomainTimePoint& other) { return other > t; }
+    friend bool operator<=(const TimePoint& t, const DomainTimePoint& other) { return other >= t; }
+    friend bool operator>(const TimePoint& t, const DomainTimePoint& other) { return other < t; }
+    friend bool operator>=(const TimePoint& t, const DomainTimePoint& other) { return other <= t; }
 
     // TODO: Not sure if this will be needed. If so, should be out of line
 //    DomainDuration operator-(const TimePoint& other) const;
@@ -277,6 +303,10 @@ public:
 
     DomainDuration operator*(double factor) const {
         return DomainDuration(m_value * factor, m_type);
+    }
+
+    friend DomainDuration operator*(double factor, const DomainDuration& duration) {
+        return duration * factor;
     }
 
     bool supports(const DomainTimePoint& t) const {

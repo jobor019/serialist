@@ -27,23 +27,26 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/operator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/oscillator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/parameter_policy.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/phasor.h
+        src/core/algo/temporal/phase_accumulator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/auto_pulsator.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/_EXP_pulsator_experiment.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/triggered_pulsator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/variable_state_pulsator.h
         src/core/collections/scheduler.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/transport.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/temporal/transport.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/temporal/time_point_generators.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/sequence.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/selector.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/socket_handler.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/socket_policy.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/time_gate.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/time_point.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/meter.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/temporal/time_gate.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/temporal/time_point.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/temporal/meter.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/transform.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/vt_socket.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/unit_pulse.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/enums.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/stateful.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/variable.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/circular_buffer.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/voices.h
@@ -63,21 +66,17 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/histogram.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/classifiers.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/range.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/trigger.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/temporal/trigger.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/traits.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/time_event_gate.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/pulse.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/time_point_generators.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/equal_duration_sampling.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/beat_grid_position.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/time/domain_time.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/temporal/OLD_time_event_gate.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/temporal/pulse.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/temporal/OLD_time_point_generators.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/temporal/equal_duration_sampling.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/math.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/optionals.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/time.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/queue.h
-        src/core/algo/time/filters.h
+        src/core/algo/temporal/filters.h
         src/core/generatives/interpolator.h
-        src/core/generatives/beat_grid_pulsator.h
         src/core/generatives/osc_sender.h
 )
 
@@ -433,6 +432,7 @@ add_executable(tests EXCLUDE_FROM_ALL
         test/backend/algo/facet_tests.cpp
         test/backend/generatives/selector_tests.cpp
         test/backend/generatives/auto_pulsator_tests.cpp
+        test/backend/generatives/pulsator_tests.cpp
         test/backend/generatives/triggered_pulsator_tests.cpp
         test/backend/generatives/variable_state_pulsator_tests.cpp
         test/backend/generatives/make_note_tests.cpp

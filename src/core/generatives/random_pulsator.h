@@ -215,17 +215,17 @@
 //    Voices<Trigger> process() override {
 //        auto t = pop_time();
 //        if (!t) // process has already been called this cycle
-//            return m_current_value;
+//            return m_current_phase;
 //
 //        // TODO: enabled shouldn't be a single value but per voice!!!!!
 //        if (!is_enabled()) {
 //            if (m_previous_enable_state) {
-//                m_current_value = m_pulsators.flush();
+//                m_current_phase = m_pulsators.flush();
 //            } else {
-//                m_current_value = Voices<Trigger>::empty_like();
+//                m_current_phase = Voices<Trigger>::empty_like();
 //            }
 //            m_previous_enable_state = false;
-//            return m_current_value;
+//            return m_current_phase;
 //        }
 //        m_previous_enable_state = true;
 //
@@ -268,8 +268,8 @@
 //            output[i].extend(m_pulsators[i].process(time));
 //        }
 //
-//        m_current_value = output;
-//        return m_current_value;
+//        m_current_phase = output;
+//        return m_current_phase;
 //    }
 //
 //
@@ -283,7 +283,7 @@
 //
 //    MultiVoiced<RandomPulsator, Trigger> m_pulsators;
 //
-//    Voices<Trigger> m_current_value = Voices<Trigger>::empty_like();
+//    Voices<Trigger> m_current_phase = Voices<Trigger>::empty_like();
 //
 //    bool m_previous_enable_state = true;
 //};

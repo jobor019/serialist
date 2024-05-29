@@ -7,7 +7,7 @@
 
 #include "core/param/parameter_policy.h"
 #include "core/generative.h"
-#include "core/algo/phasor.h"
+#include "core/algo/temporal/phase_accumulator.h"
 #include "core/utility/enums.h"
 #include "core/param/socket_policy.h"
 #include "core/generatives/variable.h"
@@ -129,7 +129,7 @@ private:
     }
 
 
-    Phasor m_phasor;
+    PhaseAccumulator m_phasor;
     Random m_random;
     Smoo m_lpf;
 

@@ -24,6 +24,7 @@ public:
     }
 
 
+    // TODO: This seems incredibly inefficient?
     std::optional<Voices<T>> process_if_changed() {
         std::lock_guard lock{m_mutex};
         return has_changed_internal() ? std::make_optional(process_internal()) : std::nullopt;

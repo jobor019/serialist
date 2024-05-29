@@ -9,14 +9,14 @@
 #include "core/utility/math.h"
 
 
-class Phasor {
+class PhaseAccumulator {
 public:
 
-    explicit Phasor(double max = 1.0
-                    , double position = 0.0
-                    , double current_time = 0.0)
+    explicit PhaseAccumulator(double max = 1.0
+                              , double phase = 0.0
+                              , double current_time = 0.0)
             :  m_max(max)
-              , m_current_value(utils::modulo(position, 1.0) * max)
+              , m_current_phase(utils::modulo(phase, 1.0) * max)
               , m_previous_update_time(current_time) {}
 
 
@@ -25,7 +25,7 @@ public:
         if (stepped) {
             if (m_is_first_value) {
                 m_is_first_value = false;
-                return with_phase(m_current_value, phase);
+                return with_phase(m_current_phase, phase);
             }
             increment = step_size;
         } else {
@@ -33,18 +33,18 @@ public:
         }
         m_previous_update_time = time;
 
-        double val = m_current_value + increment;
+        double val = m_current_phase + increment;
 
-        m_current_value = utils::modulo(val, m_max);
+        m_current_phase = utils::modulo(val, m_max);
         m_is_first_value = false;
 
-        return with_phase(m_current_value, phase);
+        return with_phase(m_current_phase, phase);
     }
 
 
-    void reset(double position = 0.0) {
+    void reset(double phase = 0.0) {
         m_is_first_value = true;
-        m_current_value = position;
+        m_current_phase = phase;
     }
 
 
@@ -52,7 +52,7 @@ public:
     [[nodiscard]] double get_max() const { return m_max; }
 
 
-    [[nodiscard]] double get_current_value() const { return m_current_value; }
+    [[nodiscard]] double get_current_value() const { return m_current_phase; }
 
 
 private:
@@ -68,7 +68,7 @@ private:
     }
 
     double m_max;
-    double m_current_value;
+    double m_current_phase;
 
     double m_previous_update_time;
     bool m_is_first_value = true;

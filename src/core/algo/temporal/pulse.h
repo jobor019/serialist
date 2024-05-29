@@ -6,7 +6,7 @@
 #include "core/algo/temporal/trigger.h"
 #include "core/collections/vec.h"
 #include "core/collections/held.h"
-#include "time_point_generators.h"
+#include "OLD_time_point_generators.h"
 #include "core/exceptions.h"
 
 class Pulse {
@@ -16,6 +16,7 @@ public:
             : m_id(id)
               , m_trigger_time(trigger_time)
               , m_pulse_off_time(pulse_off_time) {
+        assert_invariants();
     }
 
     bool elapsed(const TimePoint& current_time) const {
@@ -28,23 +29,46 @@ public:
 
     std::size_t get_id() const { return m_id; }
 
+    /** @throws ParameterError if pulse_off_time is not of the same type as the trigger time */
     void set_pulse_off(const DomainTimePoint& time) {
+        if (time.get_type() != m_trigger_time.get_type()) {
+            throw ParameterError("pulse_off_time must be of the same type as the trigger time");
+        }
         m_pulse_off_time = time;
     }
 
-//    void set_type(DomainType type, const TimePoint& last_transport_time) {
-//        if (m_pulse_off_time) {
-//            m_pulse_off_time = m_pulse_off_time->as_type(type, last_transport_time);
-//        }
-//
-//        m_trigger_time = m_trigger_time.as_type(type, last_transport_time);
-//    }
+
+    void scale_duration(double factor) {
+        if (m_pulse_off_time) {
+            auto duration = m_trigger_time - *m_pulse_off_time;
+            m_pulse_off_time = m_trigger_time + (duration * factor);
+        }
+    }
+
+    /**
+     * @brief sets duration of the pulse if duration is of the same type as the trigger time
+     */
+    bool try_set_duration(const DomainDuration& duration) {
+        if (m_trigger_time.get_type() == duration.get_type()) {
+            m_pulse_off_time = m_trigger_time + duration;
+            return true;
+        }
+        return false;
+    }
 
     DomainTimePoint get_trigger_time() const { return m_trigger_time; }
 
     const std::optional<DomainTimePoint>& get_pulse_off_time() const { return m_pulse_off_time; }
 
+    DomainType get_type() const {
+        return m_trigger_time.get_type();
+    }
+
 private:
+    void assert_invariants() {
+        assert(!m_pulse_off_time || m_pulse_off_time->get_type() == m_trigger_time.get_type());
+    }
+
     std::size_t m_id;
     DomainTimePoint m_trigger_time;
     std::optional<DomainTimePoint> m_pulse_off_time;
@@ -83,21 +107,96 @@ public:
                 });
     }
 
-    Vec<Pulse> drain_elapsed(const TimePoint& time, bool include_missing_pulse_offs = false) {
-        return m_pulses.filter_drain([time, include_missing_pulse_offs](const Pulse& p) {
-            return !(p.elapsed(time) || (include_missing_pulse_offs && !p.has_pulse_off()));
+    Vec<Pulse> drain_elapsed(const TimePoint& time, bool include_endless = false) {
+        return m_pulses.filter_drain([time, include_endless](const Pulse& p) {
+            return !(p.elapsed(time) || (include_endless && !p.has_pulse_off()));
         });
     }
 
-    Voice<Trigger> drain_elapsed_as_triggers(const TimePoint& time, bool include_missing_pulse_offs = false) {
-        return drain_elapsed(time, include_missing_pulse_offs)
+    Voice<Trigger> drain_elapsed_as_triggers(const TimePoint& time, bool include_endless = false) {
+        return drain_elapsed(time, include_endless)
                 .template as_type<Trigger>([](const Pulse& p) {
                     return Trigger::pulse_off(p.get_id());
                 });
     }
 
+    Voice<Pulse> drain_endless() {
+        return m_pulses.filter_drain([](const Pulse& p) {
+            return !p.has_pulse_off();
+        });
+    }
+
+    Voice<Pulse> drain_by_id(std::size_t id) {
+        return m_pulses.filter_drain([id](const Pulse& p) {
+            return p.get_id() == id;
+        });
+    }
+
+    Voice<Trigger> drain_by_id_as_triggers(std::size_t id) {
+        return drain_by_id(id)
+                .template as_type<Trigger>([](const Pulse& p) {
+                    return Trigger::pulse_off(p.get_id());
+                });
+    }
+
+    Voice<Trigger> drain_endless_as_triggers() {
+        return drain_endless()
+                .template as_type<Trigger>([](const Pulse& p) {
+                    return Trigger::pulse_off(p.get_id());
+                });
+    }
+
+    Voice<Pulse> drain_non_matching(DomainType type) {
+        return m_pulses.filter_drain([type](const Pulse& p) {
+            return p.get_trigger_time().get_type() != type;
+        });
+    }
+
+    Voice<Trigger> drain_non_matching_as_triggers(DomainType type) {
+        return drain_non_matching(type)
+                .template as_type<Trigger>([](const Pulse& p) {
+                    return Trigger::pulse_off(p.get_id());
+                });
+    }
+
+
+
+    void scale_durations(double factor) {
+        for (Pulse& p : m_pulses) {
+            p.scale_duration(factor);
+        }
+    }
+
+    void try_set_durations(const DomainDuration& duration) {
+        for (Pulse& p : m_pulses) {
+            p.try_set_duration(duration);
+        }
+    }
+
+
+
+    const Pulse* last_of_type(DomainType type) const {
+        // TODO
+    }
+
+
+
+//    /**
+//     * @brief Sets duration for all existing pulses to fixed value
+//     */
+//    void reschedule(const DomainDuration& new_duration) {
+//        for (Pulse& p : m_pulses) {
+//            // TODO: This is not a good strategy: what if initial DTP is incompatible with new_duration?
+//            p.set_pulse_off(p.get_trigger_time() + new_duration);
+//        }
+//    }
+
     Voice<Trigger> reset() {
         return flush();
+    }
+
+    bool empty() const {
+        return m_pulses.empty();
     }
 
 //    void set_type(DomainType type, const TimePoint& last_transport_time) {

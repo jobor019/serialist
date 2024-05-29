@@ -119,6 +119,29 @@ constexpr bool is_optional_v = is_optional<std::decay_t<T>>::value;
 
 // ==============================================================================================
 
+template<typename, typename = void>
+struct is_equality_comparable : std::false_type {};
+
+// Specialization that checks if T == T is valid
+template<typename T>
+struct is_equality_comparable<T, std::void_t<decltype(std::declval<T>() == std::declval<T>())>> : std::true_type {};
+
+template<typename T>
+inline constexpr bool is_equality_comparable_v = is_equality_comparable<T>::value;
+
+template<typename, typename = void>
+struct is_inequality_comparable : std::false_type {};
+
+// Specialization that checks if T == T is valid
+template<typename T>
+struct is_inequality_comparable<T, std::void_t<decltype(std::declval<T>() != std::declval<T>())>> : std::true_type {};
+
+template<typename T>
+inline constexpr bool is_inequality_comparable_v = is_equality_comparable<T>::value;
+
+
+// ==============================================================================================
+
 /**
  * Workaround to handle std::atomic<T>::is_always_lock_free for non-trivially copyable types
  */

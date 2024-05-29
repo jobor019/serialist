@@ -111,6 +111,13 @@ public:
         }
     }
 
+    template<typename Setter, typename ArgType, typename = std::enable_if_t<std::is_member_function_pointer_v<Setter>>>
+    void set(Setter func, const ArgType& v) {
+        for (auto& obj : m_objects) {
+            (obj.*func)(v);
+        }
+    }
+
 
     template<typename U>
     decltype(auto) operator[](const U& index) {
