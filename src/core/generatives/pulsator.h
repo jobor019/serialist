@@ -1,15 +1,15 @@
 
-#ifndef SERIALISTLOOPER__EXP_PULSATOR_EXPERIMENT_H
-#define SERIALISTLOOPER__EXP_PULSATOR_EXPERIMENT_H
+#ifndef SERIALISTLOOPER_PULSATOR_H
+#define SERIALISTLOOPER_PULSATOR_H
 
 #include "core/algo/temporal/pulse.h"
 #include "core/algo/temporal/trigger.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/algo/temporal/time_point.h"
-#include "core/algo/temporal/OLD_time_event_gate.h"
 #include "core/utility/stateful.h"
 #include "core/algo/temporal/time_point_generators.h"
 #include "variable.h"
+#include "sequence.h"
 #include <map>
 
 enum class PulsatorMode {
@@ -20,12 +20,12 @@ enum class PulsatorMode {
 };
 
 struct PulsatorParameters {
-    static constexpr double DEFAULT_DURATION = 1.0;
-    static const DomainType DEFAULT_DURATION_TYPE = DomainType::ticks;
-    static constexpr double DEFAULT_OFFSET = 0.0;
-    static const DomainType DEFAULT_OFFSET_TYPE = DomainType::ticks;
-    static constexpr double DEFAULT_LEGATO_AMOUNT = 1.0;
-    static const bool DEFAULT_SNH = false;
+    static constexpr inline double DEFAULT_DURATION = 1.0;
+    static const inline DomainType DEFAULT_DURATION_TYPE = DomainType::ticks;
+    static constexpr inline double DEFAULT_OFFSET = 0.0;
+    static const inline DomainType DEFAULT_OFFSET_TYPE = DomainType::ticks;
+    static constexpr inline double DEFAULT_LEGATO_AMOUNT = 1.0;
+    static const inline bool DEFAULT_SNH = false;
 
 
     WithChangeFlag<DomainDuration> duration{DomainDuration{DEFAULT_DURATION, DEFAULT_DURATION_TYPE}};
@@ -230,8 +230,11 @@ public:
 
         output.extend(s.pulses.drain_elapsed_as_triggers(t, true));
 
-        if (p.triggers.contains([](const Trigger& trigger) { return trigger.is(Trigger::Type::pulse_on); })) {
-            output.append(schedule_new(as_dtp(t, p), s, p)); // TODO: Same as FreePeriodic .. maybe
+
+        if (auto trigger_idx = p.triggers.index([](const Trigger& trigger) {
+            return trigger.is(Trigger::Type::pulse_on);
+        })) {
+            output.append(schedule_new(as_dtp(t, p), s, p, p.triggers[*trigger_idx].get_id()));
         }
 
         if (s.pulses.empty()) {
@@ -247,10 +250,13 @@ private:
         return *p.duration * *p.legato_amount;
     }
 
-    static Trigger schedule_new(const DomainTimePoint& dtp, PulsatorState& s, const PulsatorParameters& p) {
+    static Trigger schedule_new(const DomainTimePoint& dtp
+                                , PulsatorState& s
+                                , const PulsatorParameters& p
+                                , std::size_t trigger_id) {
         auto off = dtp + duration(p);
         s.current_trigger_time = dtp;
-        return s.pulses.new_pulse(dtp, off);
+        return s.pulses.new_pulse(dtp, off, trigger_id);
     }
 
     static Voice<Trigger> reschedule(PulsatorState& s, const PulsatorParameters& p) {
@@ -435,7 +441,7 @@ public:
         output.extend(s.pulses.drain_elapsed_as_triggers(t, true));
 
         if (!s.next_trigger_time.has_value()) {
-            output.append(schedule_new(as_dtp(t, p), t, s, p));
+            schedule_first_trigger(t, s, p);
 
 
         } else if (s.next_trigger_time->elapsed(t)) {
@@ -457,6 +463,11 @@ private:
                                 , const TimePoint& t
                                 , const PulsatorParameters& p) {
         return TransportLocked::next(dtp, *p.duration, *p.offset, t.get_meter(), false);
+    }
+
+    static void schedule_first_trigger(const TimePoint& t, PulsatorState& s, const PulsatorParameters& p) {
+        s.current_trigger_time = as_dtp(t, p);
+        s.next_trigger_time = TransportLocked::next(t, *p.duration, *p.offset, true);
     }
 
 
@@ -505,23 +516,23 @@ private:
 
 // ==============================================================================================
 
-class PulsatorExp : public Flushable<Trigger> {
+class Pulsator : public Flushable<Trigger> {
 public:
-    static const PulsatorMode DEFAULT_MODE = PulsatorMode::transport_locked;
+    static const inline PulsatorMode DEFAULT_MODE = PulsatorMode::transport_locked;
 
-    PulsatorExp() = default;
+    Pulsator() = default;
 
-    ~PulsatorExp() override = default;
+    ~Pulsator() override = default;
 
     // No need to copy m_strategies as they are completely static
-    PulsatorExp(const PulsatorExp& other)
+    Pulsator(const Pulsator& other)
             : m_params(other.m_params)
               , m_state(other.m_state)
               , m_mode(other.m_mode) {}
 
 
     // No need to copy m_strategies as they are completely static
-    PulsatorExp& operator=(const PulsatorExp& other) {
+    Pulsator& operator=(const Pulsator& other) {
         if (this == &other) return *this;
         m_params = other.m_params;
         m_state = other.m_state;
@@ -529,9 +540,9 @@ public:
         return *this;
     }
 
-    PulsatorExp(PulsatorExp&&) noexcept = default;
+    Pulsator(Pulsator&&) noexcept = default;
 
-    PulsatorExp& operator=(PulsatorExp&&) noexcept = default;
+    Pulsator& operator=(Pulsator&&) noexcept = default;
 
     Voice<Trigger> process(const TimePoint& time) {
         Voice<Trigger> output;
@@ -553,65 +564,32 @@ public:
     /**
      * @brief Called only when pulsator is disabled (not when transport is paused)
      */
-    Voice<Trigger> clear() {
-        return active_strategy().clear(m_state);
-    }
+    Voice<Trigger> clear() { return active_strategy().clear(m_state); }
 
-    Voice<Trigger> flush() override {
-        return active_strategy().flush(m_state);
-    }
+    Voice<Trigger> flush() override { return active_strategy().flush(m_state); }
 
     Voice<Trigger> handle_time_skip(const TimePoint& new_time) {
         return active_strategy().on_time_skip(new_time, m_state, m_params);
     }
 
-    void set_duration(const DomainDuration& duration) {
-        m_params.duration = duration;
-    }
+    void set_duration(const DomainDuration& duration) { m_params.duration = duration; }
 
-    void set_offset(const DomainDuration& offset) {
-        m_params.offset = offset;
-    }
+    void set_offset(const DomainDuration& offset) { m_params.offset = offset; }
 
-    void set_legato_amount(double legato_amount) {
-        m_params.legato_amount = legato_amount;
-    }
+    void set_legato_amount(double legato_amount) { m_params.legato_amount = legato_amount; }
 
-    void set_sample_and_hold(bool sample_and_hold) {
-        m_params.sample_and_hold = sample_and_hold;
-    }
+    void set_sample_and_hold(bool sample_and_hold) { m_params.sample_and_hold = sample_and_hold; }
 
-    void set_triggers(const Voice<Trigger>& t) {
-        m_params.triggers = t;
-    }
+    void set_triggers(const Voice<Trigger>& t) { m_params.triggers = t; }
 
-    void set_mode(PulsatorMode mode) {
-        m_mode = mode;
-    }
+    void set_mode(PulsatorMode mode) { m_mode = mode; }
 
-//    void set_active_strategy(PulsatorMode mode) {
-//        switch (mode) {
-//            case PulsatorMode::transport_locked:
-//                m_active_strategy = {*m_strategies[0]};
-//                return;
-//            case PulsatorMode::free_periodic:
-//                m_active_strategy = {*m_strategies[1]};
-//                return;
-//            case PulsatorMode::free_triggered:
-//                m_active_strategy = {*m_strategies[2]};
-//                return;
-//            case PulsatorMode::thru:
-//                m_active_strategy = {*m_strategies[3]};
-//                return;
-//
-//        }
-//
-//    }
 
 private:
     PulsatorStrategy& active_strategy() {
         return *m_strategies[*m_mode];
     }
+
 
     static std::map<PulsatorMode, std::unique_ptr<PulsatorStrategy>> make_strategies() {
         std::map<PulsatorMode, std::unique_ptr<PulsatorStrategy>> map;
@@ -624,8 +602,6 @@ private:
 
     std::map<PulsatorMode, std::unique_ptr<PulsatorStrategy>> m_strategies = make_strategies();
 
-//    WithChangeFlag<std::reference_wrapper<PulsatorStrategy>> m_active_strategy{*m_strategies[0]};
-
     PulsatorParameters m_params;
     PulsatorState m_state;
     WithChangeFlag<PulsatorMode> m_mode = DEFAULT_MODE;
@@ -635,7 +611,7 @@ private:
 
 // ==============================================================================================
 
-class PulsatorExpNode : public NodeBase<Trigger> {
+class PulsatorNode : public NodeBase<Trigger> {
 public:
 
     // TODO
@@ -655,18 +631,18 @@ public:
         static const inline std::string CLASS_NAME = "pulsator";
     };
 
-    PulsatorExpNode(const std::string& id
-                    , ParameterHandler& parent
-                    , Node<Facet>* mode = nullptr
-                    , Node<Trigger>* trigger = nullptr
-                    , Node<Facet>* duration = nullptr
-                    , Node<Facet>* duration_type = nullptr
-                    , Node<Facet>* offset = nullptr
-                    , Node<Facet>* offset_type = nullptr
-                    , Node<Facet>* legato_amount = nullptr
-                    , Node<Facet>* sample_and_hold = nullptr
-                    , Node<Facet>* enabled = nullptr
-                    , Node<Facet>* num_voices = nullptr)
+    PulsatorNode(const std::string& id
+                 , ParameterHandler& parent
+                 , Node<Facet>* mode = nullptr
+                 , Node<Trigger>* trigger = nullptr
+                 , Node<Facet>* duration = nullptr
+                 , Node<Facet>* duration_type = nullptr
+                 , Node<Facet>* offset = nullptr
+                 , Node<Facet>* offset_type = nullptr
+                 , Node<Facet>* legato_amount = nullptr
+                 , Node<Facet>* sample_and_hold = nullptr
+                 , Node<Facet>* enabled = nullptr
+                 , Node<Facet>* num_voices = nullptr)
             : NodeBase<Trigger>(id, parent, enabled, num_voices, PulsatorKeys::CLASS_NAME)
               , m_mode(add_socket(PulsatorKeys::MODE, mode))
               , m_trigger(add_socket(PulsatorKeys::TRIGGER, trigger))
@@ -690,7 +666,7 @@ public:
         Voices<Trigger> output = Voices<Trigger>::zeros(num_voices);
 
         bool resized = false;
-        if (auto flushed = update_size(num_voices, *t)) {
+        if (auto flushed = update_size(num_voices)) {
             if (!flushed->is_empty_like()) {
                 // from this point on, size of output may be different from num_voices,
                 //   but this is the only point where resizing should be allowed
@@ -786,7 +762,7 @@ private:
      *         note that the flushed triggers will have the same size as the previous num_voices, hence
      *         merge_uneven(.., true) is required
      */
-    std::optional<Voices<Trigger>> update_size(std::size_t num_voices, const TimePoint& t) {
+    std::optional<Voices<Trigger>> update_size(std::size_t num_voices) {
         if (num_voices != m_pulsators.size()) {
 //            auto initial_size = m_pulsators.size();
             auto flushed = m_pulsators.resize(num_voices);
@@ -806,12 +782,12 @@ private:
 
     void update_parameters(std::size_t num_voices, bool size_has_changed) {
         if (size_has_changed || m_mode.has_changed()) {
-            auto mode = m_offset.process().first_or(PulsatorExp::DEFAULT_MODE);
-            m_pulsators.set(&PulsatorExp::set_mode, mode);
+            auto mode = m_offset.process().first_or(Pulsator::DEFAULT_MODE);
+            m_pulsators.set(&Pulsator::set_mode, mode);
         }
 
         auto triggers = m_trigger.process().adapted_to(num_voices);
-        m_pulsators.set(&PulsatorExp::set_triggers, std::move(triggers.vec_mut()));
+        m_pulsators.set(&Pulsator::set_triggers, std::move(triggers.vec_mut()));
 
         if (size_has_changed || m_duration.has_changed() || m_duration_type.has_changed()) {
             auto duration = m_duration.process().adapted_to(num_voices).firsts_or(PulsatorParameters::DEFAULT_DURATION);
@@ -822,7 +798,7 @@ private:
                 durations.append(DomainDuration(d, duration_type));
             }
 
-            m_pulsators.set(&PulsatorExp::set_duration, std::move(durations));
+            m_pulsators.set(&Pulsator::set_duration, std::move(durations));
         }
 
         if (size_has_changed || m_offset.has_changed() || m_offset_type.has_changed()) {
@@ -834,19 +810,19 @@ private:
                 offsets.append(DomainDuration(o, offset_type));
             }
 
-            m_pulsators.set(&PulsatorExp::set_offset, std::move(offsets));
+            m_pulsators.set(&Pulsator::set_offset, std::move(offsets));
         }
 
         if (size_has_changed || m_legato_amount.has_changed()) {
             auto legato = m_legato_amount.process()
                     .adapted_to(num_voices)
                     .firsts_or(PulsatorParameters::DEFAULT_LEGATO_AMOUNT);
-            m_pulsators.set(&PulsatorExp::set_legato_amount, std::move(legato));
+            m_pulsators.set(&Pulsator::set_legato_amount, std::move(legato));
         }
 
         if (size_has_changed || m_sample_and_hold.has_changed()) {
             auto sample_and_hold = m_sample_and_hold.process().first_or(PulsatorParameters::DEFAULT_SNH);
-            m_pulsators.set(&PulsatorExp::set_sample_and_hold, sample_and_hold);
+            m_pulsators.set(&Pulsator::set_sample_and_hold, sample_and_hold);
         }
     }
 
@@ -863,7 +839,7 @@ private:
     }
 
 
-    MultiVoiced<PulsatorExp, Trigger> m_pulsators;
+    MultiVoiced<Pulsator, Trigger> m_pulsators;
 
     Voices<Trigger> m_current_value = Voices<Trigger>::empty_like();
 //    bool m_previous_enable_state = false;
@@ -885,7 +861,41 @@ private:
 
 // ==============================================================================================
 
+template<typename FloatType = float>
+struct PulsatorWrapper {
+    using Keys = PulsatorNode::PulsatorKeys;
+
+    ParameterHandler parameter_handler;
+
+    Variable<Facet, PulsatorMode> mode{Keys::MODE, parameter_handler, Pulsator::DEFAULT_MODE};
+    Sequence<Trigger> trigger{ParameterKeys::TRIGGER, parameter_handler, Voices<Trigger>::empty_like()};
+    Sequence<Facet, FloatType> duration{Keys::DURATION, parameter_handler
+                                        , Voices<FloatType>::singular(PulsatorParameters::DEFAULT_DURATION)};
+    Variable<Facet, DomainType> duration_type{Keys::DURATION_TYPE, parameter_handler
+                                              , PulsatorParameters::DEFAULT_DURATION_TYPE};
+    Sequence<Facet, FloatType> offset{Keys::OFFSET, parameter_handler
+                                      , Voices<FloatType>::singular(PulsatorParameters::DEFAULT_OFFSET)};
+    Variable<Facet, DomainType> offset_type{Keys::OFFSET_TYPE, parameter_handler
+                                            , PulsatorParameters::DEFAULT_OFFSET_TYPE};
+    Sequence<Facet, FloatType> legato_amount{Keys::LEGATO_AMOUNT, parameter_handler
+                                             , Voices<FloatType>::singular(PulsatorParameters::DEFAULT_LEGATO_AMOUNT)};
+    Sequence<Facet, bool> sample_and_hold{Keys::SAMPLE_AND_HOLD, parameter_handler
+                                          , Voices<bool>::singular(PulsatorParameters::DEFAULT_SNH)};
+    Sequence<Facet, bool> enabled{ParameterKeys::ENABLED, parameter_handler, Voices<bool>::singular(true)};
+    Variable<Facet, std::size_t> num_voices{ParameterKeys::NUM_VOICES, parameter_handler, 0};
+
+    PulsatorNode pulsator_node{Keys::CLASS_NAME
+                               , parameter_handler, &mode
+                               , &trigger
+                               , &duration
+                               , &duration_type
+                               , &offset
+                               , &offset_type
+                               , &legato_amount
+                               , &sample_and_hold
+                               , &enabled
+                               , &num_voices};
+};
 
 
-
-#endif //SERIALISTLOOPER__EXP_PULSATOR_EXPERIMENT_H
+#endif //SERIALISTLOOPER_PULSATOR_H

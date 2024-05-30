@@ -4,18 +4,6 @@
 
 #include "time_point.h"
 
-//class FreePeriodic {
-//public:
-//    FreePeriodic() = delete;
-//
-//    static DomainTimePoint next(const TimePoint& current_time
-//    , const DomainDuration& period
-//    , bool is_first_value
-//    , )
-//};
-
-
-// ==============================================================================================
 
 class TransportLocked {
 public:
@@ -76,6 +64,7 @@ public:
         return next(last_trigger_time, period, offset, current_time.get_meter(), true, epsilon);
     }
 
+
     /** @throws TimeDomainError if target is not compatible with period */
     static DomainTimePoint adjusted(const DomainTimePoint& target
                                     , const TimePoint& current_time
@@ -95,13 +84,6 @@ public:
         }
     }
 
-//    static DomainTimePoint readjusted(const DomainTimePoint& target
-//                                      , const DomainTimePoint& previous
-//                                      , const TimePoint& current_time
-//                                      , const DomainDuration& period
-//                                      , const DomainDuration& offset
-//                                      , std::optional<DomainDuration>& minimum_duration) {
-//    }
 
     static double phase_of(const TimePoint& t, const DomainDuration& period, const DomainDuration& offset) {
         auto type = period.get_type();
@@ -109,6 +91,7 @@ public:
         auto o = offset.as_type(type, t.get_meter()).get_value();
         return compute_phase(t.get(type), p, o);
     }
+
 
     /** @throws TimeDomainError if t is not compatible with period */
     static double phase_of(const DomainTimePoint& dtp
@@ -124,6 +107,7 @@ public:
         auto o = offset.as_type(type, current_meter).get_value();
         return compute_phase(dtp.get_value(), p, o);
     }
+
 
 private:
     static double compute_next(double current_time

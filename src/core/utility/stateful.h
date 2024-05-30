@@ -14,7 +14,7 @@ template<typename T>
 class WithChangeFlag {
 public:
     template<typename E = T, typename = std::enable_if_t<std::is_default_constructible_v<E>>>
-    WithChangeFlag() = default;
+    WithChangeFlag() {}
 
     WithChangeFlag(const T& value) : m_value(value) {} // NOLINT(*-explicit-constructor)
 

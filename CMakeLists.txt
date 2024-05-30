@@ -29,9 +29,7 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/parameter_policy.h
         src/core/algo/temporal/phase_accumulator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/auto_pulsator.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/_EXP_pulsator_experiment.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/triggered_pulsator.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/variable_state_pulsator.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/pulsator.h
         src/core/collections/scheduler.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/temporal/transport.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/temporal/time_point_generators.h
@@ -55,7 +53,6 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/random_pulsator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/weighted_random.h
         src/core/generatives/stereotypes/base_stereotypes.h
-        src/core/generatives/stereotypes/pulsator_stereotypes.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/partial_note.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/allocator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/vec.h
@@ -68,9 +65,7 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/collections/range.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/temporal/trigger.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/traits.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/temporal/OLD_time_event_gate.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/temporal/pulse.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/temporal/OLD_time_point_generators.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/algo/temporal/equal_duration_sampling.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/math.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utility/optionals.h
@@ -431,10 +426,7 @@ add_executable(tests EXCLUDE_FROM_ALL
         test/backend/generatives/interpolator_tests.cpp
         test/backend/algo/facet_tests.cpp
         test/backend/generatives/selector_tests.cpp
-        test/backend/generatives/auto_pulsator_tests.cpp
         test/backend/generatives/pulsator_tests.cpp
-        test/backend/generatives/triggered_pulsator_tests.cpp
-        test/backend/generatives/variable_state_pulsator_tests.cpp
         test/backend/generatives/make_note_tests.cpp
         test/backend/utility/math_tests.cpp
 )

@@ -8,6 +8,7 @@
 #include "core/exceptions.h"
 #include <cmath>
 #include <chrono>
+#include <string>
 
 enum class DomainType {
     ticks, beats, bars
@@ -114,6 +115,10 @@ public:
 
     bool operator>=(const TimePoint& other) const {
         return m_tick >= other.m_tick;
+    }
+
+    explicit operator std::string() const {
+        return to_string();
     }
 
 

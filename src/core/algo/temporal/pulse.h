@@ -4,9 +4,9 @@
 
 #include <optional>
 #include "core/algo/temporal/trigger.h"
+#include "core/algo/temporal/time_point.h"
 #include "core/collections/vec.h"
 #include "core/collections/held.h"
-#include "OLD_time_point_generators.h"
 #include "core/exceptions.h"
 
 class Pulse {
@@ -176,7 +176,15 @@ public:
 
 
     const Pulse* last_of_type(DomainType type) const {
-        // TODO
+        const Pulse* output = nullptr;
+        for (const auto& p: m_pulses) {
+            if (p.get_trigger_time().get_type() == type && p.has_pulse_off()) {
+                if (!output || output->get_pulse_off_time()->get_value() < p.get_pulse_off_time()->get_value()) {
+                    output = &p;
+                }
+            }
+        }
+        return output;
     }
 
 

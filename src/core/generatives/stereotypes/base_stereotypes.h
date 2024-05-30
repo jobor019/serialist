@@ -134,9 +134,12 @@ public:
 protected:
     std::optional<TimePoint> pop_time() { return m_time_gate.pop_time(); }
 
+    bool is_enabled() {
+        return m_enabled.process().first_or(true);
+    }
 
     bool is_enabled(const TimePoint& t) {
-        return t.get_transport_running() && m_enabled.process().first_or(true);
+        return t.get_transport_running() && is_enabled();
     }
 
 
