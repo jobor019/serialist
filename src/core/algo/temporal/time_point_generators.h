@@ -15,53 +15,72 @@ public:
                                 , const DomainDuration& period
                                 , const DomainDuration& offset
                                 , bool is_first_value
+                                , bool enforce_period_as_minimum_duration = false
                                 , double epsilon = EPSILON) {
         auto type = period.get_type();
         auto t = current_time.get(type);
         auto p = period.get_value();
         auto o = offset.as_type(type, current_time.get_meter()).get_value();
 
-        return {compute_next(t, p, o, is_first_value, epsilon), type};
+        if (enforce_period_as_minimum_duration) {
+            return {compute_next(t + p, p, o, true, epsilon), type};
+        } else {
+            return {compute_next(t, p, o, is_first_value, epsilon), type};
+        }
+
     }
 
-    /** @throws TimeDomainError if last_trigger_time is not compatible with period */
-    static DomainTimePoint next(const DomainTimePoint& last_trigger_time
+
+    /** @throws TimeDomainError if current_time is not compatible with period */
+    static DomainTimePoint next(const DomainTimePoint& current_time
                                 , const DomainDuration& period
                                 , const DomainDuration& offset
                                 , const Meter& current_meter
                                 , bool is_first_value = false
+                                , bool enforce_period_as_minimum_duration = false
                                 , double epsilon = EPSILON) {
-        if (!period.supports(last_trigger_time)) {
+        if (!period.supports(current_time)) {
             throw TimeDomainError("DomainTypes are incompatible");
         }
         auto type = period.get_type();
-        auto t = last_trigger_time.get_value();
+        auto t = current_time.get_value();
         auto p = period.get_value();
         auto o = offset.as_type(type, current_meter).get_value();
 
-        return {compute_next(t, p, o, is_first_value, epsilon), type};
+        if (enforce_period_as_minimum_duration) {
+            return {compute_next(t + p, p, o, true, epsilon), type};
+        } else {
+            return {compute_next(t, p, o, is_first_value, epsilon), type};
+        }
     }
 
 
-    /**
-     * @brief returns the next DomainTimePoint on the grid after last_trigger_time if it's greater than current_time,
-     *        otherwise returns the next DomainTimePoint on the grid equal to or greater than current_time
-     */
-    static DomainTimePoint next_from_either(const DomainTimePoint& last_trigger_time
+    /** @throws TimeDomainError if t1 is not compatible with period */
+    static DomainTimePoint next_from_either(const DomainTimePoint& t1
                                             , const TimePoint& current_time
                                             , const DomainDuration& period
                                             , const DomainDuration& offset
                                             , bool is_first_value = false
+                                            , bool enforce_period_as_minimum_duration = false
                                             , double epsilon = EPSILON) {
-        if (period.supports(last_trigger_time)) {
-            auto next_trigger = next(last_trigger_time, period, offset, current_time.get_meter(), is_first_value
-                                     , epsilon);
-            if (!next_trigger.elapsed(current_time)) {
-                return next_trigger;
-            }
+        if (!period.supports(t1)) {
+            throw TimeDomainError("DomainTypes are incompatible");
         }
 
-        return next(last_trigger_time, period, offset, current_time.get_meter(), true, epsilon);
+        auto next_trigger = next(t1, period, offset, current_time.get_meter()
+                                 , is_first_value, enforce_period_as_minimum_duration, epsilon);
+
+        if (!next_trigger.elapsed(current_time)) {
+            // next trigger is in the future: return it
+            return next_trigger;
+        } else if (next_trigger - epsilon <= current_time) {
+            // next trigger is less than or equal to epsilon in the past:
+            // return the next value on the grid after current_time using is_first_value
+            return next(current_time, period, offset, is_first_value, false, epsilon);
+        }
+
+        // next trigger is more than epsilon in the past: return the next value on the grid (using is_first_value=true)
+        return next(current_time, period, offset, true, false, epsilon);
     }
 
 
@@ -69,7 +88,8 @@ public:
     static DomainTimePoint adjusted(const DomainTimePoint& target
                                     , const TimePoint& current_time
                                     , const DomainDuration& period
-                                    , const DomainDuration& offset) {
+                                    , const DomainDuration& offset
+                                    , double epsilon = EPSILON) {
         if (!period.supports(target)) {
             throw TimeDomainError("DomainTypes are incompatible");
         }
@@ -78,7 +98,7 @@ public:
         DomainTimePoint adjusted_target = target + period * std::round(phase);
 
         if (adjusted_target < current_time) {
-            return next(current_time, period, offset, true);
+            return next(current_time, period, offset, true, false, epsilon);
         } else {
             return adjusted_target;
         }
@@ -110,6 +130,18 @@ public:
 
 
 private:
+
+    /**
+     * Finds the next point in time on the grid specified by period and offset
+     *
+     * @param current_time   the point in time to start from
+     * @param period         the period of the grid
+     * @param offset         the offset of the grid
+     * @param is_first_value if true, will return current_time if current_time is on the grid ± epsilon
+     *                       (may in other words return values slightly before or after current_time)
+     * @param epsilon        the tolerance for the algorithm. It will not return a value that is less than epsilon
+     *                       ahead of current_time unless is_first_value is true
+     */
     static double compute_next(double current_time
                                , double period
                                , double offset
@@ -118,10 +150,16 @@ private:
         auto rem = utils::modulo(current_time - offset, period);
 
         if (is_first_value && utils::equals(rem, 0.0, epsilon)) {
+            // current time is slightly ahead of the grid but first_value is true:
+            // return the point in time right before current_time that is on the grid
             return current_time - rem;
-        } else if (period - rem < epsilon) {
+        } else if (!is_first_value && period - rem < epsilon) {
+            // current time is less than epsilon before the next point on the grid:
+            // return the point after the next on the grid
             return current_time - rem + 2 * period;
         } else {
+            // current time is either greater than or equal to epsilon before the next point on the grid,
+            // or less than but is_first_value is true: return the next point on the grid
             return current_time - rem + period;
         }
     }

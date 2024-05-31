@@ -13,24 +13,26 @@
 #include <map>
 
 enum class PulsatorMode {
-    free_periodic
-    , transport_locked
+    transport_locked
+    , free_periodic
     , free_triggered
     , thru
 };
 
 struct PulsatorParameters {
-    static constexpr inline double DEFAULT_DURATION = 1.0;
+    static constexpr double DEFAULT_DURATION = 1.0;
     static const inline DomainType DEFAULT_DURATION_TYPE = DomainType::ticks;
-    static constexpr inline double DEFAULT_OFFSET = 0.0;
+    static constexpr double DEFAULT_OFFSET = 0.0;
     static const inline DomainType DEFAULT_OFFSET_TYPE = DomainType::ticks;
-    static constexpr inline double DEFAULT_LEGATO_AMOUNT = 1.0;
+    static constexpr double DEFAULT_LEGATO_AMOUNT = 1.0;
     static const inline bool DEFAULT_SNH = false;
 
 
     WithChangeFlag<DomainDuration> duration{DomainDuration{DEFAULT_DURATION, DEFAULT_DURATION_TYPE}};
     WithChangeFlag<DomainDuration> offset{DomainDuration{DEFAULT_OFFSET, DEFAULT_OFFSET_TYPE}};
     WithChangeFlag<double> legato_amount{DEFAULT_LEGATO_AMOUNT};
+
+    WithChangeFlag<DomainType> type{DEFAULT_DURATION_TYPE};
 
     bool sample_and_hold = DEFAULT_SNH;
     Voice<Trigger> triggers;
@@ -39,6 +41,7 @@ struct PulsatorParameters {
         p.duration.clear_flag();
         p.offset.clear_flag();
         p.legato_amount.clear_flag();
+        p.type.clear_flag();
     }
 };
 
@@ -134,7 +137,7 @@ public:
 
 
     static DomainTimePoint as_dtp(const TimePoint& time, const PulsatorParameters& p) {
-        return DomainTimePoint::from_time_point(time, p.duration->get_type());
+        return DomainTimePoint::from_time_point(time, *p.type);
     }
 
 
@@ -145,7 +148,7 @@ public:
     }
 
     static Voice<Trigger> drain_non_matching(PulsatorState& s, const PulsatorParameters& p) {
-        return s.pulses.drain_non_matching_as_triggers(p.duration->get_type());
+        return s.pulses.drain_non_matching_as_triggers(*p.type);
     }
 
 
@@ -160,11 +163,11 @@ public:
     }
 
     static void assert_domain_type_correctness(PulsatorState& s, const PulsatorParameters& p) {
-        assert(!s.current_trigger_time || s.current_trigger_time->get_type() == p.duration->get_type());
-        assert(!s.next_trigger_time || s.next_trigger_time->get_type() == p.duration->get_type());
+        assert(!s.current_trigger_time || s.current_trigger_time->get_type() == *p.type);
+        assert(!s.next_trigger_time || s.next_trigger_time->get_type() == *p.type);
         assert(s.pulses.vec().all([](const Pulse& pulse) { return pulse.has_pulse_off(); }));
         assert(s.pulses.vec().all([&p](const Pulse& pulse) {
-            return pulse.get_type() == p.duration->get_type();
+            return pulse.get_type() == *p.type;
         }));
     }
 };
@@ -222,7 +225,7 @@ public:
     Voice<Trigger> process(const TimePoint& t, PulsatorState& s, const PulsatorParameters& p) const override {
         Voice<Trigger> output;
 
-        if (!p.sample_and_hold && (p.duration.changed() || p.legato_amount.changed())) {
+        if (p.type.changed() || (!p.sample_and_hold && (p.duration.changed() || p.legato_amount.changed()))) {
             output.extend(reschedule(s, p));
         }
 
@@ -280,7 +283,7 @@ public:
 
     Voice<Trigger> activate(const TimePoint& t, PulsatorState& s, const PulsatorParameters& p) const override {
         Voice<Trigger> output = drain_endless_and_non_matching(s, p);
-        clear_scheduled_non_matching(s, p.duration->get_type());
+        clear_scheduled_non_matching(s, *p.type);
 
         // From this point, s.pulses, s.next_trigger_time and s.current_trigger_time will
         // either be empty/nullopt or same type as duration
@@ -290,7 +293,7 @@ public:
             s.next_trigger_time = next_or_now(*s.current_trigger_time, t, p);
 
         } else if (!s.next_trigger_time.has_value() && !s.pulses.empty()) {
-            if (auto last_pulse_end = s.pulses.last_of_type(p.duration->get_type())) {
+            if (auto last_pulse_end = s.pulses.last_of_type(*p.type)) {
                 // no next trigger scheduled but ongoing pulses of the correct type exist in s.pulses
                 s.next_trigger_time = last_pulse_end->get_pulse_off_time();
                 s.current_trigger_time = last_pulse_end->get_trigger_time();
@@ -313,7 +316,7 @@ public:
     Voice<Trigger> process(const TimePoint& t, PulsatorState& s, const PulsatorParameters& p) const override {
         Voice<Trigger> output;
 
-        if (!p.sample_and_hold && (p.duration.changed() || p.legato_amount.changed())) {
+        if (p.type.changed() || (!p.sample_and_hold && (p.duration.changed() || p.legato_amount.changed()))) {
             output.extend(reschedule(t, s, p));
         }
 
@@ -350,7 +353,9 @@ private:
     }
 
 
-    static Trigger schedule_new(const DomainTimePoint& dtp, PulsatorState& s, const PulsatorParameters& p) {
+    // Note: dtp is not a const reference here as we may pass s.next_trigger_time, in which case dtp will have the
+    //       wrong value after updating s.current_trigger_time
+    static Trigger schedule_new(DomainTimePoint dtp, PulsatorState& s, const PulsatorParameters& p) {
         auto off = dtp + duration(p);
         s.next_trigger_time = dtp + *p.duration;
         s.current_trigger_time = dtp;
@@ -365,9 +370,9 @@ private:
         s.pulses.try_set_durations(duration(p));
 
         if (s.current_trigger_time.has_value()) { // => invariant: s.next_trigger_time.has_value()
-            if (s.current_trigger_time->get_type() != p.duration->get_type()) {
+            if (s.current_trigger_time->get_type() != *p.type) {
                 // Duration type changed: adjust to new type and flush non-matching
-                s.current_trigger_time = s.current_trigger_time->as_type(p.duration->get_type(), t);
+                s.current_trigger_time = s.current_trigger_time->as_type(*p.type, t);
                 output.extend(drain_non_matching(s, p));
             }
 
@@ -392,7 +397,7 @@ class TransportLockedGenerator : public PulsatorStrategy {
 public:
     Voice<Trigger> activate(const TimePoint& t, PulsatorState& s, const PulsatorParameters& p) const override {
         auto output = drain_endless_and_non_matching(s, p);
-        clear_scheduled_non_matching(s, p.duration->get_type());
+        clear_scheduled_non_matching(s, *p.type);
 
         // From this point, s.pulses, s.next_trigger_time and s.current_trigger_time will
         // either be empty/nullopt or same type as duration
@@ -403,14 +408,15 @@ public:
 
         } else if (s.current_trigger_time && !s.next_trigger_time) {
             // no trigger scheduled but ongoing pulse exists
-            s.next_trigger_time = TransportLocked::next_from_either(*s.current_trigger_time, t, *p.duration, *p.offset);
+            s.next_trigger_time = TransportLocked::next_from_either(*s.current_trigger_time, t
+                                                                    , *p.duration, *p.offset, false, true);
 
         } else if (!s.next_trigger_time.has_value() && !s.pulses.empty()) {
-            if (auto last_pulse_end = s.pulses.last_of_type(p.duration->get_type())) {
+            if (auto last_pulse_end = s.pulses.last_of_type(*p.type)) {
                 if (last_pulse_end->has_pulse_off()) {
                     // no trigger scheduled but ongoing pulses of the correct type exist in s.pulses
                     s.next_trigger_time = TransportLocked::next_from_either(*last_pulse_end->get_pulse_off_time(), t
-                                                                            , *p.duration, *p.offset);
+                                                                            , *p.duration, *p.offset, true);
                 }
             }
         }
@@ -429,7 +435,8 @@ public:
     Voice<Trigger> process(const TimePoint& t, PulsatorState& s, const PulsatorParameters& p) const override {
         Voice<Trigger> output;
 
-        if (!p.sample_and_hold && (p.duration.changed() || p.legato_amount.changed() || p.offset.changed())) {
+        if (p.type.changed() || (!p.sample_and_hold &&
+                                 (p.duration.changed() || p.legato_amount.changed() || p.offset.changed()))) {
             output.extend(reschedule_pulse_offs(t, s, p));
             reschedule_next_trigger(t, s, p);
         } else if (!p.sample_and_hold && p.legato_amount.changed()) {
@@ -458,25 +465,20 @@ public:
     }
 
 private:
-    /** @throws TimeDomainError if dtp is not compatible with p.duration */
-    static DomainTimePoint next(const DomainTimePoint& dtp
-                                , const TimePoint& t
-                                , const PulsatorParameters& p) {
-        return TransportLocked::next(dtp, *p.duration, *p.offset, t.get_meter(), false);
-    }
-
     static void schedule_first_trigger(const TimePoint& t, PulsatorState& s, const PulsatorParameters& p) {
         s.current_trigger_time = as_dtp(t, p);
         s.next_trigger_time = TransportLocked::next(t, *p.duration, *p.offset, true);
     }
 
 
-    static Trigger schedule_new(const DomainTimePoint& dtp
+    // Note: dtp is not a const reference here as we may pass s.next_trigger_time, in which case dtp will have the
+    //       wrong value after updating s.current_trigger_time
+    static Trigger schedule_new(DomainTimePoint dtp
                                 , const TimePoint& t
                                 , PulsatorState& s
                                 , const PulsatorParameters& p) {
         s.current_trigger_time = s.next_trigger_time.value_or(as_dtp(t, p));
-        s.next_trigger_time = next(dtp, t, p);
+        s.next_trigger_time = TransportLocked::next(dtp, *p.duration, *p.offset, t.get_meter(), false);
         auto dur = *s.next_trigger_time - *s.current_trigger_time;
         auto off = *s.current_trigger_time + dur * *p.legato_amount;
         return s.pulses.new_pulse(*s.current_trigger_time, off);
@@ -484,11 +486,12 @@ private:
 
 
     static void reschedule_next_trigger(const TimePoint& t, PulsatorState& s, const PulsatorParameters& p) {
-        if (s.current_trigger_time) { // => Invariant: s.next_trigger_time.has_value()
+        if (s.current_trigger_time) { // <=> Invariant: s.next_trigger_time.has_value()
             if (!p.duration->supports(*s.current_trigger_time)) {
-                s.current_trigger_time = s.current_trigger_time->as_type(p.duration->get_type(), t);
+                s.current_trigger_time = s.current_trigger_time->as_type(*p.type, t);
             }
-            s.next_trigger_time = TransportLocked::next_from_either(*s.current_trigger_time, t, *p.duration, *p.offset);
+            s.next_trigger_time = TransportLocked::next_from_either(*s.current_trigger_time, t, *p.duration
+                                                                    , *p.offset, false, true);
 
         }
         // if neither current_trigger_time nor next_trigger_time are defined (first call / time skip), there's nothing to reschedule
@@ -499,8 +502,9 @@ private:
 
         for (auto& pulse: s.pulses.vec_mut()) {
             auto on = pulse.get_trigger_time();
-            auto off = next(on, t, p);
-            pulse.try_set_duration((on - off) * *p.legato_amount);
+            // The first domain timepoint on grid with a duration greater than or equal to the intended duration
+            auto off = TransportLocked::next(on, *p.duration, *p.offset, t.get_meter(), false, true);
+            pulse.try_set_duration((off - on) * *p.legato_amount);
         }
 
         return output;
@@ -572,7 +576,12 @@ public:
         return active_strategy().on_time_skip(new_time, m_state, m_params);
     }
 
-    void set_duration(const DomainDuration& duration) { m_params.duration = duration; }
+    void set_duration(const DomainDuration& duration) {
+        if (m_params.duration->get_type() != duration.get_type()) {
+            m_params.type = duration.get_type();
+        }
+        m_params.duration = duration;
+    }
 
     void set_offset(const DomainDuration& offset) { m_params.offset = offset; }
 
@@ -604,7 +613,7 @@ private:
 
     PulsatorParameters m_params;
     PulsatorState m_state;
-    WithChangeFlag<PulsatorMode> m_mode = DEFAULT_MODE;
+    WithChangeFlag<PulsatorMode> m_mode{DEFAULT_MODE};
 
 
 };
@@ -782,7 +791,7 @@ private:
 
     void update_parameters(std::size_t num_voices, bool size_has_changed) {
         if (size_has_changed || m_mode.has_changed()) {
-            auto mode = m_offset.process().first_or(Pulsator::DEFAULT_MODE);
+            auto mode = m_mode.process().first_or(Pulsator::DEFAULT_MODE);
             m_pulsators.set(&Pulsator::set_mode, mode);
         }
 
@@ -885,7 +894,8 @@ struct PulsatorWrapper {
     Variable<Facet, std::size_t> num_voices{ParameterKeys::NUM_VOICES, parameter_handler, 0};
 
     PulsatorNode pulsator_node{Keys::CLASS_NAME
-                               , parameter_handler, &mode
+                               , parameter_handler
+                               , &mode
                                , &trigger
                                , &duration
                                , &duration_type

@@ -4,19 +4,23 @@
 
 #include <type_traits>
 #include "traits.h"
-#include "math.h"
 
 /**
  * @brief Wrapper class that tracks if the value has changed.
-
  */
 template<typename T>
 class WithChangeFlag {
 public:
-    template<typename E = T, typename = std::enable_if_t<std::is_default_constructible_v<E>>>
-    WithChangeFlag() {}
+    WithChangeFlag() {
+        static_assert(std::is_default_constructible_v<T>);
+    }
 
-    WithChangeFlag(const T& value) : m_value(value) {} // NOLINT(*-explicit-constructor)
+    explicit WithChangeFlag(const T& value) : m_value(value) {}
+
+    WithChangeFlag& operator=(const T& value) {
+        set(value);
+        return *this;
+    }
 
     T* operator->() { return &m_value; }
 
@@ -25,6 +29,8 @@ public:
     T& operator*() { return m_value; }
 
     const T& operator*() const { return m_value; }
+
+
 
     const T& get() const { return m_value; }
 

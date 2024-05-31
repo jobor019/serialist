@@ -211,6 +211,14 @@ public:
     friend bool operator>(const TimePoint& t, const DomainTimePoint& other) { return other < t; }
     friend bool operator>=(const TimePoint& t, const DomainTimePoint& other) { return other <= t; }
 
+    DomainTimePoint operator+(double other) const { return {m_value + other, m_type}; }
+    DomainTimePoint operator-(double other) const { return {m_value - other, m_type}; }
+    DomainTimePoint operator*(double other) const { return {m_value * other, m_type}; }
+
+    DomainTimePoint& operator+=(double other) { m_value += other; return *this; }
+    DomainTimePoint& operator-=(double other) { m_value -= other; return *this; }
+
+
     // TODO: Not sure if this will be needed. If so, should be out of line
 //    DomainDuration operator-(const TimePoint& other) const;
 //    DomainDuration operator-(const DomainDuration& other) const;
@@ -259,7 +267,7 @@ public:
         if (!supports(other))
             throw TimeDomainError("DomainTypes are incompatible");
 
-        return {m_value + other.get_value(), m_type};
+        return DomainTimePoint{m_value + other.get_value(), m_type};
     }
 
     friend DomainTimePoint operator+(const TimePoint& lhs, const DomainDuration& rhs) {

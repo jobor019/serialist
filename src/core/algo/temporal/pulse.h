@@ -128,7 +128,7 @@ public:
 
     Voice<Pulse> drain_by_id(std::size_t id) {
         return m_pulses.filter_drain([id](const Pulse& p) {
-            return p.get_id() == id;
+            return p.get_id() != id; // remove all elements for which the id matches
         });
     }
 
@@ -147,8 +147,8 @@ public:
     }
 
     Voice<Pulse> drain_non_matching(DomainType type) {
-        return m_pulses.filter_drain([type](const Pulse& p) {
-            return p.get_trigger_time().get_type() != type;
+        return m_pulses.filter_drain([&type](const Pulse& p) {
+            return p.get_trigger_time().get_type() == type; // remove all elements for which the type does not match
         });
     }
 
