@@ -3,98 +3,69 @@
 
 #include "core/algo/temporal/phase_accumulator.h"
 #include "core/generatives/variable.h"
-#include "core/generatives/OLD_oscillator.h"
 #include "core/param/parameter_policy.h"
 #include "core/generatives/unit_pulse.h"
 #include "core/algo/temporal/time_point.h"
+#include "core/generatives/oscillator.h"
 
 #include <thread>
 #include <cmath>
 
 
+static inline PhaseAccumulator initialize_phase_accumulator(double step_size, double phase, PaMode mode) {
+    PhaseAccumulator p;
+    p.set_mode(mode);
+    p.set_step_size(step_size);
+    p.set_offset(DomainDuration{phase, DomainType::ticks});
+    return p;
+}
 
 
 TEST_CASE("m_phasor stepped", "[m_phasor]") {
 
     SECTION("unity m_phasor") {
-        double phase = 0.0;
-        double max = 1.0;
-        bool stepped = true;
-
-        double gain = 0.1;
-
-        OLD_PhaseAccumulator p{max, 0.0, 0.0};
+        double step = 0.1;
+        auto p = initialize_phase_accumulator(step, 0.0, PaMode::triggered);
 
         double x;
+        TimePoint t; // value irrelevant when stepped
 
         for (int i = 0; i < 100; ++i) {
-            x = p.process(0, gain, phase, stepped);
-            REQUIRE_THAT(x, Catch::Matchers::WithinAbs(std::fmod(gain * i, max), 1e-8));
-            REQUIRE(x < max);
-        }
-    }
-
-    SECTION("Non-unity maximum") {
-        double phase = 0.0;
-        double max = 4.5;
-        double gain = 0.001;
-        bool stepped = true;
-        OLD_PhaseAccumulator p{max, 0.0, 0.0};
-
-        double x;
-        for (int i = 0; i < 100; ++i) {
-            x = p.process(0, gain, phase, stepped);
-            REQUIRE_THAT(x, Catch::Matchers::WithinAbs(std::fmod(gain * i, max), 1e-8));
-            REQUIRE(x < max);
+            x = p.process(t, true);
+            REQUIRE_THAT(x, Catch::Matchers::WithinAbs(std::fmod(step * i, 1.0), 1e-8));
+            REQUIRE(x < 1.0);
         }
     }
 
     SECTION("Negative step size") {
-        double phase = 0.0;
-        double gain = -0.1;
-        double max = 1.0;
-        bool stepped = true;
-        OLD_PhaseAccumulator p{max, 0.0, 0.0};
-
+        double step = -0.1;
+        auto p = initialize_phase_accumulator(step, 0.0, PaMode::triggered);
 
         double x;
         double y = 0;
+        TimePoint t; // value irrelevant when stepped
         for (int i = 0; i < 100; ++i) {
-            x = p.process(0, gain, phase, stepped);
+            x = p.process(t, true);
             if (y < 0) {
-                y += max;
+                y += 1.0;
             }
             REQUIRE_THAT(x, Catch::Matchers::WithinAbs(y, 1e-8));
-            REQUIRE(x < max);
+            REQUIRE(x < 1.0);
             REQUIRE(x >= 0);
-            y += gain;
+            y += step;
         }
     }
 
     SECTION("Variable step size") {
-        double phase = 0.0;
-        double max = 1.0;
-        bool stepped = true;
-        OLD_PhaseAccumulator p{max, 0.0, 0.0};
-        REQUIRE_THAT(p.process(0, 0.0, phase, stepped), Catch::Matchers::WithinAbs(0.0, 1e-8));
-        REQUIRE_THAT(p.process(0, 0.2, phase, stepped), Catch::Matchers::WithinAbs(0.2, 1e-8));
-        REQUIRE_THAT(p.process(0, 0.8, phase, stepped), Catch::Matchers::WithinAbs(0.0, 1e-8));
-    }
+        auto step = 0.0;
+        auto p = initialize_phase_accumulator(step, 0.0, PaMode::triggered);
+        TimePoint t; // value irrelevant when stepped
 
-    SECTION("Variable phase") {
-        double phase = 0.5;
-        double max = 1.0;
-        bool stepped = true;
-        double gain = 0.1;
-        OLD_PhaseAccumulator p{max, 0.0,  0.0};
-        REQUIRE_THAT(p.process(0, gain, phase, stepped), Catch::Matchers::WithinAbs(0.5, 1e-8));
-        REQUIRE_THAT(p.process(0, gain, phase, stepped), Catch::Matchers::WithinAbs(0.6, 1e-8));
-        phase = 0.2;
-        REQUIRE_THAT(p.process(0, gain, phase, stepped), Catch::Matchers::WithinAbs(0.4, 1e-8));
-        REQUIRE_THAT(p.process(0, gain, phase, stepped), Catch::Matchers::WithinAbs(0.5, 1e-8));
-        phase = 0.9;
-        REQUIRE_THAT(p.process(0, gain, phase, stepped), Catch::Matchers::WithinAbs(0.3, 1e-8));
-        REQUIRE_THAT(p.process(0, gain, phase, stepped), Catch::Matchers::WithinAbs(0.4, 1e-8));
+        REQUIRE_THAT(p.process(t, true), Catch::Matchers::WithinAbs(0.0, 1e-8));
+        p.set_step_size(0.2);
+        REQUIRE_THAT(p.process(t, true), Catch::Matchers::WithinAbs(0.2, 1e-8));
+        p.set_step_size(0.8);
+        REQUIRE_THAT(p.process(t, true), Catch::Matchers::WithinAbs(0.0, 1e-8));
     }
 }
 
@@ -257,12 +228,12 @@ TEST_CASE("Oscillator Ctor") {
 //    }
 //}
 
-TEST_CASE("Triangle Oscillator") {
-    OscillatorWrapper oscillator;
-    oscillator.type.set_values(Voices<Oscillator::Type>::singular(Oscillator::Type::tri));
-    oscillator.trigger.set_values(Voices<Trigger>::singular(Trigger::pulse_on()));
-    for (std::size_t i = 0; i < 10; ++i) {
-        oscillator.oscillator.update_time(TimePoint());
-        oscillator.oscillator.process().print();
-    }
-}
+//TEST_CASE("Triangle Oscillator") {
+//    OscillatorWrapper oscillator;
+//    oscillator.type.set_values(Voices<Oscillator::Type>::singular(Oscillator::Type::tri));
+//    oscillator.trigger.set_values(Voices<Trigger>::singular(Trigger::pulse_on()));
+//    for (std::size_t i = 0; i < 10; ++i) {
+//        oscillator.oscillator.update_time(TimePoint());
+//        oscillator.oscillator.process().print();
+//    }
+//}

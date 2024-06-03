@@ -330,17 +330,37 @@ struct OscillatorWrapper {
     Variable<Facet, DomainType> period_type{Keys::PERIOD_TYPE, ph, PaParameters::DEFAULT_PERIOD_TYPE};
     Sequence<Facet, FloatType> offset{Keys::OFFSET, ph, Voices<FloatType>::singular(PaParameters::DEFAULT_OFFSET)};
     Variable<Facet, DomainType> offset_type{Keys::OFFSET_TYPE, ph, PaParameters::DEFAULT_OFFSET_TYPE};
-    Sequence<Facet, FloatType> step_size{Keys::STEP_SIZE, ph
-                                         , Voices<FloatType>::singular(PaParameters::DEFAULT_STEP_SIZE)};
+    Sequence<Facet, FloatType> step_size{
+            Keys::STEP_SIZE
+            , ph
+            , Voices<FloatType>::singular(static_cast<FloatType>(PaParameters::DEFAULT_STEP_SIZE))
+    };
 
     Sequence<Facet, FloatType> duty{Keys::DUTY, ph, Voices<FloatType>::singular(Waveform::DEFAULT_DUTY)};
     Sequence<Facet, FloatType> curve{Keys::CURVE, ph, Voices<FloatType>::singular(Waveform::DEFAULT_CURVE)};
 
     Sequence<Facet, FloatType> tau{Keys::TAU, ph, Voices<FloatType>::singular(FilterSmoo::DEFAULT_TAU)};
-    Sequence<Facet, FloatType> tau_type{Keys::TAU_TYPE, ph, Voices<FloatType>::singular(FilterSmoo::DEFAULT_TAU_TYPE)};
+    Variable<Facet, DomainType> tau_type{Keys::TAU_TYPE, ph, FilterSmoo::DEFAULT_TAU_TYPE};
 
     Sequence<Facet, bool> enabled{ParameterKeys::ENABLED, ph, Voices<bool>::singular(true)};
     Variable<Facet, std::size_t> num_voices{ParameterKeys::NUM_VOICES, ph, 0};
+
+    OscillatorNode oscillator{Keys::CLASS_NAME
+                              , ph
+                              , &trigger
+                              , &mode
+                              , &waveform
+                              , &period
+                              , &period_type
+                              , &offset
+                              , &offset_type
+                              , &step_size
+                              , &duty
+                              , &curve
+                              , &tau
+                              , &tau_type
+                              , &enabled
+                              , &num_voices};
 };
 
 

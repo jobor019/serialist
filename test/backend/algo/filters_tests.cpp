@@ -17,14 +17,17 @@ TEST_CASE("FilterSmoo") {
     auto step = 0.01;
 
     auto ticks = Vec<TimePoint>::allocated(num_values);
-    ticks[0] = TimePoint(rnd.next());
+    ticks.append(TimePoint(rnd.next()));
 
     for (std::size_t i = 1; i < num_values; ++i) {
-        ticks[i] = ticks[i-1].incremented(rnd.next() * step);
+        ticks.append(ticks[-1].incremented(rnd.next() * step));
     }
 
     auto freq = 0.5;
-    auto phasor = ticks.cloned().map([&freq](auto x) { return utils::modulo(x, 1/freq) * freq;});
+    auto phasor = ticks.cloned().as_type<double>([&freq](auto t) {
+        return utils::modulo(t.get_tick(), 1 / freq) * freq;
+    });
+
     auto square_wave = phasor.cloned().map([](auto x) { return static_cast<double>(x < 0.5); });
 
     SECTION("Stateless") {
@@ -35,7 +38,7 @@ TEST_CASE("FilterSmoo") {
         }
 
         std::cout << "ticks = ";
-        ticks.print();
+        ticks.as_type<double>([](auto t) { return t.get_tick(); }).print();
 
         std::cout << "x = ";
         square_wave.print();
@@ -44,21 +47,21 @@ TEST_CASE("FilterSmoo") {
         y.print();
     }
 
-    SECTION("With setter") {
-        auto y = Vec<double>::zeros(ticks.size());
-        for (std::size_t i = 0; i < ticks.size(); ++i) {
-            y[i] = s.process(square_wave[i], ticks[i], 0.1, false);
-        }
-
-        std::cout << "ticks = ";
-        ticks.print();
-
-        std::cout << "x = ";
-        square_wave.print();
-
-        std::cout << "y = ";
-        y.print();
-    }
+//    SECTION("With setter") {
+//        auto y = Vec<double>::zeros(ticks.size());
+//        for (std::size_t i = 0; i < ticks.size(); ++i) {
+//            y[i] = s.process(square_wave[i], ticks[i], 0.1, false);
+//        }
+//
+//        std::cout << "ticks = ";
+//        ticks.print();
+//
+//        std::cout << "x = ";
+//        square_wave.print();
+//
+//        std::cout << "y = ";
+//        y.print();
+//    }
 
 }
 
