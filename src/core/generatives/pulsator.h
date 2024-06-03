@@ -175,7 +175,7 @@ public:
 
 // ==============================================================================================
 
-class Thru : public PulsatorStrategy {
+class ThruPulsation : public PulsatorStrategy {
 public:
 
     Voice<Trigger> activate(const TimePoint&, PulsatorState& s, const PulsatorParameters&) const override {
@@ -186,7 +186,7 @@ public:
 
     Voice<Trigger> process(const TimePoint& t, PulsatorState& s, const PulsatorParameters& p) const override {
 
-        // Note: We do not need to assert domain type correctness here. If duration changes, this may lead to different
+        // Note: We do not need to assert domain type correctness here. If period changes, this may lead to different
         // DomainType pulses in s.pulses. This is not a problem for this strategy, but all other strategies should
         // handle such a state on activate()
 
@@ -213,7 +213,7 @@ public:
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class FreeTriggered : public PulsatorStrategy {
+class FreeTriggeredPulsation : public PulsatorStrategy {
 public:
 
     Voice<Trigger> activate(const TimePoint&, PulsatorState& s, const PulsatorParameters&) const override {
@@ -278,7 +278,7 @@ private:
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class FreePeriodicGenerator : public PulsatorStrategy {
+class FreePeriodicPulsation : public PulsatorStrategy {
 public:
 
     Voice<Trigger> activate(const TimePoint& t, PulsatorState& s, const PulsatorParameters& p) const override {
@@ -286,7 +286,7 @@ public:
         clear_scheduled_non_matching(s, *p.type);
 
         // From this point, s.pulses, s.next_trigger_time and s.current_trigger_time will
-        // either be empty/nullopt or same type as duration
+        // either be empty/nullopt or same type as period
 
         if (s.current_trigger_time && !s.next_trigger_time) {
             // no next trigger scheduled but ongoing pulse exists
@@ -366,7 +366,7 @@ private:
     static Voice<Trigger> reschedule(const TimePoint& t, PulsatorState& s, const PulsatorParameters& p) {
         Voice<Trigger> output;
 
-        // legato OR duration changed
+        // legato OR period changed
         s.pulses.try_set_durations(duration(p));
 
         if (s.current_trigger_time.has_value()) { // => invariant: s.next_trigger_time.has_value()
@@ -393,14 +393,14 @@ private:
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class TransportLockedGenerator : public PulsatorStrategy {
+class TransportLockedPulsation : public PulsatorStrategy {
 public:
     Voice<Trigger> activate(const TimePoint& t, PulsatorState& s, const PulsatorParameters& p) const override {
         auto output = drain_endless_and_non_matching(s, p);
         clear_scheduled_non_matching(s, *p.type);
 
         // From this point, s.pulses, s.next_trigger_time and s.current_trigger_time will
-        // either be empty/nullopt or same type as duration
+        // either be empty/nullopt or same type as period
 
         if (s.next_trigger_time.has_value()) {
             // scheduled trigger exists -- adjust to grid
@@ -502,7 +502,7 @@ private:
 
         for (auto& pulse: s.pulses.vec_mut()) {
             auto on = pulse.get_trigger_time();
-            // The first domain timepoint on grid with a duration greater than or equal to the intended duration
+            // The first domain timepoint on grid with a period greater than or equal to the intended period
             auto off = TransportLocked::next(on, *p.duration, *p.offset, t.get_meter(), false, true);
             pulse.try_set_duration((off - on) * *p.legato_amount);
         }
@@ -602,10 +602,10 @@ private:
 
     static std::map<PulsatorMode, std::unique_ptr<PulsatorStrategy>> make_strategies() {
         std::map<PulsatorMode, std::unique_ptr<PulsatorStrategy>> map;
-        map.insert(std::make_pair(PulsatorMode::transport_locked, std::make_unique<TransportLockedGenerator>()));
-        map.insert(std::make_pair(PulsatorMode::free_periodic, std::make_unique<FreePeriodicGenerator>()));
-        map.insert(std::make_pair(PulsatorMode::free_triggered, std::make_unique<FreeTriggered>()));
-        map.insert(std::make_pair(PulsatorMode::thru, std::make_unique<Thru>()));
+        map.insert(std::make_pair(PulsatorMode::transport_locked, std::make_unique<TransportLockedPulsation>()));
+        map.insert(std::make_pair(PulsatorMode::free_periodic, std::make_unique<FreePeriodicPulsation>()));
+        map.insert(std::make_pair(PulsatorMode::free_triggered, std::make_unique<FreeTriggeredPulsation>()));
+        map.insert(std::make_pair(PulsatorMode::thru, std::make_unique<ThruPulsation>()));
         return map;
     }
 
@@ -630,7 +630,7 @@ public:
 
         static const inline std::string MODE = "mode";
         static const inline std::string TRIGGER = "trigger";
-        static const inline std::string DURATION = "duration";
+        static const inline std::string DURATION = "period";
         static const inline std::string DURATION_TYPE = "duration_type";
         static const inline std::string OFFSET = "offset";
         static const inline std::string OFFSET_TYPE = "offset_type";

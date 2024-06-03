@@ -21,7 +21,6 @@ public:
     }
 
 
-
     template<typename T>
     T next(const Vec<std::pair<T, T>>& ranges) {
         (void) ranges;

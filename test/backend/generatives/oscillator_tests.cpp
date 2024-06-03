@@ -3,7 +3,7 @@
 
 #include "core/algo/temporal/phase_accumulator.h"
 #include "core/generatives/variable.h"
-#include "core/generatives/oscillator.h"
+#include "core/generatives/OLD_oscillator.h"
 #include "core/param/parameter_policy.h"
 #include "core/generatives/unit_pulse.h"
 #include "core/algo/temporal/time_point.h"
@@ -23,7 +23,7 @@ TEST_CASE("m_phasor stepped", "[m_phasor]") {
 
         double gain = 0.1;
 
-        PhaseAccumulator p{max, 0.0, 0.0};
+        OLD_PhaseAccumulator p{max, 0.0, 0.0};
 
         double x;
 
@@ -39,7 +39,7 @@ TEST_CASE("m_phasor stepped", "[m_phasor]") {
         double max = 4.5;
         double gain = 0.001;
         bool stepped = true;
-        PhaseAccumulator p{max, 0.0, 0.0};
+        OLD_PhaseAccumulator p{max, 0.0, 0.0};
 
         double x;
         for (int i = 0; i < 100; ++i) {
@@ -54,7 +54,7 @@ TEST_CASE("m_phasor stepped", "[m_phasor]") {
         double gain = -0.1;
         double max = 1.0;
         bool stepped = true;
-        PhaseAccumulator p{max, 0.0, 0.0};
+        OLD_PhaseAccumulator p{max, 0.0, 0.0};
 
 
         double x;
@@ -75,7 +75,7 @@ TEST_CASE("m_phasor stepped", "[m_phasor]") {
         double phase = 0.0;
         double max = 1.0;
         bool stepped = true;
-        PhaseAccumulator p{max, 0.0, 0.0};
+        OLD_PhaseAccumulator p{max, 0.0, 0.0};
         REQUIRE_THAT(p.process(0, 0.0, phase, stepped), Catch::Matchers::WithinAbs(0.0, 1e-8));
         REQUIRE_THAT(p.process(0, 0.2, phase, stepped), Catch::Matchers::WithinAbs(0.2, 1e-8));
         REQUIRE_THAT(p.process(0, 0.8, phase, stepped), Catch::Matchers::WithinAbs(0.0, 1e-8));
@@ -86,7 +86,7 @@ TEST_CASE("m_phasor stepped", "[m_phasor]") {
         double max = 1.0;
         bool stepped = true;
         double gain = 0.1;
-        PhaseAccumulator p{max, 0.0,  0.0};
+        OLD_PhaseAccumulator p{max, 0.0,  0.0};
         REQUIRE_THAT(p.process(0, gain, phase, stepped), Catch::Matchers::WithinAbs(0.5, 1e-8));
         REQUIRE_THAT(p.process(0, gain, phase, stepped), Catch::Matchers::WithinAbs(0.6, 1e-8));
         phase = 0.2;
@@ -106,7 +106,7 @@ TEST_CASE("Oscillator Ctor") {
 }
 
 
-//TEST_CASE("Unity PhaseAccumulator") {
+//TEST_CASE("Unity OLD_PhaseAccumulator") {
 //    float increment = 0.3f; // stepped increment 0.3f is equivalent to 0.3 cycles per trigger = 0.3 freq
 //
 //    auto wrapper = OscillatorWrapper();
@@ -133,7 +133,7 @@ TEST_CASE("Oscillator Ctor") {
 //    REQUIRE_THAT(static_cast<double>(*wrapper.m_oscillator.process().front()), Catch::Matchers::WithinAbs(0.5, 1e-5));
 //}
 //
-//TEST_CASE("Scheduled Unity PhaseAccumulator") {
+//TEST_CASE("Scheduled Unity OLD_PhaseAccumulator") {
 //    float freq = 0.25f;
 //
 //    auto wrapper = OscillatorWrapper();
@@ -168,7 +168,7 @@ TEST_CASE("Oscillator Ctor") {
 
 //
 //
-//TEST_CASE("Unity PhaseAccumulator Drifting") {
+//TEST_CASE("Unity OLD_PhaseAccumulator Drifting") {
 //    auto oscillator = OscillatorWrapper();
 //    oscillator.osc_type.try_set_value(Oscillator::Mode::phasor);
 //    oscillator.freq.try_set_value(0.1f);
@@ -200,7 +200,7 @@ TEST_CASE("Oscillator Ctor") {
 //}
 //
 //
-//TEST_CASE("PhaseAccumulator Oscillator") {
+//TEST_CASE("OLD_PhaseAccumulator Oscillator") {
 //    OscillatorWrapper oscillator;
 //    oscillator.osc_type.try_set_value(Oscillator::Mode::phasor);
 //    oscillator.freq.try_set_value(0.25f);

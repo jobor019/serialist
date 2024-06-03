@@ -5,7 +5,7 @@
 
 #include <vector>
 #include "state/generative_component.h"
-#include "core/generatives/oscillator.h"
+#include "core/generatives/OLD_oscillator.h"
 #include "core/generatives/variable.h"
 #include "modules/oscillator_module.h"
 #include "text_sequence_module.h"

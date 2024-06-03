@@ -8,22 +8,30 @@
 #include "core/algo/random.h"
 #include "core/utility/math.h"
 
-TEST_CASE("Smoo") {
-    Smoo s;
+TEST_CASE("FilterSmoo") {
+    FilterSmoo s;
     Random rnd(0);
 
+    std::size_t num_values = 1000;
+
     auto step = 0.01;
-    auto ticks = rnd.nexts<double>(1000).multiply(step).cumsum();
+
+    auto ticks = Vec<TimePoint>::allocated(num_values);
+    ticks[0] = TimePoint(rnd.next());
+
+    for (std::size_t i = 1; i < num_values; ++i) {
+        ticks[i] = ticks[i-1].incremented(rnd.next() * step);
+    }
 
     auto freq = 0.5;
     auto phasor = ticks.cloned().map([&freq](auto x) { return utils::modulo(x, 1/freq) * freq;});
     auto square_wave = phasor.cloned().map([](auto x) { return static_cast<double>(x < 0.5); });
 
     SECTION("Stateless") {
-        s.set_tau(0.1);
+        s.set_tau(DomainDuration{0.1, DomainType::ticks});
         auto y = Vec<double>::zeros(ticks.size());
         for (std::size_t i = 0; i < ticks.size(); ++i) {
-            y[i] = s.process(square_wave[i], ticks[i]);
+            y[i] = s.process(ticks[i], square_wave[i]);
         }
 
         std::cout << "ticks = ";
@@ -54,6 +62,6 @@ TEST_CASE("Smoo") {
 
 }
 
-TEST_CASE("Smoo stateless") {
-    Smoo s;
+TEST_CASE("FilterSmoo stateless") {
+    FilterSmoo s;
 }

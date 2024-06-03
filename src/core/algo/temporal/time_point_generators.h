@@ -4,6 +4,11 @@
 
 #include "time_point.h"
 
+class FreePeriodic {
+public:
+
+};
+
 
 class TransportLocked {
 public:

@@ -25,6 +25,7 @@ add_library(serialistCore INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/event.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/nop_parameter.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/operator.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/OLD_oscillator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/generatives/oscillator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/param/parameter_policy.h
         src/core/algo/temporal/phase_accumulator.h

@@ -148,6 +148,13 @@ protected:
         return GenerativeCommons::voice_count(m_num_voices, args...);
     }
 
+    template<typename InputType, typename OutputType>
+    static Vec<OutputType> adapted(Voices<InputType>&& values
+                          , std::size_t num_voices
+                          , const OutputType& default_value) {
+        return values.adapted_to(num_voices).firsts_or(default_value);
+    }
+
 
 private:
     Socket<Facet>& m_enabled;

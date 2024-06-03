@@ -5,7 +5,7 @@
 
 #include "core/generatives/generator_RM.h"
 #include "core/generatives/variable.h"
-#include "core/generatives/oscillator.h"
+#include "core/generatives/OLD_oscillator.h"
 
 class BasicGenerator {
 public:

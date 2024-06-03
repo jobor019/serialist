@@ -109,7 +109,7 @@ TEST_CASE("legato > 1.0, free pulsation") {
     }
 }
 
-TEST_CASE("Free pulsation - Continuous change of duration (snh disabled)") {
+TEST_CASE("Free pulsation - Continuous change of period (snh disabled)") {
     TimePoint time(0.0);
 
     auto initial_dur = 1.0;
@@ -147,7 +147,7 @@ TEST_CASE("Free pulsation - Continuous change of duration (snh disabled)") {
         }
     }
 
-    // with a duration of 2.0 ticks and original trigger at t=1.0, the next pulse should be at t=3.0.
+    // with a period of 2.0 ticks and original trigger at t=1.0, the next pulse should be at t=3.0.
     time = TimePoint(3.0);
     triggers = p.process(time - EPSILON);
     REQUIRE(triggers.empty());
@@ -238,7 +238,7 @@ TEST_CASE("Grid Pulsation (bars) with offset 0.25 bars") {
     test_grid_pulsation(duration, offset, legato);
 }
 
-TEST_CASE("Grid Pulsation (bars) with duration 0.37 bars, offset 0.0  bars") {
+TEST_CASE("Grid Pulsation (bars) with period 0.37 bars, offset 0.0  bars") {
     auto duration = DomainDuration(0.37, DomainType::bars);
     auto offset = DomainDuration(0.0, DomainType::bars);
     auto legato = 1.0;
@@ -246,7 +246,7 @@ TEST_CASE("Grid Pulsation (bars) with duration 0.37 bars, offset 0.0  bars") {
     test_grid_pulsation(duration, offset, legato);
 }
 
-TEST_CASE("Grid Pulsation (bars) with duration 1 bars, offset 0.63  bars") {
+TEST_CASE("Grid Pulsation (bars) with period 1 bars, offset 0.63  bars") {
     auto duration = DomainDuration(1, DomainType::bars);
     auto offset = DomainDuration(0.63, DomainType::bars);
     auto legato = 1.0;
@@ -254,7 +254,7 @@ TEST_CASE("Grid Pulsation (bars) with duration 1 bars, offset 0.63  bars") {
     test_grid_pulsation(duration, offset, legato);
 }
 
-TEST_CASE("Grid Pulsation switching duration types (ticks ->  bars), snh disabled") {
+TEST_CASE("Grid Pulsation switching period types (ticks ->  bars), snh disabled") {
     TimePoint time(0.0);
 
     auto duration = DomainDuration(2.0, DomainType::ticks);
@@ -276,7 +276,7 @@ TEST_CASE("Grid Pulsation switching duration types (ticks ->  bars), snh disable
     p.process(time);
 }
 
-TEST_CASE("Grid Pulsation switching duration types (ticks ->  bars), snh enabled") {
+TEST_CASE("Grid Pulsation switching period types (ticks ->  bars), snh enabled") {
     TimePoint time(0.0);
 
     auto duration = DomainDuration(2.0, DomainType::ticks);
@@ -291,7 +291,7 @@ TEST_CASE("Grid Pulsation switching duration types (ticks ->  bars), snh enabled
 }
 
 
-TEST_CASE("Grid pulsation - Continuous change of duration (snh disabled)") {
+TEST_CASE("Grid pulsation - Continuous change of period (snh disabled)") {
     TimePoint time(0.0);
 
     auto initial_dur = 1.0;
@@ -329,8 +329,8 @@ TEST_CASE("Grid pulsation - Continuous change of duration (snh disabled)") {
         }
     }
 
-    // with a duration of 2.0 ticks, the grid will have pulses at t=2.0 and t=4.0.
-    // since our original pulse on was t=1.0 and our required duration is at least 2.0 ticks,
+    // with a period of 2.0 ticks, the grid will have pulses at t=2.0 and t=4.0.
+    // since our original pulse on was t=1.0 and our required period is at least 2.0 ticks,
     // our next pulse will be at t=4.0
     time = TimePoint(4.0);
     triggers = p.process(time - EPSILON);

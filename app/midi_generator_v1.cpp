@@ -31,7 +31,7 @@ public:
                 std::make_unique<Mapping<int>>(std::vector<int>{1}));
 
         m_onset = std::make_unique<OldGeneratorComponent<double>>(onset.get(), "onset");
-        m_duration = std::make_unique<OldGeneratorComponent<double>>(duration.get(), "duration");
+        m_duration = std::make_unique<OldGeneratorComponent<double>>(duration.get(), "period");
         m_pitch = std::make_unique<OldGeneratorComponent<int>>(pitch.get(), "pitch");
         m_velocity = std::make_unique<OldGeneratorComponent<int>>(velocity.get(), "velocity");
         m_channel = std::make_unique<OldGeneratorComponent<int>>(channel.get(), "channel");
@@ -133,12 +133,12 @@ public:
 //            std::shared_ptr<Node<double>> new_node;
 //            if (to_generator) {
 //                new_node = std::make_shared<Generator<double>>();
-//                m_duration = std::make_unique<OldGeneratorComponent<double>>(std::dynamic_pointer_cast<Generator<double>>(new_node), "duration");
+//                m_duration = std::make_unique<OldGeneratorComponent<double>>(std::dynamic_pointer_cast<Generator<double>>(new_node), "period");
 //            } else {
 //                new_node = std::make_shared<Looper<double>>();
-//                m_duration = std::make_unique<LooperComponent<double>>(std::dynamic_pointer_cast<Looper<double>>(new_node), "duration");
+//                m_duration = std::make_unique<LooperComponent<double>>(std::dynamic_pointer_cast<Looper<double>>(new_node), "period");
 //            }
-//            m_graph->set_duration(std::move(new_node));
+//            m_graph->set_period(std::move(new_node));
 //            addAndMakeVisible(*m_duration);
 //
 //        } else if (combo_box == &m_pitch_type) {

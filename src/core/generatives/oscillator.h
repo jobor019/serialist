@@ -1,80 +1,51 @@
 
-
 #ifndef SERIALISTLOOPER_OSCILLATOR_H
 #define SERIALISTLOOPER_OSCILLATOR_H
 
-#include <random>
-
-#include "core/param/parameter_policy.h"
-#include "core/generative.h"
-#include "core/algo/temporal/phase_accumulator.h"
-#include "core/utility/enums.h"
-#include "core/param/socket_policy.h"
-#include "core/generatives/variable.h"
-#include "core/algo/facet.h"
-#include "core/param/socket_handler.h"
-#include "core/algo/temporal/time_gate.h"
-#include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/algo/random.h"
 #include "core/algo/temporal/filters.h"
-#include "core/collections/queue.h"
-#include "core/collections/multi_voiced.h"
-#include "unit_pulse.h"
-#include "sequence.h"
+#include "core/algo/temporal/phase_accumulator.h"
+#include "core/algo/facet.h"
+#include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/algo/temporal/trigger.h"
+#include "core/collections/multi_voiced.h"
+#include "sequence.h"
+#include "variable.h"
 
-class Oscillator {
+class Waveform {
 public:
     enum class Type {
-        phasor = 0
-        , sin = 1
-        , square = 2
-        , tri = 3
-        , white_noise = 4
-        , brown_noise = 5
-        , random_walk = 6
+        phasor
+        , sin
+        , square
+        , tri
+        , white_noise
+        , random_walk
     };
 
-
-    explicit Oscillator(std::optional<int> seed = std::nullopt, double tau_ticks = 0.0)
-            : m_random(seed), m_lpf(tau_ticks) {}
-
-
-    double process(double time, Type type, double freq, double phase, double mul
-                   , double add, double duty, double curve, bool stepped, double tau, bool increment = true) {
-        double x;
-        if (increment) {
-            x = m_phasor.process(time, freq, phase, stepped);
-        } else {
-            x = m_phasor.get_current_value();
-        }
-        auto y = mul * waveform(x, type, duty, curve) + add;
-        return m_lpf.process(y, time, tau, stepped);
-    }
+    static constexpr double DEFAULT_DUTY = 0.5;
+    static constexpr double DEFAULT_CURVE = 1.0;
+    static const inline Type DEFAULT_TYPE = Type::phasor;
 
 
-private:
-    double waveform(double x, Type type, double duty, double curve) {
-        switch (type) {
+    explicit Waveform(std::optional<int> seed = std::nullopt) : m_random(seed) {}
+
+    double process(double x) {
+        switch (m_type) {
             case Type::phasor:
                 return x;
             case Type::sin:
                 return sin(x);
             case Type::square:
-                return square(x, duty);
+                return square(x, m_duty);
             case Type::tri:
-                return tri(x, duty, curve);
+                return tri(x, m_duty, m_curve);
             case Type::white_noise:
                 return white_noise();
-            case Type::brown_noise:
-                return brown_noise();
             case Type::random_walk:
                 return random_walk();
-            default:
-                throw std::invalid_argument("oscillator types not implemented");
         }
     }
-
 
     static double sin(double x) {
         return 0.5 * -std::cos(2 * M_PI * x) + 0.5;
@@ -102,19 +73,6 @@ private:
     }
 
 
-    static double brown_noise() {
-        throw std::runtime_error("not implemented"); // TODO
-//        double white_noise = distribution_(generator_);
-//        double new_output = last_output_ + (white_noise - last_output_) / 16.0;
-//        double difference = std::abs(new_output - last_output_);
-//        if (difference > max_difference_) {
-//            new_output = last_output_ + max_difference_ * std::copysign(1.0, new_output - last_output_);
-//        }
-//        last_output_ = new_output;
-//        return last_output_ + 0.5;
-    }
-
-
     static double random_walk() {
         throw std::runtime_error("not implemented"); // TODO
 //        double next = current_ + distribution_(rng_);
@@ -128,64 +86,119 @@ private:
 //        return current_;
     }
 
+    void set_type(Type type) { m_type = type; }
 
-    PhaseAccumulator m_phasor;
+    void set_duty(double duty) { m_duty = duty; }
+
+    void set_curve(double curve) { m_curve = curve; }
+
+private:
     Random m_random;
-    Smoo m_lpf;
+
+    Type m_type = DEFAULT_TYPE;
+    double m_duty = DEFAULT_DUTY;
+    double m_curve = DEFAULT_CURVE;
 
 };
+
+
+// ==============================================================================================
+
+class Oscillator {
+public:
+    explicit Oscillator(std::optional<int> seed = std::nullopt) : m_waveform(seed) {}
+
+    double process(const TimePoint& t, bool has_trigger) {
+        auto x = m_pa.process(t, has_trigger);
+        auto y = m_waveform.process(x);
+        return m_lpf.process(t, y);
+    }
+
+    void reset() {
+        m_pa.reset();
+        m_lpf.reset();
+    }
+
+    void set_waveform(Waveform::Type type) { m_waveform.set_type(type); }
+
+    void set_pa_mode(PaMode mode) {
+        m_pa.set_mode(mode);
+        m_lpf.set_unit_stepped(mode == PaMode::triggered);
+    }
+
+    void set_pa_period(const DomainDuration& d) { m_pa.set_period(d); }
+
+    void set_step_size(double step_size) { m_pa.set_step_size(step_size); }
+
+    void set_pa_offset(const DomainDuration& d) { m_pa.set_offset(d); }
+
+    void set_duty(double duty) { m_waveform.set_duty(duty); }
+
+    void set_curve(double curve) { m_waveform.set_curve(curve); }
+
+    void set_tau(const DomainDuration& tau) { m_lpf.set_tau(tau); }
+
+private:
+    PhaseAccumulator m_pa;
+    Waveform m_waveform;
+    FilterSmoo m_lpf;
+};
+
 
 // ==============================================================================================
 
 class OscillatorNode : public NodeBase<Facet> {
 public:
-
-    static const int HISTORY_LENGTH = 300;
-
     class OscillatorKeys {
     public:
         OscillatorKeys() = delete;
+
         static const inline std::string TRIGGER = "trigger";
-        static const inline std::string TYPE = "type";
-        static const inline std::string FREQ = "freq";
-        static const inline std::string ADD = "add";
-        static const inline std::string MUL = "mul";
+        static const inline std::string MODE = "mode";
+        static const inline std::string WAVEFORM = "WAVEFORM";
+        static const inline std::string PERIOD = "period";
+        static const inline std::string PERIOD_TYPE = "period_type";
+        static const inline std::string OFFSET = "offset";
+        static const inline std::string OFFSET_TYPE = "offset_type";
+        static const inline std::string STEP_SIZE = "step_size";
         static const inline std::string DUTY = "duty";
         static const inline std::string CURVE = "curve";
-        static const inline std::string STEPPED = "stepped";
         static const inline std::string PHASE = "phase";
         static const inline std::string TAU = "tau";
+        static const inline std::string TAU_TYPE = "tau_type";
 
         static const inline std::string CLASS_NAME = "oscillator";
     };
 
-
-    OscillatorNode(const std::string& identifier
+    OscillatorNode(const std::string& id
                    , ParameterHandler& parent
                    , Node<Trigger>* trigger = nullptr
-                   , Node<Facet>* type = nullptr
-                   , Node<Facet>* freq = nullptr
-                   , Node<Facet>* add = nullptr
-                   , Node<Facet>* mul = nullptr
+                   , Node<Facet>* mode = nullptr
+                   , Node<Facet>* waveform = nullptr
+                   , Node<Facet>* period = nullptr
+                   , Node<Facet>* period_type = nullptr
+                   , Node<Facet>* offset = nullptr
+                   , Node<Facet>* offset_type = nullptr
+                   , Node<Facet>* step_size = nullptr
                    , Node<Facet>* duty = nullptr
                    , Node<Facet>* curve = nullptr
                    , Node<Facet>* tau = nullptr
-                   , Node<Facet>* phase = nullptr
-                   , Node<Facet>* stepped = nullptr
+                   , Node<Facet>* tau_type = nullptr
                    , Node<Facet>* enabled = nullptr
                    , Node<Facet>* num_voices = nullptr)
-            : NodeBase<Facet>(identifier, parent, enabled, num_voices, OscillatorKeys::CLASS_NAME)
+            : NodeBase<Facet>(id, parent, enabled, num_voices, OscillatorKeys::CLASS_NAME)
               , m_trigger(add_socket(OscillatorKeys::TRIGGER, trigger))
-              , m_type(add_socket(OscillatorKeys::TYPE, type))
-              , m_freq(add_socket(OscillatorKeys::FREQ, freq))
-              , m_add(add_socket(OscillatorKeys::ADD, add))
-              , m_mul(add_socket(OscillatorKeys::MUL, mul))
+              , m_mode(add_socket(OscillatorKeys::MODE, mode))
+              , m_waveform(add_socket(OscillatorKeys::WAVEFORM, waveform))
+              , m_period(add_socket(OscillatorKeys::PERIOD, period))
+              , m_period_type(add_socket(OscillatorKeys::PERIOD_TYPE, period_type))
+              , m_offset(add_socket(OscillatorKeys::OFFSET, offset))
+              , m_offset_type(add_socket(OscillatorKeys::OFFSET_TYPE, offset_type))
+              , m_step_size(add_socket(OscillatorKeys::STEP_SIZE, step_size))
               , m_duty(add_socket(OscillatorKeys::DUTY, duty))
               , m_curve(add_socket(OscillatorKeys::CURVE, curve))
               , m_tau(add_socket(OscillatorKeys::TAU, tau))
-              , m_phase(add_socket(OscillatorKeys::PHASE, phase))
-              , m_stepped(add_socket(OscillatorKeys::STEPPED, stepped)) {}
-
+              , m_tau_type(add_socket(OscillatorKeys::TAU_TYPE, tau_type)) {}
 
     Voices<Facet> process() override {
         auto t = pop_time();
@@ -201,123 +214,102 @@ public:
         if (trigger.is_empty_like())
             return m_current_value;
 
-        auto type = m_type.process();
-        auto freq = m_freq.process();
-        auto mul = m_mul.process();
-        auto add = m_add.process();
-        auto duty = m_duty.process();
-        auto curve = m_curve.process();
-        auto stepped = m_stepped.process();
-        auto tau = m_tau.process();
-        auto phase = m_phase.process();
+        auto num_voices = get_voice_count();
 
-        auto num_voices = voice_count(trigger.size(), type.size(), freq.size(), mul.size(), add.size()
-                                      , duty.size(), curve.size(), stepped.size(), phase.size(), tau.size());
-
-        if (num_voices != m_oscillators.size()) {
+        bool resized = num_voices != m_oscillators.size();
+        if (resized) {
             m_oscillators.resize(num_voices);
         }
 
+        update_parameters(num_voices, resized);
 
-        Voices<Trigger> triggers = trigger.adapted_to(num_voices);
-        Vec<Oscillator::Type> types = adapt(type, num_voices, Oscillator::Type::phasor);
-        Vec<double> freqs = adapt(freq, num_voices, 1.0);
-        Vec<double> muls = adapt(mul, num_voices, 1.0);
-        Vec<double> adds = adapt(add, num_voices, 0.0);
-        Vec<double> dutys = adapt(duty, num_voices, 0.5);
-        Vec<double> curves = adapt(curve, num_voices, 1.0);
-        Vec<bool> steppeds = adapt(stepped, num_voices, false);
-        Vec<double> taus = adapt(tau, num_voices, 0.0);
-        Vec<double> phases = adapt(phase, num_voices, 0.0);
+        trigger.adapted_to(num_voices);
 
         auto output = Voices<Facet>::zeros(num_voices);
         for (std::size_t i = 0; i < num_voices; ++i) {
-            bool increment = Trigger::contains_pulse_on(triggers[i]);
-            auto y = m_oscillators[i].process(t->get_tick(), types[i], freqs[i], phases[i], muls[i]
-                                              , adds[i], dutys[i], curves[i], steppeds[i], taus[i], increment);
-            output[i].append(static_cast<Facet>(y));
+            bool has_trigger = Trigger::contains_pulse_on(trigger[i]);
+            output[i].append(static_cast<Facet>(m_oscillators[i].process(*t, has_trigger)));
         }
 
-//        m_previous_values.push(output); // TODO: Update to use Facet
         m_current_value = std::move(output);
-
         return m_current_value;
     }
 
-
-    void set_trigger(Node<Trigger>* trigger) { m_trigger = trigger; }
-
-
-    void set_type(Node<Facet>* type) { m_type = type; }
-
-
-    void set_freq(Node<Facet>* freq) { m_freq = freq; }
-
-
-    void set_add(Node<Facet>* add) { m_add = add; }
-
-
-    void set_mul(Node<Facet>* mul) { m_mul = mul; }
-
-
-    void set_duty(Node<Facet>* duty) { m_duty = duty; }
-
-
-    void set_curve(Node<Facet>* curve) { m_curve = curve; }
-
-
-    Socket<Trigger>& get_trigger() { return m_trigger; }
-
-
-    Socket<Facet>& get_type() { return m_type; }
-
-
-    Socket<Facet>& get_freq() { return m_freq; }
-
-
-    Socket<Facet>& get_add() { return m_add; }
-
-
-    Socket<Facet>& get_mul() { return m_mul; }
-
-
-    Socket<Facet>& get_duty() { return m_duty; }
-
-
-    Socket<Facet>& get_curve() { return m_curve; }
-
-
-    Vec<Vec<double>> get_output_history() { return m_previous_values.pop_all(); }
-
-
 private:
+    std::size_t get_voice_count() {
+        return voice_count(m_trigger.voice_count()
+                           , m_period.voice_count()
+                           , m_offset.voice_count()
+                           , m_step_size.voice_count()
+                           , m_duty.voice_count()
+                           , m_curve.voice_count()
+                           , m_tau.voice_count());
+    }
 
-    template<typename OutputType>
-    Vec<OutputType> adapt(Voices<Facet>& values
-                          , std::size_t num_voices
-                          , const OutputType& default_value) {
-        return values.adapted_to(num_voices).firsts_or(default_value);
+    void update_parameters(std::size_t num_voices, bool resized) {
+        m_oscillators.set(&Oscillator::set_pa_mode
+                          , NodeBase<Facet>::adapted(m_mode.process(), num_voices, PhaseAccumulator::DEFAULT_MODE));
+
+        m_oscillators.set(&Oscillator::set_waveform
+                          , NodeBase<Facet>::adapted(m_waveform.process(), num_voices, Waveform::DEFAULT_TYPE));
+
+        if (resized || m_period.has_changed() || m_period_type.has_changed()) {
+            auto period = m_period.process().adapted_to(num_voices).firsts_or(PaParameters::DEFAULT_PERIOD);
+            auto period_type = m_period_type.process().first_or(PaParameters::DEFAULT_PERIOD_TYPE);
+
+            for (std::size_t i = 0; i < num_voices; ++i) {
+                m_oscillators[i].set_pa_period(DomainDuration{period[i], period_type});
+            }
+        }
+
+        if (resized || m_offset.has_changed() || m_offset_type.has_changed()) {
+            auto offset = m_offset.process().adapted_to(num_voices).firsts_or(PaParameters::DEFAULT_OFFSET);
+            auto offset_type = m_offset_type.process().first_or(PaParameters::DEFAULT_OFFSET_TYPE);
+
+            for (std::size_t i = 0; i < num_voices; ++i) {
+                m_oscillators[i].set_pa_offset(DomainDuration{offset[i], offset_type});
+            }
+        }
+
+        m_oscillators.set(&Oscillator::set_step_size
+                          , NodeBase<Facet>::adapted(m_step_size.process(), num_voices
+                                                     , PaParameters::DEFAULT_STEP_SIZE));
+
+        m_oscillators.set(&Oscillator::set_duty
+                          , NodeBase<Facet>::adapted(m_duty.process(), num_voices, Waveform::DEFAULT_DUTY));
+
+        m_oscillators.set(&Oscillator::set_curve
+                          , NodeBase<Facet>::adapted(m_curve.process(), num_voices, Waveform::DEFAULT_CURVE));
+
+        if (resized || m_tau.has_changed() || m_tau_type.has_changed()) {
+            auto tau = m_tau.process().adapted_to(num_voices).firsts_or(FilterSmoo::DEFAULT_TAU);
+            auto tau_type = m_tau_type.process().first_or(FilterSmoo::DEFAULT_TAU_TYPE);
+
+            for (std::size_t i = 0; i < num_voices; ++i) {
+                m_oscillators[i].set_tau(DomainDuration{tau[i], tau_type});
+            }
+        }
     }
 
 
     Socket<Trigger>& m_trigger;
-    Socket<Facet>& m_type;
-    Socket<Facet>& m_freq;
-    Socket<Facet>& m_add;
-    Socket<Facet>& m_mul;
+    Socket<Facet>& m_mode;
+    Socket<Facet>& m_waveform;
+    Socket<Facet>& m_period;
+    Socket<Facet>& m_period_type;
+    Socket<Facet>& m_offset;
+    Socket<Facet>& m_offset_type;
+    Socket<Facet>& m_step_size;
     Socket<Facet>& m_duty;
     Socket<Facet>& m_curve;
     Socket<Facet>& m_tau;
-    Socket<Facet>& m_phase;
-    Socket<Facet>& m_stepped;
-
+    Socket<Facet>& m_tau_type;
 
     MultiVoiced<Oscillator, double> m_oscillators;
 
+//    LockingQueue<Voices<Facet>> m_previous_values{HISTORY_LENGTH};
 
-    LockingQueue<Vec<double>> m_previous_values{HISTORY_LENGTH};
-
-    Voices<Facet> m_current_value = Voices<Facet>::singular(Facet(0.0));
+    Voices<Facet> m_current_value = Voices<Facet>::empty_like();
 };
 
 
@@ -327,26 +319,29 @@ template<typename FloatType = float>
 struct OscillatorWrapper {
     using Keys = OscillatorNode::OscillatorKeys;
 
-    ParameterHandler parameter_handler;
+    ParameterHandler ph;
 
-    Sequence<Trigger> trigger{Keys::TRIGGER, parameter_handler};
-    Sequence<Facet, Oscillator::Type> type{Keys::TYPE, parameter_handler
-                                           , Voices<Oscillator::Type>::singular(Oscillator::Type::phasor)};
-    Sequence<Facet, FloatType> freq{Keys::FREQ, parameter_handler, Voices<FloatType>::singular(0.1f)};
-    Sequence<Facet, FloatType> mul{Keys::MUL, parameter_handler, Voices<FloatType>::singular(1.0f)};
-    Sequence<Facet, FloatType> add{Keys::ADD, parameter_handler, Voices<FloatType>::singular(0.0f)};
-    Sequence<Facet, FloatType> duty{Keys::DUTY, parameter_handler, Voices<FloatType>::singular(0.5f)};
-    Sequence<Facet, FloatType> curve{Keys::CURVE, parameter_handler, Voices<FloatType>::singular(1.0f)};
-    Sequence<Facet, FloatType> tau{Keys::TAU, parameter_handler, Voices<FloatType>::singular(0.0f)};
-    Sequence<Facet, FloatType> phase{Keys::PHASE, parameter_handler, Voices<FloatType>::singular(0.0f)};
+    Sequence<Trigger> trigger{Keys::TRIGGER, ph};
 
-    Variable<Facet, bool> stepped{Keys::STEPPED, parameter_handler, true};
-    Sequence<Facet, bool> enabled{ParameterKeys::ENABLED, parameter_handler, Voices<bool>::singular(true)};
-    Variable<Facet, std::size_t> num_voices{ParameterKeys::NUM_VOICES, parameter_handler, 1};
+    Variable<Facet, PaMode> mode{Keys::MODE, ph, PhaseAccumulator::DEFAULT_MODE};
+    Variable<Facet, Waveform::Type> waveform{Keys::WAVEFORM, ph, Waveform::DEFAULT_TYPE};
 
-    OscillatorNode oscillator{Keys::CLASS_NAME
-                              , parameter_handler, &trigger, &type, &freq, &add, &mul, &duty
-                              , &curve, &tau, &phase, &stepped, &enabled, &num_voices};
+    Sequence<Facet, FloatType> period{Keys::PERIOD, ph, Voices<FloatType>::singular(PaParameters::DEFAULT_PERIOD)};
+    Variable<Facet, DomainType> period_type{Keys::PERIOD_TYPE, ph, PaParameters::DEFAULT_PERIOD_TYPE};
+    Sequence<Facet, FloatType> offset{Keys::OFFSET, ph, Voices<FloatType>::singular(PaParameters::DEFAULT_OFFSET)};
+    Variable<Facet, DomainType> offset_type{Keys::OFFSET_TYPE, ph, PaParameters::DEFAULT_OFFSET_TYPE};
+    Sequence<Facet, FloatType> step_size{Keys::STEP_SIZE, ph
+                                         , Voices<FloatType>::singular(PaParameters::DEFAULT_STEP_SIZE)};
+
+    Sequence<Facet, FloatType> duty{Keys::DUTY, ph, Voices<FloatType>::singular(Waveform::DEFAULT_DUTY)};
+    Sequence<Facet, FloatType> curve{Keys::CURVE, ph, Voices<FloatType>::singular(Waveform::DEFAULT_CURVE)};
+
+    Sequence<Facet, FloatType> tau{Keys::TAU, ph, Voices<FloatType>::singular(FilterSmoo::DEFAULT_TAU)};
+    Sequence<Facet, FloatType> tau_type{Keys::TAU_TYPE, ph, Voices<FloatType>::singular(FilterSmoo::DEFAULT_TAU_TYPE)};
+
+    Sequence<Facet, bool> enabled{ParameterKeys::ENABLED, ph, Voices<bool>::singular(true)};
+    Variable<Facet, std::size_t> num_voices{ParameterKeys::NUM_VOICES, ph, 0};
 };
+
 
 #endif //SERIALISTLOOPER_OSCILLATOR_H

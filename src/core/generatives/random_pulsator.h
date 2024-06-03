@@ -114,10 +114,10 @@
 //
 //
 //    void schedule_next(double current_time, bool schedule_pulse_off = true) {
-//        auto duration = m_duration_rnd.next();
-//        m_next_pulse_on_time = current_time + duration;
+//        auto period = m_duration_rnd.next();
+//        m_next_pulse_on_time = current_time + period;
 //        if (schedule_pulse_off)
-//            m_next_pulse_off_time = current_time + duration * m_pulse_width;
+//            m_next_pulse_off_time = current_time + period * m_pulse_width;
 //    }
 //
 //
@@ -141,9 +141,9 @@
 //        auto p_current_duration = m_duration_rnd.pdf(current_duration);
 //
 //        if (p_current_duration < PROBABILITY_RECOMPUTE_THRESHOLD) {
-//            std::cout << "recomputing full pulse (old duration: " << current_duration << ", p=" << p_current_duration
+//            std::cout << "recomputing full pulse (old period: " << current_duration << ", p=" << p_current_duration
 //                      << ")\n";
-//            // note: new duration is generated relative to last trigger, not current time
+//            // note: new period is generated relative to last trigger, not current time
 //            schedule_next(m_previous_trigger_time, !m_next_pulse_off_time.has_value());
 //            return true;
 //        }

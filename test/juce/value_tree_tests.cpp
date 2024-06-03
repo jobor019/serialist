@@ -5,7 +5,7 @@
 #include "core/algo/facet.h"
 #include "core/param/parameter_policy.h"
 #include "core/generatives/sequence.h"
-#include "core/generatives/oscillator.h"
+#include "core/generatives/OLD_oscillator.h"
 //#include "core/parameter_policy.h"
 //#include "core/sequence.h"
 

@@ -77,6 +77,12 @@ public:
         m_bar += m_meter.ticks2bars(tick_increment);
     }
 
+    TimePoint incremented(double tick_increment) {
+        TimePoint t(*this);
+        t.increment(tick_increment);
+        return t;
+    }
+
     double distance_to(double time_value, DomainType type) const {
         switch (type) {
             case DomainType::ticks:
@@ -215,8 +221,24 @@ public:
     DomainTimePoint operator-(double other) const { return {m_value - other, m_type}; }
     DomainTimePoint operator*(double other) const { return {m_value * other, m_type}; }
 
-    DomainTimePoint& operator+=(double other) { m_value += other; return *this; }
-    DomainTimePoint& operator-=(double other) { m_value -= other; return *this; }
+    DomainTimePoint operator+(const TimePoint& other) const { return {m_value + other.get(m_type), m_type}; }
+    DomainTimePoint operator-(const TimePoint& other) const { return {m_value - other.get(m_type), m_type}; }
+
+    friend DomainTimePoint operator+(const TimePoint& other, const DomainTimePoint& t) { return t + other; }
+
+    friend DomainTimePoint operator-(const TimePoint& other, const DomainTimePoint& t) {
+        return DomainTimePoint{other.get(t.m_type) - t.m_value, t.m_type};
+    }
+
+    DomainTimePoint& operator+=(double other) {
+        m_value += other;
+        return *this;
+    }
+
+    DomainTimePoint& operator-=(double other) {
+        m_value -= other;
+        return *this;
+    }
 
 
     // TODO: Not sure if this will be needed. If so, should be out of line
@@ -345,10 +367,11 @@ private:
 
 
 /**
- * Placeholder for a class describing a directed duration of time. That is, the interval between two DomainTimePoints
+ * Placeholder for a class describing a directed period of time. That is, the interval between two DomainTimePoints
  * (or equivalently, the positive or negative interval described by a DomainTimePoint and a DomainDuration).
  */
-class DomainInterval {};
+class DomainInterval {
+};
 
 
 // ==============================================================================================

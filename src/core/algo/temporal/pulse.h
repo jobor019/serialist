@@ -46,7 +46,7 @@ public:
     }
 
     /**
-     * @brief sets duration of the pulse if duration is of the same type as the trigger time
+     * @brief sets period of the pulse if period is of the same type as the trigger time
      */
     bool try_set_duration(const DomainDuration& duration) {
         if (m_trigger_time.get_type() == duration.get_type()) {
@@ -190,7 +190,7 @@ public:
 
 
 //    /**
-//     * @brief Sets duration for all existing pulses to fixed value
+//     * @brief Sets period for all existing pulses to fixed value
 //     */
 //    void reschedule(const DomainDuration& new_duration) {
 //        for (Pulse& p : m_pulses) {

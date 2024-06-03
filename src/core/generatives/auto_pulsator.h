@@ -166,8 +166,8 @@
 //        // TODO: Handle exception or explain why this is safe!
 //        m_next_trigger_time = m_ts->next(trigger_time, current_time);
 //
-//        auto duration = (m_next_trigger_time - trigger_time) * m_legato_amount;
-//        auto trigger = m_pulses.new_pulse(trigger_time, trigger_time + duration);
+//        auto period = (m_next_trigger_time - trigger_time) * m_legato_amount;
+//        auto trigger = m_pulses.new_pulse(trigger_time, trigger_time + period);
 //
 //        return trigger;
 //    }
@@ -193,7 +193,7 @@
 //class AutoPulsatorNode : public PulsatorNodeBase<AutoPulsator> {
 //public:
 //
-//    static const inline std::string DURATION = "duration";
+//    static const inline std::string DURATION = "period";
 //    static const inline std::string DURATION_TYPE = "duration_type";
 //    static const inline std::string OFFSET = "offset_type";
 //    static const inline std::string OFFSET_TYPE = "offset_type";
@@ -204,7 +204,7 @@
 //
 //    AutoPulsatorNode(const std::string& id
 //                     , ParameterHandler& parent
-//                     , Node<Facet>* duration = nullptr
+//                     , Node<Facet>* period = nullptr
 //                     , Node<Facet>* duration_type = nullptr
 //                     , Node<Facet>* offset = nullptr
 //                     , Node<Facet>* offset_type = nullptr
@@ -214,7 +214,7 @@
 //                     , Node<Facet>* num_voices = nullptr)
 //            : PulsatorNodeBase<AutoPulsator>(id, parent, enabled, num_voices, CLASS_NAME)
 ////              , m_trigger(add_socket(ParameterKeys::TRIGGER, trigger))
-//              , m_duration(add_socket(DURATION, duration))
+//              , m_duration(add_socket(DURATION, period))
 //              , m_duration_type(add_socket(DURATION_TYPE, duration_type))
 //              , m_offset(add_socket(OFFSET, offset))
 //              , m_offset_type(add_socket(OFFSET_TYPE, offset_type))
@@ -236,7 +236,7 @@
 //            m_duration.has_changed() || m_duration_type.has_changed()
 //            || m_offset.has_changed() || m_offset_type.has_changed()) {
 //
-//            auto duration = m_duration.process().adapted_to(num_voices).firsts_or(1.0);
+//            auto period = m_duration.process().adapted_to(num_voices).firsts_or(1.0);
 //            auto duration_type = m_duration_type.process().first_or(DomainType::ticks);
 //
 //            auto offset = m_offset.process().adapted_to(num_voices).firsts_or(0.0);
@@ -244,7 +244,7 @@
 //            auto offset_enabled = m_offset_enabled.process().first_or(false);
 //
 //
-//            auto tses = temporal::ts_from_durations_offsets(duration, duration_type, offset, offset_type, offset_enabled);
+//            auto tses = temporal::ts_from_durations_offsets(period, duration_type, offset, offset_type, offset_enabled);
 //            pulsators().set(&AutoPulsator::set_ts, std::move(tses));
 //        }
 //

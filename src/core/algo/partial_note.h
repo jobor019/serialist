@@ -13,12 +13,12 @@
 //                         , const std::optional<Facet>& note_number = std::nullopt
 //                         , const std::optional<Facet>& velocity = std::nullopt
 //                         , const std::optional<Facet>& channel = std::nullopt
-//                         , const std::optional<Facet>& duration = std::nullopt)
+//                         , const std::optional<Facet>& period = std::nullopt)
 //            : m_trigger(trigger)
 //              , m_note_number(note_number)
 //              , m_velocity(velocity)
 //              , m_channel(channel)
-//              , m_duration(duration) {}
+//              , m_duration(period) {}
 //
 //
 //    static PartialNote from_trigger(const Trigger& trig) { return PartialNote({trig}); }
@@ -66,7 +66,7 @@
 //    void set_channel(const std::optional<Facet>& channel) { m_channel = channel; }
 //
 //
-//    void set_duration(const std::optional<Facet>& duration) { m_duration = duration; }
+//    void set_period(const std::optional<Facet>& period) { m_duration = period; }
 //
 //
 //private:
