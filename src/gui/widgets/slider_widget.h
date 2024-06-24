@@ -178,6 +178,7 @@ private:
     Exponential<double> m_exponential;
 
     bool m_is_integral;
+    // TODO: snap_to_nearest bool + double
 
     std::optional<double> m_lower_hard_bound;
     std::optional<double> m_upper_hard_bound;

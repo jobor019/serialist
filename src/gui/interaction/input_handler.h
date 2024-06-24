@@ -93,41 +93,10 @@ public:
     InputHandler& operator=(InputHandler&&) noexcept = delete;
 
 
-    /**
-    * @return true if mouse is over the component or any of its child components
-    */
-    bool mouse_is_over() const {
-        return m_mouse_source_component.isMouseOver(true);
-    }
-
-    bool mouse_event_targets_this(bool already_consumed) const {
-        return m_last_mouse_state.should_receive_interceptable_event() && !already_consumed;
-    }
-
-
     void mouseEnter(const juce::MouseEvent& event) override {
         mouse_enter_internal(event);
     }
 
-
-    void mouse_enter_from_child(const juce::MouseEvent& source_event) {
-        mouse_enter_internal(source_event.getEventRelativeTo(&m_mouse_source_component));
-    }
-
-
-    void mouse_enter_internal(const juce::MouseEvent& event) {
-        std::cout << "¤¤¤" << m_identifier << "::Event - MouseEnter\n";
-
-        m_last_mouse_state.mouse_enter(event);
-        update_intercepting();
-
-        if (update_mouse_state(false)) {
-            notify_listeners();
-        }
-
-        if (m_parent)
-            m_parent->mouse_enter_from_child(event);
-    }
 
 
     void mouseExit(const juce::MouseEvent& event) override {
@@ -135,30 +104,7 @@ public:
     }
 
 
-    void mouse_exit_from_child(const juce::MouseEvent& source_event) {
-        mouse_exit_internal(source_event.getEventRelativeTo(&m_mouse_source_component));
-    }
 
-
-    void mouse_exit_internal(const juce::MouseEvent& event) {
-        if (!mouse_is_over()) {
-            std::cout << "¤¤¤" << m_identifier << "::Event - MouseExit\n";
-            // mouse exited this (either directly or from a child)
-            m_last_mouse_state.mouse_exit();
-            update_intercepting();
-
-            if (update_mouse_state(false)) {
-                notify_listeners();
-            }
-
-            if (m_parent)
-                m_parent->mouse_exit_from_child(event);
-        }
-
-        // There are two cases here where neither this nor parent are notified:
-        //  - if exiting this into a child (from this' pov, it's still over)
-        //  - if a grandchild internally exits into a child (from this' pov, it's still over)
-    }
 
 
     void mouseDown(const juce::MouseEvent& event) override {
@@ -166,164 +112,19 @@ public:
     }
 
 
-    void mouse_down_from_child(const juce::MouseEvent& source_event) {
-        mouse_down_internal(source_event.getEventRelativeTo(&m_mouse_source_component));
-    }
-
-
-    void mouse_down_internal(const juce::MouseEvent& event) {
-        // Note: children will not pass down already consumed mouseDown events,
-        //       hence if a mouseDown event is received, it is valid for this component
-        std::cout << "¤¤¤" << m_identifier << "::Event - MouseDown\n";
-
-        if (mouse_event_targets_this(false)) {
-            // only register mouse_down if targeting this
-            auto hide = m_active_mode && m_active_mode->get_drag_behaviour() == DragBehaviour::hide_and_restore;
-            m_last_mouse_state.mouse_down(event, hide);
-            if (update_mouse_state(false)) {
-                notify_listeners();
-            }
-
-        } else {
-            if (m_parent)
-                m_parent->mouse_down_from_child(event);
-        }
-    }
-
     void mouseMove(const juce::MouseEvent& event) override {
         mouse_move_internal(event, false);
     }
 
-
-    void mouse_move_from_child(const juce::MouseEvent& source_event, bool already_consumed) {
-        mouse_move_internal(source_event.getEventRelativeTo(&m_mouse_source_component), already_consumed);
-    }
-
-
-    void mouse_move_internal(const juce::MouseEvent& event, bool already_consumed) {
-        m_last_mouse_state.mouse_move(event);
-
-        if (mouse_event_targets_this(already_consumed)) {
-            if (update_mouse_state(true)) {
-                notify_listeners();
-            }
-            already_consumed = true;
-        }
-
-        if (m_parent)
-            m_parent->mouse_move_from_child(event, already_consumed);
-    }
 
 
     void mouseDrag(const juce::MouseEvent& event) override {
         mouse_drag_internal(event, false);
     }
 
-    void mouse_drag_from_child(const juce::MouseEvent& source_event, bool already_consumed) {
-        mouse_drag_internal(source_event.getEventRelativeTo(&m_mouse_source_component), already_consumed);
-    }
-
-
-    void mouse_drag_internal(const juce::MouseEvent& event, bool already_consumed) {
-        if (mouse_event_targets_this(already_consumed)) {
-//            std::cout << "¤¤¤" << m_identifier << "::Event - MouseDrag\n";
-            process_mouse_drag(event);
-            already_consumed = true;
-        }
-
-        if (m_parent)
-            m_parent->mouse_drag_from_child(event, already_consumed);
-    }
-
-
-    void process_mouse_drag(const juce::MouseEvent& event) {
-        // TODO: We probably need to implement a MouseClickEvent and determine whether a mouseUp + mouseDown
-        //      was a click or a drag (to avoid minimal accidental movements during click turning into drags)
-
-        // an ongoing drag has previously been cancelled. No further actions until mouse button is released
-        if (m_drag_cancelled) {
-            return;
-        }
-
-        // ongoing drag edit within this component
-        if (m_last_mouse_state.is_drag_editing) {
-            m_last_mouse_state.mouse_drag_edit(event);
-            if (update_mouse_state(true)) {
-                notify_listeners();
-            }
-            return;
-        }
-
-
-        // ongoing drag and drop from this component
-        if (m_last_mouse_state.is_dragging_from) {
-            if (update_mouse_state(true)) {
-                notify_listeners();
-            }
-            return;
-        }
-
-        // The mouse_down event was not registered by this component, meaning that the state changed in the middle
-        // of a drag, and we should therefore not register any new drag operations for this component
-        if (!m_last_mouse_state.is_down) {
-            return;
-        }
-
-        // new drag edit in this component without any active state or with default drag edit behaviour
-        if (m_active_mode && (m_active_mode->get_drag_behaviour() == DragBehaviour::drag_edit
-                              || m_active_mode->get_drag_behaviour() == DragBehaviour::hide_and_restore)) {
-            m_last_mouse_state.mouse_drag_edit(event);
-            if (update_mouse_state(false)) {
-                notify_listeners();
-            }
-            return;
-        }
-
-        // new drag and drop from this component
-        if (m_active_mode && m_active_mode->get_drag_behaviour() == DragBehaviour::drag_and_drop) {
-            start_drag_from(event);
-            if (update_mouse_state(false)) {
-                notify_listeners();
-            }
-            return;
-        }
-
-        // DragBehaviour::HideAndRestoreCursor is handled on mouseDown and mouseUp, not mouseDrag
-    }
-
 
     void mouseUp(const juce::MouseEvent& event) override {
         mouse_up_internal(event, false);
-    }
-
-
-    void mouse_up_from_child(const juce::MouseEvent& event, bool already_consumed) {
-        mouse_up_internal(event.getEventRelativeTo(&m_mouse_source_component), already_consumed);
-    }
-
-
-    void mouse_up_internal(const juce::MouseEvent& event, bool already_consumed) {
-        if (mouse_event_targets_this(already_consumed)) {
-            std::cout << "¤¤¤" << m_identifier << "::Event - MouseUp\n";
-            if (m_last_mouse_state.is_dragging_from) {
-                finalize_drag_from();
-            } else {
-                auto restore = m_active_mode && m_active_mode->get_drag_behaviour() == DragBehaviour::hide_and_restore;
-                m_last_mouse_state.mouse_up(event, restore);
-                if (update_mouse_state(false)) {
-                    notify_listeners();
-                }
-            }
-            already_consumed = true;
-        } else {
-            m_last_mouse_state.mouse_up(event); // TODO: not sure how to handle restore here
-            // TODO: Not sure if we should notify anything here
-        }
-
-        re_enable_drag_after_cancel();
-
-        if (m_parent)
-            m_parent->mouse_up_from_child(event, already_consumed);
     }
 
 
@@ -422,6 +223,214 @@ public:
     }
 
 private:
+
+    /**
+    * @return true if mouse is over the component or any of its child components
+    */
+    bool mouse_is_over() const {
+        return m_mouse_source_component.isMouseOver(true);
+    }
+
+
+    bool mouse_event_targets_this(bool already_consumed) const {
+        return m_last_mouse_state.should_receive_interceptable_event() && !already_consumed;
+    }
+
+
+    void mouse_enter_from_child(const juce::MouseEvent& source_event) {
+        mouse_enter_internal(source_event.getEventRelativeTo(&m_mouse_source_component));
+    }
+
+
+    void mouse_enter_internal(const juce::MouseEvent& event) {
+        std::cout << "¤¤¤" << m_identifier << "::Event - MouseEnter\n";
+
+        m_last_mouse_state.mouse_enter(event);
+        update_intercepting();
+
+        if (update_mouse_state(false)) {
+            notify_listeners();
+        }
+
+        if (m_parent)
+            m_parent->mouse_enter_from_child(event);
+    }
+
+
+    void mouse_exit_from_child(const juce::MouseEvent& source_event) {
+        mouse_exit_internal(source_event.getEventRelativeTo(&m_mouse_source_component));
+    }
+
+
+    void mouse_exit_internal(const juce::MouseEvent& event) {
+        if (!mouse_is_over()) {
+            std::cout << "¤¤¤" << m_identifier << "::Event - MouseExit\n";
+            // mouse exited this (either directly or from a child)
+            m_last_mouse_state.mouse_exit();
+            update_intercepting();
+
+            if (update_mouse_state(false)) {
+                notify_listeners();
+            }
+
+            if (m_parent)
+                m_parent->mouse_exit_from_child(event);
+        }
+
+        // There are two cases here where neither this nor parent are notified:
+        //  - if exiting this into a child (from this' pov, it's still over)
+        //  - if a grandchild internally exits into a child (from this' pov, it's still over)
+    }
+
+
+    void mouse_down_from_child(const juce::MouseEvent& source_event) {
+        mouse_down_internal(source_event.getEventRelativeTo(&m_mouse_source_component));
+    }
+
+
+    void mouse_down_internal(const juce::MouseEvent& event) {
+        // Note: children will not pass down already consumed mouseDown events,
+        //       hence if a mouseDown event is received, it is valid for this component
+        std::cout << "¤¤¤" << m_identifier << "::Event - MouseDown\n";
+
+        if (mouse_event_targets_this(false)) {
+            // only register mouse_down if targeting this
+            auto hide = m_active_mode && m_active_mode->get_drag_behaviour() == DragBehaviour::hide_and_restore;
+            m_last_mouse_state.mouse_down(event, hide);
+            if (update_mouse_state(false)) {
+                notify_listeners();
+            }
+
+        } else {
+            if (m_parent)
+                m_parent->mouse_down_from_child(event);
+        }
+    }
+
+
+    void mouse_move_from_child(const juce::MouseEvent& source_event, bool already_consumed) {
+        mouse_move_internal(source_event.getEventRelativeTo(&m_mouse_source_component), already_consumed);
+    }
+
+
+    void mouse_move_internal(const juce::MouseEvent& event, bool already_consumed) {
+        m_last_mouse_state.mouse_move(event);
+
+        if (mouse_event_targets_this(already_consumed)) {
+            if (update_mouse_state(true)) {
+                notify_listeners();
+            }
+            already_consumed = true;
+        }
+
+        if (m_parent)
+            m_parent->mouse_move_from_child(event, already_consumed);
+    }
+
+
+    void mouse_drag_from_child(const juce::MouseEvent& source_event, bool already_consumed) {
+        mouse_drag_internal(source_event.getEventRelativeTo(&m_mouse_source_component), already_consumed);
+    }
+
+
+    void mouse_drag_internal(const juce::MouseEvent& event, bool already_consumed) {
+        if (mouse_event_targets_this(already_consumed)) {
+//            std::cout << "¤¤¤" << m_identifier << "::Event - MouseDrag\n";
+            process_mouse_drag(event);
+            already_consumed = true;
+        }
+
+        if (m_parent)
+            m_parent->mouse_drag_from_child(event, already_consumed);
+    }
+
+
+    void process_mouse_drag(const juce::MouseEvent& event) {
+        // TODO: We probably need to implement a MouseClickEvent and determine whether a mouseUp + mouseDown
+        //      was a click or a drag (to avoid minimal accidental movements during click turning into drags)
+
+        // an ongoing drag has previously been cancelled. No further actions until mouse button is released
+        if (m_drag_cancelled) {
+            return;
+        }
+
+        // ongoing drag edit within this component
+        if (m_last_mouse_state.is_drag_editing) {
+            m_last_mouse_state.mouse_drag_edit(event);
+            if (update_mouse_state(true)) {
+                notify_listeners();
+            }
+            return;
+        }
+
+
+        // ongoing drag and drop from this component
+        if (m_last_mouse_state.is_dragging_from) {
+            if (update_mouse_state(true)) {
+                notify_listeners();
+            }
+            return;
+        }
+
+        // The mouse_down event was not registered by this component, meaning that the state changed in the middle
+        // of a drag, and we should therefore not register any new drag operations for this component
+        if (!m_last_mouse_state.is_down) {
+            return;
+        }
+
+        // new drag edit in this component without any active state or with default drag edit behaviour
+        if (m_active_mode && (m_active_mode->get_drag_behaviour() == DragBehaviour::drag_edit
+                              || m_active_mode->get_drag_behaviour() == DragBehaviour::hide_and_restore)) {
+            m_last_mouse_state.mouse_drag_edit(event);
+            if (update_mouse_state(false)) {
+                notify_listeners();
+            }
+            return;
+        }
+
+        // new drag and drop from this component
+        if (m_active_mode && m_active_mode->get_drag_behaviour() == DragBehaviour::drag_and_drop) {
+            start_drag_from(event);
+            if (update_mouse_state(false)) {
+                notify_listeners();
+            }
+            return;
+        }
+
+        // DragBehaviour::HideAndRestoreCursor is handled on mouseDown and mouseUp, not mouseDrag
+    }
+
+
+    void mouse_up_from_child(const juce::MouseEvent& event, bool already_consumed) {
+        mouse_up_internal(event.getEventRelativeTo(&m_mouse_source_component), already_consumed);
+    }
+
+
+    void mouse_up_internal(const juce::MouseEvent& event, bool already_consumed) {
+        if (mouse_event_targets_this(already_consumed)) {
+            std::cout << "¤¤¤" << m_identifier << "::Event - MouseUp\n";
+            if (m_last_mouse_state.is_dragging_from) {
+                finalize_drag_from();
+            } else {
+                auto restore = m_active_mode && m_active_mode->get_drag_behaviour() == DragBehaviour::hide_and_restore;
+                m_last_mouse_state.mouse_up(event, restore);
+                if (update_mouse_state(false)) {
+                    notify_listeners();
+                }
+            }
+            already_consumed = true;
+        } else {
+            m_last_mouse_state.mouse_up(event); // TODO: not sure how to handle restore here
+            // TODO: Not sure if we should notify anything here
+        }
+
+        re_enable_drag_after_cancel();
+
+        if (m_parent)
+            m_parent->mouse_up_from_child(event, already_consumed);
+    }
+
+
     void start_drag_from(const juce::MouseEvent& mouse_event) {
         assert(m_drag_controller);
         assert(m_active_mode);
@@ -569,6 +578,7 @@ private:
         }
     }
 
+    
     void on_parent_intercepting_change(bool wants_to_intercept) {
         bool parent_wanted_to_intercept = m_last_mouse_state.parent_wants_to_intercept;
         m_last_mouse_state.parent_wants_to_intercept = wants_to_intercept;
