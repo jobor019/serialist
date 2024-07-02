@@ -12,6 +12,8 @@
 #include "sequence.h"
 #include "variable.h"
 
+namespace serialist {
+
 class MakeNote {
 public:
     Voice<Event> process(const Voice<Trigger>& triggers
@@ -93,7 +95,7 @@ public:
                  , Node<Facet>* enabled = nullptr
                  , Node<Facet>* num_voices = nullptr)
             : NodeBase(identifier, parent, enabled, num_voices, Keys::CLASS_NAME)
-              , m_trigger(add_socket(ParameterKeys::TRIGGER, trigger))
+              , m_trigger(add_socket(ParameterTypes::TRIGGER, trigger))
               , m_note_number(add_socket(Keys::NOTE_NUMBER, note_number))
               , m_velocity(add_socket(Keys::VELOCITY, velocity))
               , m_channel(add_socket(Keys::CHANNEL, channel)) {}
@@ -175,12 +177,12 @@ struct MakeNoteWrapper {
 
     ParameterHandler parameter_handler;
 
-    Sequence<Trigger> trigger{ParameterKeys::TRIGGER, parameter_handler, Voices<Trigger>::empty_like()};
+    Sequence<Trigger> trigger{ParameterTypes::TRIGGER, parameter_handler, Voices<Trigger>::empty_like()};
     Sequence<Facet, std::size_t> note_number{Keys::NOTE_NUMBER, parameter_handler, Voices<std::size_t>::singular(60)};
     Sequence<Facet, std::size_t> velocity{Keys::VELOCITY, parameter_handler, Voices<std::size_t>::singular(100)};
     Sequence<Facet, std::size_t> channel{Keys::CHANNEL, parameter_handler, Voices<std::size_t>::singular(true)};
-    Sequence<Facet, bool> enabled{ParameterKeys::ENABLED, parameter_handler, Voices<bool>::singular(true)};
-    Variable<Facet, std::size_t> num_voices{ParameterKeys::NUM_VOICES, parameter_handler, 0};
+    Sequence<Facet, bool> enabled{ParameterTypes::ENABLED, parameter_handler, Voices<bool>::singular(true)};
+    Variable<Facet, std::size_t> num_voices{ParameterTypes::NUM_VOICES, parameter_handler, 0};
 
     MakeNoteNode make_note_node{Keys::CLASS_NAME
                                 , parameter_handler
@@ -193,5 +195,7 @@ struct MakeNoteWrapper {
 
 };
 
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_MAKE_NOTE_H

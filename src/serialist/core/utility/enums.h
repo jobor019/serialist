@@ -6,7 +6,7 @@
 #include <type_traits>
 #include "magic_enum.hpp"
 
-namespace utils {
+namespace serialist::utils {
 
 template<typename EnumType>
 bool enum_is_consecutive_and_zero_indexed() {
@@ -32,6 +32,6 @@ bool enum_is_consecutive_and_zero_indexed() {
 }
 
 
-} // namespace utils
+} // namespace serialist::utils
 
 #endif //SERIALIST_LOOPER_UTILS_H

@@ -12,6 +12,8 @@
 #include "sequence.h"
 #include <map>
 
+namespace serialist {
+
 enum class PulsatorMode {
     transport_locked
     , free_periodic
@@ -877,7 +879,7 @@ struct PulsatorWrapper {
     ParameterHandler parameter_handler;
 
     Variable<Facet, PulsatorMode> mode{Keys::MODE, parameter_handler, Pulsator::DEFAULT_MODE};
-    Sequence<Trigger> trigger{ParameterKeys::TRIGGER, parameter_handler, Voices<Trigger>::empty_like()};
+    Sequence<Trigger> trigger{ParameterTypes::TRIGGER, parameter_handler, Voices<Trigger>::empty_like()};
     Sequence<Facet, FloatType> duration{Keys::DURATION, parameter_handler
                                         , Voices<FloatType>::singular(PulsatorParameters::DEFAULT_DURATION)};
     Variable<Facet, DomainType> duration_type{Keys::DURATION_TYPE, parameter_handler
@@ -890,8 +892,8 @@ struct PulsatorWrapper {
                                              , Voices<FloatType>::singular(PulsatorParameters::DEFAULT_LEGATO_AMOUNT)};
     Sequence<Facet, bool> sample_and_hold{Keys::SAMPLE_AND_HOLD, parameter_handler
                                           , Voices<bool>::singular(PulsatorParameters::DEFAULT_SNH)};
-    Sequence<Facet, bool> enabled{ParameterKeys::ENABLED, parameter_handler, Voices<bool>::singular(true)};
-    Variable<Facet, std::size_t> num_voices{ParameterKeys::NUM_VOICES, parameter_handler, 0};
+    Sequence<Facet, bool> enabled{ParameterTypes::ENABLED, parameter_handler, Voices<bool>::singular(true)};
+    Variable<Facet, std::size_t> num_voices{ParameterTypes::NUM_VOICES, parameter_handler, 0};
 
     PulsatorNode pulsator_node{Keys::CLASS_NAME
                                , parameter_handler
@@ -907,5 +909,7 @@ struct PulsatorWrapper {
                                , &num_voices};
 };
 
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_PULSATOR_H

@@ -55,16 +55,18 @@ add_library(${CORE_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/variable.h
 
         ${CMAKE_CURRENT_SOURCE_DIR}/param/nop_parameter.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/param/parameter_policy.h
         ${CMAKE_CURRENT_SOURCE_DIR}/param/socket_base.h
         ${CMAKE_CURRENT_SOURCE_DIR}/param/socket_handler.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/param/socket_policy.h
 
         ${CMAKE_CURRENT_SOURCE_DIR}/utility/enums.h
         ${CMAKE_CURRENT_SOURCE_DIR}/utility/math.h
         ${CMAKE_CURRENT_SOURCE_DIR}/utility/optionals.h
         ${CMAKE_CURRENT_SOURCE_DIR}/utility/stateful.h
         ${CMAKE_CURRENT_SOURCE_DIR}/utility/traits.h
+
+        # TODO: Automatically added - move to correct location above and append ${CMAKE_CURRENT_SOURCE_DIR}
+        param/deserialization.h
+        policies.h
 )
 
 add_library(${PROJECT_NAME}::${CORE_NAME} ALIAS ${CORE_NAME})

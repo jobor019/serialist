@@ -8,7 +8,7 @@
 #include <type_traits>
 #include <iostream>
 
-namespace utils {
+namespace serialist::utils {
 
 template<typename T>
 struct is_printable {
@@ -157,6 +157,6 @@ template<typename T>
 inline constexpr bool is_always_lock_free_v = is_always_lock_free<T>::value;
 
 
-} // namespace utils
+} // namespace serialist::utils
 
 #endif //SERIALISTLOOPER_TRAITS_H

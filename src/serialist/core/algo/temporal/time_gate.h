@@ -6,6 +6,8 @@
 #include "core/algo/temporal/transport.h"
 #include "core/algo/temporal/time_point.h"
 
+namespace serialist {
+
 /**
  * Detects updates in time. Typically used to detect whether process() already has been called this particular cycle
  */
@@ -132,5 +134,7 @@ private:
     bool m_previous_state;
 };
 
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_TIME_GATE_H

@@ -11,6 +11,7 @@
 #include "sequence.h"
 #include "variable.h"
 
+namespace serialist {
 
 // TODO: Serialization. Should probably generalize this into a Serializer class with a number of different overloads
 //std::string to_string() const {
@@ -164,7 +165,7 @@ public:
           , m_socket_handler(m_parameter_handler)
           , m_strategy(m_socket_handler.create_socket(STRATEGY, strategy))
           , m_pivot(m_socket_handler.create_socket(PIVOT, pivot)) {
-        m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, CLASS_NAME);
+        m_parameter_handler.add_static_property(ParameterTypes::GENERATIVE_CLASS, CLASS_NAME);
     }
 
 
@@ -348,13 +349,14 @@ struct InterpolatorWrapper {
     Sequence<OutputType, StoredType> corpus{InterpolatorKeys::CORPUS, parameter_handler};
     Sequence<Strategy> strategy{InterpolatorKeys::STRATEGY, parameter_handler};
 
-    Sequence<Facet, bool> enabled{ParameterKeys::ENABLED, parameter_handler, true};
-    Variable<Facet, std::size_t> num_voices{ParameterKeys::NUM_VOICES, parameter_handler, 1};
+    Sequence<Facet, bool> enabled{ParameterTypes::ENABLED, parameter_handler, true};
+    Variable<Facet, std::size_t> num_voices{ParameterTypes::NUM_VOICES, parameter_handler, 1};
 
     InterpolatorNode<OutputType> interpolator{
         InterpolatorKeys::CLASS_NAME, parameter_handler, &trigger, &cursor, &corpus, &strategy, &enabled, &num_voices
     };
 };
 
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_INTERPOLATOR_H

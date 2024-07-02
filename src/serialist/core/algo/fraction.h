@@ -5,6 +5,8 @@
 #include <cmath>
 #include <chrono>
 
+namespace serialist {
+
 class Fraction {
 public:
     Fraction(int num, int denom) : n(num), d(denom) {}
@@ -18,5 +20,9 @@ public:
     int n;
     int d;
 };
+
+
+} // namespace serialist
+
 
 #endif //SERIALISTLOOPER_FRACTION_H

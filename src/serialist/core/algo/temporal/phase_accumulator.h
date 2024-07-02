@@ -12,6 +12,8 @@
 #include "core/algo/temporal/time_point_generators.h"
 #include <map>
 
+namespace serialist {
+
 enum class PaMode {
     transport_locked
     , free_periodic
@@ -214,5 +216,6 @@ private:
     PaMode m_mode = DEFAULT_MODE;
 };
 
+} // namespace serialist
 
 #endif //SERIALIST_LOOPER_PHASOR_H

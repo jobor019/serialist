@@ -4,6 +4,8 @@
 
 #include "time_point.h"
 
+namespace serialist {
+
 class FreePeriodic {
 public:
 
@@ -174,5 +176,7 @@ private:
     }
 
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_TIME_POINT_GENERATORS_H

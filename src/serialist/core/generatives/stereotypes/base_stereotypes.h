@@ -10,6 +10,8 @@
 #include "core/algo/facet.h"
 #include "core/algo/temporal/time_point.h"
 
+namespace serialist {
+
 class GenerativeCommons {
 public:
     GenerativeCommons() = delete;
@@ -37,7 +39,7 @@ public:
              , const std::string& class_name)
             : m_parameter_handler(id, parent)
               , m_socket_handler(m_parameter_handler) {
-        m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, class_name);
+        m_parameter_handler.add_static_property(ParameterTypes::GENERATIVE_CLASS, class_name);
     }
 
 
@@ -74,7 +76,7 @@ public:
                , const std::string& class_name)
             : m_parameter_handler(id, parent)
               , m_socket_handler(m_parameter_handler) {
-        m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, class_name);
+        m_parameter_handler.add_static_property(ParameterTypes::GENERATIVE_CLASS, class_name);
     }
 
 
@@ -112,8 +114,8 @@ public:
              , Node<Facet>* num_voices
              , const std::string& class_name)
             : StaticNode<T>(id, parent, class_name)
-              , m_enabled(StaticNode<T>::add_socket(ParameterKeys::ENABLED, enabled))
-              , m_num_voices(StaticNode<T>::add_socket(ParameterKeys::NUM_VOICES, num_voices)) {}
+              , m_enabled(StaticNode<T>::add_socket(ParameterTypes::ENABLED, enabled))
+              , m_num_voices(StaticNode<T>::add_socket(ParameterTypes::NUM_VOICES, num_voices)) {}
 
 
     void update_time(const TimePoint& t) override { m_time_gate.push_time(t); }
@@ -162,6 +164,8 @@ private:
 
     TimeGate m_time_gate;
 };
+
+} // namespace serialist
 
 
 #endif //SERIALISTLOOPER_BASE_STEREOTYPES_H

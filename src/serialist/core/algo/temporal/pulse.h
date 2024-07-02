@@ -9,6 +9,8 @@
 #include "core/collections/held.h"
 #include "core/exceptions.h"
 
+namespace serialist {
+
 class Pulse {
 public:
     Pulse(std::size_t id, const DomainTimePoint& trigger_time
@@ -231,5 +233,7 @@ private:
 //    DomainType m_type;
 };
 
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_PULSE_H

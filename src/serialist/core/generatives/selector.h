@@ -21,6 +21,8 @@
 #include <variant>
 #include <vector>
 
+namespace serialist {
+
 class SelectionStrategy {
 public:
     struct All {
@@ -304,13 +306,15 @@ struct SelectorWrapper {
     Sequence<OutputType, StoredType> material{SelectorKeys::MATERIAL, parameter_handler};
     Sequence<SelectionStrategy> strategy{SelectorKeys::STRATEGY, parameter_handler};
 
-    Sequence<Facet, bool> enabled{ParameterKeys::ENABLED, parameter_handler, true};
-    Variable<Facet, std::size_t> num_voices{ParameterKeys::NUM_VOICES, parameter_handler, 1};
+    Sequence<Facet, bool> enabled{ParameterTypes::ENABLED, parameter_handler, true};
+    Variable<Facet, std::size_t> num_voices{ParameterTypes::NUM_VOICES, parameter_handler, 1};
 
     SelectorNode<OutputType> selector{SelectorKeys::CLASS_NAME, parameter_handler, &trigger, &material
                                       , &strategy, &enabled, &num_voices};
 
 };
 
+
+} // namespace serialist
 
 #endif //SERIALIST_LOOPER_SELECTOR_H

@@ -9,6 +9,7 @@
 #include "core/utility/math.h"
 #include "core/utility/traits.h"
 
+namespace serialist {
 
 template<typename T>
 class Vec {
@@ -1323,5 +1324,7 @@ private:
     std::vector<T> m_vector;
 };
 
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_VEC_H

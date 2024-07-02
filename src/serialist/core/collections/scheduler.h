@@ -8,6 +8,8 @@
 #include "voices.h"
 #include "multi_voiced.h"
 
+namespace serialist {
+
 template<typename EventType, typename TimePointType = double
          , typename = std::enable_if_t<std::is_convertible_v<
                 decltype(std::declval<TimePointType>() <= std::declval<TimePointType>()), bool>>>
@@ -115,5 +117,7 @@ private:
 //    MultiVoiced<Scheduler<EventType, TimePointType>, EventType> m_schedulers;
 //};
 
+
+} // namespace serialist
 
 #endif //SERIALIST_LOOPER_SCHEDULER_H

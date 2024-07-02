@@ -17,7 +17,7 @@ target_include_directories(serialist PRIVATE
 
 target_compile_definitions(serialist
         PRIVATE
-        USE_JUCE=1 # Parameter class
+        USE_JUCE=1
         # JUCE_WEB_BROWSER and JUCE_USE_CURL would be on by default, but you might not need them.
         JUCE_WEB_BROWSER=0  # If you remove this, add `NEEDS_WEB_BROWSER TRUE` to the `juce_add_gui_app` call
         JUCE_USE_CURL=0     # If you remove this, add `NEEDS_CURL TRUE` to the `juce_add_gui_app` call
@@ -27,7 +27,8 @@ target_compile_definitions(serialist
 
 target_link_libraries(serialist
         PRIVATE
-        # GuiAppData            # If we'd created a binary data target, we'd link to it here
+        serialist::core
+        serialist::gui
         ${MODULE_DEPENDENCIES_JUCE}
         PUBLIC
         ${FLAGS_JUCE})

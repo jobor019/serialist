@@ -5,6 +5,8 @@
 #include <type_traits>
 #include "traits.h"
 
+namespace serialist {
+
 /**
  * @brief Wrapper class that tracks if the value has changed.
  */
@@ -64,5 +66,7 @@ private:
 
 //template<typename T, std::size_t N>
 //class WithHistory
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_STATEFUL_H

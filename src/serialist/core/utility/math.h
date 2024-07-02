@@ -8,7 +8,7 @@
 #include <optional>
 #include <algorithm>
 
-namespace utils {
+namespace serialist::utils {
 
 /**
  * @brief Computes the remainder of a division between two doubles, allowing negative nominators.
@@ -120,6 +120,6 @@ inline bool equals(std::optional<T> a, std::optional<T> b, T epsilon = 1e-6) {
 }
 
 
-} // namespace utils
+} // namespace serialist::utils
 
 #endif //SERIALISTLOOPER_MATH_H

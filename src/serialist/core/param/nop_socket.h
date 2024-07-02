@@ -7,6 +7,8 @@
 
 #include "core/param/socket_base.h"
 
+namespace serialist {
+
 template<typename T>
 class NopSocket : public SocketBase<T> {
 public:
@@ -26,5 +28,6 @@ public:
 
 };
 
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_NOP_SOCKET_H

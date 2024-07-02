@@ -4,6 +4,8 @@
 
 #include "core/collections/vec.h"
 
+namespace serialist {
+
 template<typename T>
 class LinearBandClassifier {
 public:
@@ -115,5 +117,6 @@ private:
     double m_band_width = 0.0;
 };
 
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_CLASSIFIERS_H

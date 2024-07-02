@@ -5,6 +5,8 @@
 #include "core/collections/vec.h"
 #include "core/algo/classifiers.h"
 
+namespace serialist {
+
 template<typename T>
 class Histogram {
 public:
@@ -123,5 +125,7 @@ private:
     Vec<std::size_t> m_counts;
 
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_HISTOGRAM_H

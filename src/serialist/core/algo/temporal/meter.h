@@ -7,6 +7,8 @@
 #include <cmath>
 #include <chrono>
 
+namespace serialist {
+
 class Meter {
 public:
     explicit Meter(int numerator = 4, int denominator = 4) : m_fraction(numerator, denominator) {}
@@ -64,5 +66,7 @@ public:
 private:
     Fraction m_fraction;
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_METER_H

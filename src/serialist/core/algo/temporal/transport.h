@@ -10,6 +10,8 @@
 #include "meter.h"
 #include "core/algo/temporal/time_point.h"
 
+namespace serialist {
+
 // ==============================================================================================
 
 class Transport {
@@ -58,5 +60,7 @@ private:
 
 
 };
+
+} // namespace serialist
 
 #endif //SERIALIST_LOOPER_TRANSPORT_H

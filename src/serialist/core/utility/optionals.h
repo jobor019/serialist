@@ -4,7 +4,7 @@
 
 #include <optional>
 
-namespace utils {
+namespace serialist::utils {
 
 template<typename U, typename T, typename = std::enable_if_t<std::is_constructible_v<U, T>>>
 inline std::optional<U> optional_cast(std::optional<T> opt) {
@@ -24,6 +24,6 @@ inline std::optional<T> optional_op(const std::optional<T>& a
     return std::optional<T>(op(a.value(), b.value()));
 }
 
-} // namespace utils
+} // namespace serialist::utils
 
 #endif //SERIALISTLOOPER_OPTIONALS_H

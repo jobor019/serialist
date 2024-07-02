@@ -5,6 +5,8 @@
 #include "core/collections/voices.h"
 #include "core/collections/vec.h"
 
+namespace serialist {
+
 template<typename T>
 class Flushable {
 public:
@@ -162,5 +164,7 @@ private:
     Vec<ObjectType> m_objects;
 };
 
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_MULTI_VOICED_H

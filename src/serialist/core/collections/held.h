@@ -6,6 +6,8 @@
 #include "core/collections/vec.h"
 #include "multi_voiced.h"
 
+namespace serialist {
+
 template<typename T, bool AllowDuplicates = false>
 class Held : public Flushable<T> {
 public:
@@ -114,5 +116,7 @@ private:
     MultiVoiced<Held<T>, T> m_voiced_held;
 
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_HELD_H

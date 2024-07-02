@@ -34,8 +34,8 @@ add_library(${GUI_NAME} INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/modules/pulsator_module.h
         ${CMAKE_CURRENT_SOURCE_DIR}/modules/text_sequence_module.h
 
-        ${CMAKE_CURRENT_SOURCE_DIR}/value_tree/vt_parameter.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/value_tree/vt_socket.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/param/vt_parameter.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/param/vt_socket.h
 
         ${CMAKE_CURRENT_SOURCE_DIR}/views/note_view.h
         ${CMAKE_CURRENT_SOURCE_DIR}/views/oscillator_view.h
@@ -57,6 +57,16 @@ add_library(${GUI_NAME} INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/look_and_feel.h
         ${CMAKE_CURRENT_SOURCE_DIR}/main_component.h
         ${CMAKE_CURRENT_SOURCE_DIR}/module_factory.h
+
+        # TODO: Automatically added - move to correct location above and append ${CMAKE_CURRENT_SOURCE_DIR}
+        param/variant_converter.h
+        param/parameter_keys.h
+        param/vt_parameter_2.h
+        policies/policies.h
+        param/deserialization.h
+        policies/parameter_policy.h
+        policies/socket_policy.h
+        policies/deserialization_policy.h
 )
 
 add_library(${PROJECT_NAME}::${GUI_NAME} ALIAS ${GUI_NAME})
@@ -64,6 +74,11 @@ add_library(${PROJECT_NAME}::${GUI_NAME} ALIAS ${GUI_NAME})
 target_link_libraries(${GUI_NAME}
         INTERFACE
         serialist::core
+)
+
+target_compile_definitions(${GUI_NAME}
+        INTERFACE
+        SERIALIST_OVERRIDE_POLICIES=1
 )
 
 

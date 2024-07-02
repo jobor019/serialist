@@ -7,6 +7,8 @@
 #include <optional>
 #include <magic_enum.hpp>
 
+namespace serialist {
+
 class Facet {
 public:
     static const inline double enum_epsilon = 1e-6;
@@ -259,16 +261,20 @@ private:
 
 };
 
+} // namespace serialist
+
 
 // ==============================================================================================
 
 template<>
-struct std::is_floating_point<Facet> : std::true_type {
+struct std::is_floating_point<serialist::Facet> : std::true_type {
 };
 
 template<>
-struct std::is_arithmetic<Facet> : std::true_type {
+struct std::is_arithmetic<serialist::Facet> : std::true_type {
 };
+
+
 
 
 #endif //SERIALISTLOOPER_FACET_H

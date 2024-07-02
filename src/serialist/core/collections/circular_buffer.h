@@ -4,6 +4,8 @@
 
 #include <array>
 
+namespace serialist {
+
 template<typename T, int N>
     class Buffer {
     public:
@@ -36,5 +38,7 @@ template<typename T, int N>
         std::size_t write_pos = 0;
         std::size_t size = 0;
     };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_CIRCULAR_BUFFER_H

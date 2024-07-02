@@ -305,8 +305,8 @@
 //                                           , parameter_handler
 //                                           , Voices<FloatType>::singular(1.0f)};
 //
-//    Sequence<Facet, bool> enabled{ParameterKeys::ENABLED, parameter_handler, Voices<bool>::singular(true)};
-//    Variable<Facet, std::size_t> num_voices{ParameterKeys::NUM_VOICES, parameter_handler, 1};
+//    Sequence<Facet, bool> enabled{ParameterTypes::ENABLED, parameter_handler, Voices<bool>::singular(true)};
+//    Variable<Facet, std::size_t> num_voices{ParameterTypes::NUM_VOICES, parameter_handler, 1};
 //
 //    RandomPulsatorNode random_pulsator{"RandomPulsator", parameter_handler
 //                                       , &lower_bound, &upper_bound, &pulse_width

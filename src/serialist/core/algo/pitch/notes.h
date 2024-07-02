@@ -9,6 +9,8 @@
 #include "core/algo/random.h"
 #include "core/utility/math.h"
 
+namespace serialist {
+
 namespace pitch {
 static const unsigned int MIN_NOTE = 21;
 static const unsigned int MAX_NOTE = 108;
@@ -162,5 +164,6 @@ using HeldNotesWithIds = Held<IdentifiedChanneledHeld, true>;
 
 using MultiVoiceHeldNotes = MultiVoiceHeld<ChanneledHeld>;
 
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_NOTES_H

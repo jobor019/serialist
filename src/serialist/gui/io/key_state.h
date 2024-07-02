@@ -3,7 +3,7 @@
 #ifndef GUIUTILS_KEY_STATE_H
 #define GUIUTILS_KEY_STATE_H
 
-#include "juce_gui_extra/juce_gui_extra.h"
+#include <juce_gui_extra/juce_gui_extra.h>
 
 class KeyState {
 public:
@@ -83,6 +83,12 @@ public:
         return is_down(key_code) && m_held_keys.size() == 1;
     }
 
+    bool flush() {
+        m_held_keys.clear();
+        m_modifiers = juce::ModifierKeys();
+        return true;
+    }
+
 
 private:
     std::vector<int> m_held_keys;
@@ -110,13 +116,8 @@ public:
 
     private:
         virtual void modifier_keys_changed() {}
-
-
         virtual void key_pressed() {}
-
-
         virtual void key_released() {}
-
 
         friend class GlobalKeyState;
     };
@@ -129,9 +130,13 @@ public:
 
 
     ~GlobalKeyState() = default;
+
     GlobalKeyState(GlobalKeyState const&) = delete;
+
     void operator=(GlobalKeyState const&) = delete;
+
     GlobalKeyState(GlobalKeyState&&) noexcept = delete;
+
     GlobalKeyState& operator=(GlobalKeyState&&) noexcept = delete;
 
 
@@ -188,6 +193,26 @@ public:
         return changed;
     }
 
+    static void flush() {
+        bool modifiers_changed = GlobalKeyState::get_modifiers().getRawFlags() != 0;
+        bool key_state_changed = !GlobalKeyState::get_held_keys().empty();
+
+        auto& self = get_instance();
+        self.m_key_state.flush();
+
+        if (modifiers_changed) {
+            for (auto& listener: self.m_listeners) {
+                listener->modifier_keys_changed();
+            }
+        }
+
+        if (key_state_changed) {
+            for (auto& listener: self.m_listeners) {
+                listener->key_released();
+            }
+        }
+    }
+
 
     static void print_held() { return get_instance().m_key_state.print_held(); }
 
@@ -216,9 +241,6 @@ public:
     }
 
 
-
-
-
 private:
     GlobalKeyState() = default;
 
@@ -240,12 +262,14 @@ private:
  */
 class MainKeyboardFocusComponent : public juce::Component
                                    , public GlobalKeyState::Listener
-                                   , public juce::FocusChangeListener {
+                                   , public juce::FocusChangeListener
+                                   , public juce::Timer {
 public:
     MainKeyboardFocusComponent() {
         setWantsKeyboardFocus(true);
         GlobalKeyState::add_listener(*this);
         juce::Desktop::getInstance().addFocusChangeListener(this);
+        startTimer(1000);
     }
 
 
@@ -259,6 +283,12 @@ protected:
     void globalFocusChanged(juce::Component* focusedComponent) override {
         if (focusedComponent == nullptr) {
             grabKeyboardFocus();
+        }
+    }
+
+    void timerCallback() override {
+        if (!juce::Process::isForegroundProcess()) {
+            GlobalKeyState::flush();
         }
     }
 
@@ -279,11 +309,52 @@ private:
 
 
     void modifierKeysChanged(const juce::ModifierKeys& modifiers) final {
-        std::cout <<
         GlobalKeyState::register_modifiers(modifiers);
+    }
+};
+
+
+// ==============================================================================================
+
+
+/**
+ *  Base class (non-virtual) for modal windows (Popup menus, dialogs, etc.) that should update the global key state
+ *  when they are focused. Example usage:
+ *
+ *  @code
+ *    class MyModalWindow : public juce::Component
+ *                        , public GlobalKeyPressRegistrar {
+ *    public:
+ *        MyWindow() {
+ *            addKeyListener(this);
+ *        }
+ *
+ *   @endcode
+ */
+class GlobalKeyPressRegistrar : public juce::KeyListener {
+private:
+    bool keyPressed(const juce::KeyPress &key, juce::Component*) final {
+        GlobalKeyState::register_key_press(key);
+        return true;
     }
 
 
+    bool keyStateChanged(bool isKeyDown, juce::Component*) final {
+        // Since juce::KeyListener doesn't implement modifier keys changed,
+        // we need to check the modifiers each time we get a key state change.
+        //
+        // In addition, since (at least) juce::NSViewComponentPeer::redirectModKeyChange
+        // updates the global modifiers AFTER registering the key press, we need to use
+        // juce::ComponentPeer::getCurrentModifiersRealtime() here
+        // as juce::ModifierKeys::currentModifiers hasn't been updated yet
+
+        GlobalKeyState::register_modifiers(juce::ComponentPeer::getCurrentModifiersRealtime());
+
+        if (!isKeyDown) {
+            GlobalKeyState::register_key_release();
+        }
+        return true;
+    }
 };
 
 #endif //GUIUTILS_KEY_STATE_H

@@ -10,6 +10,8 @@
 #include "core/collections/vec.h"
 #include "core/collections/voices.h"
 
+namespace serialist {
+
 template<typename OutputType, typename StoredType = OutputType>
 class Sequence : public Node<OutputType> {
 public:
@@ -27,7 +29,7 @@ public:
                       && std::is_constructible_v<StoredType, OutputType>
                       , "Cannot create a Sequence with incompatible types");
 
-        m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, CLASS_NAME);
+        m_parameter_handler.add_static_property(ParameterTypes::GENERATIVE_CLASS, CLASS_NAME);
     }
 
     Sequence(const std::string& id, ParameterHandler& parent, const StoredType& value)
@@ -83,5 +85,7 @@ private:
 
 };
 
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_SEQUENCE_H

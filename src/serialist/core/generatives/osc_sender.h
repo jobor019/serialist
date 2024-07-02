@@ -7,6 +7,8 @@
 #include "osc.h"
 #include "core/algo/temporal/time_point.h"
 
+namespace serialist {
+
 class OscSenderNode : public RootBase {
 public:
 
@@ -33,10 +35,10 @@ public:
             : RootBase(identifier, parent, CLASS_NAME)
               , m_osc_address(add_socket(OSC_ADDRESS, osc_address))
               , m_input(add_socket(INPUT, input))
-              , m_trigger(add_socket(ParameterKeys::TRIGGER, trigger))
+              , m_trigger(add_socket(ParameterTypes::TRIGGER, trigger))
               , m_flatten(add_socket(FLATTEN, flatten))
               , m_trigger_on_change_only(add_socket(CHANGE, trigger_on_change_only))
-              , m_enabled(add_socket(ParameterKeys::ENABLED, enabled)) {}
+              , m_enabled(add_socket(ParameterTypes::ENABLED, enabled)) {}
 
 
     void update_time(const TimePoint& t) override { m_time_gate.push_time(t); }
@@ -129,5 +131,7 @@ private:
 
 
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_OSC_SENDER_H

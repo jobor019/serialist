@@ -4,6 +4,8 @@
 
 #include "core/connectable.h"
 
+namespace serialist {
+
 template<typename T>
 class SocketBase : public Connectable {
 public:
@@ -124,5 +126,7 @@ private:
     std::optional<Voices<T>> m_previous_value = std::nullopt;
 };
 
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_SOCKET_BASE_H

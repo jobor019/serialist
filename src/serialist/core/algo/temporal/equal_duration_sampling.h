@@ -5,6 +5,7 @@
 #include <cassert>
 #include "core/algo/random.h"
 
+namespace serialist {
 
 /**
  * Randomly samples durations in interval [lower_bound, upper_bound) using an inverse exponential distribution
@@ -88,5 +89,6 @@ private:
     double m_k_inv = 0.0;
 };
 
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_EQUAL_DURATION_SAMPLING_H

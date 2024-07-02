@@ -7,6 +7,8 @@
 #include "core/utility/math.h"
 #include "vec.h"
 
+namespace serialist {
+
 class RangeUtils {
 public:
     RangeUtils() = delete;
@@ -285,5 +287,7 @@ private:
     bool m_include_end;
     bool m_include_start;
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_RANGE_H

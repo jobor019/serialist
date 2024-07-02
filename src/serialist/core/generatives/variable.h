@@ -8,6 +8,8 @@
 #include "core/param/parameter_policy.h"
 #include "core/param/parameter_keys.h"
 
+namespace serialist {
+
 template<typename OutputType, typename StoredType = OutputType>
 class Variable : public Node<OutputType> {
 public:
@@ -26,7 +28,7 @@ public:
                        && std::is_constructible_v<StoredType, OutputType>)
                       || std::is_enum_v<StoredType>
                       , "Cannot create a Variable with incompatible types");
-        m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, CLASS_NAME);
+        m_parameter_handler.add_static_property(ParameterTypes::GENERATIVE_CLASS, CLASS_NAME);
     }
 
 
@@ -60,5 +62,7 @@ private:
     ParameterType m_value;
 
 };
+
+} // namespace serialist
 
 #endif //SERIALIST_LOOPER_VARIABLE_H

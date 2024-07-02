@@ -8,6 +8,8 @@
 #include "core/algo/temporal/trigger.h"
 #include "core/algo/temporal/time_point.h"
 
+namespace serialist {
+
 class UnitPulse : public Node<Trigger> {
 public:
     static const inline std::string CLASS_NAME = "pulsator";
@@ -15,7 +17,7 @@ public:
 
     UnitPulse(const std::string& id, ParameterHandler& parent)
             : m_parameter_handler(id, parent) {
-        m_parameter_handler.add_static_property(ParameterKeys::GENERATIVE_CLASS, CLASS_NAME);
+        m_parameter_handler.add_static_property(ParameterTypes::GENERATIVE_CLASS, CLASS_NAME);
     }
 
 
@@ -40,5 +42,6 @@ private:
 
 };
 
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_UNIT_PULSE_H

@@ -11,6 +11,8 @@
 #include "core/connectable.h"
 #include "core/param/socket_base.h"
 
+namespace serialist {
+
 template<typename T>
 class VTSocket : public SocketBase<T>
                  , private juce::ValueTree::Listener {
@@ -24,8 +26,8 @@ public:
         if (!m_parent.get_value_tree().isValid())
             throw ParameterError("Cannot register VTParameterBase for invalid tree");
 
-        m_value_tree = juce::ValueTree({ParameterKeys::GENERATIVE_SOCKET});
-        m_value_tree.setProperty({ParameterKeys::ID_PROPERTY}, {m_id}, &m_parent.get_undo_manager());
+        m_value_tree = juce::ValueTree({ParameterTypes::GENERATIVE_SOCKET});
+        m_value_tree.setProperty({ParameterTypes::ID_PROPERTY}, {m_id}, &m_parent.get_undo_manager());
         m_parent.get_value_tree().addChild(m_value_tree, -1, &m_parent.get_undo_manager());
 
         set_connection_internal(initial);
@@ -107,5 +109,7 @@ private:
     juce::ValueTree m_value_tree;
 };
 
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_VT_SOCKET_H

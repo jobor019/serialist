@@ -9,6 +9,7 @@
 #include "core/utility/traits.h"
 #include "core/collections/vec.h"
 
+namespace serialist {
 
 template<typename T>
 using Voice = Vec<T>;
@@ -410,5 +411,7 @@ private:
 
 
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_VOICES_H

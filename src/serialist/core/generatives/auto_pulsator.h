@@ -213,7 +213,7 @@
 //                     , Node<Facet>* enabled = nullptr
 //                     , Node<Facet>* num_voices = nullptr)
 //            : PulsatorNodeBase<AutoPulsator>(id, parent, enabled, num_voices, CLASS_NAME)
-////              , m_trigger(add_socket(ParameterKeys::TRIGGER, trigger))
+////              , m_trigger(add_socket(ParameterTypes::TRIGGER, trigger))
 //              , m_duration(add_socket(DURATION, period))
 //              , m_duration_type(add_socket(DURATION_TYPE, duration_type))
 //              , m_offset(add_socket(OFFSET, offset))

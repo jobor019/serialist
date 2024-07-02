@@ -2,7 +2,7 @@
 //#ifndef SERIALISTLOOPER_ALLOCATOR_H
 //#define SERIALISTLOOPER_ALLOCATOR_H
 //
-//
+// namespace serialist {
 //#include <map>
 //#include "core/algo/weighted_random.h"
 //#include "core/collections/vec.h"
@@ -281,5 +281,5 @@
 //    std::size_t m_previous_num_voices = 0;
 //
 //};
-//
+// } // namespace serialist
 //#endif //SERIALISTLOOPER_ALLOCATOR_H

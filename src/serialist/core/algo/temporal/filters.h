@@ -6,6 +6,8 @@
 #include <optional>
 #include "time_point.h"
 
+namespace serialist {
+
 /**
  * @brief one-pole smoothing filter for unevenly sampled data
  *
@@ -60,5 +62,7 @@ private:
     double y = 0.0;
     std::optional<TimePoint> t1 = std::nullopt;
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_FILTERS_H

@@ -5,6 +5,8 @@
 #include <optional>
 #include "core/utility/math.h"
 
+namespace serialist {
+
 template<typename T>
 class Exponential {
 public:
@@ -41,5 +43,6 @@ private:
     double m_epsilon;
 };
 
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_EXPONENTIAL_H

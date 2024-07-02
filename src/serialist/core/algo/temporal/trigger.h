@@ -5,6 +5,8 @@
 #include "core/collections/vec.h"
 #include "core/collections/voices.h"
 
+namespace serialist {
+
 class TriggerIds {
 public:
     static inline const std::size_t NO_ID = 0;
@@ -174,5 +176,7 @@ private:
 
 };
 
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_TRIGGER_H

@@ -6,6 +6,7 @@
 //#include "core/algo/temporal/LEGACY_events.h"
 //#include "core/algo/facet.h"
 //
+// namespace serialist {
 //
 //class PartialNote {
 //public:
@@ -78,4 +79,5 @@
 //
 //};
 //
+// } // namespace serialist
 //#endif //SERIALISTLOOPER_PARTIAL_NOTE_H

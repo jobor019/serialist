@@ -12,6 +12,8 @@
 #include "sequence.h"
 #include "variable.h"
 
+namespace serialist {
+
 class Waveform {
 public:
     enum class Type {
@@ -342,8 +344,8 @@ struct OscillatorWrapper {
     Sequence<Facet, FloatType> tau{Keys::TAU, ph, Voices<FloatType>::singular(FilterSmoo::DEFAULT_TAU)};
     Variable<Facet, DomainType> tau_type{Keys::TAU_TYPE, ph, FilterSmoo::DEFAULT_TAU_TYPE};
 
-    Sequence<Facet, bool> enabled{ParameterKeys::ENABLED, ph, Voices<bool>::singular(true)};
-    Variable<Facet, std::size_t> num_voices{ParameterKeys::NUM_VOICES, ph, 0};
+    Sequence<Facet, bool> enabled{ParameterTypes::ENABLED, ph, Voices<bool>::singular(true)};
+    Variable<Facet, std::size_t> num_voices{ParameterTypes::NUM_VOICES, ph, 0};
 
     OscillatorNode oscillator{Keys::CLASS_NAME
                               , ph
@@ -363,5 +365,6 @@ struct OscillatorWrapper {
                               , &num_voices};
 };
 
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_OSCILLATOR_H

@@ -5,6 +5,8 @@
 #include <deque>
 #include <thread>
 
+namespace serialist {
+
 template<typename T = double>
 class LockingQueue {
 public:
@@ -72,5 +74,7 @@ private:
     std::deque<T> m_queue;
     std::mutex m_mutex;
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_QUEUE_H

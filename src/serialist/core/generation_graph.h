@@ -10,6 +10,8 @@
 #include "core/param/parameter_keys.h"
 #include "core/algo/temporal/time_point.h"
 
+namespace serialist {
+
 class GraphUtils {
 public:
     using IndexGraph = std::unordered_map<std::size_t, std::vector<std::size_t>>;
@@ -130,7 +132,7 @@ public:
 
 
     explicit GenerationGraph(ParameterHandler& root)
-            : m_parameter_handler("", root, ParameterKeys::GENERATIVES_TREE) {}
+            : m_parameter_handler("", root, ParameterTypes::GENERATIVES_TREE) {}
 
 
     void process(const TimePoint& time) {
@@ -344,5 +346,7 @@ private:
 
 
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_GENERATION_GRAPH_H

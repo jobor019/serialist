@@ -4,11 +4,8 @@
 
 
 #include "core/generatives/auto_pulsator.h"
-#include "core/generatives/OLD_oscillator.h"
 //#include "core/generator.h"
-#include "core/generatives/note_source_LEGACY.h"
 #include "midi_config.h"
-#include "core/generatives/note_source_LEGACY.h"
 #include "core/algo/temporal/time_point.h"
 //#include "midi_config.h"
 

@@ -7,10 +7,12 @@
 #include "core/param/socket_policy.h"
 #include "core/param/parameter_keys.h"
 
+namespace serialist {
+
 class SocketHandler {
 public:
     explicit SocketHandler(ParameterHandler& parameter_handler)
-            : m_socket_parameter_handler("", parameter_handler, ParameterKeys::GENERATIVE_SOCKETS_TREE) {}
+            : m_socket_parameter_handler("", parameter_handler, ParameterTypes::GENERATIVE_SOCKETS_TREE) {}
 
 
     template<typename T>
@@ -49,5 +51,7 @@ private:
 
     std::vector<std::unique_ptr<Connectable>> m_sockets;
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_SOCKET_HANDLER_H

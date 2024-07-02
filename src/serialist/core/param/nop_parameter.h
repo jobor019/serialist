@@ -1,12 +1,14 @@
 
 
-#ifndef SERIALISTPLAYGROUND_NOP_PARAMETER_H
-#define SERIALISTPLAYGROUND_NOP_PARAMETER_H
+#ifndef SERIALIST_NOP_PARAMETER_H
+#define SERIALIST_NOP_PARAMETER_H
 
 
 #include <iostream>
 #include "core/exceptions.h"
 #include "core/collections/voices.h"
+
+namespace serialist {
 
 class NopParameterHandler {
 public:
@@ -72,4 +74,6 @@ private:
 
 };
 
-#endif //SERIALISTPLAYGROUND_NOP_PARAMETER_H
+} // namespace serialist
+
+#endif //SERIALIST_NOP_PARAMETER_H

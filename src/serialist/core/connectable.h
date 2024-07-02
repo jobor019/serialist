@@ -4,6 +4,8 @@
 
 #include "core/generative.h"
 
+namespace serialist {
+
 class Connectable {
 public:
     Connectable() = default;
@@ -36,5 +38,8 @@ public:
 //    }
 
 };
+
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_CONNECTABLE_H

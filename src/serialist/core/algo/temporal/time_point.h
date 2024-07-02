@@ -10,6 +10,8 @@
 #include <chrono>
 #include <string>
 
+namespace serialist {
+
 enum class DomainType {
     ticks, beats, bars
 };
@@ -433,5 +435,6 @@ inline DomainDuration DomainDuration::as_type(DomainType target_type, const Mete
     return DomainDuration{DomainConverter::convert(m_value, m_type, target_type, meter), m_type};
 }
 
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_TIME_POINT_H

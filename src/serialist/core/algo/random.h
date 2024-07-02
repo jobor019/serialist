@@ -5,6 +5,8 @@
 #include <random>
 #include "core/collections/vec.h"
 
+namespace serialist {
+
 class Random {
 public:
     explicit Random(std::optional<unsigned int> seed = std::nullopt) : m_rng(seed.value_or(std::random_device()())) {}
@@ -120,9 +122,7 @@ private:
 };
 
 
-// ==============================================================================================
-
-
+} // namespace serialist
 
 
 #endif //SERIALISTLOOPER_RANDOM_H

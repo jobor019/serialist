@@ -4,6 +4,7 @@
 
 #include "core/algo/pitch/notes.h"
 
+namespace serialist {
 
 struct MidiNoteEvent {
         std::size_t note_number;
@@ -78,5 +79,7 @@ private:
 //    unsigned int m_velocity;
 //    unsigned int m_channel;
 //};
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_EVENT_H

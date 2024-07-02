@@ -7,7 +7,7 @@
 #include <functional>
 #include <random>
 
-// ==============================================================================================
+namespace serialist {
 
 //  TODO: This class can be generalized and/or removed
 class ContinuousWeightedRandom {
@@ -117,5 +117,7 @@ private:
     std::mt19937 m_rng{std::random_device()()};
     std::uniform_real_distribution<> m_distribution{0.0, 1.0};
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_WEIGHTED_RANDOM_H
