@@ -21,6 +21,12 @@ using ComplexParameter = LockingVTParameter<DataType>;
 template<typename PivotType, typename StoredType = PivotType>
 using SequenceParameter = VTSequenceParameter<PivotType, StoredType>;
 
+/**
+ * Type alias for any parameter that only interacts with the GUI thread (e.g. configuration of GUI elements)
+ */
+template<typename T>
+using GuiParameter = SingleThreadedVTParameter<T>;
+
 
 #endif // SERIALIST_OVERRIDE_POLICIES
 

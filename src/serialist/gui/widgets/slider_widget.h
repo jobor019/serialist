@@ -3,56 +3,116 @@
 #define SERIALISTLOOPER_SLIDER_WIDGET_H
 
 #include <juce_gui_extra/juce_gui_extra.h>
+#include "policies/parameter_policy.h"
 #include "gui/interaction/input_handler.h"
 #include "gui/interaction/interaction_visualizer.h"
 #include "core/generatives/variable.h"
 #include "core/collections/range.h"
 #include "core/algo/exponential.h"
+#include "algo/facet.h"
 
 namespace serialist {
 
-class SliderValue {
+
+class SliderValue : public ParameterHandler::Listener {
 public:
 
-    class Listener {
+    class ValueListener {
     public:
-        Listener() = default;
-        virtual ~Listener() = default;
-        Listener(const Listener&) = delete;
-        Listener& operator=(const Listener&) = delete;
-        Listener(Listener&&) noexcept = default;
-        Listener& operator=(Listener&&) noexcept = default;
+        ValueListener() = default;
+        virtual ~ValueListener() = default;
+        ValueListener(const ValueListener&) = delete;
+        ValueListener& operator=(const ValueListener&) = delete;
+        ValueListener(ValueListener&&) noexcept = default;
+        ValueListener& operator=(ValueListener&&) noexcept = default;
 
-        virtual void on_value_changed(double new_value) { (void) new_value; }
-        virtual void on_bounds_changed(const DiscreteRange<double>& new_bounds) { (void) new_bounds; }
-        virtual void on_exponential_changed(const Exponential<double>& new_exponential) { (void) new_exponential; }
+        virtual void on_value_changed(SliderValue& v, double new_value) = 0;
+
+    };
+
+    class ConfigListener {
+    public:
+        ConfigListener() = default;
+        virtual ~ConfigListener() = default;
+        ConfigListener(const ConfigListener&) = delete;
+        ConfigListener& operator=(const ConfigListener&) = delete;
+        ConfigListener(ConfigListener&&)  noexcept = default;
+        ConfigListener& operator=(ConfigListener&&)  noexcept = default;
+
+        virtual void on_bounds_changed(SliderValue& v) = 0;
+        virtual void on_exponential_changed(SliderValue& v) = 0;
     };
 
     // ================
 
-    explicit SliderValue(double initial_value = 0.0
+
+    struct Ids {
+        Ids() = delete;
+        static const inline std::string VALUE = "value";
+        static const inline std::string BOUNDS = "bounds";
+        static const inline std::string EXP = "exponential";
+        static const inline std::string INTEGRAL = "integral";
+        static const inline std::string LHB = "lower_hard_bound";
+        static const inline std::string UHB = "upper_hard_bound";
+    };
+
+    // ================
+
+    explicit SliderValue(double initial_value
+                         , ParameterHandler& ph
                          , const DiscreteRange<double>& bounds = DiscreteRange<double>::from_size(0.0, 1.0, 200, true)
                          , bool is_integral = false
                          , std::optional<double> lower_hard_bound = std::nullopt
                          , std::optional<double> upper_hard_bound = std::nullopt
                          , const Exponential<double>& exponential = Exponential<double>(1.0))
-            : m_scaled_value(initial_value)
-              , m_bounds(bounds)
-              , m_exponential(exponential)
-              , m_is_integral(is_integral)
-              , m_lower_hard_bound(lower_hard_bound)
-              , m_upper_hard_bound(upper_hard_bound)
-              , m_raw_value(inverse(m_scaled_value)) {
-        assert(!m_lower_hard_bound || !m_upper_hard_bound || m_lower_hard_bound < m_upper_hard_bound);
+            : m_parent(ph)
+            , m_scaled_value(initial_value, Ids::VALUE, m_parent)
+              , m_bounds(bounds, Ids::BOUNDS, m_parent)
+              , m_exponential(exponential, Ids::EXP, m_parent)
+              , m_is_integral(is_integral, Ids::INTEGRAL, m_parent)
+              , m_lower_hard_bound(lower_hard_bound, Ids::LHB, m_parent)
+              , m_upper_hard_bound(upper_hard_bound, Ids::UHB, m_parent)
+              , m_raw_value(inverse(*m_scaled_value)) {
+        assert(!*m_lower_hard_bound || !*m_upper_hard_bound || *m_lower_hard_bound < *m_upper_hard_bound);
     }
 
-    void add_listener(Listener& listener) noexcept {
-        m_listeners.append(listener);
+    SliderValue& with_bounds(const DiscreteRange<double>& bounds) {
+        set_bounds(bounds, false);
+        return *this;
+    }
+
+    SliderValue& with_lower_hard_bound(std::optional<double> lhb) {
+        m_lower_hard_bound = lhb;
+        return *this;
+    }
+
+    SliderValue& with_upper_hard_bound(std::optional<double> upper_hard_bound) {
+        m_upper_hard_bound = upper_hard_bound;
+        return *this;
+    }
+
+    SliderValue& with_exponent(double exponent) {
+        set_exponent(exponent, false);
+        return *this;
+    }
+
+    void add_listener(ValueListener& listener) noexcept {
+        m_value_listeners.append(listener);
+    }
+
+    void add_listener(ConfigListener& listener) noexcept {
+        m_config_listeners.append(listener);
     }
 
 
-    void remove_listener(Listener& listener) noexcept {
-        m_listeners.remove([&listener](const auto& handler) {
+    void remove_listener(ValueListener& listener) noexcept {
+        m_value_listeners.remove([&listener](const auto& handler) {
+            return std::addressof(handler.get()) == std::addressof(listener);
+        });
+    }
+
+    void remove_listener(ConfigListener& listener) noexcept {
+        m_config_listeners.remove([&listener](const auto& handler) {
             return std::addressof(handler.get()) == std::addressof(listener);
         });
     }
@@ -66,12 +126,12 @@ public:
             notify_value_change();
         }
 
-        return m_scaled_value;
+        return *m_scaled_value;
     }
 
     void set_scaled_value(double scaled_value, bool notify = true) {
-        m_scaled_value = m_bounds.clip(scaled_value);
-        m_raw_value = inverse(m_scaled_value);
+        m_scaled_value = m_bounds->clip(scaled_value);
+        m_raw_value = inverse(*m_scaled_value);
 
         if (notify) {
             notify_value_change();
@@ -79,13 +139,17 @@ public:
     }
 
     void set_exponent(double exponent, bool notify = true) {
-        m_exponential.set_exponent(exponent);
+        auto exponential = m_exponential.get();
+        exponential.set_exponent(exponent);
+        m_exponential.set(exponential);
 
         if (notify) {
-            for (const auto& listener: m_listeners) {
-                listener.get().on_exponential_changed(m_exponential);
+            for (const auto& listener: m_config_listeners) {
+                listener.get().on_exponential_changed(*this);
             }
         }
+
+        // TODO: Update either raw value or scaled value (if exponent changes, one of them has to change)
     }
 
     void set_bounds(const DiscreteRange<double>& bounds, bool notify = true) {
@@ -93,12 +157,12 @@ public:
         std::optional<double> new_end = std::nullopt;
 
         // Note: comparison with `min` rather than `start` in case of an excluded start of range
-        if (m_lower_hard_bound && bounds.get_min() < m_lower_hard_bound.value()) {
+        if (*m_lower_hard_bound && bounds.get_min() < m_lower_hard_bound->value()) {
             new_start = bounds.get_min();
         }
 
         // Note: comparison with `max` rather than `end` in case of an excluded end of range
-        if (m_upper_hard_bound && bounds.get_max() > m_upper_hard_bound.value()) {
+        if (*m_upper_hard_bound && bounds.get_max() > m_upper_hard_bound->value()) {
             new_end = bounds.get_max();
         }
 
@@ -109,12 +173,12 @@ public:
         }
 
         if (notify) {
-            for (const auto& listener: m_listeners) {
-                listener.get().on_bounds_changed(m_bounds);
+            for (const auto& listener: m_config_listeners) {
+                listener.get().on_bounds_changed(*this);
             }
         }
 
-        if (!m_bounds.contains(m_scaled_value)) {
+        if (!m_bounds->contains(*m_scaled_value)) {
             m_scaled_value = process(m_raw_value);
             if (notify) {
                 notify_value_change();
@@ -123,77 +187,81 @@ public:
 
     }
 
-    double get_scaled_value() const { return m_scaled_value; }
+    double get_scaled_value() const { return *m_scaled_value; }
 
-    const DiscreteRange<double>& get_bounds() const { return m_bounds; }
+    const DiscreteRange<double>& get_bounds() const { return *m_bounds; }
 
-    const Exponential<double>& get_exponential() const { return m_exponential; }
+    const Exponential<double>& get_exponential() const { return *m_exponential; }
 
-    bool is_integral() const { return m_is_integral; }
+    bool is_integral() const { return *m_is_integral; }
 
-    const std::optional<double>& get_lower_hard_bound() const { return m_lower_hard_bound; }
+    const std::optional<double>& get_lower_hard_bound() const { return *m_lower_hard_bound; }
 
-    const std::optional<double>& get_upper_hard_bound() const { return m_upper_hard_bound; }
+    const std::optional<double>& get_upper_hard_bound() const { return *m_upper_hard_bound; }
 
     double get_raw_value() const { return m_raw_value; }
 
     double get_quantized_raw_value() const {
-        return static_cast<double>(m_bounds.map_index(m_raw_value)) / static_cast<double>(m_bounds.size() - 1);
+        return static_cast<double>(m_bounds->map_index(m_raw_value)) / static_cast<double>(m_bounds->size() - 1);
     }
 
     int get_num_decimals() const {
         if (is_integral())
             return 0;
 
-        if (m_bounds.get_step_size() < 1e-8) {
+        if (m_bounds->get_step_size() < 1e-8) {
             return 0;
         }
 
-        return static_cast<int>(std::ceil(std::log10(1.0 / m_bounds.get_step_size())));
+        return static_cast<int>(std::ceil(std::log10(1.0 / m_bounds->get_step_size())));
     }
 
 
 private:
     double process(double raw_value) const {
-        auto v = m_bounds.map(m_exponential.apply(raw_value));
+        auto v = m_bounds->map(m_exponential.get().apply(raw_value));
 
-        if (m_is_integral)
+        if (*m_is_integral)
             return std::floor(v);
 
         return v;
     }
 
     double inverse(double scaled_value) const {
-        return m_exponential.inverse(m_bounds.inverse(scaled_value));
+        return m_exponential->inverse(m_bounds->inverse(scaled_value));
     }
 
     void notify_value_change() {
-        for (const auto& listener: m_listeners) {
-            listener.get().on_value_changed(m_scaled_value);
+        for (const auto& listener: m_value_listeners) {
+            listener.get().on_value_changed(*this, *m_scaled_value);
         }
     }
 
+    ParameterHandler& m_parent;
 
-    double m_scaled_value;
+    GuiParameter<double> m_scaled_value;
 
-    DiscreteRange<double> m_bounds;
-    Exponential<double> m_exponential;
+    // TODO: Not sure if DiscreteRange is the best solution here.
+    //       A SliderValue should be able to be unbounded in either direction (when used as a numbox)
+    GuiParameter<DiscreteRange<double>> m_bounds;
+    GuiParameter<Exponential<double>> m_exponential;
 
-    bool m_is_integral;
+    GuiParameter<bool> m_is_integral;
     // TODO: snap_to_nearest bool + double
 
-    std::optional<double> m_lower_hard_bound;
-    std::optional<double> m_upper_hard_bound;
+    GuiParameter<std::optional<double>> m_lower_hard_bound;
+    GuiParameter<std::optional<double>> m_upper_hard_bound;
 
     double m_raw_value;
 
-    Vec<std::reference_wrapper<Listener>> m_listeners;
+    Vec<std::reference_wrapper<ValueListener>> m_value_listeners;
+    Vec<std::reference_wrapper<ConfigListener>> m_config_listeners;
 };
 
 
 // ==============================================================================================
 
-class Slider : public juce::Component, public SliderValue::Listener {
+class Slider : public juce::Component, public SliderValue::ValueListener {
 public:
     struct KeyCodes {
         static const int fine_tune = static_cast<int>('Q');
@@ -206,23 +274,6 @@ public:
         horizontal, vertical
     };
 
-    // ================
-
-//    class Listener {
-//    public:
-//        Listener() = default;
-//        virtual ~Listener() = default;
-//        Listener(const Listener&) = delete;
-//        Listener& operator=(const Listener&) = delete;
-//        Listener(Listener&&) noexcept = default;
-//        Listener& operator=(Listener&&) noexcept = default;
-//
-//        virtual void on_value_changed(double new_value) {}
-//        virtual void on_bounds_changed(const DiscreteRange<double>& bounds) {}
-//        virtual void on_exponent_changed(const Exponential<double>& exponent) {}
-//    };
-
-    // ================
 
     class OngoingDrag {
     public:
@@ -394,7 +445,7 @@ public:
 
     // ================
 
-    class RangeAdjustmentVisualization : public InteractionVisualization, public SliderValue::Listener {
+    class RangeAdjustmentVisualization : public InteractionVisualization, public SliderValue::ValueListener {
     public:
         explicit RangeAdjustmentVisualization(SliderValue& value) : m_value(value) {
             m_value.add_listener(*this);
@@ -623,11 +674,13 @@ private:
 
 // ==============================================================================================
 
-class SliderWidget : public GenerativeComponent, public SliderValue::Listener {
+class SliderWidget : public GenerativeComponent, public SliderValue::ValueListener {
 public:
     //    SliderWidget(InputHandler*, juce::ValueTree& gui_state_vt, Variable<Facet> variable, ...)
 
 private:
+    ParameterHandler m_ph;
+
     Slider m_value;
     juce::Label m_label;
     Variable<Facet> m_variable;

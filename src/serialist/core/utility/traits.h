@@ -85,8 +85,10 @@ struct is_serializable : std::false_type {
 };
 
 template<typename T>
-struct is_serializable<T, std::void_t<decltype(std::declval<T>().from_string(std::declval<const std::string&>())
-        , std::declval<T>().to_string())>> : std::true_type {
+struct is_serializable<T, std::void_t<
+        decltype(std::declval<T>().deserialize(std::declval<const std::string&>())
+        , std::declval<T>().serialize())>>
+        : std::true_type {
 };
 
 template<typename T>

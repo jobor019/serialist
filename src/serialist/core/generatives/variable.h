@@ -21,7 +21,7 @@ public:
     inline static const std::string CLASS_NAME = "variable";
 
     explicit Variable(const std::string& id, ParameterHandler& parent, StoredType value)
-            : m_parameter_handler(Specification::generative().with_identifier(id), parent)
+            : m_parameter_handler(Generative::specification(id, CLASS_NAME), parent)
               , m_value(value, PARAMETER_ADDRESS, m_parameter_handler) {
 
         static_assert((std::is_constructible_v<OutputType, StoredType>

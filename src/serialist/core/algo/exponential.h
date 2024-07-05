@@ -17,6 +17,14 @@ public:
         static_assert(std::is_arithmetic_v<T>);
     }
 
+    static Exponential<T> deserialize(std::string) {
+        throw std::runtime_error("Not implemented: Exponential::deserialize");
+    }
+
+    std::string serialize() const {
+        throw std::runtime_error("Not implemented: Exponential::serialize");
+    }
+
     T apply(double raw_value) const {
         if (utils::equals(m_exponent, 1.0, m_epsilon))
             return static_cast<T>(raw_value);

@@ -35,6 +35,11 @@ public:
 class WidgetBase : public GenerativeComponent, public Stateful {
 public:
 
+    static Specification specification(std::string member_name) {
+        return Specification(param::types::widget)
+            .with_name_in_parent(std::move(member_name));
+    }
+
     explicit WidgetBase(Generative& main_generative
                         , StateHandler& parent_state_handler
                         , Vec<std::unique_ptr<InteractionVisualization>> visualizations = WidgetFuncs::default_visualizations()

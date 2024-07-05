@@ -59,9 +59,8 @@ add_library(${GUI_NAME} INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/module_factory.h
 
         # TODO: Automatically added - move to correct location above and append ${CMAKE_CURRENT_SOURCE_DIR}
-        param/variant_converter.h
+        param/vt_serializer.h
         param/parameter_keys.h
-        param/vt_parameter_2.h
         policies/policies.h
         param/deserialization.h
         policies/parameter_policy.h

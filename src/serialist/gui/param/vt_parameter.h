@@ -11,50 +11,37 @@
 #include "core/param/parameter_keys.h"
 #include "core/algo/facet.h"
 #include "core/collections/voices.h"
-#include "gui/param/variant_converter.h"
+#include "gui/param/vt_serializer.h"
 
 namespace serialist {
-
-class VTSerialization {
-public:
-    VTSerialization() = delete;
-
-
-    template<typename T>
-    static juce::var serialize(const T& value) {
-        static_assert(!std::is_same_v<T, Facet>, "Facet type is not serializable.");
-
-        if constexpr (std::is_same_v<T, std::string>) {
-            return {value};
-        } else if constexpr (utils::is_serializable_v<T>) {
-            return {value.to_string()};
-        } else if constexpr (std::is_enum_v<T>) {
-            return static_cast<int>(value);
-        } else {
-            return value;
-        }
-    }
-
-
-    template<typename T>
-    static T deserialize(const juce::var& obj) {
-        static_assert(!std::is_same_v<T, Facet>, "Facet type is not serializable.");
-
-        if constexpr (std::is_same_v<T, std::string>) {
-            return obj.toString().toStdString();
-        } else if constexpr (utils::is_serializable_v<T>) {
-            return T::from_string(obj.toString().toStdString());
-        } else if constexpr (std::is_enum_v<T>) {
-            return T(static_cast<int>(obj));
-        } else {
-            return obj;
-        }
-    }
-};
 
 
 class VTParameterHandler {
 public:
+    class Listener {
+    public:
+        Listener() = default;
+        virtual ~Listener() = default;
+        Listener(const Listener&) = default;
+        Listener& operator=(const Listener&) = default;
+        Listener(Listener&&) noexcept = default;
+        Listener& operator=(Listener&&) noexcept = default;
+
+        virtual void on_parameter_changed(VTParameterHandler& handler, const std::string& id) = 0;
+    };
+
+
+    VTParameterHandler(const Specification& specification, VTParameterHandler& parent)
+            : m_value_tree{{specification.type()}}
+              , m_undo_manager{parent.get_undo_manager()}
+              , m_parent{&parent} {
+        for (const auto& [property_name, property_value]: specification.static_properties()) {
+            m_value_tree.setProperty({property_name}, {property_value}, &m_undo_manager);
+        }
+
+        m_parent->add_child(*this);
+
+    }
 
     // Public ctor, same template as NopParameterHandler
     [[deprecated]] VTParameterHandler(const std::string& id_property
@@ -68,18 +55,6 @@ public:
         }
 
         m_parent->add_child(*this);
-    }
-
-    VTParameterHandler(const Specification& specification, VTParameterHandler& parent)
-    : m_value_tree{{specification.type()}}
-    , m_undo_manager{parent.get_undo_manager()}
-    , m_parent{&parent} {
-        for (const auto& [property_name, property_value]: specification.static_properties()) {
-            m_value_tree.setProperty({property_name}, {property_value}, &m_undo_manager);
-        }
-
-        m_parent->add_child(*this);
-
     }
 
 
@@ -116,8 +91,9 @@ public:
     /**
      * @throws: RuntimeError if property_value already exists
      */
-     // TODO: Implement add_specification for subclasses, e.g. SliderMapping
-    template<typename T> [[deprecated("Use Specification instead")]]
+    // TODO: Implement add_specification for subclasses, e.g. SliderMapping
+    template<typename T>
+    [[deprecated("Use Specification instead")]]
     void add_static_property(const std::string& property_name, T property_value) {
         if (m_value_tree.hasProperty({property_name}))
             throw std::runtime_error("A property_value with the name '" + property_value + "' already exists");
@@ -178,31 +154,12 @@ private:
 
 // ==============================================================================================
 
-class VTParameterListener {
-public:
-    VTParameterListener() = default;
-
-    virtual ~VTParameterListener() = default;
-
-    VTParameterListener(const VTParameterListener&) = default;
-
-    VTParameterListener& operator=(const VTParameterListener&) = default;
-
-    VTParameterListener(VTParameterListener&&) noexcept = default;
-
-    VTParameterListener& operator=(VTParameterListener&&) noexcept = default;
-
-    virtual void on_parameter_changed(VTParameterHandler& handler, const std::string& id) = 0;
-};
-
-
-// ==============================================================================================
-
 template<typename T>
 class VTParameterBase : private juce::ValueTree::Listener {
 public:
     VTParameterBase(T initial_value, const std::string& id, VTParameterHandler& parent)
             : m_identifier(id), m_parent(parent) {
+        static_assert(utils::has_vt_serializer_v<T>, "Type must have a VT serializer");
 
         auto& value_tree = m_parent.get_value_tree();
         if (!value_tree.isValid())
@@ -227,14 +184,19 @@ public:
 
     VTParameterBase& operator=(VTParameterBase&&) noexcept = default;
 
+    void set(const T& new_value) {
+        set_internal_value(new_value);
+        update_value_tree(new_value);
+        this->notify();
+    }
 
-    void add_parameter_listener(VTParameterListener& listener) {
-        m_listeners.push_back(&listener);
+    void add_listener(VTParameterHandler::Listener& listener) {
+        m_listeners.append(listener);
     }
 
 
-    void remove_parameter_listener(VTParameterListener& listener) {
-        m_listeners.erase(std::remove(m_listeners.begin(), m_listeners.end(), &listener), m_listeners.end());
+    void remove_listener(VTParameterHandler::Listener& listener) {
+        m_listeners.remove(listener);
     }
 
 
@@ -242,40 +204,31 @@ public:
         return treeWhosePropertyHasChanged == m_parent.get_value_tree() && property == m_identifier;
     }
 
+protected:
+    virtual void set_internal_value(const T& new_value) = 0;
 
-    T get() {
-        return get_internal_value();
-    }
-
-
-    void set(const T& new_value) {
-        set_internal_value(new_value);
-        update_value_tree(new_value);
-
-        for (auto* listener: m_listeners) {
-            listener->on_parameter_changed(m_parent, m_identifier.toString().toStdString());
+    void notify() {
+        for (const auto& listener: m_listeners) {
+            listener.get().on_parameter_changed(m_parent, m_identifier.toString().toStdString());
         }
     }
 
-
-protected:
-    virtual T get_internal_value() = 0;
-
-    virtual void set_internal_value(T new_value) = 0;
-
-
 private:
+    /**
+     * Called on UndoManager actions only
+     */
     void valueTreePropertyChanged(juce::ValueTree& treeWhosePropertyHasChanged
                                   , const juce::Identifier& property) override {
         if (equals_property(treeWhosePropertyHasChanged, property)) {
-            set_internal_value(VTSerialization::deserialize<T>(treeWhosePropertyHasChanged.getProperty(property)));
+            set_internal_value(VTSerializer<T>::from_var(treeWhosePropertyHasChanged.getProperty(property)));
+            notify();
         }
     }
 
 
-    void update_value_tree(T new_value) {
+    void update_value_tree(const T& new_value) {
         m_parent.get_value_tree().setProperty(m_identifier
-                                              , VTSerialization::serialize(new_value)
+                                              , VTSerializer<T>::to_var(new_value)
                                               , &m_parent.get_undo_manager());
     }
 
@@ -283,19 +236,36 @@ private:
     juce::Identifier m_identifier;
     VTParameterHandler& m_parent;
 
-    std::vector<VTParameterListener*> m_listeners;
-
+    Vec<std::reference_wrapper<VTParameterHandler::Listener>> m_listeners;
 };
 
 
 // ==============================================================================================
 
 template<typename T>
-class AtomicVTParameter : public VTParameterBase<T> {
+class ThreadedVTParameterBase : public VTParameterBase<T> {
+public:
+    /**
+     * @return a copy of the internal value (thread safety)
+     */
+    T get() {
+        return get_internal_value();
+    }
+
+
+protected:
+    virtual T get_internal_value() = 0;
+};
+
+
+// ==============================================================================================
+
+template<typename T>
+class AtomicVTParameter : public ThreadedVTParameterBase<T> {
 public:
 
     AtomicVTParameter(T initial_value, const std::string& id, VTParameterHandler& parent)
-            : VTParameterBase<T>(initial_value, id, parent), m_value(initial_value) {
+            : ThreadedVTParameterBase<T>(initial_value, id, parent), m_value(initial_value) {
         static_assert(std::atomic<T>::is_always_lock_free, "DataType must be lock-free");
     }
 
@@ -306,7 +276,7 @@ private:
     }
 
 
-    void set_internal_value(T new_value) override {
+    void set_internal_value(const T& new_value) override {
         m_value = new_value;
     }
 
@@ -314,14 +284,58 @@ private:
     std::atomic<T> m_value;
 };
 
+
 // ==============================================================================================
 
 template<typename T>
-class LockingVTParameter : public VTParameterBase<T> {
+class SingleThreadedVTParameter : public VTParameterBase<T> {
+public:
+    // TODO: Assert that this is on the correct thread
+    SingleThreadedVTParameter(T initial_value
+                              , const std::string& id
+                              , VTParameterHandler& parent
+                              , VTParameterHandler::Listener* default_listener = nullptr)
+            : VTParameterBase<T>(initial_value, id, parent)
+            , m_value(initial_value) {
+        if (default_listener) {
+            this->add_listener(*default_listener);
+        }
+    }
+
+    SingleThreadedVTParameter& operator=(const T& new_value) {
+        this->set(new_value);
+        return *this;
+    }
+
+    const T& operator*() const { return get(); }
+
+    const T* operator->() const { return &get(); }
+
+    /**
+     * Note: in a single-threaded context, there's no need to return a copy of the object as we can be sure that it's
+     *       never modified elsewhere. We can stil however not return a non-const reference to the object, as we
+     *       want to explicitly disallow any modification of the object without informing the internal value tree
+     *       of such a change.
+     */
+    const T& get() const { return m_value; }
+
+private:
+
+    void set_internal_value(const T& new_value) override {
+        m_value = new_value;
+    }
+
+    T m_value;
+};
+
+// ==============================================================================================
+
+template<typename T>
+class LockingVTParameter : public ThreadedVTParameterBase<T> {
 public:
 
     LockingVTParameter(T initial_value, const std::string& id, VTParameterHandler& parent)
-            : VTParameterBase<T>(initial_value, id, parent), m_value(initial_value) {
+            : ThreadedVTParameterBase<T>(initial_value, id, parent), m_value(initial_value) {
         static_assert(std::is_copy_constructible_v<T>, "DataType must be copyable");
     }
 
@@ -388,7 +402,7 @@ public:
         for (const auto& v: new_values) {
             auto name = "v" + std::to_string(m_next_vt_name);
             ++m_next_vt_name;
-            m_value_tree.setProperty({name}, VTSerialization::serialize<T>(v), &m_undo_manager);
+            m_value_tree.setProperty({name}, VTSerializer<T>::to_var(v), &m_undo_manager);
         }
     }
 
@@ -440,12 +454,12 @@ public:
     VTSequenceParameter& operator=(VTSequenceParameter&&) noexcept = default;
 
 
-    void add_parameter_listener(VTParameterListener& listener) {
+    void add_parameter_listener(VTParameterHandler::Listener& listener) {
         m_listeners.append(&listener);
     }
 
 
-    void remove_parameter_listener(VTParameterListener& listener) {
+    void remove_parameter_listener(VTParameterHandler::Listener& listener) {
         m_listeners.remove(&listener);
     }
 
@@ -530,7 +544,7 @@ private:
 
     VTParameterHandler& m_parent;
 
-    Vec<VTParameterListener*> m_listeners;
+    Vec<VTParameterHandler::Listener*> m_listeners;
 
 };
 

@@ -80,6 +80,14 @@ public:
                         , epsilon);
     }
 
+    static DiscreteRange<T> deserialize(std::string) {
+        throw std::runtime_error("not implemented: deserialize");
+    }
+
+    std::string serialize() const {
+        throw std::runtime_error("not implemented: serialize");
+    }
+
     DiscreteRange<T> new_adjusted(std::optional<T> new_start, std::optional<T> new_end) const {
         if (!new_start && !new_end) return cloned();
 
