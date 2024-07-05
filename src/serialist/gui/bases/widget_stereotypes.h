@@ -8,6 +8,8 @@
 #include "state/interaction_visualizations.h"
 #include "state/interaction_visualizer.h"
 
+namespace serialist {
+
 class WidgetFuncs {
 public:
     using KeyCodes = ConfigurationLayerKeyboardShortcuts;
@@ -86,5 +88,6 @@ private:
 
 };
 
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_WIDGET_STEREOTYPES_H

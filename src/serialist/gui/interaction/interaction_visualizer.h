@@ -5,6 +5,7 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "input_handler.h"
 
+namespace serialist {
 
 class AlphaMask {
 public:
@@ -160,5 +161,7 @@ private:
     std::optional<juce::Colour> m_fill_color;
     int m_border_width;
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_INTERACTION_VISUALIZER_H

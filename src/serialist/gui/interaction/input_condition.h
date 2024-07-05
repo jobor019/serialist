@@ -4,6 +4,9 @@
 
 #include "input_mode.h"
 #include "core/collections/vec.h"
+#include "io/key_state.h"
+
+namespace serialist {
 
 class InputCondition {
 public:
@@ -91,6 +94,8 @@ inline ConditionVec keys(const Vec<int>& key_codes) {
 }
 
 } // namespace conditions
+
+} // namespace serialist
 
 
 #endif //SERIALISTLOOPER_INPUT_CONDITION_H

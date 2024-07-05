@@ -3,12 +3,18 @@
 #define SERIALISTLOOPER_SOCKET_BASE_H
 
 #include "core/connectable.h"
+#include "core/generative.h"
 
 namespace serialist {
 
 template<typename T>
 class SocketBase : public Connectable {
 public:
+    static Specification specification(std::string member_name) {
+        return Specification(param::types::socket)
+                .with_name_in_parent(std::move(member_name));
+    }
+
     explicit SocketBase(Node<T>* initial = nullptr)
             : m_node(initial) {}
 

@@ -6,6 +6,8 @@
 #include "input_mode.h"
 #include "input_condition.h"
 
+namespace serialist {
+
 class InputModeMap {
 public:
     void add(std::unique_ptr<InputCondition> condition, std::unique_ptr<InputMode> mode) {
@@ -46,5 +48,8 @@ private:
 
 
 };
+
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_INPUT_MODE_MAP_H

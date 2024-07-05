@@ -7,6 +7,8 @@
 #include "core/generatives/variable.h"
 #include "state/generative_component.h"
 
+namespace serialist {
+
 template<typename StoredType>
 class ComboBoxWidget : public GenerativeComponent
                        , private juce::ValueTree::Listener
@@ -171,5 +173,8 @@ private:
     std::map<int, Entry> m_item_map;
     int last_id = 0;
 };
+
+} // namespace serialist
+
 
 #endif //SERIALISTLOOPER_COMBOBOX_WIDGET_H

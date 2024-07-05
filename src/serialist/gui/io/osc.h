@@ -7,6 +7,8 @@
 #include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/algo/temporal/trigger.h"
 
+namespace serialist {
+
 class OscParser {
 public:
     OscParser() = delete;
@@ -108,5 +110,6 @@ private:
     int m_port;
 };
 
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_OSC_H

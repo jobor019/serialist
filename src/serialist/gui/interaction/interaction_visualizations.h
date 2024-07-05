@@ -6,6 +6,7 @@
 #include "gui/state/state.h"
 #include "io/mouse_state.h"
 
+namespace serialist {
 
 //class InteractionVisualization : public juce::Component {
 //public:
@@ -89,5 +90,7 @@ public:
                && mouse_state.is_over_component();
     }
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_INTERACTION_VISUALIZATIONS_H

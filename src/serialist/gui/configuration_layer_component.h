@@ -15,6 +15,8 @@
 #include "generator_module.h"
 #include "module_factory.h"
 
+namespace serialist {
+
 class ConfigurationLayerComponent : public juce::Component
                                     , public GlobalKeyState::Listener
                                     , public juce::DragAndDropContainer {
@@ -351,5 +353,7 @@ private:
 
 
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_CONFIGURATION_LAYER_COMPONENT_H

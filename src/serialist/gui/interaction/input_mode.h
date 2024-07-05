@@ -7,6 +7,7 @@
 #include "input_events.h"
 #include "interaction/drag_and_drop/drag_and_drop.h"
 
+namespace serialist {
 
 class InputMode {
 public:
@@ -103,5 +104,7 @@ public:
     }
 
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_INPUT_MODE_H

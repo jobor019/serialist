@@ -8,6 +8,8 @@
 #include "socket_widget.h"
 #include "header_widget.h"
 
+namespace serialist {
+
 class PulsatorModule : public NodeModuleBase<TriggerEvent> {
 public:
 
@@ -111,5 +113,8 @@ private:
     Layout m_layout;
 
 };
+
+namespace serialist {
+
 
 #endif //SERIALISTLOOPER_PULSATOR_MODULE_H

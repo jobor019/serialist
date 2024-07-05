@@ -14,6 +14,8 @@
 #include "generator_module.h"
 #include "core/generation_graph.h"
 
+namespace serialist {
+
 template<typename ModuleType>
 using ModuleAndGeneratives = std::pair<std::unique_ptr<ModuleType>, std::vector<std::unique_ptr<Generative>>>;
 
@@ -332,5 +334,7 @@ private:
     }
 
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_MODULE_FACTORY_H

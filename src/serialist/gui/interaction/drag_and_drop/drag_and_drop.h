@@ -5,6 +5,9 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "core/collections/vec.h"
 
+namespace serialist {
+
+
 class DragInfo {
 public:
     DragInfo() = default;
@@ -410,5 +413,6 @@ private:
     GlobalDragAndDropContainer& m_global_container;
 };
 
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_DRAG_AND_DROP_H

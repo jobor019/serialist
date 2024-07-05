@@ -5,6 +5,8 @@
 #include <typeinfo>
 #include "drag_and_drop_LEGACY.h"
 
+namespace serialist {
+
 // TODO: Not sure if this should be a variant or a dynamic polymorphic class
 class InputEvent {
 public:
@@ -41,5 +43,7 @@ public:
 private:
     juce::DragAndDropTarget::SourceDetails m_source;
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_INPUT_EVENTS_H

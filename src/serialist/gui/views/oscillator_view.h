@@ -6,6 +6,8 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "core/generatives/OLD_oscillator.h"
 
+namespace serialist {
+
 class OscillatorView : public juce::Component
                        , private juce::Timer {
 public:
@@ -70,6 +72,9 @@ private:
     juce::Slider m_view;
 
 };
+
+
+namespace serialist {
 
 
 #endif //SERIALISTLOOPER_OSCILLATOR_VIEW_H

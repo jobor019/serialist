@@ -8,6 +8,8 @@
 #include "global_action_handler_LEGACY.h"
 #include "core/param/socket_policy.h"
 
+namespace serialist {
+
 class ConnectorComponent : public juce::Component {
 public:
     ConnectorComponent(juce::ValueTree socket_tree
@@ -293,5 +295,7 @@ private:
     std::vector<std::unique_ptr<ConnectorComponent>> m_connectors;
 
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_CONNECTOR_COMPONENT_H

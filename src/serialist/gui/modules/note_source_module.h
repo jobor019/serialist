@@ -13,6 +13,8 @@
 #include "interaction_visualizations_LEGACY.h"
 #include "pulsator_module.h"
 
+namespace serialist {
+
 class NoteSourceModule : public RootModuleBase {
 public:
 
@@ -98,6 +100,8 @@ private:
     NoteView m_visualizer;
 
 };
+
+namespace serialist {
 
 
 #endif //SERIALISTLOOPER_NOTE_SOURCE_MODULE_H

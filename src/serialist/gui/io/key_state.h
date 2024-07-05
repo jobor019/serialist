@@ -5,6 +5,8 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 
+namespace serialist {
+
 class KeyState {
 public:
 
@@ -356,5 +358,7 @@ private:
         return true;
     }
 };
+
+} // namespace serialist
 
 #endif //GUIUTILS_KEY_STATE_H

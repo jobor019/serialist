@@ -10,6 +10,8 @@
 #include "bases/connectable_module.h"
 #include "bases/connectable_dnd_controller.h"
 
+namespace serialist {
+
 template<typename SocketType>
 class TemplateSocketWidget : public juce::Component
                              , public ConnectableModule
@@ -203,5 +205,7 @@ public:
             : TemplateSocketWidget<DataSocket<OutputType>>(socket, std::move(default_widget)) {}
 };
 
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_SOCKET_WIDGET_H

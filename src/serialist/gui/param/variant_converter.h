@@ -8,6 +8,16 @@
 // std::string
 // ==============================================================================================
 
+template<>
+struct juce::VariantConverter<std::string> {
+    static std::string fromVar(const juce::var& v) {
+        return v.toString().toStdString();
+    }
+
+    static juce::var toVar(const std::string& v) {
+        return juce::String(v);
+    }
+};
 
 // ==============================================================================================
 // Facet

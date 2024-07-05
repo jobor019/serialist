@@ -12,6 +12,7 @@
 #include "interpolation_module.h"
 #include "bases/module_stereotypes.h"
 
+namespace serialist {
 
 template<typename OutputType, typename InternalSequenceType = OutputType>
 class GeneratorModule : public NodeModuleBase<OutputType> {
@@ -93,5 +94,7 @@ private:
 
     Layout m_layout = Layout::full;
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_NEW_GENERATOR_COMPONENT_H

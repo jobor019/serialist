@@ -10,6 +10,8 @@
 #include "state/state_handler.h"
 #include "state/interaction_visualizer.h"
 
+namespace serialist {
+
 class ModuleStereotypeFuncs {
 public:
 
@@ -208,5 +210,7 @@ private:
 
     bool m_header_visible = true;
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_MODULE_STEREOTYPES_H

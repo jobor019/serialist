@@ -5,6 +5,8 @@
 #ifndef SERIALISTLOOPER_KEYBOARD_SHORTCUTS_H
 #define SERIALISTLOOPER_KEYBOARD_SHORTCUTS_H
 
+namespace serialist {
+
 struct GlobalKeyboardShortcuts {
 
 };
@@ -41,6 +43,6 @@ struct MultiSliderKeyboardShortcuts {
 };
 
 
-
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_KEYBOARD_SHORTCUTS_H

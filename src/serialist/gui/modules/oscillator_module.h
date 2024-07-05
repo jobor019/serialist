@@ -16,6 +16,7 @@
 #include "bases/module_stereotypes.h"
 #include "core/generatives/unit_pulse.h"
 
+namespace serialist {
 
 class OscillatorModule : public NodeModuleBase<Facet> {
 public:
@@ -205,5 +206,8 @@ private:
 
     OscillatorView m_oscillator_view;
 };
+
+namespace serialist {
+
 
 #endif //SERIALIST_LOOPER_OSCILLATOR_COMPONENT_H

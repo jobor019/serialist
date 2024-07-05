@@ -9,6 +9,8 @@
 #include "core/collections/range.h"
 #include "core/algo/exponential.h"
 
+namespace serialist {
+
 class SliderValue {
 public:
 
@@ -630,5 +632,7 @@ private:
     juce::Label m_label;
     Variable<Facet> m_variable;
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_SLIDER_WIDGET_H

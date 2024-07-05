@@ -10,6 +10,7 @@
 
 #include "juce_audio_devices/juce_audio_devices.h"
 
+namespace serialist {
 
 class Renderer {
 public:
@@ -106,5 +107,7 @@ public:
 private:
     std::unique_ptr<juce::MidiOutput> m_midi_output;
 };
+
+} // namespace serialist
 
 #endif //SERIALIST_LOOPER_RENDERERS_H

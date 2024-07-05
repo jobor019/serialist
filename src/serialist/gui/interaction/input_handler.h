@@ -10,6 +10,8 @@
 #include "input_mode_map.h"
 #include "interaction/drag_and_drop/drag_and_drop.h"
 
+namespace serialist {
+
 class InputHandler
         : public GlobalKeyState::Listener
           , public juce::MouseListener
@@ -645,5 +647,7 @@ private:
     bool m_drag_cancelled = false;
 };
 
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_INPUT_HANDLER_H

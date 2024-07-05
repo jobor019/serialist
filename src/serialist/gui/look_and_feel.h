@@ -5,6 +5,8 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 
+namespace serialist {
+
 enum Colors {
     object_on = 0xf000001
     , object_off = 0xf000002
@@ -127,5 +129,7 @@ public:
 private:
 
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_LOOK_AND_FEEL_H

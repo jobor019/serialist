@@ -38,10 +38,9 @@ public:
 // ==============================================================================================
 
 
-// Note: namespace structure mirrors gui/param/parameter_keys.h
-namespace serialist::param {
+namespace serialist {
 
-namespace types {
+namespace param::types {
 
 const inline std::string root_tree = "ROOT";
 
@@ -56,7 +55,7 @@ const inline std::string socket = "SOCKET";
 
 // ==============================================================================================
 
-namespace properties {
+namespace param::properties {
 
 // Baseline
 static const inline std::string template_class = "class";
@@ -81,9 +80,12 @@ static const inline std::string value = "v";
 
 class Specification {
 public:
+
     explicit Specification(std::string type) : m_type(std::move(type)) {}
 
     // TODO: Find solution for non-string static properties (version number, ...)
+
+    // NOTE: Module-specific Constructors exist in their specific class (e.g. Generative::specification(...))
 
     Specification& with_static_property(std::string property_name, std::string property_value) {
         m_static_properties.append(std::make_pair(std::move(property_name), std::move(property_value)));
@@ -91,15 +93,15 @@ public:
     }
 
     Specification& with_name_in_parent(std::string member_name) {
-        return with_static_property(properties::member_name, std::move(member_name));
+        return with_static_property(param::properties::member_name, std::move(member_name));
     }
 
     Specification& with_template_class(std::string template_class) {
-        return with_static_property(properties::template_class, std::move(template_class));
+        return with_static_property(param::properties::template_class, std::move(template_class));
     }
 
     Specification& with_identifier(std::string identifier) {
-        return with_static_property(properties::identifier, std::move(identifier));
+        return with_static_property(param::properties::identifier, std::move(identifier));
     }
 
     const std::string& type() const { return m_type; }
@@ -112,22 +114,8 @@ private:
     Vec<std::pair<std::string, std::string>> m_static_properties;
 };
 
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// TODO: These should probably live in their corresponding classes (Socket/Generative)
-
-inline Specification generative_type(std::string id, std::string template_class) {
-    return Specification(types::generative)
-    .with_identifier(std::move(id))
-    .with_template_class(std::move(template_class));
-}
-
-inline Specification socket_type(std::string member_name) {
-    return Specification(types::socket)
-            .with_name_in_parent(std::move(member_name));
-}
-
-} // namespace serialist::param
+} // namespace serialist
 
 
 #endif //SERIALISTLOOPER_PARAMETER_KEYS_H

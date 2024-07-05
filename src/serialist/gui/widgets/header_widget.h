@@ -9,6 +9,8 @@
 #include "slider_widget_LEGACY.h"
 #include "look_and_feel.h"
 
+namespace serialist {
+
 class HeaderWidget : public juce::Component
                      , private juce::Button::Listener {
 public:
@@ -108,5 +110,8 @@ private:
     juce::ToggleButton m_minimized{"-"};
 
 };
+
+} // namespace serialist
+
 
 #endif //SERIALISTLOOPER_HEADER_WIDGET_H

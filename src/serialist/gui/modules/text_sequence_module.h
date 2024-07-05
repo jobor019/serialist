@@ -6,6 +6,8 @@
 #include "state/generative_component.h"
 #include "core/generatives/sequence.h"
 
+namespace serialist {
+
 template<typename OutputType, typename StoredType = OutputType>
 class TextSequenceModule : public GenerativeComponent
                            , private juce::Label::Listener {
@@ -141,5 +143,8 @@ private:
     Layout m_layout;
 
 };
+
+namespace serialist {
+
 
 #endif //SERIALISTLOOPER_TEXT_SEQUENCE_MODULE_H

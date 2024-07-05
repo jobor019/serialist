@@ -5,7 +5,7 @@
 
 
 #include "core/generative.h"
-#include "core/param/parameter_policy.h"
+#include "core/policies.h"
 #include "core/param/parameter_keys.h"
 
 namespace serialist {
@@ -20,16 +20,16 @@ public:
     inline static const std::string PARAMETER_ADDRESS = "value";
     inline static const std::string CLASS_NAME = "variable";
 
-
     explicit Variable(const std::string& id, ParameterHandler& parent, StoredType value)
-            : m_parameter_handler(id, parent)
+            : m_parameter_handler(Specification::generative().with_identifier(id), parent)
               , m_value(value, PARAMETER_ADDRESS, m_parameter_handler) {
+
         static_assert((std::is_constructible_v<OutputType, StoredType>
                        && std::is_constructible_v<StoredType, OutputType>)
                       || std::is_enum_v<StoredType>
                       , "Cannot create a Variable with incompatible types");
-        m_parameter_handler.add_static_property(ParameterTypes::GENERATIVE_CLASS, CLASS_NAME);
     }
+
 
 
     Voices<OutputType> process() override {

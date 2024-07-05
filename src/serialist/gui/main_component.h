@@ -14,6 +14,7 @@
 #include "modules/oscillator_module.h"
 #include "modules/generator_module.h"
 
+namespace serialist {
 
 class MainComponent : public MainKeyboardFocusComponent
                       , private juce::HighResolutionTimer {
@@ -94,5 +95,7 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
+
+} // namespace serialist
 
 #endif //SERIALIST_LOOPER_MAIN_COMPONENT_H

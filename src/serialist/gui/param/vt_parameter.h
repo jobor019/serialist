@@ -70,7 +70,7 @@ public:
         m_parent->add_child(*this);
     }
 
-    VTParameterHandler(const param::Specification& specification, VTParameterHandler& parent)
+    VTParameterHandler(const Specification& specification, VTParameterHandler& parent)
     : m_value_tree{{specification.type()}}
     , m_undo_manager{parent.get_undo_manager()}
     , m_parent{&parent} {
@@ -116,7 +116,8 @@ public:
     /**
      * @throws: RuntimeError if property_value already exists
      */
-    template<typename T>
+     // TODO: Implement add_specification for subclasses, e.g. SliderMapping
+    template<typename T> [[deprecated("Use Specification instead")]]
     void add_static_property(const std::string& property_name, T property_value) {
         if (m_value_tree.hasProperty({property_name}))
             throw std::runtime_error("A property_value with the name '" + property_value + "' already exists");

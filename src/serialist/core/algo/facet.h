@@ -275,6 +275,4 @@ struct std::is_arithmetic<serialist::Facet> : std::true_type {
 };
 
 
-
-
 #endif //SERIALISTLOOPER_FACET_H

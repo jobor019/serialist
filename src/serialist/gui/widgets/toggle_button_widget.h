@@ -7,6 +7,8 @@
 #include "state/generative_component.h"
 #include "core/generatives/variable.h"
 
+namespace serialist {
+
 class ToggleButtonWidget : public GenerativeComponent
                            , private juce::ValueTree::Listener {
 public:
@@ -89,5 +91,7 @@ private:
 
 
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_TOGGLE_BUTTON_WIDGET_H

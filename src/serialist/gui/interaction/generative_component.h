@@ -7,6 +7,7 @@
 #include "gui/look_and_feel.h"
 #include <juce_gui_extra/juce_gui_extra.h>
 
+namespace serialist {
 
 class DimensionConstants {
 public:
@@ -53,5 +54,7 @@ public:
 
 
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_GENERATIVE_COMPONENT_H

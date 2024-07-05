@@ -8,6 +8,7 @@
 #include "interaction/interaction_visualizer.h"
 #include "slider_widget.h"
 
+namespace serialist {
 
 class MultiSlider : public juce::Component, public DropArea {
 public:
@@ -95,5 +96,7 @@ private:
 
     Vec<std::unique_ptr<Slider>> m_sliders;
 };
+
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_MULTI_SLIDER_H

@@ -7,6 +7,8 @@
 #include "look_and_feel.h"
 #include "core/generatives/note_source_LEGACY.h"
 
+namespace serialist {
+
 class NoteView : public juce::Component
                  , private juce::Timer {
 public:
@@ -96,5 +98,8 @@ private:
     juce::int64 last_found_note = 0;
 
 };
+
+namespace serialist {
+
 
 #endif //SERIALISTLOOPER_NOTE_VIEW_H

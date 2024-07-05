@@ -7,6 +7,8 @@
 #include "juce_gui_extra/juce_gui_extra.h"
 #include "core/collections/circular_buffer.h"
 
+namespace serialist {
+
 enum class DragBehaviour {
     not_supported = 0
     , drag_edit = 1
@@ -212,5 +214,6 @@ private:
     Buffer<juce::Point<float>, 5> m_drag_position_buffer;
 };
 
+} // namespace serialist
 
 #endif //GUIUTILS_MOUSE_STATE_H

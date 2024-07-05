@@ -9,6 +9,8 @@
 #include "state/generative_component.h"
 #include "core/generatives/interpolation_adapter_RM.h"
 
+namespace serialist {
+
 class InterpolationModule : public NodeModuleBase<InterpolationStrategy> {
 public:
 
@@ -88,6 +90,9 @@ private:
 
     InteractionVisualizer_LEGACY m_interaction_visualizer{*this, create_visualizations()};
 };
+
+
+namespace serialist {
 
 
 #endif //SERIALISTLOOPER_INTERPOLATOR_COMPONENT_H

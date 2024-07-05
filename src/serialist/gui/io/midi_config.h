@@ -6,6 +6,8 @@
 #include <string>
 #include <mutex>
 
+namespace serialist {
+
 class MidiConfig {
 public:
     static MidiConfig& get_instance() {
@@ -40,5 +42,6 @@ private:
     std::string m_default_device_name = "IAC1";
 };
 
+} // namespace serialist
 
 #endif //SERIALISTLOOPER_MIDI_CONFIG_H
