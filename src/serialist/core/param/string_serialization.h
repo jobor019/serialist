@@ -15,8 +15,34 @@ namespace serialist {
 // Template Declaration
 // ==============================================================================================
 
+/**
+ * @brief Non-intrusive helper for serializing and deserializing primitive types.
+ *        This is equivalent to implementing `serialize` and `deserialize` methods in an intrusive manner,
+ *        although the latter will always be preferred if it exists
+ */
 template<typename T, typename = void>
 struct StringSerializer;
+
+
+// ==============================================================================================
+// Type Trait Helpers
+// ==============================================================================================
+
+namespace utils {
+    template<typename T>
+    using directly_string_serializable_signature_t = decltype(std::declval<T>().serialize());
+
+    template<typename T>
+    using directly_string_deserializable_signature_t = decltype(T::deserialize(std::declval<std::string>()));
+
+
+    template<typename T>
+    static constexpr bool directly_string_serializable_v = std::conjunction_v<
+            std::experimental::is_detected_exact<std::string, directly_string_serializable_signature_t, T>
+            , std::experimental::is_detected_exact<T, directly_string_deserializable_signature_t, T>
+    >;
+
+} // namespace utils
 
 
 // ==============================================================================================
@@ -83,6 +109,7 @@ struct StringSerializer<T, std::enable_if_t<std::is_same_v<T, std::optional<type
 };
 
 
+
 // ==============================================================================================
 // StringSerializationHelper
 // ==============================================================================================
@@ -99,13 +126,6 @@ private:
     using has_from_string_signature_t = decltype(StringSerializer<T>::from_string(std::declval<std::string>()));
 
 
-    template<typename T>
-    using directly_serializable_signature_t = decltype(std::declval<T>().serialize());
-
-    template<typename T>
-    using directly_deserializable_signature_t = decltype(T::deserialize(std::declval<std::string>()));
-
-
 public:
     static const char SEPARATOR = ';';
 
@@ -115,11 +135,6 @@ public:
             , std::experimental::is_detected_exact<T, has_from_string_signature_t, T>
     >;
 
-    template<typename T>
-    static constexpr bool directly_serializable_v = std::conjunction_v<
-            std::experimental::is_detected_exact<std::string, directly_serializable_signature_t, T>
-            , std::experimental::is_detected_exact<T, directly_deserializable_signature_t, T>
-    >;
 
 
     template<typename... Args>

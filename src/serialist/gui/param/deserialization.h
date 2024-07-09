@@ -104,12 +104,16 @@ public:
     template<typename T>
     T get_property(const std::string& property_name) const {
         auto id = juce::Identifier(property_name);
+        return get_property<T>(id);
+    }
 
+    template<typename T>
+    T get_property(const juce::Identifier& id) const {
         if (!m_vt.hasProperty(id)) {
-            throw ParameterMissingError("Couldn't find property " + property_name);
+            throw ParameterMissingError("Couldn't find property " + id.toString().toStdString());
         }
 
-        return juce::VariantConverter<T>::fromVar(m_vt.getProperty(id));
+        return GenericSerializer::deserialize<T>(m_vt.getProperty(id));
     }
 
 

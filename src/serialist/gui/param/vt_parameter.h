@@ -12,6 +12,7 @@
 #include "core/algo/facet.h"
 #include "core/collections/voices.h"
 #include "gui/param/vt_serialization.h"
+#include "deserialization.h"
 
 namespace serialist {
 
@@ -200,6 +201,10 @@ public:
 
     bool equals_property(const juce::ValueTree& treeWhosePropertyHasChanged, const juce::Identifier& property) {
         return treeWhosePropertyHasChanged == m_parent.get_value_tree() && property == m_identifier;
+    }
+
+    void load_state(const VTDeserializationData& dd) {
+        set(dd.get_property<T>(m_identifier));
     }
 
 protected:

@@ -127,7 +127,8 @@ public:
 
     template<typename T>
     static constexpr bool is_serializable_v = GenericSerializer::has_vt_serializer_v<T> ||
-                                              StringSerializationHelper::has_string_serializer_v<T>;
+                                              StringSerializationHelper::has_string_serializer_v<T> ||
+                                              utils::directly_string_serializable_v<T>;
 
 
     template<typename T>
@@ -136,6 +137,8 @@ public:
 
         if constexpr (has_vt_serializer_v<T>) {
             return VTSerializer<T>::to_var(t);
+        } else if constexpr (utils::directly_string_serializable_v<T>) {
+            return {t.serialize()};
         } else {
             return {StringSerializer<T>::to_string(t)};
         }
@@ -148,6 +151,8 @@ public:
 
         if constexpr (has_vt_serializer_v<T>) {
             return VTSerializer<T>::from_var(v);
+        } else if constexpr (utils::directly_string_serializable_v<T>) {
+            return T::deserialize(v.toString().toStdString());
         } else {
             return StringSerializer<T>::from_string(v.toString().toStdString());
         }
