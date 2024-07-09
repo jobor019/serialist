@@ -13,7 +13,7 @@
 
 namespace serialist {
 
-// TODO: Serialization. Should probably generalize this into a Serializer class with a number of different overloads
+// TODO: StringSerializationHandler. Should probably generalize this into a Serializer class with a number of different overloads
 //std::string to_string() const {
 //    std::ostringstream oss;
 //    oss << static_cast<int>(m_type) << SEPARATOR << m_pivot;

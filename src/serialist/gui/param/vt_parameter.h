@@ -11,7 +11,7 @@
 #include "core/param/parameter_keys.h"
 #include "core/algo/facet.h"
 #include "core/collections/voices.h"
-#include "gui/param/vt_serializer.h"
+#include "gui/param/vt_serialization.h"
 
 namespace serialist {
 
@@ -159,8 +159,6 @@ class VTParameterBase : private juce::ValueTree::Listener {
 public:
     VTParameterBase(T initial_value, const std::string& id, VTParameterHandler& parent)
             : m_identifier(id), m_parent(parent) {
-        static_assert(utils::has_vt_serializer_v<T>, "Type must have a VT serializer");
-
         auto& value_tree = m_parent.get_value_tree();
         if (!value_tree.isValid())
             throw ParameterError("Cannot register VTParameterBase for invalid tree");
@@ -217,10 +215,9 @@ private:
     /**
      * Called on UndoManager actions only
      */
-    void valueTreePropertyChanged(juce::ValueTree& treeWhosePropertyHasChanged
-                                  , const juce::Identifier& property) override {
-        if (equals_property(treeWhosePropertyHasChanged, property)) {
-            set_internal_value(VTSerializer<T>::from_var(treeWhosePropertyHasChanged.getProperty(property)));
+    void valueTreePropertyChanged(juce::ValueTree& t, const juce::Identifier& property) override {
+        if (equals_property(t, property)) {
+            set_internal_value(GenericSerializer::deserialize<T>(t.getProperty(property)));
             notify();
         }
     }
@@ -228,7 +225,7 @@ private:
 
     void update_value_tree(const T& new_value) {
         m_parent.get_value_tree().setProperty(m_identifier
-                                              , VTSerializer<T>::to_var(new_value)
+                                              , GenericSerializer::serialize(new_value)
                                               , &m_parent.get_undo_manager());
     }
 
