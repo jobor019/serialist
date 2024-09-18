@@ -1,0 +1,98 @@
+
+#ifndef SERIALISTLOOPER_WIDGET_STEREOTYPES_H
+#define SERIALISTLOOPER_WIDGET_STEREOTYPES_H
+
+#include "keyboard_shortcuts.h"
+#include "state/generative_component.h"
+#include "state/state_handler.h"
+#include "state/interaction_visualizations.h"
+#include "state/interaction_visualizer.h"
+
+namespace serialist {
+
+class WidgetFuncs {
+public:
+    using KeyCodes = ConfigurationLayerKeyboardShortcuts;
+
+
+    static Vec<std::unique_ptr<InteractionVisualization>> default_visualizations() {
+        return {}; // TODO: Add Connect / Disconnect
+    }
+
+
+    static Vec<TriggerableState> default_states() {
+        return Vec<TriggerableState>(
+                TriggerableState{std::make_unique<NoKeyCondition>(), States::Default}
+        ); // TODO: Add Connect / Disconnect
+    }
+
+};
+
+
+// ==============================================================================================
+
+
+class WidgetBase : public GenerativeComponent, public Stateful {
+public:
+
+    static Specification specification(std::string member_name) {
+        return Specification(param::types::widget)
+            .with_name_in_parent(std::move(member_name));
+    }
+
+    explicit WidgetBase(Generative& main_generative
+                        , StateHandler& parent_state_handler
+                        , Vec<std::unique_ptr<InteractionVisualization>> visualizations = WidgetFuncs::default_visualizations()
+                        , Vec<TriggerableState> states = WidgetFuncs::default_states()
+                        , const State& initial_state = States::Default)
+            : m_main_generative(main_generative)
+              , m_interaction_visualizer(std::move(visualizations))
+              , m_state_handler(&parent_state_handler
+                                , *this
+                                , {*this, m_interaction_visualizer}
+                                , std::move(states)
+                                , initial_state) {
+
+        setComponentID(m_main_generative.get_parameter_handler().get_id());
+        addAndMakeVisible(m_interaction_visualizer);
+    }
+
+
+    Generative& get_generative() override {
+        return m_main_generative;
+    }
+
+
+    void resized() final {
+        auto bounds = getLocalBounds();
+        on_resized(bounds);
+        m_interaction_visualizer.setBounds(getLocalBounds());
+    }
+
+
+    StateHandler& get_state_handler() {
+        return m_state_handler;
+    }
+
+
+    InteractionVisualizer& get_visualizer() {
+        return m_interaction_visualizer;
+    }
+
+
+protected:
+    virtual void on_resized(juce::Rectangle<int>& bounds) = 0;
+
+
+private:
+    Generative& m_main_generative;
+
+    InteractionVisualizer m_interaction_visualizer;
+    StateHandler m_state_handler;
+
+
+};
+
+} // namespace serialist
+
+#endif //SERIALISTLOOPER_WIDGET_STEREOTYPES_H
