@@ -4,6 +4,8 @@
 #include "core/algo/temporal/equal_duration_sampling.h"
 #include "core/algo/histogram.h"
 
+using namespace serialist;
+
 TEST_CASE("Equal Duration Sampling Tests") {
     auto lb = 0.25;
     auto ub = 4.0;

@@ -7,13 +7,16 @@
 #include <iostream>
 #include "core/exceptions.h"
 #include "core/collections/voices.h"
+#include "parameter_keys.h"
 
 namespace serialist {
 
 class NopParameterHandler {
 public:
     // Public ctor, signature to match VTParameterHandler
-    explicit NopParameterHandler(const std::string&, NopParameterHandler&, const std::string& = "") {}
+    explicit NopParameterHandler(const Specification&, NopParameterHandler&) {}
+
+    [[deprecated]] NopParameterHandler(const std::string&, NopParameterHandler&, const std::string& = "") {}
 
 
     NopParameterHandler() = default;

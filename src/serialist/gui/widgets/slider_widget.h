@@ -10,6 +10,7 @@
 #include "core/collections/range.h"
 #include "core/algo/exponential.h"
 #include "algo/facet.h"
+#include "policies/policies.h"
 
 namespace serialist {
 
@@ -39,6 +40,7 @@ public:
         ConfigListener(ConfigListener&&)  noexcept = default;
         ConfigListener& operator=(ConfigListener&&)  noexcept = default;
 
+        virtual void on_configuration_changed(SliderValue& v) = 0;
         virtual void on_bounds_changed(SliderValue& v) = 0;
         virtual void on_exponential_changed(SliderValue& v) = 0;
     };
@@ -66,12 +68,12 @@ public:
                          , std::optional<double> upper_hard_bound = std::nullopt
                          , const Exponential<double>& exponential = Exponential<double>(1.0))
             : m_parent(ph)
-            , m_scaled_value(initial_value, Ids::VALUE, m_parent)
-              , m_bounds(bounds, Ids::BOUNDS, m_parent)
-              , m_exponential(exponential, Ids::EXP, m_parent)
-              , m_is_integral(is_integral, Ids::INTEGRAL, m_parent)
-              , m_lower_hard_bound(lower_hard_bound, Ids::LHB, m_parent)
-              , m_upper_hard_bound(upper_hard_bound, Ids::UHB, m_parent)
+            , m_scaled_value(initial_value, Ids::VALUE, m_parent, this)
+              , m_bounds(bounds, Ids::BOUNDS, m_parent, this)
+              , m_exponential(exponential, Ids::EXP, m_parent, this)
+              , m_is_integral(is_integral, Ids::INTEGRAL, m_parent, this)
+              , m_lower_hard_bound(lower_hard_bound, Ids::LHB, m_parent, this)
+              , m_upper_hard_bound(upper_hard_bound, Ids::UHB, m_parent, this)
               , m_raw_value(inverse(*m_scaled_value)) {
         assert(!*m_lower_hard_bound || !*m_upper_hard_bound || *m_lower_hard_bound < *m_upper_hard_bound);
     }
@@ -115,6 +117,24 @@ public:
         m_config_listeners.remove([&listener](const auto& handler) {
             return std::addressof(handler.get()) == std::addressof(listener);
         });
+    }
+
+
+    void load_state(const DeserializationData& dd) {
+        m_scaled_value.load_state(dd);
+        m_bounds.load_state(dd);
+        m_exponential.load_state(dd);
+        m_is_integral.load_state(dd);
+        m_lower_hard_bound.load_state(dd);
+        m_upper_hard_bound.load_state(dd);
+    }
+
+    void on_parameter_changed(serialist::VTParameterHandler&, const std::string &id) override {
+        if (id == Ids::VALUE) {
+            notify_value_change();
+        } else if (id == Ids::BOUNDS) {
+            ();
+        }
     }
 
 

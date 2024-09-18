@@ -4,6 +4,8 @@
 
 #include "core/collections/vec.h"
 
+using namespace serialist;
+
 TEST_CASE("Vec Constructors", "[constructor]") {
     Vec<int> v1;
     REQUIRE(v1.empty());

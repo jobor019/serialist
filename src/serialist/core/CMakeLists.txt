@@ -66,8 +66,10 @@ add_library(${CORE_NAME}
 
         # TODO: Automatically added - move to correct location above and append ${CMAKE_CURRENT_SOURCE_DIR}
         param/deserialization.h
-        policies.h
+        policies/policies.h
         param/string_serialization.h
+        policies/parameter_policy.h
+        policies/socket_policy.h
 )
 
 add_library(${PROJECT_NAME}::${CORE_NAME} ALIAS ${CORE_NAME})

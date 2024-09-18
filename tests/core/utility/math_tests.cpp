@@ -2,6 +2,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "core/utility/math.h"
 
+using namespace serialist;
 
 TEST_CASE("double2index tests") {
     REQUIRE(utils::double2index(0.0, 5) == 0);

@@ -9,7 +9,7 @@ namespace serialist {
 
 class Fraction {
 public:
-    Fraction(int num, int denom) : n(num), d(denom) {}
+    Fraction(long num, long denom) : n(num), d(denom) {}
 
 
     explicit operator double() const {
@@ -17,8 +17,8 @@ public:
     }
 
 
-    int n;
-    int d;
+    long n;
+    long d;
 };
 
 

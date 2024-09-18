@@ -4,6 +4,8 @@
 #include "core/generatives/selector.h"
 #include "core/algo/temporal/time_point.h"
 
+using namespace serialist;
+
 
 TEST_CASE("Selector - All Strategy") {
     Selector<int> selector;

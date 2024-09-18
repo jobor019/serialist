@@ -3,7 +3,7 @@
 #ifndef SERIALISTLOOPER_SEQUENCE_H
 #define SERIALISTLOOPER_SEQUENCE_H
 
-#include "core/policies.h"
+#include "serialist/core/policies/policies.h"
 #include "core/generative.h"
 #include "core/param/parameter_keys.h"
 #include "core/collections/vec.h"

@@ -1,9 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include "core/policies/policies.h"
 #include "core/algo/temporal/phase_accumulator.h"
 #include "core/generatives/variable.h"
-#include "core/param/parameter_policy.h"
 #include "core/generatives/unit_pulse.h"
 #include "core/algo/temporal/time_point.h"
 #include "core/generatives/oscillator.h"
@@ -11,6 +11,7 @@
 #include <thread>
 #include <cmath>
 
+using namespace serialist;
 
 static inline PhaseAccumulator initialize_phase_accumulator(double step_size, double phase, PaMode mode) {
     PhaseAccumulator p;

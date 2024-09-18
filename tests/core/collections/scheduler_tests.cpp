@@ -2,6 +2,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "core/collections/scheduler.h"
 
+using namespace serialist;
 
 TEST_CASE("Scheduler tests", "[scheduler]") {
     // TODO: Implement proper tests

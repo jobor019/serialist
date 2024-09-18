@@ -3,6 +3,8 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "core/algo/classifiers.h"
 
+using namespace serialist;
+
 
 TEST_CASE("LinearBandClassifier<int> Tests", "[LinearBandClassifier<int>]") {
     LinearBandClassifier classifier(0, 99, 10);

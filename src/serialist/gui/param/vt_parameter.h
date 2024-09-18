@@ -32,6 +32,7 @@ public:
     };
 
 
+    // Public ctor, same template as NopParameterHandler
     VTParameterHandler(const Specification& specification, VTParameterHandler& parent)
             : m_value_tree{{specification.type()}}
               , m_undo_manager{parent.get_undo_manager()}
@@ -184,9 +185,12 @@ public:
     VTParameterBase& operator=(VTParameterBase&&) noexcept = default;
 
     void set(const T& new_value) {
-        set_internal_value(new_value);
+        // Updates value tree,
+        // which internally calls this->valueTreePropertyChanged
+        // which updates the internal value and notifies all ParameterHandler::Listeners
+        //
+        // Note: the value tree is only updated if the new value is different from the current value
         update_value_tree(new_value);
-        this->notify();
     }
 
     void add_listener(VTParameterHandler::Listener& listener) {
@@ -195,7 +199,7 @@ public:
 
 
     void remove_listener(VTParameterHandler::Listener& listener) {
-        m_listeners.remove(listener);
+        m_listeners.remove([&listener](const auto& l) { return &l.get() == &listener; });
     }
 
 
@@ -247,6 +251,9 @@ private:
 template<typename T>
 class ThreadedVTParameterBase : public VTParameterBase<T> {
 public:
+    ThreadedVTParameterBase(T initial_value, const std::string& id, VTParameterHandler& parent)
+    : VTParameterBase<T>(initial_value, id, parent) {}
+
     /**
      * @return a copy of the internal value (thread safety)
      */

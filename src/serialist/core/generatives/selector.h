@@ -6,14 +6,13 @@
 #include <vector>
 #include <cmath>
 
-#include "core/param/parameter_policy.h"
+#include "core/policies/policies.h"
 #include "core/generative.h"
 #include "core/algo/temporal/transport.h"
 #include "core/algo/random.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/collections/multi_voiced.h"
 #include "core/algo/temporal/trigger.h"
-#include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/generatives/sequence.h"
 #include "core/generatives/variable.h"
 

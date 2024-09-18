@@ -7,6 +7,8 @@
 #include "core/algo/random.h"
 #include "core/collections/vec.h"
 
+using namespace serialist;
+
 TEST_CASE("Random::next() returns values in [0, 1]") {
     Random random(0);
     for (int i = 0; i < 1000; ++i) {

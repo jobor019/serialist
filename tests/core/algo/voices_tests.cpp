@@ -5,6 +5,8 @@
 #include "core/algo/facet.h"
 #include "core/algo/random.h"
 
+using namespace serialist;
+
 TEST_CASE("Voices constructor with a vector of Voice objects") {
     // Create a vector of Voice objects
     Vec<Voice<int>> v;

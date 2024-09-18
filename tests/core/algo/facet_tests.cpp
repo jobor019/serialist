@@ -5,6 +5,7 @@
 #include <iostream>
 #include "core/algo/facet.h"
 
+using namespace serialist;
 
 TEST_CASE("Boolean conversion") {
     // operator== true results

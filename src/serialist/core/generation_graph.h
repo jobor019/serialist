@@ -6,7 +6,7 @@
 #include <mutex>
 #include <regex>
 #include "core/generative.h"
-#include "core/param/parameter_policy.h"
+#include "serialist/core/policies/policies.h"
 #include "core/param/parameter_keys.h"
 #include "core/algo/temporal/time_point.h"
 

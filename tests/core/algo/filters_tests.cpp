@@ -8,6 +8,8 @@
 #include "core/algo/random.h"
 #include "core/utility/math.h"
 
+using namespace serialist;
+
 TEST_CASE("FilterSmoo") {
     FilterSmoo s;
     Random rnd(0);

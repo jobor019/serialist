@@ -4,6 +4,7 @@
 #include "core/collections/vec.h"
 #include "core/algo/histogram.h"
 
+using namespace serialist;
 
 TEST_CASE("Histogram construction and value/count retrieval") {
     SECTION("Empty input") {

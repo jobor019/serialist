@@ -2,9 +2,11 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include "core/policies/policies.h"
 #include "core/generatives/interpolator.h"
 #include "core/algo/temporal/time_point.h"
 
+using namespace serialist;
 
 TEST_CASE("Test Interpolator: Continue (Integral)") {
     Voices<int> corpus{{  0, 2}

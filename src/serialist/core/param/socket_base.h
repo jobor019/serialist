@@ -4,6 +4,7 @@
 
 #include "core/connectable.h"
 #include "core/generative.h"
+#include "core/param/parameter_keys.h"
 
 namespace serialist {
 

@@ -5,7 +5,7 @@
 
 
 #include "core/generative.h"
-#include "core/policies.h"
+#include "serialist/core/policies/policies.h"
 #include "core/param/parameter_keys.h"
 
 namespace serialist {

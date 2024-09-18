@@ -5,6 +5,8 @@
 #include "core/algo/temporal/transport.h"
 #include "core/algo/temporal/time_point.h"
 
+using namespace serialist;
+
 TEST_CASE("Initial TimePoint") {
     auto t = TimePoint();
     REQUIRE_THAT(t.get_tick(), Catch::Matchers::WithinAbs(0.0, 1e-8));

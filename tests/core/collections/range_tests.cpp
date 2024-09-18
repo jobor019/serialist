@@ -4,6 +4,8 @@
 #include "core/collections/range.h"
 #include <iostream>
 
+using namespace serialist;
+
 TEST_CASE("Continuous Range") {
     ContinuousRange<double> range(0, 1); // TODO
 }

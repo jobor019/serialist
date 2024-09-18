@@ -1,9 +1,13 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include "core/policies/policies.h"
 #include "core/generatives/sequence.h"
-#include "core/generatives/variable.h"
 #include "core/algo/pitch/notes.h"
 #include "core/algo/facet.h"
+
+
+
+using namespace serialist;
 
 template<typename StoredType, typename OutputType = StoredType>
 class BasicSequence {
