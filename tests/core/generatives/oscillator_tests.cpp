@@ -73,7 +73,7 @@ TEST_CASE("m_phasor stepped", "[m_phasor]") {
 
 // ==============================================================================================
 
-TEST_CASE("Oscillator Ctor") {
+TEST_CASE("Oscillator ctor") {
     auto oscillator = OscillatorWrapper();
 }
 

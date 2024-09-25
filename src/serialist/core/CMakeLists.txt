@@ -70,6 +70,7 @@ add_library(${CORE_NAME}
         param/string_serialization.h
         policies/parameter_policy.h
         policies/socket_policy.h
+        utility/mapping.h
 )
 
 add_library(${PROJECT_NAME}::${CORE_NAME} ALIAS ${CORE_NAME})
