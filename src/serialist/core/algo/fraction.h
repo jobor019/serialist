@@ -11,11 +11,16 @@ namespace serialist {
 
 class Fraction {
 public:
-    Fraction(long num, long denom) : n(num), d(denom) {}
+
+    Fraction() : Fraction(0, 1) {}
+
+    Fraction(long num, long denom) : n(num), d(denom) {
+        assert(d > 0);
+    }
 
 
     explicit operator double() const {
-        return n / static_cast<double>(d);
+        return static_cast<double>(n) / static_cast<double>(d);
     }
 
 
@@ -34,11 +39,14 @@ public:
  */
 class ExtendedFraction {
 public:
+    ExtendedFraction() : ExtendedFraction(0, 1, 1) {}
+
     ExtendedFraction(long integral_part, long num, long denom)
-            : m_integral_part(integral_part), m_fractional_part(num, denom) {}
+            : ExtendedFraction(integral_part, Fraction(num, denom)) {}
 
     ExtendedFraction(long integral_part, Fraction fractional_part)
-            : m_integral_part(integral_part), m_fractional_part(fractional_part) {}
+            : m_integral_part(integral_part), m_fractional_part(fractional_part) {
+    }
 
 
     static ExtendedFraction from_decimal(double y, const Vec<long>& allowed_denoms, double epsilon = 1e-6) {

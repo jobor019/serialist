@@ -78,6 +78,10 @@ public:
         auto period = p.period->get_value();
         auto offset = p.offset->as_type(type, t.get_meter()).get_value();
 
+        if (utils::equals(period, 0.0)) {
+            return phase_mod(offset);
+        }
+
         auto q = offset / period;
         return phase_mod(q);
     }
@@ -96,7 +100,7 @@ public:
         if (!s.x) {
             // first callback => set to initial phase
             s.x = offset_as_phase(t, p);
-        } else {
+        } else if (s.has_trigger) {
             s.x = phase_mod(*s.x + *p.step_size);
         }
 

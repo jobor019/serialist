@@ -154,6 +154,10 @@ private:
                                , double offset
                                , bool is_first_value = false
                                , double epsilon = EPSILON) {
+        if (utils::equals(period, 0.0)) {
+            return current_time;
+        }
+
         auto rem = utils::modulo(current_time - offset, period);
 
         if (is_first_value && utils::equals(rem, 0.0, epsilon)) {
@@ -172,6 +176,10 @@ private:
     }
 
     static double compute_phase(double t, double period, double offset) {
+        if (utils::equals(period, 0.0)) {
+            return 0.0;
+        }
+
         return utils::modulo(t - offset, period) / period;
     }
 

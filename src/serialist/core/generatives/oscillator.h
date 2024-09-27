@@ -332,9 +332,7 @@ struct OscillatorWrapper {
     Variable<Facet, DomainType> period_type{Keys::PERIOD_TYPE, ph, PaParameters::DEFAULT_PERIOD_TYPE};
     Sequence<Facet, FloatType> offset{Keys::OFFSET, ph, Voices<FloatType>::singular(PaParameters::DEFAULT_OFFSET)};
     Variable<Facet, DomainType> offset_type{Keys::OFFSET_TYPE, ph, PaParameters::DEFAULT_OFFSET_TYPE};
-    Sequence<Facet, FloatType> step_size{
-            Keys::STEP_SIZE
-            , ph
+    Sequence<Facet, FloatType> step_size{Keys::STEP_SIZE, ph
             , Voices<FloatType>::singular(static_cast<FloatType>(PaParameters::DEFAULT_STEP_SIZE))
     };
 
