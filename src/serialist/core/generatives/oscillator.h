@@ -168,6 +168,7 @@ public:
         static const inline std::string PHASE = "phase";
         static const inline std::string TAU = "tau";
         static const inline std::string TAU_TYPE = "tau_type";
+        static const inline std::string RESET = "reset";
 
         static const inline std::string CLASS_NAME = "oscillator";
     };
@@ -186,6 +187,7 @@ public:
                    , Node<Facet>* curve = nullptr
                    , Node<Facet>* tau = nullptr
                    , Node<Facet>* tau_type = nullptr
+                   , Node<Trigger>* reset = nullptr
                    , Node<Facet>* enabled = nullptr
                    , Node<Facet>* num_voices = nullptr)
             : NodeBase<Facet>(id, parent, enabled, num_voices, OscillatorKeys::CLASS_NAME)
@@ -200,7 +202,8 @@ public:
               , m_duty(add_socket(OscillatorKeys::DUTY, duty))
               , m_curve(add_socket(OscillatorKeys::CURVE, curve))
               , m_tau(add_socket(OscillatorKeys::TAU, tau))
-              , m_tau_type(add_socket(OscillatorKeys::TAU_TYPE, tau_type)) {}
+              , m_tau_type(add_socket(OscillatorKeys::TAU_TYPE, tau_type))
+              , m_reset(add_socket(OscillatorKeys::RESET, reset)) {}
 
     Voices<Facet> process() override {
         auto t = pop_time();
@@ -210,6 +213,11 @@ public:
         if (!is_enabled() || !m_trigger.is_connected()) {
             m_current_value = Voices<Facet>::empty_like();
             return m_current_value;
+        }
+
+        auto reset_triggers = m_reset.process();
+        if (Trigger::contains_pulse_on(reset_triggers)) {
+            reset();
         }
 
         auto trigger = m_trigger.process();
@@ -293,6 +301,12 @@ private:
         }
     }
 
+    void reset() {
+        for (auto& oscillator : m_oscillators) {
+            oscillator.reset();
+        }
+    }
+
 
     Socket<Trigger>& m_trigger;
     Socket<Facet>& m_mode;
@@ -306,6 +320,7 @@ private:
     Socket<Facet>& m_curve;
     Socket<Facet>& m_tau;
     Socket<Facet>& m_tau_type;
+    Socket<Trigger>& m_reset;
 
     MultiVoiced<Oscillator, double> m_oscillators;
 
@@ -342,6 +357,8 @@ struct OscillatorWrapper {
     Sequence<Facet, FloatType> tau{Keys::TAU, ph, Voices<FloatType>::singular(FilterSmoo::DEFAULT_TAU)};
     Variable<Facet, DomainType> tau_type{Keys::TAU_TYPE, ph, FilterSmoo::DEFAULT_TAU_TYPE};
 
+    Sequence<Trigger> reset_trigger{Keys::RESET, ph};
+
     Sequence<Facet, bool> enabled{ParameterTypes::ENABLED, ph, Voices<bool>::singular(true)};
     Variable<Facet, std::size_t> num_voices{ParameterTypes::NUM_VOICES, ph, 0};
 
@@ -359,6 +376,7 @@ struct OscillatorWrapper {
                               , &curve
                               , &tau
                               , &tau_type
+                              , &reset_trigger
                               , &enabled
                               , &num_voices};
 };

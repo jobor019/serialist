@@ -181,6 +181,8 @@ public:
             return Type::min;
         if (str == "max")
             return Type::max;
+        if (str == "not" || str == "!")
+            return Type::not_op;
         if (str == "abs")
             return Type::abs;
         if (str == "ceil")
