@@ -134,12 +134,12 @@ inline constexpr bool is_equality_comparable_v = is_equality_comparable<T>::valu
 template<typename, typename = void>
 struct is_inequality_comparable : std::false_type {};
 
-// Specialization that checks if T == T is valid
+// Specialization that checks if T != T is valid
 template<typename T>
 struct is_inequality_comparable<T, std::void_t<decltype(std::declval<T>() != std::declval<T>())>> : std::true_type {};
 
 template<typename T>
-inline constexpr bool is_inequality_comparable_v = is_equality_comparable<T>::value;
+inline constexpr bool is_inequality_comparable_v = is_inequality_comparable<T>::value;
 
 
 // ==============================================================================================

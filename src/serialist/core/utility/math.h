@@ -127,6 +127,14 @@ inline bool equals(std::optional<T> a, std::optional<T> b, T epsilon = 1e-6) {
 }
 
 
+// ==============================================================================================
+
+template<typename T = double, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+inline bool in(T value, T start, T end, bool start_inclusive = true, bool end_inclusive = false) {
+    return (start_inclusive ? value >= start : value > start) && (end_inclusive ? value <= end : value < end);
+}
+
+
 } // namespace serialist::utils
 
 #endif //SERIALISTLOOPER_MATH_H

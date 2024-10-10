@@ -208,6 +208,9 @@ public:
     // =========================== OPERATORS ==========================
 
     bool operator==(const Vec<T>& other) const {
+        if constexpr (std::is_floating_point_v<T>) {
+            return approx_equals(other, 1e-8);
+        }
         return m_vector == other.m_vector;
     }
 

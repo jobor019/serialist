@@ -11,11 +11,16 @@ namespace serialist {
 
 class PhasePulse {
 public:
-    explicit PhasePulse(std::size_t id, const Phase& duration) : m_id(id), m_duration(duration) {}
+    explicit PhasePulse(std::size_t id, const Phase& duration) : m_id(id), m_duration(duration) {
+        assert(m_duration <= 1.0);
+    }
 
     void increment_phase(double delta) { m_elapsed_duration += delta; }
 
-    void scale(double factor) { m_duration *= factor; }
+    void scale(double factor) {
+        assert(factor <= 1.0);
+        m_duration *= factor;
+    }
 
     void flag_discontinuity() { m_discontinuity_occurred = true; }
 
@@ -27,7 +32,7 @@ public:
 
 private:
     std::size_t m_id;
-    Phase m_duration;
+    double m_duration;
     double m_elapsed_duration = 0.0;
     bool m_discontinuity_occurred = false;
 };
@@ -40,7 +45,7 @@ class PhasePulses : public Flushable<Trigger> {
 public:
     PhasePulses() = default;
 
-    Trigger new_pulse(const Phase& duration, std::optional<std::size_t> id = std::nullopt) {
+    Trigger new_pulse(double duration, std::optional<std::size_t> id = std::nullopt) {
         auto pulse_id = TriggerIds::new_or(id);
         m_pulses.append(PhasePulse(pulse_id, duration));
         return Trigger::with_manual_id(Trigger::Type::pulse_on, pulse_id);
@@ -55,13 +60,32 @@ public:
     }
 
 
+    Vec<PhasePulse> drain_elapsed(bool include_discontinuous = false) {
+        return m_pulses.filter_drain([include_discontinuous](const PhasePulse& p) {
+            return !(p.elapsed() || (include_discontinuous && !p.has_discontinuity_flag()));
+        });
+    }
+
     Voice<Trigger> drain_elapsed_as_triggers(bool include_discontinuous = false) {
-        // TODO
+        return drain_elapsed(include_discontinuous)
+                .template as_type<Trigger>([](const PhasePulse& p) {
+                    return Trigger::pulse_off(p.get_id());
+                });
+    }
+
+
+    Vec<PhasePulse> drain_discontinuous() {
+        return m_pulses.filter_drain([](const PhasePulse& p) {
+            return !p.has_discontinuity_flag();
+        });
     }
 
 
     Voice<Trigger> drain_discontinuous_as_triggers() {
-        // TODO
+        return drain_discontinuous()
+                .template as_type<Trigger>([](const PhasePulse& p) {
+                    return Trigger::pulse_off(p.get_id());
+                });
     }
 
 
@@ -91,7 +115,7 @@ public:
 
 
 private:
-    Vec<PhasePulse>  m_pulses;
+    Vec<PhasePulse> m_pulses;
 };
 
 
