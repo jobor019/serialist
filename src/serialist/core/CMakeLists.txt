@@ -71,6 +71,9 @@ add_library(${CORE_NAME}
         policies/parameter_policy.h
         policies/socket_policy.h
         utility/mapping.h
+        algo/temporal/phase_pulse.h
+        generatives/phase_pulsator.h
+        algo/temporal/phase.h
 )
 
 add_library(${PROJECT_NAME}::${CORE_NAME} ALIAS ${CORE_NAME})

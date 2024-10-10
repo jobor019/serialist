@@ -9,6 +9,7 @@
 #include "core/utility/math.h"
 #include "time_point.h"
 #include "core/utility/stateful.h"
+#include "core/algo/temporal/phase.h"
 #include "core/algo/temporal/time_point_generators.h"
 #include <map>
 
@@ -52,8 +53,6 @@ struct PaState {
 
 class PaStrategy {
 public:
-    static constexpr double EPSILON = 1e-8;
-
     PaStrategy() = default;
 
     virtual ~PaStrategy() = default;
@@ -79,15 +78,11 @@ public:
         auto offset = p.offset->as_type(type, t.get_meter()).get_value();
 
         if (utils::equals(period, 0.0)) {
-            return phase_mod(offset);
+            return Phase::phase_mod(offset);
         }
 
         auto q = offset / period;
-        return phase_mod(q);
-    }
-
-    static double phase_mod(double x) {
-        return utils::modulo(x, 1.0, EPSILON);
+        return Phase::phase_mod(q);
     }
 };
 
