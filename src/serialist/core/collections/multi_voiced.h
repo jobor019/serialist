@@ -102,6 +102,7 @@ public:
     }
 
 
+    /** @brief Using a vector of the same size as the objects, set each object to the corresponding element in the vector*/
     template<typename Setter, typename ArgType, typename = std::enable_if_t<std::is_member_function_pointer_v<Setter>>>
     void set(Setter func, Vec<ArgType>&& values) {
         if (values.size() != m_objects.size()) {
@@ -113,6 +114,7 @@ public:
         }
     }
 
+    /** @brief set each object to a single value */
     template<typename Setter, typename ArgType, typename = std::enable_if_t<std::is_member_function_pointer_v<Setter>>>
     void set(Setter func, const ArgType& v) {
         for (auto& obj : m_objects) {

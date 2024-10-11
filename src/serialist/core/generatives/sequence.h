@@ -20,19 +20,20 @@ public:
 
 
     Sequence(const std::string& id
-                      , ParameterHandler& parent
-                      , const Voices<StoredType>& initial_values = Voices<StoredType>::empty_like())
-            : m_parameter_handler(id, parent)
+             , ParameterHandler& parent
+             , const Voices<StoredType>& initial_values = Voices<StoredType>::empty_like())
+            : m_parameter_handler(Specification(param::types::generative)
+                                          .with_identifier(id)
+                                          .with_static_property(param::properties::template_class, CLASS_NAME)
+                                  , parent)
               , m_sequence(SEQUENCE_TREE, m_parameter_handler, initial_values) {
         static_assert(std::is_constructible_v<OutputType, StoredType>
                       && std::is_constructible_v<StoredType, OutputType>
                       , "Cannot create a Sequence with incompatible types");
-
-        m_parameter_handler.add_static_property(ParameterTypes::GENERATIVE_CLASS, CLASS_NAME);
     }
 
     Sequence(const std::string& id, ParameterHandler& parent, const StoredType& value)
-    : Sequence(id, parent, Voices<StoredType>::singular(value)) {}
+            : Sequence(id, parent, Voices<StoredType>::singular(value)) {}
 
 
     Voices<OutputType> process() override {
@@ -69,7 +70,6 @@ public:
     void set_value_at(std::size_t index, const Voice<StoredType>& value) {
         m_sequence.set_at(index, value);
     }
-
 
 
     SequenceParameter<OutputType, StoredType>& get_parameter_obj() {

@@ -96,7 +96,7 @@ public:
             // first callback => set to initial phase
             s.x = offset_as_phase(t, p);
         } else if (s.has_trigger) {
-            s.x = phase_mod(*s.x + *p.step_size);
+            s.x = Phase::phase_mod(*s.x + *p.step_size);
         }
 
         return *s.x;
@@ -122,7 +122,7 @@ public:
                 s.x = offset_as_phase(t, p);
             } else {
                 auto dx = dt / p.period->get_value();
-                s.x = phase_mod(*s.x + dx);
+                s.x = Phase::phase_mod(*s.x + dx);
             }
         }
 

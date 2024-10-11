@@ -7,6 +7,8 @@
 #include "generatives/stereotypes/base_stereotypes.h"
 #include "algo/temporal/phase_pulse.h"
 #include "utility/stateful.h"
+#include "variable.h"
+#include "sequence.h"
 
 namespace serialist {
 
@@ -14,6 +16,8 @@ class PhasePulsator : public Flushable<Trigger> {
 public:
     static constexpr double DISCONTINUITY_THRESHOLD = 0.1; // unit: phases
     static constexpr double MINIMUM_SEGMENT_DURATION = 0.03; // unit: ticks, smallest allowed duration ≈ 128d-notes
+    static constexpr double DEFAULT_LEGATO = 1.0;
+    static constexpr double DEFAULT_DURATION = 1.0;
 
     PhasePulsator() = default;
 
@@ -22,10 +26,10 @@ public:
         Voice<Trigger> triggers;
 
         auto direction = cursor_direction(cursor);
-        if (m_durations.changed() || time_skip(t) || is_discontinuous(cursor) || direction_changed(direction)) {
+        if (m_durations.changed() || is_discontinuous(cursor) || direction_changed(direction)) {
             m_pulses.flag_discontinuity();
-            m_durations.clear_flag();
             m_current_segment = cursor_segment(cursor);
+            m_durations.clear_flag();
 
         } else if (is_first_call()) {
             // On the first call, we don't know where in the segment we're starting, and we don't know the
@@ -65,6 +69,41 @@ public:
     }
 
 
+    Voice<Trigger> flush() override {
+        return m_pulses.flush();
+    }
+
+
+    Voice<Trigger> handle_time_skip(const TimePoint& new_time) {
+        m_previous_trigger_time = new_time;
+        return flush();
+    }
+
+
+    void set_durations(const Voice<double>& durations) {
+        auto d = durations.cloned().filter_drain([](double p) { return p <= 0.0; });
+
+        if (d.empty())
+            m_durations = Voice<double>::singular(1.0);
+
+        d.normalize_l1();
+        m_durations = d;
+    }
+
+
+    void set_legato(double new_legato) {
+        assert(new_legato >= 0.0);
+
+        if (!utils::equals(m_legato, 0.0)) {
+            m_pulses.scale(new_legato / m_legato);
+        }
+
+        m_legato = new_legato;
+
+    }
+
+
+private:
     std::optional<std::size_t> detect_edge(const TimePoint& t, const Phase& cursor) const {
         if (too_close_to_previous_trigger(t) || !m_current_segment)
             return std::nullopt;
@@ -72,10 +111,11 @@ public:
         auto new_segment_index = cursor_segment(cursor);
         if (new_segment_index != *m_current_segment)
             return new_segment_index;
-        
+
         return std::nullopt;
 
     }
+
 
     std::size_t cursor_segment(const Phase& cursor) const {
         double sum = 0.0;
@@ -89,28 +129,6 @@ public:
     }
 
 
-    void set_durations(Voice<double>&& durations) {
-        durations.filter_drain([](double p) { return utils::equals(p, 0.0); });
-
-        if (durations.empty())
-            m_durations = Voice<double>::singular(1.0);
-
-        durations.normalize_l1();
-        m_durations = durations;
-    }
-
-
-    void set_legato(double new_legato) {
-        if (!utils::equals(m_legato, 0.0)) {
-            m_pulses.scale(new_legato / m_legato);
-        }
-
-        m_legato = new_legato;
-
-    }
-
-
-private:
     bool too_close_to_previous_trigger(const TimePoint& t) const {
         // Technically, we already know that no time skip has occurred, so we don't need std::abs here.
         //   This is only in case the implementation changes in the future
@@ -118,14 +136,11 @@ private:
                std::abs(t.get_tick() - m_previous_trigger_time->get_tick()) > MINIMUM_SEGMENT_DURATION;
     }
 
+
     bool is_first_call() const {
         return m_previous_cursor == std::nullopt;
     }
 
-
-    bool time_skip(const TimePoint& t) const {
-        return m_previous_trigger_time && m_previous_trigger_time->get_tick() > t.get_tick();
-    }
 
     std::optional<Phase::Direction> cursor_direction(const Phase& cursor) const {
         if (!m_previous_cursor)
@@ -146,9 +161,10 @@ private:
         return *m_cursor_direction != *new_direction;
     }
 
+
     PhasePulses m_pulses;
-    WithChangeFlag<Voice<double>> m_durations{Voice<double>::singular(1.0)}; // INVARIANT: Minimum size 1
-    double m_legato = 1.0;
+    WithChangeFlag<Voice<double>> m_durations{Voice<double>::singular(DEFAULT_DURATION)}; // INVARIANT: Minimum size 1
+    double m_legato = DEFAULT_LEGATO;
 
     std::optional<Phase> m_previous_cursor = std::nullopt;
     std::optional<Phase::Direction> m_cursor_direction = std::nullopt;
@@ -159,16 +175,131 @@ private:
 
 // ==============================================================================================
 
+class PhasePulsatorNode : public PulsatorBase<PhasePulsator> {
+public:
+    struct Keys {
+        static const inline std::string DURATION = "duration";
+        static const inline std::string LEGATO_AMOUNT = "legato_amount";
+        static const inline std::string CURSOR = "cursor";
 
-class PhasePulsatorNode : public NodeBase<Trigger> {
+        static const inline std::string CLASS_NAME = "phase_pulsator";
+    };
+
+    PhasePulsatorNode(const std::string& identifier
+                      , ParameterHandler& parent
+                      , Node<Facet>* durations = nullptr
+                      , Node<Facet>* legato = nullptr
+                      , Node<Facet>* cursor = nullptr
+                      , Node<Facet>* enabled = nullptr
+                      , Node<Facet>* num_voices = nullptr)
+            : PulsatorBase<PhasePulsator>(identifier, parent, enabled, num_voices, Keys::CLASS_NAME)
+              , m_durations(add_socket(Keys::DURATION, durations))
+              , m_legato(add_socket(Keys::LEGATO_AMOUNT, legato))
+              , m_cursor(add_socket(Keys::CURSOR, cursor)) {}
+
+
+private:
+    std::size_t get_voice_count() override {
+        return voice_count(m_legato.voice_count(), m_cursor.voice_count());
+    }
+
+    std::optional<Voices<Trigger>> handle_enabled_state(EnabledState state) override {
+        if (state == EnabledState::disabled_this_cycle) {
+            return pulsators().flush();
+        } else if (state == EnabledState::disabled_previous_cycle) {
+            return Voices<Trigger>::empty_like();
+        }
+        return std::nullopt;
+    }
+
+    void update_parameters(std::size_t num_voices, bool size_has_changed) override {
+        if (size_has_changed || m_legato.has_changed()) {
+            auto legato = m_legato.process()
+                    .adapted_to(num_voices)
+                    .firsts_or(PhasePulsator::DEFAULT_LEGATO);
+            pulsators().set(&PhasePulsator::set_legato, std::move(legato));
+        }
+
+        if (m_durations.has_changed()) {
+            // Note: Not related to num_voices
+            auto durations = m_durations.process().firsts_or(0.0);
+            pulsators().set(&PhasePulsator::set_durations, durations);
+        }
+
+        // Note: cursor should not be updated here as it's not a parameter (member variable) of PhasePulsator
+    }
+
+    std::optional<Voices<Trigger>> handle_transport_events(const TimePoint& t, const Vec<TimeEvent>& events) override {
+        if (events.contains(TimeEvent::time_skip)) {
+            auto& p = pulsators();
+            auto num_voices = p.size();
+            auto flushed = Voices<Trigger>::zeros(num_voices);
+            for (std::size_t i = 0; i < num_voices; ++i) {
+                flushed[i] = p[i].handle_time_skip(t);
+            }
+            return flushed;
+        }
+
+        return std::nullopt;
+
+    }
+
+    Voices<Trigger> process_pulsator(const TimePoint& t, std::size_t num_voices) override {
+        auto triggers = Voices<Trigger>::zeros(num_voices);
+
+        if (!m_cursor.is_connected()) {
+            return triggers;
+        }
+
+        auto cursors = m_cursor.process()
+                .adapted_to(num_voices)
+                .firsts_or(0.0)
+                .as_type<Phase>([](auto phase) { return Phase(phase); });
+
+        auto& p = pulsators();
+        assert(p.size() == num_voices);
+
+        for (std::size_t i = 0; i < p.size(); ++i) {
+            triggers[i] = p[i].process(t, cursors[i]);
+        }
+
+        return triggers;
+    }
+
+
+    Socket<Facet>& m_durations;
+    Socket<Facet>& m_legato;
+    Socket<Facet>& m_cursor;
+//    Socket<Facet>& m_legato_type; // TODO: implement types: absolute / relative legato
+
 };
 
 
 // ==============================================================================================
 
-
 template<typename FloatType = float>
 struct PhasePulsatorWrapper {
+
+    using Keys = PhasePulsatorNode::Keys;
+
+    ParameterHandler parameter_handler;
+
+    Sequence<Facet, FloatType> duration{Keys::DURATION, parameter_handler
+                                        , Voices<FloatType>::singular(PhasePulsator::DEFAULT_DURATION)};
+    Sequence<Facet, FloatType> legato_amount{Keys::LEGATO_AMOUNT, parameter_handler
+                                             , Voices<FloatType>::singular(PhasePulsator::DEFAULT_LEGATO)};
+    Sequence<Facet, FloatType> cursor{Keys::CURSOR, parameter_handler, Voices<FloatType>::singular(0.0)};
+
+    Sequence<Facet, bool> enabled{param::properties::enabled, parameter_handler, Voices<bool>::singular(true)};
+    Variable<Facet, std::size_t> num_voices{param::properties::num_voices, parameter_handler, 0};
+
+    PhasePulsatorNode pulsator_node{Keys::CLASS_NAME
+                               , parameter_handler
+                               , &duration
+                               , &legato_amount
+                               , &cursor
+                               , &enabled
+                               , &num_voices};
 
 };
 

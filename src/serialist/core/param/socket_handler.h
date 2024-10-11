@@ -10,7 +10,7 @@ namespace serialist {
 class SocketHandler {
 public:
     explicit SocketHandler(ParameterHandler& parameter_handler)
-            : m_socket_parameter_handler("", parameter_handler, ParameterTypes::GENERATIVE_SOCKETS_TREE) {}
+            : m_socket_parameter_handler(Specification(param::types::sockets_tree), parameter_handler) {}
 
 
     template<typename T>

@@ -110,6 +110,7 @@ public:
     explicit EnabledGate(bool initial_enabled_state = false)
             : m_current_state(initial_enabled_state), m_previous_state(initial_enabled_state) {}
 
+
     EnabledState update(bool enabled) {
         auto state = process_state(enabled);
         m_previous_state = m_current_state;
@@ -117,14 +118,22 @@ public:
         return state;
     }
 
+
+    static bool enabled(EnabledState state) {
+        return state == EnabledState::enabled
+               || state == EnabledState::enabled_this_cycle;
+    }
+
 private:
     EnabledState process_state(bool enabled) const {
         if (enabled && m_current_state) {
             return EnabledState::enabled;
-        } else if (enabled && !m_current_state) {
+        } else if (enabled) {
             return EnabledState::enabled_this_cycle;
-        } else if (!enabled && m_current_state) {
+        } else if (m_current_state) {
             return EnabledState::disabled_this_cycle;
+        } else if (m_previous_state) {
+            return EnabledState::disabled_previous_cycle;
         } else {
             return EnabledState::disabled;
         }

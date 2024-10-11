@@ -11,8 +11,8 @@ namespace serialist {
 
 class PhasePulse {
 public:
-    explicit PhasePulse(std::size_t id, const Phase& duration) : m_id(id), m_duration(duration) {
-        assert(m_duration <= 1.0);
+    explicit PhasePulse(std::size_t id, double duration) : m_id(id), m_duration(duration) {
+        assert(utils::in(m_duration, 0.0, 1.0, true, true));
     }
 
     void increment_phase(double delta) { m_elapsed_duration += delta; }
@@ -26,7 +26,7 @@ public:
 
     bool has_discontinuity_flag() const { return m_discontinuity_occurred; }
 
-    bool elapsed() const { return m_elapsed_duration >= m_duration.get(); }
+    bool elapsed() const { return m_elapsed_duration >= m_duration; }
 
     std::size_t get_id() const { return m_id; }
 

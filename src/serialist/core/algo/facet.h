@@ -76,7 +76,7 @@ public:
     }
 
 
-    explicit operator double() const {
+    operator double() const { // NOLINT(*-explicit-constructor)
         return m_value;
     }
 

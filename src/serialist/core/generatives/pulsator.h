@@ -625,7 +625,6 @@ private:
 class PulsatorNode : public NodeBase<Trigger> {
 public:
 
-    // TODO
     class PulsatorKeys {
     public:
         PulsatorKeys() = delete;
