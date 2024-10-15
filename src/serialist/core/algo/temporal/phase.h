@@ -95,6 +95,16 @@ public:
         return *this;
     }
 
+    Phase& operator+=(double other) {
+        m_phase = phase_mod(m_phase + other, m_epsilon);
+        return *this;
+    }
+
+    Phase& operator-=(double other) {
+        m_phase = phase_mod(m_phase - other, m_epsilon);
+        return *this;
+    }
+
 
     Phase& operator*=(double other) {
         m_phase = phase_mod(m_phase * other, m_epsilon);

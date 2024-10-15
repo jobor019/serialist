@@ -12,13 +12,13 @@ namespace serialist {
 class PhasePulse {
 public:
     explicit PhasePulse(std::size_t id, double duration) : m_id(id), m_duration(duration) {
-        assert(utils::in(m_duration, 0.0, 1.0, true, true));
+        assert(duration >= 0.0);
     }
 
     void increment_phase(double delta) { m_elapsed_duration += delta; }
 
     void scale(double factor) {
-        assert(factor <= 1.0);
+        assert(factor >= 0.0);
         m_duration *= factor;
     }
 
@@ -60,14 +60,16 @@ public:
     }
 
 
-    Vec<PhasePulse> drain_elapsed(bool include_discontinuous = false) {
-        return m_pulses.filter_drain([include_discontinuous](const PhasePulse& p) {
-            return !(p.elapsed() || (include_discontinuous && !p.has_discontinuity_flag()));
+    Vec<PhasePulse> drain_elapsed(bool exclude_discontinuous = false) {
+        return m_pulses.filter_drain([&exclude_discontinuous](const PhasePulse& p) {
+            bool elapsed = p.elapsed();
+            bool should_be_excluded = exclude_discontinuous && p.has_discontinuity_flag();
+            return !elapsed || should_be_excluded;
         });
     }
 
-    Voice<Trigger> drain_elapsed_as_triggers(bool include_discontinuous = false) {
-        return drain_elapsed(include_discontinuous)
+    Voice<Trigger> drain_elapsed_as_triggers(bool exclude_discontinuous = false) {
+        return drain_elapsed(exclude_discontinuous)
                 .template as_type<Trigger>([](const PhasePulse& p) {
                     return Trigger::pulse_off(p.get_id());
                 });

@@ -26,17 +26,16 @@ public:
         Voice<Trigger> triggers;
 
         auto direction = cursor_direction(cursor);
-        if (m_durations.changed() || is_discontinuous(cursor) || direction_changed(direction)) {
+        if (m_previous_trigger_time && (m_durations.changed() || is_discontinuous(cursor) || direction_changed(direction))) {
             m_pulses.flag_discontinuity();
             m_current_segment = cursor_segment(cursor);
-            m_durations.clear_flag();
 
         } else if (is_first_call()) {
             // On the first call, we don't know where in the segment we're starting, and we don't know the
             //   direction the cursor is moving. For this reason, we'll always trigger a new pulse equal to the segment
             //   duration, but flag it as discontinuous to ensure that it doesn't extend beyond the next segment.
             auto segment_index = cursor_segment(cursor);
-            m_pulses.new_pulse(m_durations.get()[segment_index]);
+            triggers.append(new_pulse(segment_index));
             m_current_segment = segment_index;
             m_previous_trigger_time = t;
             m_pulses.flag_discontinuity();
@@ -50,12 +49,18 @@ public:
             // Note that a proper implementation of legato requires prediction of the future, which we cannot do,
             //   as the parameters may change at any given moment. But this way we'll ensure that for legato >= 1.0,
             //   we'll never have any gaps in the output pulses, even if the corpus / cursor / direction changes.
-            bool include_discontinuous = m_legato < 1.0;
+            bool include_discontinuous = m_legato >= 1.0;
             triggers.extend(m_pulses.drain_elapsed_as_triggers(include_discontinuous));
 
             if (auto edge_index = detect_edge(t, cursor)) {
-                triggers.extend(m_pulses.drain_discontinuous_as_triggers());
-                triggers.append(m_pulses.new_pulse(m_durations.get()[*edge_index]));
+                // If legato is exactly 1.0, we'll flush all pulses just to make sure they end up in the same cycle
+                if (utils::equals(m_legato, 1.0)) {
+                    triggers.extend(m_pulses.flush());
+                } else {
+                    triggers.extend(m_pulses.drain_discontinuous_as_triggers());
+                }
+
+                triggers.append(new_pulse(*edge_index));
                 m_current_segment = edge_index;
                 m_previous_trigger_time = t;
             }
@@ -63,7 +68,7 @@ public:
 
         m_cursor_direction = direction;
         m_previous_cursor = cursor;
-        m_previous_trigger_time = t;
+        m_durations.clear_flag();
 
         return triggers;
     }
@@ -83,11 +88,13 @@ public:
     void set_durations(const Voice<double>& durations) {
         auto d = durations.cloned().filter_drain([](double p) { return p <= 0.0; });
 
-        if (d.empty())
+        if (d.empty()) {
             m_durations = Voice<double>::singular(1.0);
 
-        d.normalize_l1();
-        m_durations = d;
+        } else {
+            d.normalize_l1();
+            m_durations = d;
+        }
     }
 
 
@@ -104,13 +111,27 @@ public:
 
 
 private:
+    Trigger new_pulse(std::size_t edge_index) {
+        return m_pulses.new_pulse(m_durations.get()[edge_index] * m_legato);
+    }
+
+
     std::optional<std::size_t> detect_edge(const TimePoint& t, const Phase& cursor) const {
-        if (too_close_to_previous_trigger(t) || !m_current_segment)
+        if (too_close_to_previous_trigger(t) || !m_current_segment) {
             return std::nullopt;
+        }
 
         auto new_segment_index = cursor_segment(cursor);
         if (new_segment_index != *m_current_segment)
             return new_segment_index;
+
+        if (m_durations->size() == 1 && std::abs(m_previous_cursor->get() - cursor.get()) > DISCONTINUITY_THRESHOLD) {
+            // If the corpus consists of exactly one segment, the step from phase ~1 to phase ~0 (or vice versa) would
+            // // still be considered an edge. When this function is called, we know that it's not discontinuous,
+            //    meaning that any raw abs diff greater than DISCONTINUITY_THRESHOLD indicates that the cursor indeed
+            //    has wrapped around, and thus should trigger an edge at the current (only) segment.
+            return 0;
+        }
 
         return std::nullopt;
 
@@ -133,7 +154,7 @@ private:
         // Technically, we already know that no time skip has occurred, so we don't need std::abs here.
         //   This is only in case the implementation changes in the future
         return m_previous_trigger_time &&
-               std::abs(t.get_tick() - m_previous_trigger_time->get_tick()) > MINIMUM_SEGMENT_DURATION;
+               std::abs(t.get_tick() - m_previous_trigger_time->get_tick()) < MINIMUM_SEGMENT_DURATION;
     }
 
 
@@ -200,6 +221,8 @@ public:
 
 private:
     std::size_t get_voice_count() override {
+        // Note: durations are not part of voice count, as their role is that of a corpus.
+        //       More elements means a longer sequence, not more simultaneous voices.
         return voice_count(m_legato.voice_count(), m_cursor.voice_count());
     }
 
@@ -220,8 +243,9 @@ private:
             pulsators().set(&PhasePulsator::set_legato, std::move(legato));
         }
 
-        if (m_durations.has_changed()) {
-            // Note: Not related to num_voices
+        if (size_has_changed || m_durations.has_changed()) {
+            // Note: We do not handle polyphonic sequences. If we need multiple sequences sync'ed to a single
+            //       oscillator, the optimal approach is to use multiple PhasePulsator objects instead.
             auto durations = m_durations.process().firsts_or(0.0);
             pulsators().set(&PhasePulsator::set_durations, durations);
         }
@@ -294,12 +318,12 @@ struct PhasePulsatorWrapper {
     Variable<Facet, std::size_t> num_voices{param::properties::num_voices, parameter_handler, 0};
 
     PhasePulsatorNode pulsator_node{Keys::CLASS_NAME
-                               , parameter_handler
-                               , &duration
-                               , &legato_amount
-                               , &cursor
-                               , &enabled
-                               , &num_voices};
+                                    , parameter_handler
+                                    , &duration
+                                    , &legato_amount
+                                    , &cursor
+                                    , &enabled
+                                    , &num_voices};
 
 };
 
