@@ -135,6 +135,14 @@ inline bool in(T value, T start, T end, bool start_inclusive = true, bool end_in
 }
 
 
+// ==============================================================================================
+
+template<typename T, typename = std::  enable_if_t<std::is_arithmetic_v<T>>>
+inline long sign(T value) {
+    return value < 0 ? -1 : 1;
+}
+
+
 } // namespace serialist::utils
 
 #endif //SERIALISTLOOPER_MATH_H

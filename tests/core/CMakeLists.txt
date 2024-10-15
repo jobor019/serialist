@@ -25,6 +25,7 @@ add_executable(core_tests EXCLUDE_FROM_ALL
 
         ${CMAKE_CURRENT_SOURCE_DIR}/utility/math_tests.cpp
         generatives/phase_pulsator_tests.cpp
+        algo/fraction_tests.cpp
 )
 
 target_link_libraries(core_tests
