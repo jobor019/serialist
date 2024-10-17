@@ -10,7 +10,7 @@ namespace serialist {
 class Phase {
 public:
     enum class Direction {
-        forward, backward
+        forward, backward, unchanged
     };
 
 
@@ -42,6 +42,10 @@ public:
             interval_direction = direction(start, end);
         }
 
+        if (interval_direction == Direction::unchanged) {
+            return 0.0;
+        }
+
         double delta = end.m_phase - start.m_phase;
 
         if (interval_direction == Direction::forward) {
@@ -53,8 +57,12 @@ public:
 
 
     /** Estimate the direction based on closest distance between start and end (modulo 1.0) */
-    static Direction direction(const Phase& start, const Phase& end) {
+    static Direction direction(const Phase& start, const Phase& end, double epsilon=1e-6) {
         double delta = end.m_phase - start.m_phase; // delta is in (-1.0, 1.0)
+        if (utils::equals(delta, 0.0, epsilon)) {
+            return Direction::unchanged;
+        }
+
         if (delta < -0.5 || utils::in(delta, 0.0, 0.5, true, true))
             // delta < -0.5 implies a wrapped around positive delta
             return Direction::forward;

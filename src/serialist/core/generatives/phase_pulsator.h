@@ -24,7 +24,6 @@ public:
 
     Voice<Trigger> process(const TimePoint& t, const Phase& cursor) {
         Voice<Trigger> triggers;
-
         auto direction = cursor_direction(cursor);
         if (m_previous_trigger_time && (m_durations.changed() || is_discontinuous(cursor) || direction_changed(direction))) {
             m_pulses.flag_discontinuity();
@@ -66,7 +65,10 @@ public:
             }
         }
 
-        m_cursor_direction = direction;
+        if (direction != Phase::Direction::unchanged) {
+            m_cursor_direction = direction;
+        }
+
         m_previous_cursor = cursor;
         m_durations.clear_flag();
 
@@ -177,7 +179,7 @@ private:
 
 
     bool direction_changed(std::optional<Phase::Direction> new_direction) const {
-        if (!m_cursor_direction)
+        if (!m_cursor_direction || new_direction == Phase::Direction::unchanged)
             return false;
         return *m_cursor_direction != *new_direction;
     }

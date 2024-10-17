@@ -150,3 +150,26 @@ TEST_CASE("PhasePulsatorWrapper legato 0.5") {
 //
 //    evaluate_n_static_cycles(w, 100, legato);
 //}
+
+
+TEST_CASE("Phase::abs_delta_phase") {
+    REQUIRE_THAT(Phase::abs_delta_phase(Phase{0.0}, Phase{0.1}), Catch::Matchers::WithinAbs(0.1, 1e-8));
+    REQUIRE_THAT(Phase::abs_delta_phase(Phase{0.1}, Phase{0.0}), Catch::Matchers::WithinAbs(0.1, 1e-8));
+    REQUIRE_THAT(Phase::abs_delta_phase(Phase{0.0}, Phase{0.9}), Catch::Matchers::WithinAbs(0.1, 1e-8));
+    REQUIRE_THAT(Phase::abs_delta_phase(Phase{0.9}, Phase{0.0}), Catch::Matchers::WithinAbs(0.1, 1e-8));
+    REQUIRE_THAT(Phase::abs_delta_phase(Phase{0.9}, Phase{0.8}), Catch::Matchers::WithinAbs(0.1, 1e-8));
+    REQUIRE_THAT(Phase::abs_delta_phase(Phase{0.01}, Phase{0.5}), Catch::Matchers::WithinAbs(0.49, 1e-8));
+    REQUIRE_THAT(Phase::abs_delta_phase(Phase{0.0}, Phase{0.51}), Catch::Matchers::WithinAbs(0.49, 1e-8));
+}
+
+TEST_CASE("Phase::direction") {
+    REQUIRE(Phase::direction(Phase{0.0}, Phase{0.1}) == Phase::Direction::forward);
+    REQUIRE(Phase::direction(Phase{0.9}, Phase{0.0}) == Phase::Direction::forward);
+
+    REQUIRE(Phase::direction(Phase{0.1}, Phase{0.0}) == Phase::Direction::backward);
+    REQUIRE(Phase::direction(Phase{0.0}, Phase{0.9}) == Phase::Direction::backward);
+
+    REQUIRE(Phase::direction(Phase{0.0}, Phase{0.0}) == Phase::Direction::unchanged);
+    REQUIRE(Phase::direction(Phase{0.9}, Phase{0.9}) == Phase::Direction::unchanged);
+}
+

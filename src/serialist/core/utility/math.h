@@ -137,9 +137,20 @@ inline bool in(T value, T start, T end, bool start_inclusive = true, bool end_in
 
 // ==============================================================================================
 
-template<typename T, typename = std::  enable_if_t<std::is_arithmetic_v<T>>>
+template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
 inline long sign(T value) {
     return value < 0 ? -1 : 1;
+}
+
+
+template<typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+inline std::size_t num_digits(T num) {
+    if (num == 0)
+        return 1;
+    if (num < 0)
+        return static_cast<std::size_t>(std::log10(std::abs(num)) + 2);
+    else
+        return static_cast<std::size_t>(std::log10(std::abs(num)) + 1);
 }
 
 
