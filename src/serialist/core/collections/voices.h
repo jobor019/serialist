@@ -354,22 +354,39 @@ public:
     }
 
 
+    template<typename E = T, typename = std::enable_if_t<utils::is_printable_v<E> > >
+    std::string to_string() {
+        std::stringstream ss;
+
+        ss << "{";
+        for (const T& voice: m_voices.vector()) {
+            ss << to_string(voice) << "\n";
+        }
+        ss << "}";
+        return ss.str();
+    }
+
+
+    std::string to_string(std::function<std::string(T)> f) const {
+        std::stringstream ss;
+
+        ss << "{";
+        for (const T& voice: m_voices.vector()) {
+            ss << f(voice) << "\n";
+        }
+        ss << "}";
+        return ss.str();
+    }
+
+
     template<typename E = T, typename = std::enable_if_t<utils::is_printable_v<E>>>
     void print() const {
-        std::cout << "{ ";
-        for (const auto& voice: m_voices.vector())
-            voice.print();
-
-        std::cout << " }" << std::endl;
+        std::cout << to_string() << std::endl;
     }
 
 
     void print(std::function<std::string(const T&)> f) const {
-        std::cout << "{ ";
-        for (const auto& voice: m_voices.vector())
-            voice.print(f);
-
-        std::cout << " }" << std::endl;
+        std::cout << to_string(f) << std::endl;
     }
 
 

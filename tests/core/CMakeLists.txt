@@ -7,6 +7,7 @@ add_executable(core_tests EXCLUDE_FROM_ALL
         ${CMAKE_CURRENT_SOURCE_DIR}/algo/random_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/algo/transport_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/algo/voices_tests.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/algo/fraction_tests.cpp
 
         ${CMAKE_CURRENT_SOURCE_DIR}/collections/range_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/collections/scheduler_tests.cpp
@@ -22,10 +23,9 @@ add_executable(core_tests EXCLUDE_FROM_ALL
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/selector_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/sequence_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/variable_tests.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/phase_pulsator_tests.cpp
 
         ${CMAKE_CURRENT_SOURCE_DIR}/utility/math_tests.cpp
-        generatives/phase_pulsator_tests.cpp
-        algo/fraction_tests.cpp
 )
 
 target_link_libraries(core_tests

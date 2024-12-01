@@ -153,8 +153,6 @@ private:
 
 
     bool too_close_to_previous_trigger(const TimePoint& t) const {
-        // Technically, we already know that no time skip has occurred, so we don't need std::abs here.
-        //   This is only in case the implementation changes in the future
         return m_previous_trigger_time &&
                std::abs(t.get_tick() - m_previous_trigger_time->get_tick()) < MINIMUM_SEGMENT_DURATION;
     }

@@ -5,6 +5,7 @@
 #include <optional>
 #include <functional>
 #include <iostream>
+#include <sstream>
 #include <numeric>
 #include "core/utility/math.h"
 #include "core/utility/traits.h"
@@ -840,23 +841,39 @@ public:
 
     // =========================== MISC ==========================
 
+    template<typename E = T, typename = std::enable_if_t<utils::is_printable_v<E> > >
+    std::string to_string() {
+        std::stringstream ss;
+
+        ss << "[";
+        for (const T& element: m_vector) {
+            ss << element << ", ";
+        }
+        ss << "]";
+        return ss.str();
+    }
+
+
+    std::string to_string(std::function<std::string(T)> f) const {
+        std::stringstream ss;
+
+        ss << "[";
+        for (const T& element: m_vector) {
+            ss << f(element) << ", ";
+        }
+        ss << "]";
+        return ss.str();
+    }
+
 
     template<typename E = T, typename = std::enable_if_t<utils::is_printable_v<E> > >
     void print() const {
-        std::cout << "[";
-        for (const T& element: m_vector) {
-            std::cout << element << ", ";
-        }
-        std::cout << "]" << std::endl;
+        std::cout << to_string() << std::endl;
     }
 
 
     void print(std::function<std::string(T)> f) const {
-        std::cout << "[";
-        for (const T& element: m_vector) {
-            std::cout << f(element) << ", ";
-        }
-        std::cout << "]" << std::endl;
+        std::cout << to_string(f) << std::endl;
     }
 
 

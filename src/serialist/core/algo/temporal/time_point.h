@@ -223,14 +223,16 @@ public:
     DomainTimePoint operator-(double other) const { return {m_value - other, m_type}; }
     DomainTimePoint operator*(double other) const { return {m_value * other, m_type}; }
 
-    DomainTimePoint operator+(const TimePoint& other) const { return {m_value + other.get(m_type), m_type}; }
-    DomainTimePoint operator-(const TimePoint& other) const { return {m_value - other.get(m_type), m_type}; }
+    // TODO: Remove. These are technically not valid: adding two timepoints is undefined,
+    //               subtracting two timepoints can be done with DomainDuration::distance
+    // DomainTimePoint operator+(const TimePoint& other) const { return {m_value + other.get(m_type), m_type}; }
+    // DomainTimePoint operator-(const TimePoint& other) const { return {m_value - other.get(m_type), m_type}; }
 
-    friend DomainTimePoint operator+(const TimePoint& other, const DomainTimePoint& t) { return t + other; }
-
-    friend DomainTimePoint operator-(const TimePoint& other, const DomainTimePoint& t) {
-        return DomainTimePoint{other.get(t.m_type) - t.m_value, t.m_type};
-    }
+    // friend DomainTimePoint operator+(const TimePoint& other, const DomainTimePoint& t) { return t + other; }
+    //
+    // friend DomainTimePoint operator-(const TimePoint& other, const DomainTimePoint& t) {
+    //     return DomainTimePoint{other.get(t.m_type) - t.m_value, t.m_type};
+    // }
 
     DomainTimePoint& operator+=(double other) {
         m_value += other;
@@ -240,6 +242,17 @@ public:
     DomainTimePoint& operator-=(double other) {
         m_value -= other;
         return *this;
+    }
+
+    std::string to_string() const {
+        std::string type;
+        switch (m_type) {
+            case DomainType::ticks: type = "ticks"; break;
+            case DomainType::beats: type = "beats"; break;
+            case DomainType::bars: type = "bars"; break;
+        }
+
+        return "DomainTimePoint(" + type + "=" + std::to_string(m_value) + ")";
     }
 
 
@@ -277,6 +290,16 @@ public:
             throw TimeDomainError("DomainTypes are incompatible");
 
         return DomainDuration(to.get_value() - from.get_value(), from.get_type());
+    }
+
+    static DomainDuration distance(const TimePoint& from, const DomainTimePoint& to) {
+        auto t = to.get_type();
+        return DomainDuration(to.get_value() - from.get(t), t);
+    }
+
+    static DomainDuration distance(const DomainDuration& from, const TimePoint& to) {
+        auto t = from.get_type();
+        return DomainDuration(to.get(t) - from.get_value(), t);
     }
 
     DomainDuration as_type(DomainType type, const Meter& meter) const;
