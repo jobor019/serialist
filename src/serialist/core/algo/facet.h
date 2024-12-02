@@ -7,6 +7,8 @@
 #include <optional>
 #include <magic_enum.hpp>
 
+#include "utility/math.h"
+
 namespace serialist {
 
 class Facet {
@@ -76,13 +78,14 @@ public:
     }
 
 
+    // ReSharper disable once CppNonExplicitConversionOperator
     operator double() const { // NOLINT(*-explicit-constructor)
         return m_value;
     }
 
 
     bool operator==(const Facet& other) const {
-        return std::abs(m_value - other.m_value) < enum_epsilon;
+        return utils::equals(m_value, other.m_value, enum_epsilon);
     }
 
 
@@ -95,24 +98,48 @@ public:
     bool operator==(const T& t) const { return static_cast<T>(*this) >= t; }
 
 
-    template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
-    bool operator!=(const T& t) const { return static_cast<T>(*this) != t; }
+    template<typename T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+    bool operator==(const T& t) const { return static_cast<T>(*this) >= t; }
 
 
     template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
-    bool operator>=(const T& t) const { return static_cast<T>(*this) >= t; }
+    bool operator!=(const T& t) const { return !(*this == t); }
 
 
     template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
-    bool operator<=(const T& t) const { return static_cast<T>(*this) <= t; }
+    bool operator>=(const T& t) const {
+        if constexpr (std::is_same_v<T, Facet>) {
+            return m_value >= t.m_value;
+        }
+        return static_cast<T>(*this) >= t;
+    }
 
 
     template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
-    bool operator>(const T t) const { return static_cast<T>(*this) > t; }
+    bool operator<=(const T& t) const {
+        if constexpr (std::is_same_v<T, Facet>) {
+            return m_value <= t.m_value;
+        }
+        return static_cast<T>(*this) <= t;
+    }
 
 
     template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
-    bool operator<(const T& t) const { return static_cast<T>(*this) < t; }
+    bool operator>(const T t) const {
+        if constexpr (std::is_same_v<T, Facet>) {
+            return m_value > t.m_value;
+        }
+        return static_cast<T>(*this) > t;
+    }
+
+
+    template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+    bool operator<(const T& t) const {
+        if constexpr (std::is_same_v<T, Facet>) {
+            return m_value < t.m_value;
+        }
+        return static_cast<T>(*this) < t;
+    }
 
 
     friend std::ostream& operator<<(std::ostream& os, const Facet& facet) {

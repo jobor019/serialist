@@ -115,7 +115,7 @@ public:
 
     std::string to_string_compact() {
         return DomainTimePoint::from_time_point(time, m_primary_domain).to_string() + ": (Voices with size " +
-               output.size() + ")";
+               std::to_string(output.size()) + ")";
     }
 
 
@@ -148,6 +148,15 @@ public:
     }
 
 
+    StepResult<T>* operator->() {
+        if (m_success) {
+            return &m_output;
+        }
+        FAIL(to_string_compact());
+        return nullptr;
+    }
+
+
     void print() {
         std::cout << to_string() << "\n";
     }
@@ -177,11 +186,13 @@ public:
         }
     }
 
+    const Vec<StepResult<T>>& history() const { return m_output_history; }
+
 
     bool success() const { return m_success; }
 
 
-    std::size_t num_steps() const { return m_output_history.size(); }
+    std::size_t num_steps() const { return m_output_history.size() + 1; }
 
 private:
     StepResult<T> m_output;

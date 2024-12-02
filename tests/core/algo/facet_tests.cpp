@@ -7,7 +7,7 @@
 
 using namespace serialist;
 
-TEST_CASE("Boolean conversion") {
+TEST_CASE("Boolean conversion", "[facet]") {
     // operator== true results
     auto t = true;
     auto facet_true = Facet(t);
@@ -62,7 +62,7 @@ TEST_CASE("Boolean conversion") {
 }
 
 
-TEST_CASE("Integer conversion") {
+TEST_CASE("Integer conversion", "[facet]") {
     // comparisons i1 == i2 positive values
     for (long i = 0; i < 10'000'000; ++i) {
         auto facet = Facet(i);
@@ -137,7 +137,7 @@ void assert_enum() {
 }
 
 
-TEST_CASE("Enum conversion") {
+TEST_CASE("Enum conversion", "[facet]") {
     // True assertions
     assert_enum<Enum100>();
     assert_enum<Enum37>();
@@ -159,7 +159,7 @@ TEST_CASE("Enum conversion") {
     }
 }
 
-TEST_CASE("Arithmetic operators") {
+TEST_CASE("Arithmetic operators", "[facet]") {
     Facet f1(1.0);
     Facet f2(2.0);
     Facet f3(3.0);
@@ -180,6 +180,20 @@ TEST_CASE("Arithmetic operators") {
         REQUIRE(f3 == Facet(3.0));
     }
 
+}
+
+TEST_CASE("Facet comparisons", "[facet]") {
+    Facet f1(1.0);
+    Facet f2(2.0);
+    Facet f3(3.0);
+    REQUIRE(f1 < f2);
+    REQUIRE(f2 > f1);
+    REQUIRE(f1 <= f2);
+    REQUIRE(f2 >= f1);
+    REQUIRE(f1 <= f3);
+    REQUIRE(f3 >= f1);
+    REQUIRE(f3 == f3);
+    REQUIRE(f3 != f2);
 }
 
 

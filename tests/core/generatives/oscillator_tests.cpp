@@ -10,6 +10,7 @@
 #include <cmath>
 
 #include "generative_runner.h"
+#include "matchers/v11.h"
 
 using namespace serialist;
 
@@ -24,7 +25,7 @@ static inline PhaseAccumulator initialize_phase_accumulator(double step_size, do
 
 TEST_CASE("m_phasor stepped", "[oscillator][phasor]") {
 
-    SECTION("unity m_phasor") {
+    SECTION("unit m_phasor") {
         double step = 0.1;
         auto p = initialize_phase_accumulator(step, 0.0, PaMode::triggered);
 
@@ -79,17 +80,42 @@ TEST_CASE("Oscillator ctor") {
 
 
 TEST_CASE("Unit Oscillator") {
+    using namespace serialist::test;
+
     auto oscillator = OscillatorWrapper();
     auto o = &oscillator.oscillator;
+    //
+    GenerativeRunner runner(o);
+    auto r = runner.step_until(DomainTimePoint::ticks(1.0));
 
-    auto config = TestConfig<Facet>().add_history_assertion(StepAssertion<Facet>::assert_not_empty());
-    GenerativeRunner runner(o, config);
-    auto r = runner.step_until(DomainTimePoint(1, DomainType::ticks)
-        , TestConfig<Facet>().add_history_assertion(StepAssertion<Facet>::assert_not_empty()));
+    REQUIRE_THAT(r, v11h::strictly_increasing<Facet>());
 
-    auto config2 = runner.get_config().cloned();
+    //
+    // r->output.print();
+    //
+    // r.print();
 
-    r.print();
+    // auto v1 = Voices<double>::singular({1,2,0.1 + 0.2});
+    // auto v2 = Voices<double>::singular({1000.2-999.2,10000.2-9998.2,0.3});
+    // REQUIRE(v1 == v2);
+    //
+    // auto vec1 = std::vector<int>{1,2,1};
+    // auto vec2 = std::vector<double>{1000.2-999.2,10000.2-9998.2,0.3};
+    // // REQUIRE(vec1 == vec2);
+    //
+    // std::cout << "work\n";
+    //
+    // double f1 = 0.1 + 0.2;
+    // double f2 = 0.3;
+    //
+    // // REQUIRE(f1 == f2);
+    //
+    // std::cout << (f1 == f2) << "\n";
+    //
+    // // REQUIRE(vasserts::v11::Test());
+
+    using namespace serialist::test;
+    REQUIRE_THAT(r, v11h::Empty<Facet>());
 
     // assert(r.success());
 
