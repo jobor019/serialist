@@ -31,6 +31,7 @@ add_executable(core_tests EXCLUDE_FROM_ALL
 target_link_libraries(core_tests
         PUBLIC
         serialist::core
+        serialist::testutils
         PRIVATE
         Catch2::Catch2WithMain
 )

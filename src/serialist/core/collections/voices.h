@@ -355,26 +355,35 @@ public:
 
 
     template<typename E = T, typename = std::enable_if_t<utils::is_printable_v<E> > >
-    std::string to_string() {
+    std::string to_string() const {
+        if (is_empty_like()) {
+            return "{[]}";
+        }
+
+
         std::stringstream ss;
 
         ss << "{";
-        for (const T& voice: m_voices.vector()) {
-            ss << to_string(voice) << "\n";
+        for (int i = 0; i < m_voices.size() - 1; ++i) {
+            ss << m_voices[i].to_string() << "\n";
         }
-        ss << "}";
+        ss << m_voices[m_voices.size() - 1].to_string() << "}";
         return ss.str();
     }
 
 
     std::string to_string(std::function<std::string(T)> f) const {
+        if (is_empty_like()) {
+            return "{[]}";
+        }
+
         std::stringstream ss;
 
         ss << "{";
-        for (const T& voice: m_voices.vector()) {
-            ss << f(voice) << "\n";
+        for (int i = 0; i < m_voices.size() - 1; ++i) {
+            ss << m_voices[i].to_string(f) << "\n";
         }
-        ss << "}";
+        ss << m_voices[m_voices.size() - 1].to_string(f) << "}";
         return ss.str();
     }
 

@@ -338,7 +338,7 @@ struct OscillatorWrapper {
 
     ParameterHandler ph;
 
-    Sequence<Trigger> trigger{Keys::TRIGGER, ph};
+    Sequence<Trigger> trigger{Keys::TRIGGER, ph, Trigger::pulse_on()};
 
     Variable<Facet, PaMode> mode{Keys::MODE, ph, PhaseAccumulator::DEFAULT_MODE};
     Variable<Facet, Waveform::Type> waveform{Keys::WAVEFORM, ph, Waveform::DEFAULT_TYPE};
@@ -359,8 +359,8 @@ struct OscillatorWrapper {
 
     Sequence<Trigger> reset_trigger{Keys::RESET, ph};
 
-    Sequence<Facet, bool> enabled{ParameterTypes::ENABLED, ph, Voices<bool>::singular(true)};
-    Variable<Facet, std::size_t> num_voices{ParameterTypes::NUM_VOICES, ph, 0};
+    Sequence<Facet, bool> enabled{param::properties::enabled, ph, Voices<bool>::singular(true)};
+    Variable<Facet, std::size_t> num_voices{param::properties::num_voices, ph, 0};
 
     OscillatorNode oscillator{Keys::CLASS_NAME
                               , ph

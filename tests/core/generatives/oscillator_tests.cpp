@@ -3,13 +3,13 @@
 
 #include "core/policies/policies.h"
 #include "core/algo/temporal/phase_accumulator.h"
-#include "core/generatives/variable.h"
-#include "core/generatives/unit_pulse.h"
 #include "core/algo/temporal/time_point.h"
 #include "core/generatives/oscillator.h"
 
 #include <thread>
 #include <cmath>
+
+#include "generative_runner.h"
 
 using namespace serialist;
 
@@ -22,7 +22,7 @@ static inline PhaseAccumulator initialize_phase_accumulator(double step_size, do
 }
 
 
-TEST_CASE("m_phasor stepped", "[m_phasor]") {
+TEST_CASE("m_phasor stepped", "[oscillator][phasor]") {
 
     SECTION("unity m_phasor") {
         double step = 0.1;
@@ -75,6 +75,33 @@ TEST_CASE("m_phasor stepped", "[m_phasor]") {
 
 TEST_CASE("Oscillator ctor") {
     auto oscillator = OscillatorWrapper();
+}
+
+
+TEST_CASE("Unit Oscillator") {
+    auto oscillator = OscillatorWrapper();
+    auto o = &oscillator.oscillator;
+
+    auto config = TestConfig<Facet>().add_history_assertion(StepAssertion<Facet>::assert_not_empty());
+    GenerativeRunner runner(o, config);
+    auto r = runner.step_until(DomainTimePoint(1, DomainType::ticks)
+        , TestConfig<Facet>().add_history_assertion(StepAssertion<Facet>::assert_not_empty()));
+
+    auto config2 = runner.get_config().cloned();
+
+    r.print();
+
+    // assert(r.success());
+
+
+
+    // StepOutput output(StepOutput<Facet>::assert_empty());
+    // std::cout << output.is_assertion() << "\n";
+    // auto v = Voices<Facet>::empty_like();
+    // std::cout << StepOutput<Facet>::empty_assertion(v);
+    // std::cout <<output.do_assert(v) << "\n";
+
+
 }
 
 

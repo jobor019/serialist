@@ -842,26 +842,34 @@ public:
     // =========================== MISC ==========================
 
     template<typename E = T, typename = std::enable_if_t<utils::is_printable_v<E> > >
-    std::string to_string() {
-        std::stringstream ss;
-
-        ss << "[";
-        for (const T& element: m_vector) {
-            ss << element << ", ";
+    std::string to_string() const {
+        if (empty()) {
+            return "[]";
         }
-        ss << "]";
+
+        std::stringstream ss;
+        ss << "[";
+        for (int i = 0; i < m_vector.size() - 1; ++i) {
+            ss << m_vector[i] << ", ";
+        }
+
+        ss << m_vector[m_vector.size() - 1] << "]";
         return ss.str();
     }
 
 
     std::string to_string(std::function<std::string(T)> f) const {
-        std::stringstream ss;
-
-        ss << "[";
-        for (const T& element: m_vector) {
-            ss << f(element) << ", ";
+        if (empty()) {
+            return "[]";
         }
-        ss << "]";
+
+        std::stringstream ss;
+        ss << "[";
+        for (int i = 0; i < m_vector.size() - 1; ++i) {
+            ss << f(m_vector[i]) << ", ";
+        }
+
+        ss << f(m_vector[m_vector.size() - 1]) << "]";
         return ss.str();
     }
 

@@ -191,6 +191,10 @@ public:
 
     static DomainTimePoint zero() { return {0.0, DomainType::ticks}; }
 
+    static DomainTimePoint ticks(double value) { return {value, DomainType::ticks}; }
+    static DomainTimePoint bars(double value) { return {value, DomainType::bars}; }
+    static DomainTimePoint beats(double value) { return {value, DomainType::beats}; }
+
     /** @throws TimeDomainError if `other` has a different type */
     static DomainTimePoint min(const DomainTimePoint& a, const DomainTimePoint& b) {
         if (a.m_type != b.m_type)
@@ -283,6 +287,10 @@ class DomainDuration {
 public:
     explicit DomainDuration(double value = 1.0, DomainType type = DomainType::ticks)
             : m_value(value), m_type(type) {}
+
+    static DomainDuration ticks(double value) { return DomainDuration{value, DomainType::ticks}; }
+    static DomainDuration beats(double value) { return DomainDuration{value, DomainType::beats}; }
+    static DomainDuration bars(double value) { return DomainDuration{value, DomainType::bars}; }
 
     /** throws TimeTypeError if `other` has a different type */
     static DomainDuration distance(const DomainTimePoint& from, const DomainTimePoint& to) {
