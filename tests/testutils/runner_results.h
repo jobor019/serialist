@@ -100,31 +100,47 @@ class StepResult {
 public:
     StepResult(const TimePoint& time, const Voices<T>& output, std::size_t step_index
                , bool success, DomainType primary_domain)
-        : time(time), output(output), step_index(step_index), success(success), m_primary_domain(primary_domain) {}
+        : time(time), voices(output), step_index(step_index), success(success), m_primary_domain(primary_domain) {}
 
 
-    void print() {
+    void print() const {
         std::cout << to_string() << "\n";
     }
 
 
-    std::string to_string() {
-        return DomainTimePoint::from_time_point(time, m_primary_domain).to_string() + ": " + output.to_string();
+    std::string to_string(bool compact = false) const {
+        return "i=" + std::to_string(step_index)
+               + ", t=" + DomainTimePoint::from_time_point(time, m_primary_domain).to_string()
+               + ", v=" + render_output(compact);
     }
 
 
-    std::string to_string_compact() {
-        return DomainTimePoint::from_time_point(time, m_primary_domain).to_string() + ": (Voices with size " +
-               std::to_string(output.size()) + ")";
+    std::string to_string_compact() const {
+        return render_output(true)
+               + " (i=" + std::to_string(step_index)
+               + ", t=" + DomainTimePoint::from_time_point(time, m_primary_domain).to_string_compact() + ")";
     }
 
 
     TimePoint time;
-    Voices<T> output;
+    Voices<T> voices;
     std::size_t step_index;
     bool success;
 
 private:
+    std::string render_output(bool compact) const {
+        std::size_t num_elements = voices.numel();
+        if (!compact || num_elements < 10) {
+            return voices.to_string();
+        } else {
+            return "Voices(size="
+                   + std::to_string(voices.size())
+                   + ", numel="
+                   + std::to_string(num_elements) + ")";
+        }
+    }
+
+
     DomainType m_primary_domain;
 };
 
@@ -136,6 +152,12 @@ class RunResult {
 public:
     RunResult(StepResult<T> output, Vec<StepResult<T> > output_history, bool success, DomainType primary_domain)
         : m_output(output), m_output_history(output_history), m_primary_domain(primary_domain), m_success(success) {}
+
+
+    static RunResult dummy(const Voices<T>& v) {
+        return RunResult(StepResult<T>(TimePoint{}, v, 0, true, DomainType::ticks)
+                         , {}, true, DomainType::ticks);
+    }
 
 
     StepResult<T> operator*() const {
@@ -186,7 +208,10 @@ public:
         }
     }
 
-    const Vec<StepResult<T>>& history() const { return m_output_history; }
+
+    const Vec<StepResult<T> >& history() const { return m_output_history; }
+
+    const StepResult<T>& output() const { return m_output; }
 
 
     bool success() const { return m_success; }

@@ -159,6 +159,18 @@ template<typename T>
 inline constexpr bool is_always_lock_free_v = is_always_lock_free<T>::value;
 
 
+// ==============================================================================================
+
+template <typename T, typename U, typename = void>
+struct is_static_castable : std::false_type {};
+
+template <typename T, typename U>
+struct is_static_castable<T, U, std::void_t<decltype(static_cast<U>(std::declval<T>()))>>
+    : std::true_type {};
+
+template <typename T, typename U>
+inline constexpr bool is_static_castable_v = is_static_castable<T, U>::value;
+
 } // namespace serialist::utils
 
 #endif //SERIALISTLOOPER_TRAITS_H

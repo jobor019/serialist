@@ -404,6 +404,15 @@ public:
     }
 
 
+    std::size_t numel() const {
+        std::size_t n = 0;
+        for (const auto& voice: m_voices.vector()) {
+            n += voice.size();
+        }
+        return n;
+    }
+
+
     /**
     * @return true if every Voice is empty
     */

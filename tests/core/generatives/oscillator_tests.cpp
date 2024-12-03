@@ -9,7 +9,7 @@
 #include <thread>
 #include <cmath>
 
-#include "generative_runner.h"
+#include "node_runner.h"
 #include "matchers/v11.h"
 
 using namespace serialist;
@@ -82,52 +82,19 @@ TEST_CASE("Oscillator ctor") {
 TEST_CASE("Unit Oscillator") {
     using namespace serialist::test;
 
+    auto config = TestConfig().with_step_rounding(StepRounding::exact_stop_before);
     auto oscillator = OscillatorWrapper();
     auto o = &oscillator.oscillator;
     //
-    GenerativeRunner runner(o);
-    auto r = runner.step_until(DomainTimePoint::ticks(1.0));
+    NodeRunner runner(o, config);
+    auto r = runner.step_until(DomainTimePoint::ticks(1.0 - 1e-8));
 
     REQUIRE_THAT(r, v11h::strictly_increasing<Facet>());
 
-    //
-    // r->output.print();
-    //
-    // r.print();
-
-    // auto v1 = Voices<double>::singular({1,2,0.1 + 0.2});
-    // auto v2 = Voices<double>::singular({1000.2-999.2,10000.2-9998.2,0.3});
-    // REQUIRE(v1 == v2);
-    //
-    // auto vec1 = std::vector<int>{1,2,1};
-    // auto vec2 = std::vector<double>{1000.2-999.2,10000.2-9998.2,0.3};
-    // // REQUIRE(vec1 == vec2);
-    //
-    // std::cout << "work\n";
-    //
-    // double f1 = 0.1 + 0.2;
-    // double f2 = 0.3;
-    //
-    // // REQUIRE(f1 == f2);
-    //
-    // std::cout << (f1 == f2) << "\n";
-    //
-    // // REQUIRE(vasserts::v11::Test());
-
-    using namespace serialist::test;
-    REQUIRE_THAT(r, v11h::Empty<Facet>());
-
-    // assert(r.success());
-
-
-
-    // StepOutput output(StepOutput<Facet>::assert_empty());
-    // std::cout << output.is_assertion() << "\n";
-    // auto v = Voices<Facet>::empty_like();
-    // std::cout << StepOutput<Facet>::empty_assertion(v);
-    // std::cout <<output.do_assert(v) << "\n";
-
-
+    REQUIRE_THAT(r, v11::approx_eqf(1.0 - config.step_size.get_value()));
+    // REQUIRE(r.output().voices == Voices<Facet>::singular(Facet(1.0)));
+    // r = runner.step_until(DomainTimePoint::ticks(1.0 + 1e-8));
+    // REQUIRE(r.output().voices == Voices<Facet>::singular(Facet(0.0)));
 }
 
 

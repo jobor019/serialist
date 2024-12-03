@@ -259,6 +259,17 @@ public:
         return "DomainTimePoint(" + type + "=" + std::to_string(m_value) + ")";
     }
 
+    std::string to_string_compact() const {
+        std::string type;
+        switch (m_type) {
+            case DomainType::ticks: type = "ticks"; break;
+            case DomainType::beats: type = "beats"; break;
+            case DomainType::bars: type = "bars"; break;
+        }
+
+        return std::to_string(m_value) + " " + type;
+    }
+
 
     // TODO: Not sure if this will be needed. If so, should be out of line
 //    DomainDuration operator-(const TimePoint& other) const;

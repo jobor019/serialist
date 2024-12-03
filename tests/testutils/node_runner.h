@@ -1,5 +1,5 @@
-#ifndef GENERATIVE_RUNNER_H
-#define GENERATIVE_RUNNER_H
+#ifndef NODE_RUNNER_H
+#define NODE_RUNNER_H
 #include "generative.h"
 #include "collections/vec.h"
 #include "runner_results.h"
@@ -145,9 +145,15 @@ private:
 // ==============================================================================================
 
 
-template<typename T>
+// template<typename T>
 class TestConfig {
 public:
+    const inline static auto DEFAULT_STEP_SIZE = DomainDuration(0.01, DomainType::ticks);
+    constexpr static auto DEFAULT_DOMAIN_TYPE = DomainType::ticks;
+    constexpr static std::optional<std::size_t> DEFAULT_HISTORY_CAPACITY = std::nullopt;
+    constexpr static auto DEFAULT_STEP_ROUNDING = StepRounding::round_last;
+
+
     TestConfig() = default;
 
 
@@ -171,38 +177,42 @@ public:
         return *this;
     }
 
-
-    TestConfig& add_history_assertion(StepAssertion<T> assertion) {
-        assertions.append(assertion);
+    TestConfig& with_step_size(const DomainDuration& size) {
+        step_size = size;
         return *this;
     }
 
 
-    Vec<StepAssertion<T> > assertions;
-    StepRounding step_rounding = StepRounding::round_last;
-    std::optional<std::size_t> history_capacity = std::nullopt;
+    // TestConfig& add_history_assertion(StepAssertion<T> assertion) {
+    //     assertions.append(assertion);
+    //     return *this;
+    // }
+
+
+    // Vec<StepAssertion<T> > assertions;
+    DomainDuration step_size = DEFAULT_STEP_SIZE;
+    StepRounding step_rounding = DEFAULT_STEP_ROUNDING;
+    std::optional<std::size_t> history_capacity = DEFAULT_HISTORY_CAPACITY;
 };
 
 
 // ==============================================================================================
 
 template<typename T>
-class GenerativeRunner {
+class NodeRunner {
 public:
-    explicit GenerativeRunner(Node<T>* output_node = nullptr
-                              , const TestConfig<T>& config = TestConfig<T>()
-                              , const TimePoint& initial_time = TimePoint{}
-                              , const DomainDuration& default_step_size = DomainDuration(0.01, DomainType::ticks))
+    explicit NodeRunner(Node<T>* output_node = nullptr
+                              , const TestConfig& config = TestConfig()
+                              , const TimePoint& initial_time = TimePoint{})
         : m_config(config)
-          , m_current_time(initial_time)
-          , m_default_step_size(default_step_size) {
+          , m_current_time(initial_time) {
         if (output_node) {
             set_output_node(*output_node);
         }
     }
 
 
-    GenerativeRunner& add_generative(Generative& g) {
+    NodeRunner& add_generative(Generative& g) {
         if (!m_generatives.contains(&g)) {
             m_generatives.append(&g);
         }
@@ -218,7 +228,7 @@ public:
     // }
 
 
-    GenerativeRunner& set_output_node(Node<T>& node) {
+    NodeRunner& set_output_node(Node<T>& node) {
         auto* generative = dynamic_cast<Generative*>(&node);
 
 
@@ -233,8 +243,7 @@ public:
 
 
     RunResult<T> step_until(const DomainTimePoint& t
-                            , std::optional<TestConfig<T>> config = std::nullopt
-                            , const std::optional<DomainDuration>& step_size = std::nullopt) {
+                            , std::optional<TestConfig> config = std::nullopt) {
         check_runner_validity();
 
         if (t <= m_current_time) {
@@ -244,7 +253,7 @@ public:
         config = config.value_or(m_config);
 
         auto duration = DomainDuration::distance(m_current_time, t);
-        auto steps = Steps(duration, step_size.value_or(m_default_step_size), config->step_rounding);
+        auto steps = Steps(duration, config->step_size, config->step_rounding);
 
         auto outputs = Vec<StepResult<T> >::allocated(steps.num_steps() - 1);
 
@@ -255,7 +264,7 @@ public:
                 update_time(steps.default_delta());
             }
 
-            auto output = process_step(false, i, config->assertions, steps.domain());
+            auto output = process_step(false, i, steps.domain());
 
             if (!output.success) {
                 return RunResult<T>(output, outputs, false, steps.domain());
@@ -268,7 +277,7 @@ public:
         }
 
         update_time(steps.last());
-        auto output = process_step(true, steps.num_steps() - 1, config->assertions, steps.domain());
+        auto output = process_step(true, steps.num_steps() - 1, steps.domain());
 
         return RunResult<T>(output, outputs, output.success, steps.domain());
     }
@@ -318,7 +327,7 @@ public:
     //
     // GenerativeRunner& schedule_meter_change() { throw std::runtime_error("Not implemented"); }
 
-    const TestConfig<T>& get_config() const {
+    const TestConfig& get_config() const {
         return m_config;
     }
 
@@ -347,7 +356,7 @@ private:
 
     StepResult<T> process_step(bool is_last_step
                                , std::size_t step_index
-                               , const Vec<StepAssertion<T> >& assertions
+                               // , const Vec<StepAssertion<T> >& assertions
                                , const DomainType& t) {
         // TODO: we will need to handle parameter / meter / time signature ramps/scheduled changes here too in the future!!
 
@@ -361,15 +370,15 @@ private:
             return StepResult<T>(m_current_time, output, step_index, true, t);
         }
 
-        auto success = assertions.all([&output](const StepAssertion<T>& assertion) {
-            return assertion.do_assert(output);
-        });
+        // auto success = assertions.all([&output](const StepAssertion<T>& assertion) {
+        //     return assertion.do_assert(output);
+        // });
 
-        return StepResult<T>(m_current_time, output, step_index, success, t);
+        return StepResult<T>(m_current_time, output, step_index, true, t);
     }
 
 
-    TestConfig<T> m_config;
+    TestConfig m_config;
 
     TimePoint m_current_time;
 
@@ -380,4 +389,4 @@ private:
     DomainDuration m_default_step_size;
 };
 
-#endif //GENERATIVE_RUNNER_H
+#endif //NODE_RUNNER_H
