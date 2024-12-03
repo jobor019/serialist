@@ -8,89 +8,64 @@
 using namespace serialist;
 
 enum class StepRounding {
-    exact_stop_before, exact_stop_after, round_all, round_first, round_last,
+    exact_stop_before, exact_stop_after, round_all, round_first, round_last
 };
 
 
 class Steps {
 public:
-    // class Iterator {
-    // public:
-    //     using iterator_category = std::input_iterator_tag;
-    //     using value_type = DomainDuration;
-    //     using difference_type = std::ptrdiff_t;
-    //     using pointer = const DomainDuration*;
-    //     using reference = const DomainDuration&;
-    //
-    //     Iterator(const Steps* steps, std::size_t index) : m_steps(steps), m_index(index) {}
-    //
-    //     reference operator*() const {
-    //         if (m_index == 0) {
-    //             return m_steps->m_first_delta;
-    //         } else if (m_index == m_steps->m_num_steps - 1) {
-    //             return m_steps->m_last_delta;
-    //         }
-    //
-    //         return m_steps->m_delta;
-    //     }
-    //
-    //     pointer operator->() const { return &(**this); }
-    //
-    //     Iterator& operator++() { ++m_index; return *this; }
-    //
-    //     Iterator operator++(int) {
-    //         Iterator temp = *this;
-    //         ++(*this);
-    //         return temp;
-    //     }
-    //
-    //     friend bool operator==(const Iterator& a, const Iterator& b) {
-    //         return a.m_steps == b.m_steps && a.m_index == b.m_index;
-    //     }
-    //
-    //     friend bool operator!=(const Iterator& a, const Iterator& b) { return !(a == b); }
-    //
-    // private:
-    //     const Steps* m_steps = nullptr;
-    //     std::size_t m_index = 0;
-    // };
-
-
-    Steps(const DomainDuration& duration, const DomainDuration& delta, StepRounding rounding)
-        : m_rounding(rounding) {
-        assert(delta.get_value() > 0);
-        assert(duration.get_value() > delta.get_value());
-        assert(duration.get_type() == delta.get_type());
+    static Steps from_duration(const DomainDuration& duration, const DomainDuration& step_size, StepRounding rounding) {
+        assert(step_size.get_value() > 0);
+        assert(duration.get_value() > step_size.get_value());
+        assert(duration.get_type() == step_size.get_type());
 
         double r = duration.get_value();
-        double q = duration.get_value() / delta.get_value();
+        double q = duration.get_value() / step_size.get_value();
         DomainType t = duration.get_type();
 
         if (rounding == StepRounding::exact_stop_before) {
-            m_num_steps = static_cast<std::size_t>(std::floor(q));
-            set_all(delta);
-        } else if (rounding == StepRounding::exact_stop_after) {
-            m_num_steps = static_cast<std::size_t>(std::ceil(q));
-            set_all(delta);
-        } else if (rounding == StepRounding::round_all) {
+            return Steps(step_size, rounding, static_cast<std::size_t>(std::floor(q)));
+        }
+
+        if (rounding == StepRounding::exact_stop_after) {
+            return Steps(step_size, rounding, static_cast<std::size_t>(std::ceil(q)));
+        }
+
+        if (rounding == StepRounding::round_all) {
             double n = std::round(q);
-            m_num_steps = static_cast<std::size_t>(n);
-            set_all(DomainDuration(r / n, t));
-        } else if (rounding == StepRounding::round_first || rounding == StepRounding::round_last) {
+            return Steps(DomainDuration(r / n, t), rounding, static_cast<std::size_t>(n));
+        }
+
+        if (rounding == StepRounding::round_first || rounding == StepRounding::round_last) {
             double n = std::ceil(q);
-            m_num_steps = static_cast<std::size_t>(n);
-            set_all(delta);
-            auto fractional_step = delta * utils::modulo(q, 1.0);
+            auto num_steps = static_cast<std::size_t>(n);
+            auto fractional_step = step_size * utils::modulo(q, 1.0);
+
+            auto first = step_size;
+            auto mid = step_size;
+            auto last = step_size;
 
             if (!utils::equals(fractional_step.get_value(), 0.0)) {
                 if (rounding == StepRounding::round_first) {
-                    m_first_delta = fractional_step;
+                    first = fractional_step;
                 } else {
-                    assert(m_num_steps >= 3); // lazy assertion: implementation doesn't handle this edge case
-                    m_last_delta = fractional_step;
+                    // lazy assertion: implementation doesn't handle this edge case. If there are fewer than 3 steps,
+                    //                 the last value won't be used and the duration will be incorrect
+                    assert(num_steps >= 3);
+                    last = fractional_step;
                 }
             }
+
+            return Steps(first, mid, last, rounding, num_steps);
         }
+
+        throw std::runtime_error("Invalid rounding value");
+    }
+
+
+    static Steps from_num_steps(std::size_t num_steps, const DomainDuration& step_size) {
+        // Note: rounding is not relevant in this case
+        return Steps(step_size, StepRounding::round_all, num_steps);
     }
 
 
@@ -119,12 +94,26 @@ public:
     }
 
 
-    // Iterator begin() const { return Iterator(this, 0); }
-    //
-    // Iterator end() const { return Iterator(this, m_num_steps); }
-
-
 private:
+    Steps(const DomainDuration& uniform_step_size, StepRounding rounding, std::size_t num_steps)
+            : Steps(uniform_step_size, uniform_step_size, uniform_step_size, rounding, num_steps) { }
+
+    Steps(const DomainDuration& first_delta
+        , const DomainDuration&  delta
+        , const DomainDuration& last_delta
+        , StepRounding rounding, std::size_t num_steps)
+            :  m_first_delta(first_delta)
+    , m_delta(delta)
+    , m_last_delta(last_delta)
+    , m_rounding(rounding)
+    , m_num_steps(num_steps) {
+        assert(num_steps > 0);
+        assert(m_first_delta.get_value() > 0);
+        assert(m_delta.get_value() > 0);
+        assert(m_last_delta.get_value() >= 0); // Last delta can be exactly 0 if no rounding occurs
+    }
+
+
     void set_all(const DomainDuration& delta) {
         m_first_delta = delta;
         m_delta = delta;
@@ -132,11 +121,11 @@ private:
     }
 
 
-    StepRounding m_rounding;
-
     DomainDuration m_first_delta{0.0};
     DomainDuration m_delta{0.0};
     DomainDuration m_last_delta{0.0};
+
+    StepRounding m_rounding;
 
     std::size_t m_num_steps = 0;
 };
@@ -244,42 +233,23 @@ public:
 
     RunResult<T> step_until(const DomainTimePoint& t
                             , std::optional<TestConfig> config = std::nullopt) {
-        check_runner_validity();
-
-        if (t <= m_current_time) {
-            throw std::runtime_error("Cannot step backwards in time: use discontinuity() instead");
-        }
-
+        assert(t > m_current_time);
         config = config.value_or(m_config);
 
         auto duration = DomainDuration::distance(m_current_time, t);
-        auto steps = Steps(duration, config->step_size, config->step_rounding);
+        auto steps = Steps::from_duration(duration, config->step_size, config->step_rounding);
 
-        auto outputs = Vec<StepResult<T> >::allocated(steps.num_steps() - 1);
+        return step_internal(steps, *config);
+    }
 
-        for (int i = 0; i < steps.num_steps() - 1; ++i) {
-            if (i == 0) {
-                update_time(steps.first());
-            } else {
-                update_time(steps.default_delta());
-            }
+    RunResult<T> step_n(std::size_t num_steps, std::optional<TestConfig> config = std::nullopt) {
+        assert(num_steps > 0); // This is most likely an error in the caller
 
-            auto output = process_step(false, i, steps.domain());
+        config = config.value_or(m_config);
 
-            if (!output.success) {
-                return RunResult<T>(output, outputs, false, steps.domain());
-            }
+        auto steps = Steps::from_num_steps(num_steps, config->step_size);
 
-            if (!config->history_capacity || *(config->history_capacity) > 0) {
-                // TODO: Handle exact size with circular buffer
-                outputs.append(output);
-            }
-        }
-
-        update_time(steps.last());
-        auto output = process_step(true, steps.num_steps() - 1, steps.domain());
-
-        return RunResult<T>(output, outputs, output.success, steps.domain());
+        return step_internal(steps, *config);
     }
 
 
@@ -333,14 +303,41 @@ public:
 
 private:
     void check_runner_validity() {
-        if (m_default_step_size.get_value() <= 0.0) {
-            throw std::runtime_error("Default step size must be positive");
-        }
-
         if (!m_output_node) {
             throw std::runtime_error("Output node not set");
         }
     }
+
+    RunResult<T> step_internal(const Steps& steps, const TestConfig& config) {
+        check_runner_validity();
+
+        auto outputs = Vec<StepResult<T> >::allocated(steps.num_steps() - 1);
+
+        for (int i = 0; i < steps.num_steps() - 1; ++i) {
+            if (i == 0) {
+                update_time(steps.first());
+            } else {
+                update_time(steps.default_delta());
+            }
+
+            auto output = process_step(false, i, steps.domain());
+
+            if (!output.success) {
+                return RunResult<T>(output, outputs, false, steps.domain());
+            }
+
+            if (!config.history_capacity || *(config.history_capacity) > 0) {
+                // TODO: Handle exact size with circular buffer
+                outputs.append(output);
+            }
+        }
+
+        update_time(steps.last());
+        auto output = process_step(true, steps.num_steps() - 1, steps.domain());
+
+        return RunResult<T>(output, outputs, output.success, steps.domain());
+    }
+
 
 
     void update_time(const DomainDuration& delta) {

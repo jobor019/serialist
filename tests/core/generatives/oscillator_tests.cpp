@@ -87,11 +87,15 @@ TEST_CASE("Unit Oscillator") {
     auto o = &oscillator.oscillator;
     //
     NodeRunner runner(o, config);
-    auto r = runner.step_until(DomainTimePoint::ticks(1.0 - 1e-8));
+    auto r = runner.step_until(DomainTimePoint::ticks(1.0 - EPSILON));
 
     REQUIRE_THAT(r, v11h::strictly_increasing<Facet>());
-
     REQUIRE_THAT(r, v11::approx_eqf(1.0 - config.step_size.get_value()));
+
+    r = runner.step_n(1);
+    REQUIRE_THAT(r, v11::approx_eqf(0.0));
+
+
     // REQUIRE(r.output().voices == Voices<Facet>::singular(Facet(1.0)));
     // r = runner.step_until(DomainTimePoint::ticks(1.0 + 1e-8));
     // REQUIRE(r.output().voices == Voices<Facet>::singular(Facet(0.0)));
