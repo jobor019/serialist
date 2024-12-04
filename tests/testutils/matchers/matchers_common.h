@@ -88,42 +88,6 @@ private:
 };
 
 
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-template<typename T>
-class AllHistoryMatcher : public RunResultMatcher<T> {
-public:
-    explicit AllHistoryMatcher(std::unique_ptr<RunResultMatcher<T>> internal_matcher)
-        : m_internal_matcher(std::move(internal_matcher)) {
-        assert(m_internal_matcher);
-    }
-
-
-    bool match(const RunResult<T>& arg) const override {
-        assert(arg.success());
-        assert(!arg.history().empty()); // Likely an error by the caller
-
-        for (const auto& step : arg.history()) {
-            if (!m_internal_matcher->match(RunResult<T>::dummy(step))) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-
-    std::string public_description() const override {
-        return m_internal_matcher->public_description();
-    }
-
-
-private:
-    std::unique_ptr<RunResultMatcher<T>> m_internal_matcher;
-};
-
-
-
 // ==============================================================================================
 // COMMON FACTORY FUNCTIONS
 // ==============================================================================================
@@ -137,15 +101,6 @@ EmptyMatcher<T> empty() {
 inline EmptyMatcher<Facet> emptyf() {
     return empty<Facet>();
 }
-
-
-template<typename T>
-AllHistoryMatcher<T> all(RunResultMatcher<T>&& matcher) {
-    return AllHistoryMatcher<T>(std::make_unique<RunResultMatcher<T>>(std::move(matcher)));
-}
-
-
-
 
 
 }

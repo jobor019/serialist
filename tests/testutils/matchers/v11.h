@@ -17,9 +17,9 @@ namespace serialist::test::v11 {
 
 
 template<typename T, bool on_empty = false>
-class GenericMatcher : public RunResultMatcher<T> {
+class GenericValueMatcher : public RunResultMatcher<T> {
 public:
-    explicit GenericMatcher(std::string expected_rendering, const ValueCondition<T>& f)
+    explicit GenericValueMatcher(std::string expected_rendering, const ValueCondition<T>& f)
         : m_condition(f), m_expected_rendering(std::move(expected_rendering)) {}
 
 
@@ -67,8 +67,8 @@ private:
 
 
 template<typename T, typename Comparator>
-GenericMatcher<T> make_comparator(const std::string& op, Comparator comp, const T& expected) {
-    return GenericMatcher<T>(op + StringSerializer<T>::to_string(expected),
+GenericValueMatcher<T> make_comparator(const std::string& op, Comparator comp, const T& expected) {
+    return GenericValueMatcher<T>(op + StringSerializer<T>::to_string(expected),
                              [=](const T& v) { return comp(v, expected); });
 }
 
@@ -79,8 +79,8 @@ GenericMatcher<T> make_comparator(const std::string& op, Comparator comp, const 
 
 
 template<typename T>
-GenericMatcher<T> eq(const T& expected, const std::optional<std::string>& custom_rendering = std::nullopt) {
-    return GenericMatcher<T>(custom_rendering.value_or(StringSerializer<T>::to_string(expected))
+GenericValueMatcher<T> eq(const T& expected, const std::optional<std::string>& custom_rendering = std::nullopt) {
+    return GenericValueMatcher<T>(custom_rendering.value_or(StringSerializer<T>::to_string(expected))
                              , [expected](const T& v) {
                                  return v == expected;
                              });
@@ -88,7 +88,7 @@ GenericMatcher<T> eq(const T& expected, const std::optional<std::string>& custom
 
 
 template<typename U>
-GenericMatcher<Facet> eqf(const U& expected) {
+GenericValueMatcher<Facet> eqf(const U& expected) {
     static_assert(utils::is_static_castable_v<U, Facet>);
 
     auto f = static_cast<Facet>(expected);
@@ -97,53 +97,53 @@ GenericMatcher<Facet> eqf(const U& expected) {
 
 
 template<typename T>
-GenericMatcher<T> lt(const T& expected) {
+GenericValueMatcher<T> lt(const T& expected) {
     return make_comparator<T>("< ", std::less<T>(), expected);
 }
 
 
 template<typename T>
-GenericMatcher<T> le(const T& expected) {
+GenericValueMatcher<T> le(const T& expected) {
     return make_comparator<T>("<= ", std::less_equal<T>(), expected);
 }
 
 
 template<typename T>
-GenericMatcher<T> gt(const T& expected) {
+GenericValueMatcher<T> gt(const T& expected) {
     return make_comparator<T>("> ", std::greater<T>(), expected);
 }
 
 
 template<typename T>
-GenericMatcher<T> ge(const T& expected) {
+GenericValueMatcher<T> ge(const T& expected) {
     return make_comparator<T>(">= ", std::greater_equal<T>(), expected);
 }
 
 
 // Specialized comparison functions for Facet
 template<typename U>
-GenericMatcher<Facet> ltf(const U& expected) {
+GenericValueMatcher<Facet> ltf(const U& expected) {
     static_assert(utils::is_static_castable_v<U, Facet>);
     return lt<Facet>(static_cast<Facet>(expected));
 }
 
 
 template<typename U>
-GenericMatcher<Facet> lef(const U& expected) {
+GenericValueMatcher<Facet> lef(const U& expected) {
     static_assert(utils::is_static_castable_v<U, Facet>);
     return le<Facet>(static_cast<Facet>(expected));
 }
 
 
 template<typename U>
-GenericMatcher<Facet> gtf(const U& expected) {
+GenericValueMatcher<Facet> gtf(const U& expected) {
     static_assert(utils::is_static_castable_v<U, Facet>);
     return gt<Facet>(static_cast<Facet>(expected));
 }
 
 
 template<typename U>
-GenericMatcher<Facet> gef(const U& expected) {
+GenericValueMatcher<Facet> gef(const U& expected) {
     static_assert(utils::is_static_castable_v<U, Facet>);
     return ge<Facet>(static_cast<Facet>(expected));
 }
@@ -151,13 +151,13 @@ GenericMatcher<Facet> gef(const U& expected) {
 
 /** Note: for float Facet comparison, use eqf instead. approx_eqf is only for cases where a custom epsilon is needed */
 template<typename U>
-GenericMatcher<Facet> approx_eqf(const U& expected, double epsilon) {
+GenericValueMatcher<Facet> approx_eqf(const U& expected, double epsilon) {
     static_assert(utils::is_static_castable_v<U, Facet>);
     std::stringstream ss;
     ss << StringSerializer<U>::to_string(expected) << "±"
             << std::scientific << std::setprecision(0) << epsilon;
 
-    return GenericMatcher<Facet>(ss.str(), [=](const Facet& v) {
+    return GenericValueMatcher<Facet>(ss.str(), [=](const Facet& v) {
         return utils::equals(static_cast<double>(v), static_cast<double>(expected), epsilon);
     });
 }
@@ -166,10 +166,10 @@ GenericMatcher<Facet> approx_eqf(const U& expected, double epsilon) {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 template<typename T>
-GenericMatcher<T> in_range(const T& low, const T& high, bool end_inclusive = false, bool start_inclusive = true) {
+GenericValueMatcher<T> in_range(const T& low, const T& high, bool end_inclusive = false, bool start_inclusive = true) {
     static_assert(std::is_arithmetic_v<T>, "T must be an arithmetic type");
 
-    return GenericMatcher<T>("in range", [=](const T& v) {
+    return GenericValueMatcher<T>("in range", [=](const T& v) {
         bool lower_check = start_inclusive ? (v >= low) : (v > low);
         bool upper_check = end_inclusive ? (v <= high) : (v < high);
         return lower_check && upper_check;
@@ -178,14 +178,14 @@ GenericMatcher<T> in_range(const T& low, const T& high, bool end_inclusive = fal
 
 
 template<typename U>
-GenericMatcher<Facet> in_rangef(const U& low, const U& high, bool end_inclusive = false, bool start_inclusive = true) {
+GenericValueMatcher<Facet> in_rangef(const U& low, const U& high, bool end_inclusive = false, bool start_inclusive = true) {
     static_assert(utils::is_static_castable_v<U, Facet>);
     return in_range<Facet>(static_cast<Facet>(low), static_cast<Facet>(high), end_inclusive, start_inclusive);
 }
 
 
 template<typename U>
-GenericMatcher<Facet> approx_in_rangef(const U& low, const U& high
+GenericValueMatcher<Facet> approx_in_rangef(const U& low, const U& high
                                        , double epsilon = EPSILON
                                        , bool end_inclusive = false, bool start_inclusive = true) {
     static_assert(utils::is_static_castable_v<U, Facet>);
@@ -199,6 +199,39 @@ GenericMatcher<Facet> approx_in_rangef(const U& low, const U& high
 // ==============================================================================================
 
 namespace serialist::test::v11h {
+
+template<typename T>
+class AllHistoryMatcher : public RunResultMatcher<T> {
+public:
+    explicit AllHistoryMatcher(std::unique_ptr<v11::GenericValueMatcher<T>> internal_matcher)
+        : m_internal_matcher(std::move(internal_matcher)) {
+        assert(m_internal_matcher);
+    }
+
+
+    bool match(const RunResult<T>& arg) const override {
+        assert(arg.success());
+        assert(!arg.history().empty()); // Likely an error by the caller
+
+        for (const auto& step : arg.history()) {
+            if (!m_internal_matcher->match(RunResult<T>::dummy(step))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+
+    std::string public_description() const override {
+        return m_internal_matcher->public_description();
+    }
+
+
+private:
+    std::unique_ptr<v11::GenericValueMatcher<T>> m_internal_matcher;
+};
+
+
 
 template<typename T>
 class ComparePrevious : public Catch::Matchers::MatcherBase<RunResult<T> > {
@@ -274,6 +307,8 @@ ComparePrevious<T> strictly_increasing() {
     });
 }
 
+inline ComparePrevious<Facet> strictly_increasingf() { return strictly_increasing<Facet>(); }
+
 
 template<typename T>
 ComparePrevious<T> strictly_decreasing() {
@@ -281,6 +316,23 @@ ComparePrevious<T> strictly_decreasing() {
         return b < a;
     });
 }
+
+inline ComparePrevious<Facet> strictly_decreasingf() { return strictly_decreasing<Facet>(); }
+
+
+
+
+template<typename T>
+AllHistoryMatcher<T> all(v11::GenericValueMatcher<T>&& matcher) {
+    return AllHistoryMatcher<T>(std::make_unique<v11::GenericValueMatcher<T>>(std::move(matcher)));
+}
+
+
+inline AllHistoryMatcher<Facet> allf(v11::GenericValueMatcher<Facet>&& matcher) {
+    return all<Facet>(std::move(matcher));
+    // return AllHistoryMatcher<Facet>(std::make_unique<RunResultMatcher<Facet>>(std::move(matcher)));
+}
+
 
 
 

@@ -165,9 +165,14 @@ public:
     }
 
 
-    static RunResult dummy(const T& v) {
+    static RunResult dummy(const T& v, const Vec<T>& history = Vec<T>()) {
+        auto h = Vec<StepResult<T>>::allocated(history.size());
+        for (std::size_t i = 0; i < history.size(); ++i) {
+            h.append(StepResult<T>(TimePoint{}, Voices<T>::singular(history[i]), i, true, DomainType::ticks));
+        }
+
         return RunResult(StepResult<T>(TimePoint{}, Voices<T>::singular(v), 0, true, DomainType::ticks),
-                         {}, true, DomainType::ticks);
+                         h, true, DomainType::ticks);
     }
 
 

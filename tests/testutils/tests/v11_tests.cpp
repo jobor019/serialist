@@ -8,15 +8,28 @@
 using namespace serialist::test;
 
 TEST_CASE("testutils::v11", "[testutils][v11]") {
-    auto f = GENERATE(-1e-4, -100.0, -3.0, -1.0, -0.3, 0.3, 1.0, 3.0, 100.0, 1e-8);
-
-    auto d1 = RunResult<Facet>::dummy(Facet(f));
-
     SECTION("eqf") {
+        auto f = GENERATE(-1e8, -100.0, -3.0, -1.0, -0.3, 0.3, 1.0, 3.0, 100.0, 1e8);
+        auto d1 = RunResult<Facet>::dummy(Facet(f));
+
         REQUIRE_THAT(d1, v11::eqf(f));
         REQUIRE_THAT(d1, v11::eqf(f + Facet::ENUM_EPSILON / 2.0));
         REQUIRE_THAT(d1, v11::eqf(f - Facet::ENUM_EPSILON / 2.0));
         REQUIRE_THAT(d1, !v11::eqf(f + Facet::ENUM_EPSILON * 2));
         REQUIRE_THAT(d1, !v11::eqf(f - Facet::ENUM_EPSILON * 2));
+        REQUIRE_THAT(d1, !v11::eqf(-f));
     }
+}
+
+
+TEST_CASE("testutils::v11h", "[testutils][v11h]") {
+    auto d1 = RunResult<Facet>::dummy(Facet(0.0)
+                                      , Vec<double>::linspace(0., 1.0, 10).as_type<Facet>());
+
+    REQUIRE_THAT(d1, v11h::strictly_increasing<Facet>());
+    REQUIRE_THAT(d1, !v11h::strictly_decreasing<Facet>());
+    REQUIRE_THAT(d1, v11h::allf(v11::gef(0.0)));
+    REQUIRE_THAT(d1, !v11h::allf(v11::gef(0.5)));
+    REQUIRE_THAT(d1, v11h::allf(v11::lef(1.0)));
+    REQUIRE_THAT(d1, !v11h::allf(v11::lef(0.5)));
 }

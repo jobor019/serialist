@@ -90,18 +90,15 @@ TEST_CASE("Unit Oscillator", "[oscillator]") {
 
     REQUIRE_THAT(r, v11::ltf(10));
 
-    REQUIRE_THAT(r, v11h::strictly_increasing<Facet>());
+    REQUIRE_THAT(r, v11h::strictly_increasingf());
     REQUIRE_THAT(r, v11::eqf(1.0 - config.step_size.get_value()));
 
     r = runner.step_n(1);
     REQUIRE_THAT(r, v11::eqf(0.0));
 
     r = runner.step_until(DomainTimePoint::ticks(2.0 - EPSILON));
-    REQUIRE_THAT(r, v11h::strictly_increasing<Facet>());
+    REQUIRE_THAT(r, v11h::strictly_increasingf());
     REQUIRE_THAT(r, v11::eqf(1.0 - config.step_size.get_value()));
-
-    // TODO: Need strategy for unique_ptr here!!!!
-    // REQUIRE_THAT(r, v11h::all(v11::eqf(0.0)));
 }
 
 
