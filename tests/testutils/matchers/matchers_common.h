@@ -88,6 +88,41 @@ private:
 };
 
 
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+template<typename RunResultMatcherType, typename ValueType>
+class AllHistoryMatcher : public RunResultMatcher<ValueType> {
+public:
+    explicit AllHistoryMatcher(std::unique_ptr<RunResultMatcherType> internal_matcher)
+        : m_internal_matcher(std::move(internal_matcher)) {
+        static_assert(std::is_base_of_v<RunResultMatcher<ValueType>, RunResultMatcherType>);
+        assert(m_internal_matcher);
+    }
+
+
+    bool match(const RunResult<ValueType>& arg) const override {
+        assert(arg.success());
+        assert(!arg.history().empty()); // Likely an error by the caller
+
+        for (const auto& step : arg.history()) {
+            if (!m_internal_matcher->match(RunResult<ValueType>::dummy(step))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+
+    std::string public_description() const override {
+        return m_internal_matcher->public_description();
+    }
+
+
+private:
+    std::unique_ptr<RunResultMatcherType> m_internal_matcher;
+};
+
+
 // ==============================================================================================
 // COMMON FACTORY FUNCTIONS
 // ==============================================================================================
@@ -101,6 +136,17 @@ EmptyMatcher<T> empty() {
 inline EmptyMatcher<Facet> emptyf() {
     return empty<Facet>();
 }
+
+template<typename T>
+AllHistoryMatcher<EmptyMatcher<T>, T> all_empty() {
+    return AllHistoryMatcher<EmptyMatcher<T>, T>(std::make_unique<EmptyMatcher<T>>());
+}
+
+
+inline AllHistoryMatcher<EmptyMatcher<Facet>, Facet> all_emptyf() {
+    return all_empty<Facet>();
+}
+
 
 
 }

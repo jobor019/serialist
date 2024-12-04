@@ -80,6 +80,36 @@ TEST_CASE("Oscillator ctor", "[oscillator]") {
 }
 
 
+TEST_CASE("Oscillator enabled", "[oscillator]") {
+    auto oscillator = OscillatorWrapper();
+
+    auto& o = oscillator.oscillator;
+    auto& e = oscillator.enabled;
+
+    oscillator.mode.set_value(PaMode::transport_locked); // unit phase oscillator
+
+    auto config = TestConfig().with_step_rounding(StepRounding::exact_stop_before);
+    NodeRunner runner(&o, config);
+
+    // Disable output
+    e.set_values(false);
+
+    auto r = runner.step_until(DomainTimePoint::ticks(0.5));
+    REQUIRE_THAT(r, emptyf());
+    REQUIRE_THAT(r, all_emptyf());
+
+    // Enabling mid-phase: should generate (history) values from 0.5 to 1.0
+    e.set_values(true);
+    r = runner.step_until(DomainTimePoint::ticks(1.0));
+    REQUIRE_THAT(r, v11h::allf(v11::gef(0.5)) && v11h::allf(v11::ltf(1.0)));
+
+    e.set_values(false);
+    r = runner.step_until(DomainTimePoint::ticks(2.0));
+    REQUIRE_THAT(r, emptyf());
+    REQUIRE_THAT(r, all_emptyf());
+}
+
+
 TEST_CASE("Unit Oscillator", "[oscillator]") {
     auto config = TestConfig().with_step_rounding(StepRounding::exact_stop_before);
     auto oscillator = OscillatorWrapper();
@@ -91,6 +121,7 @@ TEST_CASE("Unit Oscillator", "[oscillator]") {
     REQUIRE_THAT(r, v11::ltf(10));
 
     REQUIRE_THAT(r, v11h::strictly_increasingf());
+    REQUIRE_THAT(r, v11h::allf(v11::lef(1.0)));
     REQUIRE_THAT(r, v11::eqf(1.0 - config.step_size.get_value()));
 
     r = runner.step_n(1);
@@ -99,6 +130,8 @@ TEST_CASE("Unit Oscillator", "[oscillator]") {
     r = runner.step_until(DomainTimePoint::ticks(2.0 - EPSILON));
     REQUIRE_THAT(r, v11h::strictly_increasingf());
     REQUIRE_THAT(r, v11::eqf(1.0 - config.step_size.get_value()));
+
+
 }
 
 

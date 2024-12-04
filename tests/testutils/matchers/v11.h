@@ -200,36 +200,36 @@ GenericValueMatcher<Facet> approx_in_rangef(const U& low, const U& high
 
 namespace serialist::test::v11h {
 
-template<typename T>
-class AllHistoryMatcher : public RunResultMatcher<T> {
-public:
-    explicit AllHistoryMatcher(std::unique_ptr<v11::GenericValueMatcher<T>> internal_matcher)
-        : m_internal_matcher(std::move(internal_matcher)) {
-        assert(m_internal_matcher);
-    }
-
-
-    bool match(const RunResult<T>& arg) const override {
-        assert(arg.success());
-        assert(!arg.history().empty()); // Likely an error by the caller
-
-        for (const auto& step : arg.history()) {
-            if (!m_internal_matcher->match(RunResult<T>::dummy(step))) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-
-    std::string public_description() const override {
-        return m_internal_matcher->public_description();
-    }
-
-
-private:
-    std::unique_ptr<v11::GenericValueMatcher<T>> m_internal_matcher;
-};
+// template<typename T>
+// class AllHistoryMatcher : public RunResultMatcher<T> {
+// public:
+//     explicit AllHistoryMatcher(std::unique_ptr<v11::GenericValueMatcher<T>> internal_matcher)
+//         : m_internal_matcher(std::move(internal_matcher)) {
+//         assert(m_internal_matcher);
+//     }
+//
+//
+//     bool match(const RunResult<T>& arg) const override {
+//         assert(arg.success());
+//         assert(!arg.history().empty()); // Likely an error by the caller
+//
+//         for (const auto& step : arg.history()) {
+//             if (!m_internal_matcher->match(RunResult<T>::dummy(step))) {
+//                 return false;
+//             }
+//         }
+//         return true;
+//     }
+//
+//
+//     std::string public_description() const override {
+//         return m_internal_matcher->public_description();
+//     }
+//
+//
+// private:
+//     std::unique_ptr<v11::GenericValueMatcher<T>> m_internal_matcher;
+// };
 
 
 
@@ -323,14 +323,15 @@ inline ComparePrevious<Facet> strictly_decreasingf() { return strictly_decreasin
 
 
 template<typename T>
-AllHistoryMatcher<T> all(v11::GenericValueMatcher<T>&& matcher) {
-    return AllHistoryMatcher<T>(std::make_unique<v11::GenericValueMatcher<T>>(std::move(matcher)));
+AllHistoryMatcher<v11::GenericValueMatcher<T>, T> all(v11::GenericValueMatcher<T>&& matcher) {
+    return AllHistoryMatcher<v11::GenericValueMatcher<T>, T>(
+        std::make_unique<v11::GenericValueMatcher<T>>(std::move(matcher))
+        );
 }
 
 
-inline AllHistoryMatcher<Facet> allf(v11::GenericValueMatcher<Facet>&& matcher) {
+inline AllHistoryMatcher<v11::GenericValueMatcher<Facet>, Facet> allf(v11::GenericValueMatcher<Facet>&& matcher) {
     return all<Facet>(std::move(matcher));
-    // return AllHistoryMatcher<Facet>(std::make_unique<RunResultMatcher<Facet>>(std::move(matcher)));
 }
 
 
