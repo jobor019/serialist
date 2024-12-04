@@ -13,8 +13,9 @@
 #include "matchers/v11.h"
 
 using namespace serialist;
+using namespace serialist::test;
 
-static inline PhaseAccumulator initialize_phase_accumulator(double step_size, double phase, PaMode mode) {
+static PhaseAccumulator initialize_phase_accumulator(double step_size, double phase, PaMode mode) {
     PhaseAccumulator p;
     p.set_mode(mode);
     p.set_step_size(step_size);
@@ -74,14 +75,12 @@ TEST_CASE("m_phasor stepped", "[oscillator][phasor]") {
 
 // ==============================================================================================
 
-TEST_CASE("Oscillator ctor") {
+TEST_CASE("Oscillator ctor", "[oscillator]") {
     auto oscillator = OscillatorWrapper();
 }
 
 
-TEST_CASE("Unit Oscillator") {
-    using namespace serialist::test;
-
+TEST_CASE("Unit Oscillator", "[oscillator]") {
     auto config = TestConfig().with_step_rounding(StepRounding::exact_stop_before);
     auto oscillator = OscillatorWrapper();
     auto o = &oscillator.oscillator;
@@ -89,16 +88,20 @@ TEST_CASE("Unit Oscillator") {
     NodeRunner runner(o, config);
     auto r = runner.step_until(DomainTimePoint::ticks(1.0 - EPSILON));
 
+    REQUIRE_THAT(r, v11::ltf(10));
+
     REQUIRE_THAT(r, v11h::strictly_increasing<Facet>());
-    REQUIRE_THAT(r, v11::approx_eqf(1.0 - config.step_size.get_value()));
+    REQUIRE_THAT(r, v11::eqf(1.0 - config.step_size.get_value()));
 
     r = runner.step_n(1);
-    REQUIRE_THAT(r, v11::approx_eqf(0.0));
+    REQUIRE_THAT(r, v11::eqf(0.0));
 
+    r = runner.step_until(DomainTimePoint::ticks(2.0 - EPSILON));
+    REQUIRE_THAT(r, v11h::strictly_increasing<Facet>());
+    REQUIRE_THAT(r, v11::eqf(1.0 - config.step_size.get_value()));
 
-    // REQUIRE(r.output().voices == Voices<Facet>::singular(Facet(1.0)));
-    // r = runner.step_until(DomainTimePoint::ticks(1.0 + 1e-8));
-    // REQUIRE(r.output().voices == Voices<Facet>::singular(Facet(0.0)));
+    // TODO: Need strategy for unique_ptr here!!!!
+    // REQUIRE_THAT(r, v11h::all(v11::eqf(0.0)));
 }
 
 

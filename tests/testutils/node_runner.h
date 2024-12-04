@@ -234,8 +234,8 @@ public:
     RunResult<T> step_until(const DomainTimePoint& t
                             , std::optional<TestConfig> config = std::nullopt) {
         assert(t > m_current_time);
-        config = config.value_or(m_config);
 
+        config = config.value_or(m_config);
         auto duration = DomainDuration::distance(m_current_time, t);
         auto steps = Steps::from_duration(duration, config->step_size, config->step_rounding);
 
@@ -246,7 +246,6 @@ public:
         assert(num_steps > 0); // This is most likely an error in the caller
 
         config = config.value_or(m_config);
-
         auto steps = Steps::from_num_steps(num_steps, config->step_size);
 
         return step_internal(steps, *config);
@@ -263,9 +262,7 @@ public:
     //
     // // TODO: Pass lambda
     // RunResult<T> step_while() { throw std::runtime_error("Not implemented"); };
-    //
-    // RunResult<T> step_n(std::size_t n) { throw std::runtime_error("Not implemented"); }
-    //
+
     // RunResult<T> discontinuity(const DomainTimePoint& new_time) { throw std::runtime_error("Not implemented"); }
     //
     //

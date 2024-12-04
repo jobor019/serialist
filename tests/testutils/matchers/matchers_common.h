@@ -3,6 +3,10 @@
 #define MATCHERS_COMMON_H
 #include <functional>
 
+#include <core/algo/facet.h>
+#include <core/collections/voices.h>
+#include "runner_results.h"
+
 
 namespace serialist::test {
 
@@ -29,16 +33,119 @@ template<typename T>
 bool is_maybe_singular(const Voices<T>& v) { return is_empty(v) || is_singular(v); }
 
 
+
 // ==============================================================================================
-// MISC
+// FUNCTION ALIASES
 // ==============================================================================================
+
+template<typename T>
+using ValueCondition = std::function<bool(const T&)>;
+
+template<typename T>
+using SizeCondition = std::function<bool(const Voices<T>&)>;
+
+template<typename T>
+using ConsecutiveCompare = std::function<bool(const T&, const T&)>;
+
+
+
+// ==============================================================================================
+// MATCHER BASE CLASSES
+// ==============================================================================================
+
+template<typename T>
+class RunResultMatcher : public Catch::Matchers::MatcherBase<RunResult<T> > {
+public:
+
+    virtual std::string public_description() const = 0;
+
+protected:
+    std::string describe() const final {
+        return public_description();
+    }
+};
+
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+template<typename T>
+class EmptyMatcher : public RunResultMatcher<T> {
+public:
+    bool match(const RunResult<T>& arg) const override {
+        assert(arg.success());
+
+        m_evaluated_step = arg.output();
+        return is_empty(arg.output().voices);
+    }
+
+
+    std::string public_description() const override {
+        return "expected empty-like, actual: " + m_evaluated_step->to_string_compact();
+    }
+
+private:
+    mutable std::optional<StepResult<T> > m_evaluated_step = std::nullopt;
+};
+
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 template<typename T>
-using Condition = std::function<bool(const T&)>;
+class AllHistoryMatcher : public RunResultMatcher<T> {
+public:
+    explicit AllHistoryMatcher(std::unique_ptr<RunResultMatcher<T>> internal_matcher)
+        : m_internal_matcher(std::move(internal_matcher)) {
+        assert(m_internal_matcher);
+    }
+
+
+    bool match(const RunResult<T>& arg) const override {
+        assert(arg.success());
+        assert(!arg.history().empty()); // Likely an error by the caller
+
+        for (const auto& step : arg.history()) {
+            if (!m_internal_matcher->match(RunResult<T>::dummy(step))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+
+    std::string public_description() const override {
+        return m_internal_matcher->public_description();
+    }
+
+
+private:
+    std::unique_ptr<RunResultMatcher<T>> m_internal_matcher;
+};
+
+
+
+// ==============================================================================================
+// COMMON FACTORY FUNCTIONS
+// ==============================================================================================
 
 template<typename T>
-using CompareFunc = std::function<bool(const T&, const T&)>;
+EmptyMatcher<T> empty() {
+    return EmptyMatcher<T>();
+}
+
+
+inline EmptyMatcher<Facet> emptyf() {
+    return empty<Facet>();
+}
+
+
+template<typename T>
+AllHistoryMatcher<T> all(RunResultMatcher<T>&& matcher) {
+    return AllHistoryMatcher<T>(std::make_unique<RunResultMatcher<T>>(std::move(matcher)));
+}
+
+
+
 
 
 }

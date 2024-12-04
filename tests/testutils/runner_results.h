@@ -1,8 +1,9 @@
 #ifndef RUNNER_RESULTS_H
 #define RUNNER_RESULTS_H
 
-#include "generative.h"
-#include "collections/vec.h"
+#include <core/policies/policies.h>
+#include <core/generative.h>
+#include <core/collections/vec.h>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
@@ -157,6 +158,16 @@ public:
     static RunResult dummy(const Voices<T>& v) {
         return RunResult(StepResult<T>(TimePoint{}, v, 0, true, DomainType::ticks)
                          , {}, true, DomainType::ticks);
+    }
+
+    static RunResult dummy(const StepResult<T>& s) {
+        return RunResult(s, {}, true, DomainType::ticks);
+    }
+
+
+    static RunResult dummy(const T& v) {
+        return RunResult(StepResult<T>(TimePoint{}, Voices<T>::singular(v), 0, true, DomainType::ticks),
+                         {}, true, DomainType::ticks);
     }
 
 

@@ -13,7 +13,7 @@ namespace serialist {
 
 class Facet {
 public:
-    static const inline double enum_epsilon = 1e-6;
+    static const inline double ENUM_EPSILON = 1e-6;
 
 
     explicit Facet(double v) : m_value(v) {}
@@ -85,7 +85,7 @@ public:
 
 
     bool operator==(const Facet& other) const {
-        return utils::equals(m_value, other.m_value, enum_epsilon);
+        return utils::equals(m_value, other.m_value, ENUM_EPSILON);
     }
 
 
@@ -269,7 +269,7 @@ private:
         d = std::min(1.0, std::max(0.0, d));
         constexpr auto n_values = magic_enum::enum_count<T>();
 
-        auto index = std::floor((d + enum_epsilon) * n_values);
+        auto index = std::floor((d + ENUM_EPSILON) * n_values);
 
         return static_cast<T>(index);
     }
