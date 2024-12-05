@@ -31,7 +31,6 @@ public:
     }
 
 
-
     Voices<OutputType> process() override {
         return Voices<OutputType>::singular(static_cast<OutputType>(m_value.get()));
     }

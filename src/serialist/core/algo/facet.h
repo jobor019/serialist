@@ -13,7 +13,7 @@ namespace serialist {
 
 class Facet {
 public:
-    static const inline double ENUM_EPSILON = 1e-6;
+    static constexpr double ENUM_EPSILON = 1e-6;
 
 
     explicit Facet(double v) : m_value(v) {}
@@ -143,10 +143,10 @@ public:
 
 
     friend std::ostream& operator<<(std::ostream& os, const Facet& facet) {
-        auto original_precision = os.precision();
-        os << std::fixed << std::setprecision(3);
+        // auto original_precision = os.precision();
+        // os << std::fixed << std::setprecision(3);
         os << facet.m_value;
-        os << std::setprecision(static_cast<int>(original_precision));
+        // os << std::setprecision(static_cast<int>(original_precision));
 
         return os;
     }

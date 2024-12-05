@@ -5,6 +5,7 @@
 #include <vector>
 #include <optional>
 #include <iostream>
+#include <iomanip>
 #include "core/utility/enums.h"
 #include "core/utility/traits.h"
 #include "core/collections/vec.h"
@@ -355,47 +356,57 @@ public:
 
 
     template<typename E = T, typename = std::enable_if_t<utils::is_printable_v<E> > >
-    std::string to_string() const {
+    std::string to_string(std::optional<std::size_t> double_precision = std::nullopt) const {
         if (is_empty_like()) {
             return "{[]}";
         }
 
-
         std::stringstream ss;
+
+        if (double_precision) {
+            ss << std::fixed << std::setprecision(static_cast<int>(*double_precision));
+        }
 
         ss << "{";
         for (int i = 0; i < m_voices.size() - 1; ++i) {
-            ss << m_voices[i].to_string() << "\n";
+            ss << m_voices[i].to_string(double_precision) << "\n";
         }
-        ss << m_voices[m_voices.size() - 1].to_string() << "}";
+        ss << m_voices[m_voices.size() - 1].to_string(double_precision) << "}";
         return ss.str();
     }
 
 
-    std::string to_string(std::function<std::string(T)> f) const {
+    std::string to_string(std::function<std::string(T)> f
+        , std::optional<std::size_t> double_precision = std::nullopt) const {
         if (is_empty_like()) {
             return "{[]}";
         }
 
         std::stringstream ss;
 
+        if (double_precision) {
+            ss << std::fixed << std::setprecision(static_cast<int>(*double_precision));
+        }
+
+
         ss << "{";
         for (int i = 0; i < m_voices.size() - 1; ++i) {
-            ss << m_voices[i].to_string(f) << "\n";
+            ss << m_voices[i].to_string(f, double_precision) << "\n";
         }
-        ss << m_voices[m_voices.size() - 1].to_string(f) << "}";
+        ss << m_voices[m_voices.size() - 1].to_string(f, double_precision) << "}";
         return ss.str();
     }
 
 
     template<typename E = T, typename = std::enable_if_t<utils::is_printable_v<E>>>
-    void print() const {
-        std::cout << to_string() << std::endl;
+    void print(std::optional<std::size_t> double_precision = std::nullopt) const {
+        std::cout << to_string(double_precision) << std::endl;
     }
 
 
-    void print(std::function<std::string(const T&)> f) const {
-        std::cout << to_string(f) << std::endl;
+    void print(std::function<std::string(const T&)> f
+        , std::optional<std::size_t> double_precision = std::nullopt) const {
+        std::cout << to_string(f, double_precision) << std::endl;
     }
 
 

@@ -69,7 +69,7 @@ private:
 template<typename T, typename Comparator>
 GenericValueMatcher<T> make_comparator(const std::string& op, Comparator comp, const T& expected) {
     return GenericValueMatcher<T>(op + StringSerializer<T>::to_string(expected),
-                             [=](const T& v) { return comp(v, expected); });
+                                  [=](const T& v) { return comp(v, expected); });
 }
 
 
@@ -81,9 +81,9 @@ GenericValueMatcher<T> make_comparator(const std::string& op, Comparator comp, c
 template<typename T>
 GenericValueMatcher<T> eq(const T& expected, const std::optional<std::string>& custom_rendering = std::nullopt) {
     return GenericValueMatcher<T>(custom_rendering.value_or(StringSerializer<T>::to_string(expected))
-                             , [expected](const T& v) {
-                                 return v == expected;
-                             });
+                                  , [expected](const T& v) {
+                                      return v == expected;
+                                  });
 }
 
 
@@ -178,16 +178,22 @@ GenericValueMatcher<T> in_range(const T& low, const T& high, bool end_inclusive 
 
 
 template<typename U>
-GenericValueMatcher<Facet> in_rangef(const U& low, const U& high, bool end_inclusive = false, bool start_inclusive = true) {
+GenericValueMatcher<Facet> in_rangef(const U& low, const U& high, bool end_inclusive = false,
+                                     bool start_inclusive = true) {
     static_assert(utils::is_static_castable_v<U, Facet>);
     return in_range<Facet>(static_cast<Facet>(low), static_cast<Facet>(high), end_inclusive, start_inclusive);
 }
 
 
+inline GenericValueMatcher<Facet> in_unit_rangef() {
+    return in_rangef(0.0, 1.0, false, true);
+}
+
+
 template<typename U>
 GenericValueMatcher<Facet> approx_in_rangef(const U& low, const U& high
-                                       , double epsilon = EPSILON
-                                       , bool end_inclusive = false, bool start_inclusive = true) {
+                                            , double epsilon = EPSILON
+                                            , bool end_inclusive = false, bool start_inclusive = true) {
     static_assert(utils::is_static_castable_v<U, Facet>);
     return in_range<Facet>(static_cast<Facet>(low - epsilon)
                            , static_cast<Facet>(high + epsilon)
@@ -199,7 +205,6 @@ GenericValueMatcher<Facet> approx_in_rangef(const U& low, const U& high
 // ==============================================================================================
 
 namespace serialist::test::v11h {
-
 // template<typename T>
 // class AllHistoryMatcher : public RunResultMatcher<T> {
 // public:
@@ -230,7 +235,6 @@ namespace serialist::test::v11h {
 // private:
 //     std::unique_ptr<v11::GenericValueMatcher<T>> m_internal_matcher;
 // };
-
 
 
 template<typename T>
@@ -307,6 +311,7 @@ ComparePrevious<T> strictly_increasing() {
     });
 }
 
+
 inline ComparePrevious<Facet> strictly_increasingf() { return strictly_increasing<Facet>(); }
 
 
@@ -317,26 +322,27 @@ ComparePrevious<T> strictly_decreasing() {
     });
 }
 
+
 inline ComparePrevious<Facet> strictly_decreasingf() { return strictly_decreasing<Facet>(); }
 
 
-
-
 template<typename T>
-AllHistoryMatcher<v11::GenericValueMatcher<T>, T> all(v11::GenericValueMatcher<T>&& matcher) {
+AllHistoryMatcher<v11::GenericValueMatcher<T>, T> all(v11::GenericValueMatcher<T>&& matcher
+                                                      , bool check_output_step = false
+                                                      , bool allow_no_history = false) {
     return AllHistoryMatcher<v11::GenericValueMatcher<T>, T>(
-        std::make_unique<v11::GenericValueMatcher<T>>(std::move(matcher))
-        );
+        std::make_unique<v11::GenericValueMatcher<T> >(std::move(matcher))
+        , check_output_step
+        , allow_no_history
+    );
 }
 
 
-inline AllHistoryMatcher<v11::GenericValueMatcher<Facet>, Facet> allf(v11::GenericValueMatcher<Facet>&& matcher) {
-    return all<Facet>(std::move(matcher));
+inline AllHistoryMatcher<v11::GenericValueMatcher<Facet>, Facet> allf(v11::GenericValueMatcher<Facet>&& matcher
+                                                                      , bool check_output_step = false
+                                                                      , bool allow_no_history = false) {
+    return all<Facet>(std::move(matcher), check_output_step, allow_no_history);
 }
-
-
-
-
 }
 
 

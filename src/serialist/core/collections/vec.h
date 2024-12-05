@@ -5,6 +5,7 @@
 #include <optional>
 #include <functional>
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <numeric>
 #include "core/utility/math.h"
@@ -842,12 +843,17 @@ public:
     // =========================== MISC ==========================
 
     template<typename E = T, typename = std::enable_if_t<utils::is_printable_v<E> > >
-    std::string to_string() const {
+    std::string to_string(std::optional<std::size_t> double_precision = std::nullopt) const {
         if (empty()) {
             return "[]";
         }
 
         std::stringstream ss;
+
+        if (double_precision) {
+            ss << std::fixed << std::setprecision(static_cast<int>(*double_precision));
+        }
+
         ss << "[";
         for (int i = 0; i < m_vector.size() - 1; ++i) {
             ss << m_vector[i] << ", ";
@@ -858,12 +864,18 @@ public:
     }
 
 
-    std::string to_string(std::function<std::string(T)> f) const {
+    std::string to_string(std::function<std::string(T)> f
+        , std::optional<std::size_t> double_precision = std::nullopt) const {
         if (empty()) {
             return "[]";
         }
 
         std::stringstream ss;
+
+        if (double_precision) {
+            ss << std::fixed << std::setprecision(static_cast<int>(*double_precision));
+        }
+
         ss << "[";
         for (int i = 0; i < m_vector.size() - 1; ++i) {
             ss << f(m_vector[i]) << ", ";

@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators_all.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "core/policies/policies.h"
@@ -9,7 +10,9 @@
 #include <thread>
 #include <cmath>
 
+
 #include "node_runner.h"
+#include "generators.h"
 #include "matchers/v11.h"
 
 using namespace serialist;
@@ -75,12 +78,12 @@ TEST_CASE("m_phasor stepped", "[oscillator][phasor]") {
 
 // ==============================================================================================
 
-TEST_CASE("Oscillator ctor", "[oscillator]") {
+TEST_CASE("Oscillator: ctor", "[oscillator]") {
     auto oscillator = OscillatorWrapper();
 }
 
 
-TEST_CASE("Oscillator enabled", "[oscillator]") {
+TEST_CASE("Oscillator: enabled", "[oscillator]") {
     auto oscillator = OscillatorWrapper();
 
     auto& o = oscillator.oscillator;
@@ -107,6 +110,65 @@ TEST_CASE("Oscillator enabled", "[oscillator]") {
     r = runner.step_until(DomainTimePoint::ticks(2.0));
     REQUIRE_THAT(r, emptyf());
     REQUIRE_THAT(r, all_emptyf());
+}
+
+TEST_CASE("Oscillator: fixed period/offset oscillation", "[oscillator]") {
+    auto oscillator = OscillatorWrapper();
+    auto& o = oscillator.oscillator;
+
+    auto& mode = oscillator.mode;
+
+    // TODO
+    // float period_value = GENERATE(1e-3, 1e-2, 1e-1, 0, 1.0, 10.0, 100.0);
+    // float offset_value = GENERATE(0.0, 0.25, 0.5, 0.75);
+    // double transport_step_size = GENERATE(0.001, 0.01, 0.1);
+    // DomainType domain_type = GENERATE(DomainType::ticks, DomainType::beats, DomainType::bars);
+    float period_value = GENERATE(1.0, 2);
+    float offset_value = GENERATE(0.0);
+    double transport_step_size = GENERATE(0.01);
+    DomainType domain_type = GENERATE(DomainType::ticks);
+
+    TimePoint t0 = GENERATE(TimePoint{0.0}); //  TODO: Different time point starts
+
+    CAPTURE(period_value, offset_value, transport_step_size, domain_type, t0);
+
+
+    oscillator.period.set_values(period_value);
+    oscillator.offset.set_values(offset_value);
+    oscillator.period_type.set_value(domain_type);
+    oscillator.offset_type.set_value(domain_type);
+
+    auto config = TestConfig().with_step_rounding(StepRounding::exact_stop_before)
+                              .with_step_size(DomainDuration(transport_step_size));
+
+    NodeRunner runner(&o, config, t0);
+
+    SECTION("Mode: transport-locked") {
+        mode.set_value(PaMode::transport_locked);
+
+        auto phase_end = t0 + DomainDuration(period_value);
+        // TODO: Handle case when this is empty
+
+        // Given random starting time, step partial cycle until right before phase end
+        auto r = runner.step_until(phase_end - EPSILON);
+        REQUIRE_THAT(r, v11h::strictly_increasingf());
+        REQUIRE_THAT(r, v11::approx_eqf(1.0, transport_step_size * period_value));
+        REQUIRE_THAT(r, v11h::allf(v11::in_rangef(0.0, 1.0), true));
+
+        // Single step to phase end
+        r = runner.step_n(1);
+        REQUIRE_THAT(r, v11::eqf(0.0));
+
+        // Entire cycle
+        r = runner.step_until(phase_end + period_value - EPSILON);
+        REQUIRE_THAT(r, v11h::strictly_increasingf());
+        REQUIRE_THAT(r, v11::approx_eqf(1.0, transport_step_size * period_value));
+        REQUIRE_THAT(r, v11h::allf(v11::in_unit_rangef(), true));
+
+        r = runner.step_n(1);
+        r.print_detailed();
+        REQUIRE_THAT(r, v11::eqf(0.0));
+    }
 }
 
 

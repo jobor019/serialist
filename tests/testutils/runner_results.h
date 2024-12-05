@@ -99,6 +99,8 @@ public:
 template<typename T>
 class StepResult {
 public:
+    static constexpr std::size_t NUM_DECIMALS_DETAILED = 16;
+
     StepResult(const TimePoint& time, const Voices<T>& output, std::size_t step_index
                , bool success, DomainType primary_domain)
         : time(time), voices(output), step_index(step_index), success(success), m_primary_domain(primary_domain) {}
@@ -109,10 +111,15 @@ public:
     }
 
 
-    std::string to_string(bool compact = false) const {
-        return "i=" + std::to_string(step_index)
-               + ", t=" + DomainTimePoint::from_time_point(time, m_primary_domain).to_string()
-               + ", v=" + render_output(compact);
+    void print_detailed(std::size_t num_decimals = NUM_DECIMALS_DETAILED) const {
+        std::cout << to_string(num_decimals) << "\n";
+    }
+
+
+    std::string to_string(bool compact = false, std::optional<std::size_t> num_decimals = std::nullopt) const {
+        return render_output(compact, num_decimals)
+               + "(i=" + std::to_string(step_index)
+               + ", t=" + DomainTimePoint::from_time_point(time, m_primary_domain).to_string() + ")";
     }
 
 
@@ -123,16 +130,17 @@ public:
     }
 
 
+
     TimePoint time;
     Voices<T> voices;
     std::size_t step_index;
     bool success;
 
 private:
-    std::string render_output(bool compact) const {
+    std::string render_output(bool compact, std::optional<std::size_t> num_decimals = std::nullopt) const {
         std::size_t num_elements = voices.numel();
         if (!compact || num_elements < 10) {
-            return voices.to_string();
+            return voices.to_string(num_decimals);
         } else {
             return "Voices(size="
                    + std::to_string(voices.size())
@@ -195,25 +203,34 @@ public:
     }
 
 
-    void print() {
+    void print() const {
         std::cout << to_string() << "\n";
     }
 
+    void print_compact() const {
+        std::cout << to_string_compact() << "\n";
+    }
 
-    std::string to_string() {
+    void print_detailed(std::size_t num_decimals = StepResult<T>::NUM_DECIMALS_DETAILED) const {
+        std::cout << to_string(num_decimals) << "\n";
+
+    }
+
+
+    std::string to_string(std::optional<std::size_t> num_decimals = std::nullopt) const {
         if (m_success) {
-            return m_output.to_string();
+            return m_output.to_string(false, num_decimals);
         } else {
             return "Failed step assertion at: "
                    + DomainTimePoint::from_time_point(m_output.time, m_primary_domain).to_string()
                    + " (step " + std::to_string(m_output.step_index)
                    + "), output:\n"
-                   + m_output.to_string();
+                   + m_output.to_string(false, num_decimals);
         }
     };
 
 
-    std::string to_string_compact() {
+    std::string to_string_compact() const {
         if (m_success) {
             return m_output.to_string_compact();
         } else {

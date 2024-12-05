@@ -4,6 +4,7 @@ add_library(testutils EXCLUDE_FROM_ALL
         ${CMAKE_CURRENT_SOURCE_DIR}/runner_results.h
         ${CMAKE_CURRENT_SOURCE_DIR}/matchers/v11.h
         ${CMAKE_CURRENT_SOURCE_DIR}/matchers/matchers_common.h
+        generators.h
 )
 
 target_include_directories(testutils INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
