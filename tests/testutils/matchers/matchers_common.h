@@ -4,7 +4,7 @@
 
 #include <core/algo/facet.h>
 #include <core/collections/voices.h>
-#include "runner_results.h"
+#include "run_results.h"
 
 
 namespace serialist::test {
@@ -14,6 +14,7 @@ namespace serialist::test {
 
 
 static constexpr double EPSILON = 1e-8;
+static constexpr double EPSILON2 = 1e-15;
 
 
 // ==============================================================================================

@@ -1,7 +1,7 @@
 add_library(testutils EXCLUDE_FROM_ALL
         INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/node_runner.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/runner_results.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/run_results.h
         ${CMAKE_CURRENT_SOURCE_DIR}/matchers/v11.h
         ${CMAKE_CURRENT_SOURCE_DIR}/matchers/matchers_common.h
         generators.h

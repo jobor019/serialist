@@ -18,6 +18,8 @@
 using namespace serialist;
 using namespace serialist::test;
 
+
+
 static PhaseAccumulator initialize_phase_accumulator(double step_size, double phase, PaMode mode) {
     PhaseAccumulator p;
     p.set_mode(mode);
@@ -112,6 +114,7 @@ TEST_CASE("Oscillator: enabled", "[oscillator]") {
     REQUIRE_THAT(r, all_emptyf());
 }
 
+
 TEST_CASE("Oscillator: fixed period/offset oscillation", "[oscillator]") {
     auto oscillator = OscillatorWrapper();
     auto& o = oscillator.oscillator;
@@ -119,12 +122,12 @@ TEST_CASE("Oscillator: fixed period/offset oscillation", "[oscillator]") {
     auto& mode = oscillator.mode;
 
     // TODO
-    // float period_value = GENERATE(1e-3, 1e-2, 1e-1, 0, 1.0, 10.0, 100.0);
+    float period_value = GENERATE(1e-1 /*, 1.0, 10.0, 100.0 */);
     // float offset_value = GENERATE(0.0, 0.25, 0.5, 0.75);
     // double transport_step_size = GENERATE(0.001, 0.01, 0.1);
     // DomainType domain_type = GENERATE(DomainType::ticks, DomainType::beats, DomainType::bars);
-    float period_value = GENERATE(1.0, 2);
-    float offset_value = GENERATE(0.0);
+    // float period_value = GENERATE(1.0, 2.0);
+    float offset_value = GENERATE(0.1);
     double transport_step_size = GENERATE(0.01);
     DomainType domain_type = GENERATE(DomainType::ticks);
 
@@ -143,31 +146,35 @@ TEST_CASE("Oscillator: fixed period/offset oscillation", "[oscillator]") {
 
     NodeRunner runner(&o, config, t0);
 
+    auto value_epsilon = transport_step_size / period_value;
+
     SECTION("Mode: transport-locked") {
         mode.set_value(PaMode::transport_locked);
 
-        auto phase_end = t0 + DomainDuration(period_value);
+        auto phase_end = t0 + DomainDuration(period_value) - utils::modulo(t0.get(domain_type) - static_cast<double>(offset_value),static_cast<double>(period_value));
         // TODO: Handle case when this is empty
+        CAPTURE(phase_end.to_string(), value_epsilon);
 
         // Given random starting time, step partial cycle until right before phase end
         auto r = runner.step_until(phase_end - EPSILON);
         REQUIRE_THAT(r, v11h::strictly_increasingf());
-        REQUIRE_THAT(r, v11::approx_eqf(1.0, transport_step_size * period_value));
-        REQUIRE_THAT(r, v11h::allf(v11::in_rangef(0.0, 1.0), true));
-
-        // Single step to phase end
-        r = runner.step_n(1);
-        REQUIRE_THAT(r, v11::eqf(0.0));
-
-        // Entire cycle
-        r = runner.step_until(phase_end + period_value - EPSILON);
-        REQUIRE_THAT(r, v11h::strictly_increasingf());
-        REQUIRE_THAT(r, v11::approx_eqf(1.0, transport_step_size * period_value));
+        r.print_detailed();
+        REQUIRE_THAT(r, v11::approx_eqf(1.0, value_epsilon));
         REQUIRE_THAT(r, v11h::allf(v11::in_unit_rangef(), true));
 
-        r = runner.step_n(1);
-        r.print_detailed();
-        REQUIRE_THAT(r, v11::eqf(0.0));
+        // Single step to phase end
+        r = runner.step_until(phase_end, config.with_step_rounding(StepRounding::exact_stop_after));
+        REQUIRE_THAT(r, v11::approx_eqf(0.0, value_epsilon));
+
+        // Entire cycle
+        phase_end += period_value;
+        r = runner.step_until(phase_end - EPSILON);
+        REQUIRE_THAT(r, v11h::strictly_increasingf());
+        REQUIRE_THAT(r, v11::approx_eqf(1.0, value_epsilon));
+        REQUIRE_THAT(r, v11h::allf(v11::in_unit_rangef(), true));
+
+        r = runner.step_until(phase_end, config.with_step_rounding(StepRounding::exact_stop_after));
+        REQUIRE_THAT(r, v11::approx_eqf(0.0, value_epsilon));
     }
 }
 

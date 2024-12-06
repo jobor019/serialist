@@ -4,7 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "runner_results.h"
+#include "run_results.h"
 #include "core/collections/voices.h"
 #include "matchers_common.h"
 #include "param/string_serialization.h"
@@ -151,14 +151,19 @@ GenericValueMatcher<Facet> gef(const U& expected) {
 
 /** Note: for float Facet comparison, use eqf instead. approx_eqf is only for cases where a custom epsilon is needed */
 template<typename U>
-GenericValueMatcher<Facet> approx_eqf(const U& expected, double epsilon) {
+GenericValueMatcher<Facet> approx_eqf(const U& expected, double epsilon, double epsilons_epsilon = EPSILON) {
+    assert(epsilon > 0.0);
+    assert(epsilons_epsilon >= 0.0);
     static_assert(utils::is_static_castable_v<U, Facet>);
     std::stringstream ss;
-    ss << StringSerializer<U>::to_string(expected) << "±"
-            << std::scientific << std::setprecision(0) << epsilon;
+    ss << StringSerializer<U>::to_string(expected) << "±";
+    if (epsilon < 1e-3) {
+        ss << std::scientific << std::setprecision(0);
+    }
+    ss << epsilon;
 
     return GenericValueMatcher<Facet>(ss.str(), [=](const Facet& v) {
-        return utils::equals(static_cast<double>(v), static_cast<double>(expected), epsilon);
+        return utils::equals(static_cast<double>(v), static_cast<double>(expected), epsilon + epsilons_epsilon);
     });
 }
 

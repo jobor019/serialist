@@ -81,6 +81,7 @@ add_library(${PROJECT_NAME}::${CORE_NAME} ALIAS ${CORE_NAME})
 target_link_libraries(${CORE_NAME}
         INTERFACE
         magic_enum::magic_enum
+        tl::expected
 )
 
 # TODO: This is not an ideal solution for includes

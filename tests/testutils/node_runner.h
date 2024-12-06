@@ -2,10 +2,19 @@
 #define NODE_RUNNER_H
 #include "generative.h"
 #include "collections/vec.h"
-#include "runner_results.h"
+#include "run_results.h"
 #include <catch2/catch_test_macros.hpp>
 
 using namespace serialist;
+
+
+class test_error : public std::runtime_error {
+public:
+    explicit test_error(const char* err) : std::runtime_error(err) {}
+};
+
+
+// ==============================================================================================
 
 enum class StepRounding {
     exact_stop_before, exact_stop_after, round_all, round_first, round_last
@@ -207,14 +216,6 @@ public:
         }
         return *this;
     }
-
-
-    // GenerativeRunner& add_persistent_trigger_node(Node<Trigger>& node) {
-    //     if (!m_persistent_trigger_nodes.contains(&node)) {
-    //         m_persistent_trigger_nodes.append(&node);
-    //     }
-    //     return *this;
-    // }
 
 
     NodeRunner& set_output_node(Node<T>& node) {

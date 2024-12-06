@@ -1,5 +1,5 @@
-#ifndef RUNNER_RESULTS_H
-#define RUNNER_RESULTS_H
+#ifndef RUN_RESULTS_H
+#define RUN_RESULTS_H
 
 #include <core/policies/policies.h>
 #include <core/generative.h>
@@ -163,6 +163,9 @@ public:
         : m_output(output), m_output_history(output_history), m_primary_domain(primary_domain), m_success(success) {}
 
 
+    static RunResult failure()
+
+
     static RunResult dummy(const Voices<T>& v) {
         return RunResult(StepResult<T>(TimePoint{}, v, 0, true, DomainType::ticks)
                          , {}, true, DomainType::ticks);
@@ -261,4 +264,4 @@ private:
     bool m_success;
 };
 
-#endif //RUNNER_RESULTS_H
+#endif //RUN_RESULTS_H
