@@ -1,6 +1,6 @@
 
-#ifndef GENERATORS_H
-#define GENERATORS_H
+#ifndef TESTUTILS_GENERATORS_H
+#define TESTUTILS_GENERATORS_H
 
 #include <algo/facet.h>
 
@@ -24,4 +24,4 @@ inline TimePoint random_tp(double start_tick, double end_tick) {
 
 }
 
-#endif //GENERATORS_H
+#endif //TESTUTILS_GENERATORS_H

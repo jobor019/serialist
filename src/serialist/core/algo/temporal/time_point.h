@@ -17,6 +17,16 @@ enum class DomainType {
 };
 
 
+inline std::string domain_type_to_string(DomainType type) {
+    switch (type) {
+        case DomainType::ticks: return "ticks";
+        case DomainType::beats: return "beats";
+        case DomainType::bars: return "bars";
+    }
+    throw std::runtime_error("Unknown domain type");
+}
+
+
 // ==============================================================================================
 
 class DomainDuration;
@@ -248,26 +258,20 @@ public:
         return *this;
     }
 
-    std::string to_string() const {
-        std::string type;
-        switch (m_type) {
-            case DomainType::ticks: type = "ticks"; break;
-            case DomainType::beats: type = "beats"; break;
-            case DomainType::bars: type = "bars"; break;
-        }
+    std::string to_string(std::optional<std::size_t> num_decimals = std::nullopt) const {
+        std::stringstream ss;
 
-        return "DomainTimePoint(" + type + "=" + std::to_string(m_value) + ")";
+        ss << "DomainTimePoint(" << domain_type_to_string(m_type) << "=";
+        if (num_decimals) {
+            ss << std::fixed << std::setprecision(static_cast<int>(*num_decimals));
+        }
+        ss << m_value << ")";
+
+        return ss.str();
     }
 
     std::string to_string_compact() const {
-        std::string type;
-        switch (m_type) {
-            case DomainType::ticks: type = "ticks"; break;
-            case DomainType::beats: type = "beats"; break;
-            case DomainType::bars: type = "bars"; break;
-        }
-
-        return std::to_string(m_value) + " " + type;
+        return std::to_string(m_value) + " " + domain_type_to_string(m_type);
     }
 
 
@@ -369,6 +373,8 @@ public:
         return !(*this == other);
     }
 
+
+
     // TODO: Not a valid function
 //    /** throws TimeTypeError if `other` has a different type */
 //    friend DomainDuration operator-(const DomainTimePoint& lhs, const DomainTimePoint& rhs) {
@@ -386,6 +392,23 @@ public:
 
     friend DomainDuration operator*(double factor, const DomainDuration& duration) {
         return duration * factor;
+    }
+
+
+    std::string to_string(std::optional<std::size_t> num_decimals = std::nullopt) const {
+        std::stringstream ss;
+
+        ss << "DomainDuration(" << domain_type_to_string(m_type) << "=";
+        if (num_decimals) {
+            ss << std::fixed << std::setprecision(static_cast<int>(*num_decimals));
+        }
+        ss << m_value << ")";
+
+        return ss.str();
+    }
+
+    std::string to_string_compact() const {
+        return std::to_string(m_value) + " " + domain_type_to_string(m_type);
     }
 
     bool supports(const DomainTimePoint& t) const {

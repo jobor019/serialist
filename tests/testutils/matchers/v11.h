@@ -4,11 +4,12 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "run_results.h"
+#include "results.h"
 #include "core/collections/voices.h"
 #include "matchers_common.h"
 #include "param/string_serialization.h"
 
+using namespace serialist;
 
 namespace serialist::test::v11 {
 // ==============================================================================================
@@ -23,12 +24,10 @@ public:
         : m_condition(f), m_expected_rendering(std::move(expected_rendering)) {}
 
 
-    bool match(const RunResult<T>& arg) const override {
-        assert(arg.success());
+    bool match_internal(const RunResult<T>& success_r) const override {
+        m_evaluated_step = success_r.output();
 
-        m_evaluated_step = arg.output();
-
-        const auto& v = arg.output().voices;
+        const auto& v = success_r.output().voices();
 
         // Note: an empty-like value will always automatically pass or fail without evaluating condition
         if (is_empty(v)) {
@@ -51,10 +50,10 @@ public:
 
     std::string public_description() const override {
         if (m_size_error) {
-            return "is not a single valued voices (actual: " + m_evaluated_step->to_string_compact() + ")";
+            return "is not a single valued voices (actual: " + m_evaluated_step->to_string() + ")";
         }
 
-        return "expected: " + m_expected_rendering + ", actual: " + m_evaluated_step->to_string_compact();
+        return "expected: " + m_expected_rendering + ", actual: " + m_evaluated_step->to_string();
     }
 
 private:
@@ -256,7 +255,7 @@ public:
             return false;
         }
 
-        auto& fst = history[0].voices;
+        auto& fst = history[0].voices();
         if (fst.size() != 1 || fst[0].size() != 1) {
             m_failure_step = history[0];
             m_size_error = true;
@@ -264,14 +263,14 @@ public:
         }
 
         for (int i = 1; i < history.size(); ++i) {
-            auto& v = history[i].voices;
+            auto& v = history[i].voices();
             if (v.size() != 1 || v[0].size() != 1) {
                 m_size_error = true;
                 m_failure_step = history[i];
                 return false;
             }
 
-            if (!m_func(history[i - 1].voices[0][0], history[i].voices[0][0])) {
+            if (!m_func(history[i - 1].voices()[0][0], history[i].voices()[0][0])) {
                 m_failure_step = history[i];
                 m_prev_step = history[i - 1];
                 return false;
@@ -288,15 +287,15 @@ protected:
         }
 
         if (m_size_error) {
-            return "is not a single valued voices (actual: " + m_failure_step->to_string_compact() + ")";
+            return "is not a single valued voices (actual: " + m_failure_step->to_string() + ")";
         }
 
         if (!m_prev_step) {
-            return "is not " + m_keyword + " previous. failure: " + m_failure_step->to_string_compact();
+            return "is not " + m_keyword + " previous. failure: " + m_failure_step->to_string();
         }
 
-        return "is not " + m_keyword + " previous. cur: " + m_failure_step->to_string_compact()
-               + ", prev: " + m_prev_step->to_string_compact();
+        return "is not " + m_keyword + " previous. cur: " + m_failure_step->to_string()
+               + ", prev: " + m_prev_step->to_string();
     }
 
 private:

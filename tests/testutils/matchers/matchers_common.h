@@ -4,10 +4,12 @@
 
 #include <core/algo/facet.h>
 #include <core/collections/voices.h>
-#include "run_results.h"
+#include "results.h"
 
 
 namespace serialist::test {
+
+
 // ==============================================================================================
 // CONSTANTS
 // ==============================================================================================
@@ -56,11 +58,42 @@ template<typename T>
 class RunResultMatcher : public Catch::Matchers::MatcherBase<RunResult<T> > {
 public:
     virtual std::string public_description() const = 0;
+    virtual bool match_internal(const RunResult<T>& success_r) const = 0;
+
+
+    bool match(const RunResult<T>& arg) const final {
+        if (!arg.is_successful()) {
+            return fail_assertion(arg.to_string());
+        }
+
+        return match_internal(arg);
+    }
 
 protected:
     std::string describe() const final {
+        if (m_failure_string) {
+            return *m_failure_string;
+        }
+
         return public_description();
     }
+
+    /** @note Utility function for failure messages on assertions, i.e. failed configurations */
+    bool fail_assertion(std::string failure_string) const {
+        m_failure_string = std::move(failure_string);
+        return false;
+    }
+
+    /** @note Utility function for failure messages related to unsuccessful RunResult<T> */
+    bool fail_run(std::string failure_string) const {
+        m_failure_string = std::move(failure_string);
+        return false;
+    }
+
+
+
+private:
+    mutable std::optional<std::string> m_failure_string;
 };
 
 
@@ -69,16 +102,14 @@ protected:
 template<typename T>
 class EmptyMatcher : public RunResultMatcher<T> {
 public:
-    bool match(const RunResult<T>& arg) const override {
-        assert(arg.success());
-
-        m_evaluated_step = arg.output();
-        return is_empty(arg.output().voices);
+    bool match_internal(const RunResult<T>& success_r) const override {
+        m_evaluated_step = success_r.output();
+        return is_empty(success_r.output().voices());
     }
 
 
     std::string public_description() const override {
-        return "expected empty-like, actual: " + m_evaluated_step->to_string_compact();
+        return "expected empty-like, actual: " + m_evaluated_step->to_string();
     }
 
 private:
@@ -102,17 +133,18 @@ public:
     }
 
 
-    bool match(const RunResult<ValueType>& arg) const override {
-        assert(arg.success());
-        assert(m_allow_no_history || !arg.history().empty());
+    bool match_internal(const RunResult<ValueType>& success_r) const override {
+        if (success_r.history().empty() && !m_allow_no_history) {
+            return RunResultMatcher<ValueType>::fail_assertion("Matcher expected history, but it was empty");
+        }
 
-        for (const auto& step: arg.history()) {
+        for (const auto& step: success_r.history()) {
             if (!m_internal_matcher->match(RunResult<ValueType>::dummy(step))) {
                 return false;
             }
         }
 
-        if (m_check_output_step && !m_internal_matcher->match(RunResult<ValueType>::dummy(arg.output()))) {
+        if (m_check_output_step && !m_internal_matcher->match(RunResult<ValueType>::dummy(success_r.output()))) {
             return false;
         }
         return true;
