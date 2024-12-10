@@ -4,10 +4,7 @@
 
 #include "meter.h"
 #include "core/utility/math.h"
-#include "core/algo/fraction.h"
 #include "core/exceptions.h"
-#include <cmath>
-#include <chrono>
 #include <string>
 
 namespace serialist {
@@ -29,6 +26,7 @@ inline std::string domain_type_to_string(DomainType type) {
 
 // ==============================================================================================
 
+class DomainTimePoint;
 class DomainDuration;
 
 // ==============================================================================================
@@ -52,103 +50,53 @@ public:
 
     static TimePoint zero() { return TimePoint(); }
 
-    TimePoint operator+(double tick_increment) {
-        TimePoint t(*this);
-        t.increment(tick_increment);
-        return t;
-    }
+    // double arithmetic operators
+    TimePoint operator+(double tick_increment) const;
+    TimePoint operator-(double tick_decrement) const;
+    TimePoint& operator+=(double tick_increment);
+    TimePoint& operator-=(double tick_decrement);
 
-    TimePoint& operator+=(double tick_increment) {
-        increment(tick_increment);
-        return *this;
-    }
+    // DTP arithmetic operators
+    DomainDuration operator-(const DomainTimePoint& dtp) const;
 
+    // DD arithmetic operators
+    DomainTimePoint operator+(const DomainDuration& duration) const;
+    DomainTimePoint operator-(const DomainDuration& duration) const;
+
+    /** utility increment function. Note that this means that tp + dd and tp += dd yields different return types! */
     TimePoint& operator+=(const DomainDuration& duration);
 
-    TimePoint operator-(double tick_decrement) {
-        TimePoint t(*this);
-        t.increment(-tick_decrement);
-        return t;
-    }
+    // TP comparison operators
+    bool operator<(const TimePoint& other) const { return m_tick < other.m_tick; }
+    bool operator<=(const TimePoint& other) const  { return m_tick <= other.m_tick; }
+    bool operator>(const TimePoint& other) const { return m_tick > other.m_tick; }
+    bool operator>=(const TimePoint& other) const  { return m_tick >= other.m_tick; }
 
-    TimePoint operator-=(double tick_decrement) {
-        increment(-tick_decrement);
-        return *this;
-    }
+    // DTP comparison operators
+    bool operator<(const DomainTimePoint& other) const;
+    bool operator<=(const DomainTimePoint& other) const;
+    bool operator>(const DomainTimePoint& other) const;
+    bool operator>=(const DomainTimePoint& other) const;
 
+    explicit operator std::string() const { return to_string(); }
 
-    void increment(int64_t delta_nanos) {
-        increment(static_cast<double>(delta_nanos) * 1e-9 * m_tempo / 60.0);
-    }
+    void increment(int64_t delta_nanos);
+    void increment(double tick_increment);
+    void increment(const DomainDuration& tick_increment);
 
-    void increment(double tick_increment) {
-        m_tick += tick_increment;
-        auto beat_increment = m_meter.ticks2beats(tick_increment);
-        m_absolute_beat += beat_increment;
-        m_relative_beat = utils::modulo(m_relative_beat + beat_increment, m_meter.duration());
-        m_bar += m_meter.ticks2bars(tick_increment);
-    }
+    TimePoint incremented(double tick_increment) const;
+    TimePoint incremented(const DomainDuration& duration) const;
 
-    TimePoint incremented(double tick_increment) {
-        TimePoint t(*this);
-        t.increment(tick_increment);
-        return t;
-    }
-
-    double distance_to(double time_value, DomainType type) const {
-        switch (type) {
-            case DomainType::ticks:
-                return time_value - m_tick;
-            case DomainType::beats:
-                return time_value - m_absolute_beat;
-            case DomainType::bars:
-                return time_value - m_bar;
-        }
-    }
-
-
-    double next_tick_of(const Fraction& quantization_level = {1, 4}) const {
-        (void) quantization_level;
-        throw std::runtime_error("not implemented"); // TODO: Probably not the right place to implement quantization
-//        auto q = static_cast<double>(quantization_level);
-//        auto diff = fmod(m_beat, q);
-//
-//        if (diff < 1e-4)
-//            return m_tick - diff; // schedule up to 0.0001 ticks in the past
-//
-//        return m_tick - diff + q;   // schedule on next quantization level
-    }
-
-    bool operator<(const TimePoint& other) const {
-        return m_tick < other.m_tick;
-    }
-
-    bool operator<=(const TimePoint& other) const {
-        return m_tick <= other.m_tick;
-    }
-
-    bool operator>(const TimePoint& other) const {
-        return m_tick > other.m_tick;
-    }
-
-    bool operator>=(const TimePoint& other) const {
-        return m_tick >= other.m_tick;
-    }
-
-    explicit operator std::string() const {
-        return to_string();
-    }
+    double distance_to(double time_value, DomainType type) const;
 
 
     double get_tick() const { return m_tick; }
-
     double get_tempo() const { return m_tempo; }
-
     double get_relative_beat() const { return m_relative_beat; }
-
     double get_absolute_beat() const { return m_absolute_beat; }
-
     double get_bar() const { return m_bar; }
+    const Meter& get_meter() const { return m_meter; }
+    bool get_transport_running() const { return m_transport_running; }
 
     double get(DomainType type) const {
         switch (type) {
@@ -159,11 +107,9 @@ public:
             case DomainType::bars:
                 return m_bar;
         }
+        throw std::runtime_error("Invalid type");
     }
 
-    const Meter& get_meter() const { return m_meter; }
-
-    bool get_transport_running() const { return m_transport_running; }
 
     std::string to_string() const {
         return "TimePoint("
@@ -198,55 +144,42 @@ public:
     DomainTimePoint(double value, DomainType type) : m_value(value), m_type(type) {}
 
     static DomainTimePoint from_time_point(const TimePoint& t, DomainType type) { return {t.get(type), type}; }
-
+    static DomainTimePoint from_domain_duration(const DomainDuration& duration);
     static DomainTimePoint zero() { return {0.0, DomainType::ticks}; }
 
     static DomainTimePoint ticks(double value) { return {value, DomainType::ticks}; }
     static DomainTimePoint bars(double value) { return {value, DomainType::bars}; }
     static DomainTimePoint beats(double value) { return {value, DomainType::beats}; }
 
-    /** @throws TimeDomainError if `other` has a different type */
-    static DomainTimePoint min(const DomainTimePoint& a, const DomainTimePoint& b) {
-        if (a.m_type != b.m_type)
-            throw TimeDomainError("DomainTypes are incompatible");
+    // double arithmetic operators
+    DomainTimePoint operator+(double other) const { return {m_value + other, m_type}; }
+    DomainTimePoint operator-(double other) const { return {m_value - other, m_type}; }
+    DomainTimePoint operator*(double other) const { return {m_value * other, m_type}; }
 
-        return {std::min(a.m_value, b.m_value), a.m_type};
-    }
+    // TP arithmetic operators
+    DomainDuration operator-(const TimePoint& other) const;
 
-    /** @throws TimeDomainError if `other` has a different type */
-    static DomainTimePoint max(const DomainTimePoint& a, const DomainTimePoint& b) {
-        if (a.m_type != b.m_type)
-            throw TimeDomainError("DomainTypes are incompatible");
-
-        return {std::max(a.m_value, b.m_value), a.m_type};
-    }
-
+    // DTP arithmetic operators
+    /** throws TimeTypeError if `other` has a different type */
     DomainDuration operator-(const DomainTimePoint& other) const;
+
+    // DD arithmetic operators
+    /** throws TimeTypeError if `duration` has a different type */
+    DomainTimePoint operator+(const DomainDuration& duration) const;
+    /** throws TimeTypeError if `duration` has a different type */
+    DomainTimePoint operator-(const DomainDuration& duration) const;
 
     bool operator<(const TimePoint& t) const { return m_value < t.get(m_type); }
     bool operator<=(const TimePoint& t) const { return m_value <= t.get(m_type); }
     bool operator>(const TimePoint& t) const { return m_value > t.get(m_type); }
     bool operator>=(const TimePoint& t) const { return m_value >= t.get(m_type); }
 
-    friend bool operator<(const TimePoint& t, const DomainTimePoint& other) { return other > t; }
-    friend bool operator<=(const TimePoint& t, const DomainTimePoint& other) { return other >= t; }
-    friend bool operator>(const TimePoint& t, const DomainTimePoint& other) { return other < t; }
-    friend bool operator>=(const TimePoint& t, const DomainTimePoint& other) { return other <= t; }
+    bool supports(const DomainTimePoint& t) const {
+        return t.get_type() == m_type;
+    }
 
-    DomainTimePoint operator+(double other) const { return {m_value + other, m_type}; }
-    DomainTimePoint operator-(double other) const { return {m_value - other, m_type}; }
-    DomainTimePoint operator*(double other) const { return {m_value * other, m_type}; }
+    bool supports(const DomainDuration& other) const;
 
-    // TODO: Remove. These are technically not valid: adding two timepoints is undefined,
-    //               subtracting two timepoints can be done with DomainDuration::distance
-    // DomainTimePoint operator+(const TimePoint& other) const { return {m_value + other.get(m_type), m_type}; }
-    // DomainTimePoint operator-(const TimePoint& other) const { return {m_value - other.get(m_type), m_type}; }
-
-    // friend DomainTimePoint operator+(const TimePoint& other, const DomainTimePoint& t) { return t + other; }
-    //
-    // friend DomainTimePoint operator-(const TimePoint& other, const DomainTimePoint& t) {
-    //     return DomainTimePoint{other.get(t.m_type) - t.m_value, t.m_type};
-    // }
 
     DomainTimePoint& operator+=(double other) {
         m_value += other;
@@ -274,20 +207,30 @@ public:
         return std::to_string(m_value) + " " + domain_type_to_string(m_type);
     }
 
+    /** @throws TimeDomainError if `other` has a different type */
+    static DomainTimePoint min(const DomainTimePoint& a, const DomainTimePoint& b) {
+        if (a.m_type != b.m_type)
+            throw TimeDomainError("DomainTypes are incompatible");
 
-    // TODO: Not sure if this will be needed. If so, should be out of line
-//    DomainDuration operator-(const TimePoint& other) const;
-//    DomainDuration operator-(const DomainDuration& other) const;
+        return {std::min(a.m_value, b.m_value), a.m_type};
+    }
 
+    /** @throws TimeDomainError if `other` has a different type */
+    static DomainTimePoint max(const DomainTimePoint& a, const DomainTimePoint& b) {
+        if (a.m_type != b.m_type)
+            throw TimeDomainError("DomainTypes are incompatible");
+
+        return {std::max(a.m_value, b.m_value), a.m_type};
+    }
+
+
+    // Inline declaration due to dependency of DomainConverter
     DomainTimePoint as_type(DomainType target_type, const TimePoint& last_transport_tp) const;
 
 
-    bool elapsed(const TimePoint& current_time) const {
-        return current_time.get(m_type) >= m_value;
-    }
+    bool elapsed(const TimePoint& current_time) const { return current_time.get(m_type) >= m_value; }
 
     DomainType get_type() const { return m_type; }
-
     double get_value() const { return m_value; }
 
 private:
@@ -300,12 +243,22 @@ private:
 
 class DomainDuration {
 public:
-    explicit DomainDuration(double value = 1.0, DomainType type = DomainType::ticks)
-            : m_value(value), m_type(type) {}
+    explicit DomainDuration(double value = 1.0, DomainType type = DomainType::ticks) : m_value(value), m_type(type) {}
+
+    static DomainDuration from_domain_time_point(const DomainTimePoint& dtp) {
+        return DomainDuration{dtp.get_value(), dtp.get_type()};
+    }
 
     static DomainDuration ticks(double value) { return DomainDuration{value, DomainType::ticks}; }
     static DomainDuration beats(double value) { return DomainDuration{value, DomainType::beats}; }
     static DomainDuration bars(double value) { return DomainDuration{value, DomainType::bars}; }
+
+
+    static DomainDuration distance(const TimePoint& from, const DomainTimePoint& to) {
+        auto t = to.get_type();
+        return DomainDuration(to.get_value() - from.get(t), t);
+    }
+
 
     /** throws TimeTypeError if `other` has a different type */
     static DomainDuration distance(const DomainTimePoint& from, const DomainTimePoint& to) {
@@ -315,84 +268,41 @@ public:
         return DomainDuration(to.get_value() - from.get_value(), from.get_type());
     }
 
-    static DomainDuration distance(const TimePoint& from, const DomainTimePoint& to) {
-        auto t = to.get_type();
-        return DomainDuration(to.get_value() - from.get(t), t);
-    }
 
-    static DomainDuration distance(const DomainDuration& from, const TimePoint& to) {
-        auto t = from.get_type();
-        return DomainDuration(to.get(t) - from.get_value(), t);
-    }
+    // double arithmetic operators
+    DomainDuration operator+(double other) const { return DomainDuration(m_value + other, m_type); }
+    DomainDuration operator-(double other) const { return DomainDuration(m_value - other, m_type); }
+    DomainDuration operator*(double factor) const { return DomainDuration(m_value * factor, m_type); }
+    friend DomainDuration operator*(double factor, const DomainDuration& duration) { return duration * factor; }
+    DomainDuration operator/(double denom) const { return DomainDuration(m_value / denom, m_type); }
 
-    DomainDuration as_type(DomainType type, const Meter& meter) const;
+    // TP arithmetic operators
+    DomainTimePoint operator+(const TimePoint& other) const { return other + *this; }
 
-
-    DomainTimePoint operator+(const TimePoint& other) const {
-        return {other.get(m_type) + m_value, m_type};
-    }
-
+    // DTP arithmetic operators
     /** throws TimeTypeError if `other` has a different type */
-    DomainTimePoint operator+(const DomainTimePoint& other) const {
-        if (!supports(other))
-            throw TimeDomainError("DomainTypes are incompatible");
+    DomainTimePoint operator+(const DomainTimePoint& other) const;
 
-        return DomainTimePoint{m_value + other.get_value(), m_type};
-    }
-
-    friend DomainTimePoint operator+(const TimePoint& lhs, const DomainDuration& rhs) {
-        return rhs + lhs;
-    }
-
+    // DD arithmetic operators
     /** throws TimeTypeError if `other` has a different type */
-    friend DomainTimePoint operator+(const DomainTimePoint& lhs, const DomainDuration& rhs) {
-        return rhs + lhs;
-    }
-
+    DomainDuration operator+(const DomainDuration& other) const;
     /** throws TimeTypeError if `other` has a different type */
-    DomainTimePoint operator-(const DomainTimePoint& other) const {
-        if (!supports(other))
-            throw TimeDomainError("DomainTypes are incompatible");
-
-        return {m_value - other.get_value(), m_type};
-    }
-
+    DomainDuration operator-(const DomainDuration& other) const;
     /** throws TimeTypeError if `other` has a different type */
-    friend DomainTimePoint operator-(const DomainTimePoint& lhs, const DomainDuration& rhs) {
-        if (!rhs.supports(lhs))
-            throw TimeDomainError("DomainTypes are incompatible");
+    DomainDuration operator*(const DomainDuration& other) const;
+    /** throws TimeTypeError if `other` has a different type */
+    DomainDuration operator/(const DomainDuration& other) const;
 
-        return {lhs.get_value() - rhs.m_value, lhs.get_type()};
-    }
 
     bool operator==(const DomainDuration& other) const {
         return m_type == other.m_type && utils::equals(m_value, other.m_value);
     }
 
-    bool operator!=(const DomainDuration& other) const {
-        return !(*this == other);
-    }
+
+    bool operator!=(const DomainDuration& other) const { return !(*this == other); }
 
 
-
-    // TODO: Not a valid function
-//    /** throws TimeTypeError if `other` has a different type */
-//    friend DomainDuration operator-(const DomainTimePoint& lhs, const DomainTimePoint& rhs) {
-//        if (lhs.get_type() != rhs.get_type())
-//            throw TimeDomainError("DomainTypes are incompatible");
-//
-//        return DomainDuration(lhs.get_value() - rhs.get_value(), lhs.get_type());
-//    }
-
-
-
-    DomainDuration operator*(double factor) const {
-        return DomainDuration(m_value * factor, m_type);
-    }
-
-    friend DomainDuration operator*(double factor, const DomainDuration& duration) {
-        return duration * factor;
-    }
+    DomainDuration as_type(DomainType type, const Meter& meter) const;
 
 
     std::string to_string(std::optional<std::size_t> num_decimals = std::nullopt) const {
@@ -415,6 +325,10 @@ public:
         return t.get_type() == m_type;
     }
 
+    bool supports(const DomainDuration& other) const {
+        return other.get_type() == m_type;
+    }
+
 
     double get_value() const {
         return m_value;
@@ -427,17 +341,6 @@ public:
 private:
     double m_value;
     DomainType m_type;
-};
-
-
-// ==============================================================================================
-
-
-/**
- * Placeholder for a class describing a directed period of time. That is, the interval between two DomainTimePoints
- * (or equivalently, the positive or negative interval described by a DomainTimePoint and a DomainDuration).
- */
-class DomainInterval {
 };
 
 
@@ -459,11 +362,53 @@ public:
             case DomainType::bars:
                 return (target_type == DomainType::ticks) ? meter.bars2ticks(t) : meter.bars2beats(t);
         }
+
+        throw std::runtime_error("Unknown source type");
     }
 };
 
+// TODO: All code below should be non-inline and moved to a separate source file
 
 // ==============================================================================================
+// TimePoint
+// ==============================================================================================
+
+
+inline TimePoint TimePoint::operator+(double tick_increment) const {
+    TimePoint t(*this);
+    t.increment(tick_increment);
+    return t;
+}
+
+
+inline TimePoint TimePoint::operator-(double tick_decrement) const {
+    TimePoint t(*this);
+    t.increment(-tick_decrement);
+    return t;
+}
+
+
+inline TimePoint& TimePoint::operator+=(double tick_increment) {
+    increment(tick_increment);
+    return *this;
+}
+
+
+inline TimePoint& TimePoint::operator-=(double tick_decrement) {
+    increment(-tick_decrement);
+    return *this;
+}
+
+
+
+inline DomainTimePoint TimePoint::operator+(const DomainDuration& duration) const {
+    return DomainTimePoint{get(duration.get_type()) + duration.get_value(), duration.get_type()};
+}
+
+inline DomainTimePoint TimePoint::operator-(const DomainDuration& duration) const {
+    return DomainTimePoint{get(duration.get_type()) - duration.get_value(), duration.get_type()};
+}
+
 
 inline TimePoint& TimePoint::operator+=(const DomainDuration& duration) {
     auto tick_increment = duration.as_type(DomainType::ticks, m_meter).get_value();
@@ -471,7 +416,88 @@ inline TimePoint& TimePoint::operator+=(const DomainDuration& duration) {
     return *this;
 }
 
+
+inline bool TimePoint::operator<(const DomainTimePoint& other) const { return other > *this; }
+inline bool TimePoint::operator<=(const DomainTimePoint& other) const { return other >= *this; }
+inline bool TimePoint::operator>(const DomainTimePoint& other) const { return other < *this; }
+inline bool TimePoint::operator>=(const DomainTimePoint& other)  const{ return other <= *this; }
+
+
+inline void TimePoint::increment(int64_t delta_nanos) {
+    increment(static_cast<double>(delta_nanos) * 1e-9 * m_tempo / 60.0);
+}
+
+
+inline void TimePoint::increment(double tick_increment) {
+    m_tick += tick_increment;
+    auto beat_increment = m_meter.ticks2beats(tick_increment);
+    m_absolute_beat += beat_increment;
+    m_relative_beat = utils::modulo(m_relative_beat + beat_increment, m_meter.duration());
+    m_bar += m_meter.ticks2bars(tick_increment);
+}
+
+
+inline TimePoint TimePoint::incremented(double tick_increment) const {
+    TimePoint t(*this);
+    t.increment(tick_increment);
+    return t;
+}
+
+
+inline TimePoint TimePoint::incremented(const DomainDuration& duration) const {
+    TimePoint t(*this);
+    t += duration;
+    return t;
+}
+
+
+inline double TimePoint::distance_to(double time_value, DomainType type) const {
+    switch (type) {
+        case DomainType::ticks:
+            return time_value - m_tick;
+        case DomainType::beats:
+            return time_value - m_absolute_beat;
+        case DomainType::bars:
+            return time_value - m_bar;
+    }
+    throw std::runtime_error("unsupported domain type");
+}
+
+
 // ==============================================================================================
+// DomainTimePoint
+// ==============================================================================================
+
+
+inline DomainTimePoint DomainTimePoint::from_domain_duration(const DomainDuration& duration) {
+    return {duration.get_value(), duration.get_type()};
+}
+
+
+inline DomainDuration DomainTimePoint::operator-(const TimePoint& other) const {
+    return DomainDuration::distance(other, *this);
+}
+
+inline DomainTimePoint DomainTimePoint::operator+(const DomainDuration& duration) const {
+    return duration + *this;
+}
+
+inline DomainDuration DomainTimePoint::operator-(const DomainTimePoint& other) const {
+    return DomainDuration::distance(other, *this);
+}
+
+
+inline DomainTimePoint DomainTimePoint::operator-(const DomainDuration& other) const {
+    if (!supports(other))
+        throw TimeDomainError("DomainTypes are incompatible");
+
+    return {m_value - other.get_value(), m_type};
+}
+
+
+inline bool DomainTimePoint::supports(const DomainDuration& other) const { return other.get_type() == m_type; }
+
+
 
 inline DomainTimePoint DomainTimePoint::as_type(DomainType target_type, const TimePoint& last_transport_tp) const {
     if (m_type == target_type) {
@@ -485,11 +511,49 @@ inline DomainTimePoint DomainTimePoint::as_type(DomainType target_type, const Ti
     return {time_in_target_type, target_type};
 }
 
-inline DomainDuration DomainTimePoint::operator-(const DomainTimePoint& other) const {
-    return DomainDuration::distance(other, *this);
+// ==============================================================================================
+// DomainDuration
+// ==============================================================================================
+
+
+inline DomainTimePoint DomainDuration::operator+(const DomainTimePoint& other) const {
+    if (!supports(other))
+        throw TimeDomainError("DomainTypes are incompatible");
+
+    return DomainTimePoint{m_value + other.get_value(), m_type};
 }
 
-// ==============================================================================================
+
+inline DomainDuration DomainDuration::operator+(const DomainDuration& other) const {
+    if (!supports(other)) {
+        throw TimeDomainError("DomainTypes are incompatible");
+    }
+    return DomainDuration(m_value + other.m_value, m_type);
+}
+
+inline DomainDuration DomainDuration::operator-(const DomainDuration& other) const {
+    if (!supports(other)) {
+        throw TimeDomainError("DomainTypes are incompatible");
+    }
+    return DomainDuration(m_value - other.m_value, m_type);
+}
+
+
+inline DomainDuration DomainDuration::operator*(const DomainDuration& other) const {
+    if (!supports(other))
+        throw TimeDomainError("DomainTypes are incompatible");
+
+    return DomainDuration(m_value * other.m_value, m_type);
+}
+
+
+inline DomainDuration DomainDuration::operator/(const DomainDuration& other) const {
+    if (!supports(other))
+        throw TimeDomainError("DomainTypes are incompatible");
+
+    return DomainDuration(m_value / other.m_value, m_type);
+}
+
 
 
 inline DomainDuration DomainDuration::as_type(DomainType target_type, const Meter& meter) const {
@@ -499,6 +563,7 @@ inline DomainDuration DomainDuration::as_type(DomainType target_type, const Mete
 
     return DomainDuration{DomainConverter::convert(m_value, m_type, target_type, meter), m_type};
 }
+
 
 } // namespace serialist
 
