@@ -35,6 +35,16 @@ bool is_singular(const Voices<T>& v) { return v.size() == 1 && v[0].size() == 1;
 template<typename T>
 bool is_maybe_singular(const Voices<T>& v) { return is_empty(v) || is_singular(v); }
 
+template<typename T>
+bool history_is_empty(const Vec<StepResult<T>>& results, bool includes_last_step) {
+    // Note: RunResult specifies that it will always contain at least one value (last output),
+    //       which may or may not be included here, depending on include_last_step value
+    if (includes_last_step) {
+        return results.size() <= 1;
+    }
+    return results.empty();
+}
+
 
 // ==============================================================================================
 // FUNCTION ALIASES
@@ -103,8 +113,8 @@ template<typename T>
 class EmptyMatcher : public RunResultMatcher<T> {
 public:
     bool match_internal(const RunResult<T>& success_r) const override {
-        m_evaluated_step = success_r.output();
-        return is_empty(success_r.output().voices());
+        m_evaluated_step = success_r.last();
+        return is_empty(success_r.last().voices());
     }
 
 
@@ -123,10 +133,10 @@ template<typename RunResultMatcherType, typename ValueType>
 class AllHistoryMatcher : public RunResultMatcher<ValueType> {
 public:
     explicit AllHistoryMatcher(std::unique_ptr<RunResultMatcherType> internal_matcher
-                               , bool check_output_step = false
+                               , bool check_last_step = true
                                , bool allow_no_history = false)
         : m_internal_matcher(std::move(internal_matcher))
-          , m_check_output_step(check_output_step)
+          , m_check_last_step(check_last_step)
           , m_allow_no_history(allow_no_history) {
         static_assert(std::is_base_of_v<RunResultMatcher<ValueType>, RunResultMatcherType>);
         assert(m_internal_matcher);
@@ -134,18 +144,16 @@ public:
 
 
     bool match_internal(const RunResult<ValueType>& success_r) const override {
-        if (success_r.history().empty() && !m_allow_no_history) {
+        const Vec<StepResult<ValueType>>& results = m_check_last_step ? success_r.entire_output() : success_r.history();
+
+        if (history_is_empty(results, m_check_last_step) && !m_allow_no_history) {
             return RunResultMatcher<ValueType>::fail_assertion("Matcher expected history, but it was empty");
         }
 
-        for (const auto& step: success_r.history()) {
+        for (const auto& step: results) {
             if (!m_internal_matcher->match(RunResult<ValueType>::dummy(step))) {
                 return false;
             }
-        }
-
-        if (m_check_output_step && !m_internal_matcher->match(RunResult<ValueType>::dummy(success_r.output()))) {
-            return false;
         }
         return true;
     }
@@ -157,7 +165,7 @@ public:
 
 private:
     std::unique_ptr<RunResultMatcherType> m_internal_matcher;
-    bool m_check_output_step;
+    bool m_check_last_step;
     bool m_allow_no_history;
 };
 

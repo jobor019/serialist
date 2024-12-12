@@ -372,6 +372,24 @@ TEST_CASE("Vec first", "[first]") {
 }
 
 
+TEST_CASE("Vec last", "[last]") {
+    Vec v = {1, 2, 3, 4, 5};
+
+    std::optional<int> result1 = v.last();
+    REQUIRE(result1.has_value());
+    REQUIRE(result1.value() == 5);
+
+    Vec<int> emptyVec;
+    std::optional<int> result2 = emptyVec.last();
+    REQUIRE(result2.has_value());
+
+    Vec single_value{1};
+    std::optional<int> result3 = single_value.last();
+    REQUIRE(result3.has_value());
+    REQUIRE(result3.value() == 1);
+}
+
+
 TEST_CASE("Vec first_or", "[first_or]") {
     Vec v = {1, 2, 3, 4, 5};
 

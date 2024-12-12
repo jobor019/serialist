@@ -2,7 +2,6 @@
 #define V11_H
 
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "results.h"
 #include "core/collections/voices.h"
@@ -10,6 +9,7 @@
 #include "param/string_serialization.h"
 
 using namespace serialist;
+
 
 namespace serialist::test::v11 {
 // ==============================================================================================
@@ -25,9 +25,10 @@ public:
 
 
     bool match_internal(const RunResult<T>& success_r) const override {
-        m_evaluated_step = success_r.output();
+        m_evaluated_step = success_r.last();
 
-        const auto& v = success_r.output().voices();
+
+        const auto& v = m_evaluated_step->voices();
 
         // Note: an empty-like value will always automatically pass or fail without evaluating condition
         if (is_empty(v)) {
@@ -50,10 +51,10 @@ public:
 
     std::string public_description() const override {
         if (m_size_error) {
-            return "is not a single valued voices (actual: " + m_evaluated_step->to_string() + ")";
+            return "is not a single valued voices (actual: " + m_evaluated_step->to_string_detailed() + ")";
         }
 
-        return "expected: " + m_expected_rendering + ", actual: " + m_evaluated_step->to_string();
+        return "expected: " + m_expected_rendering + ", actual: " + m_evaluated_step->to_string_detailed();
     }
 
 private:
@@ -240,49 +241,54 @@ namespace serialist::test::v11h {
 //     std::unique_ptr<v11::GenericValueMatcher<T>> m_internal_matcher;
 // };
 
-
+// TODO: This should be updated to closer match the signature of AllHistoryMatcher (allow_no_history, check_last_step, etc.)
 template<typename T>
-class ComparePrevious : public Catch::Matchers::MatcherBase<RunResult<T> > {
+class ComparePrevious : public RunResultMatcher<T> {
 public:
-    explicit ComparePrevious(std::string keyword, const ConsecutiveCompare<T>& f)
-        : m_func(f), m_keyword(std::move(keyword)) {}
+    explicit ComparePrevious(std::string keyword
+                             , const ConsecutiveCompare<T>& f
+                             , bool check_last_step = false
+                             , bool allow_no_history = false)
+        : m_func(f)
+          , m_keyword(std::move(keyword))
+          , m_check_last_step(check_last_step)
+          , m_allow_no_history(allow_no_history) {}
 
 
-    bool match(const RunResult<T>& arg) const override {
-        const auto& history = arg.history();
+    bool match_internal(const RunResult<T>& success_r) const override {
+        const Vec<StepResult<T>>& results = m_check_last_step ? success_r.entire_output() : success_r.history();
 
-        if (history.empty()) {
-            return false;
+        if (history_is_empty(results, m_check_last_step)) {
+            return RunResultMatcher<T>::fail_assertion("Matcher expected history, but it was empty");
         }
 
-        auto& fst = history[0].voices();
+        auto& fst = results[0].voices();
         if (fst.size() != 1 || fst[0].size() != 1) {
-            m_failure_step = history[0];
+            m_failure_step = results[0];
             m_size_error = true;
             return false;
         }
 
-        for (int i = 1; i < history.size(); ++i) {
-            auto& v = history[i].voices();
+        for (int i = 1; i < results.size(); ++i) {
+            auto& v = results[i].voices();
             if (v.size() != 1 || v[0].size() != 1) {
                 m_size_error = true;
-                m_failure_step = history[i];
+                m_failure_step = results[i];
                 return false;
             }
 
-            if (!m_func(history[i - 1].voices()[0][0], history[i].voices()[0][0])) {
-                m_failure_step = history[i];
-                m_prev_step = history[i - 1];
+            if (!m_func(results[i - 1].voices()[0][0], results[i].voices()[0][0])) {
+                m_failure_step = results[i];
+                m_prev_step = results[i - 1];
                 return false;
             }
         }
         return true;
     }
 
-protected:
-    std::string describe() const override {
+
+    std::string public_description() const override {
         if (!m_failure_step && !m_prev_step) {
-            // This is most likely an error on the users side, which we don't want to accidentally pass
             return "history is empty";
         }
 
@@ -301,6 +307,9 @@ protected:
 private:
     ConsecutiveCompare<T> m_func;
     std::string m_keyword;
+
+    bool m_check_last_step;
+    bool m_allow_no_history;
 
     mutable bool m_size_error = false;
     mutable std::optional<StepResult<T> > m_failure_step;
@@ -332,20 +341,20 @@ inline ComparePrevious<Facet> strictly_decreasingf() { return strictly_decreasin
 
 template<typename T>
 AllHistoryMatcher<v11::GenericValueMatcher<T>, T> all(v11::GenericValueMatcher<T>&& matcher
-                                                      , bool check_output_step = false
+                                                      , bool check_last_step = false
                                                       , bool allow_no_history = false) {
     return AllHistoryMatcher<v11::GenericValueMatcher<T>, T>(
         std::make_unique<v11::GenericValueMatcher<T> >(std::move(matcher))
-        , check_output_step
+        , check_last_step
         , allow_no_history
     );
 }
 
 
 inline AllHistoryMatcher<v11::GenericValueMatcher<Facet>, Facet> allf(v11::GenericValueMatcher<Facet>&& matcher
-                                                                      , bool check_output_step = false
+                                                                      , bool check_last_step = false
                                                                       , bool allow_no_history = false) {
-    return all<Facet>(std::move(matcher), check_output_step, allow_no_history);
+    return all<Facet>(std::move(matcher), check_last_step, allow_no_history);
 }
 }
 

@@ -332,7 +332,7 @@ private:
 
 // ==============================================================================================
 
-template<typename FloatType = float>
+template<typename FloatType = double>
 struct OscillatorWrapper {
     using Keys = OscillatorNode::OscillatorKeys;
 

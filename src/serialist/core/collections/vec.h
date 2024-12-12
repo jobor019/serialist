@@ -1007,6 +1007,15 @@ public:
     }
 
 
+    std::optional<T> last() const {
+        if (m_vector.empty()) {
+            return std::nullopt;
+        }
+
+        return std::make_optional(m_vector.at(m_vector.size() - 1));
+    }
+
+
     // ======================== ARITHMETIC OPERATIONS ========================
 
 

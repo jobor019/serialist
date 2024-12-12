@@ -7,141 +7,140 @@
 
 
 namespace serialist::test {
-enum class StepRounding {
-    exact_stop_before, exact_stop_after, round_all, round_first, round_last
-};
+// enum class StepRounding {
+//     exact_stop_before, exact_stop_after, round_all, round_first, round_last
+// };
 
 
-class Steps {
-public:
-    /** @throws test_error for invalid durations or step sizes */
-    static Steps from_duration(const DomainDuration& duration, const DomainDuration& step_size, StepRounding rounding) {
-        if (step_size.get_value() <= 0)
-            throw test_error("Step size must be > 0 (actual value: " + step_size.to_string_compact() + ")");
+// class Steps {
+// public:
+//     /** @throws test_error for invalid durations or step sizes */
+//     static Steps from_duration(const DomainDuration& duration, const DomainDuration& step_size, StepRounding rounding) {
+//         if (step_size.get_value() <= 0)
+//             throw test_error("Step size must be > 0 (actual value: " + step_size.to_string_compact() + ")");
+//
+//
+//
+//
+//         if (duration.get_value() < step_size.get_value()) {
+//             throw test_error("Duration must be >= step size (actual duration: "
+//                              + duration.to_string_compact() + ", step size: " + step_size.to_string_compact() + ")");
+//         }
+//
+//         if (duration.get_type() != step_size.get_type())
+//             throw test_error("Duration and step size must be of the same type (actual duration: "
+//                              + duration.to_string_compact() + ", step size: " + step_size.to_string_compact() + ")");
+//
+//         double r = duration.get_value();
+//         double q = duration.get_value() / step_size.get_value();
+//         DomainType t = duration.get_type();
+//
+//         if (rounding == StepRounding::exact_stop_before) {
+//             return Steps(step_size, rounding, static_cast<std::size_t>(std::floor(q)));
+//         }
+//
+//         if (rounding == StepRounding::exact_stop_after) {
+//             return Steps(step_size, rounding, static_cast<std::size_t>(std::ceil(q)));
+//         }
+//
+//         if (rounding == StepRounding::round_all) {
+//             double n = std::round(q);
+//             return Steps(DomainDuration(r / n, t), rounding, static_cast<std::size_t>(n));
+//         }
+//
+//         if (rounding == StepRounding::round_first || rounding == StepRounding::round_last) {
+//             double n = std::ceil(q);
+//             auto num_steps = static_cast<std::size_t>(n);
+//             auto fractional_step = step_size * utils::modulo(q, 1.0);
+//
+//             auto first = step_size;
+//             auto mid = step_size;
+//             auto last = step_size;
+//
+//             if (!utils::equals(fractional_step.get_value(), 0.0)) {
+//                 if (rounding == StepRounding::round_first) {
+//                     first = fractional_step;
+//                 } else {
+//                     if (num_steps < 3) {
+//                         // TODO: implementation current doesn't handle this edge case. If there are fewer than 3 steps,
+//                         //       the last value won't be used and the duration will be incorrect
+//                         throw test_error("Unhandled case of rounding last with less than 3 steps");
+//                     }
+//                     last = fractional_step;
+//                 }
+//             }
+//
+//             return Steps(first, mid, last, rounding, num_steps);
+//         }
+//
+//         throw test_error("Unknown rounding value");
+//     }
+//
+//
+//     static Steps from_num_steps(std::size_t num_steps, const DomainDuration& step_size) {
+//         // Note: rounding is not relevant in this case
+//         return Steps(step_size, StepRounding::round_all, num_steps);
+//     }
+//
+//
+//     const DomainDuration& first() const { return m_first_delta; }
+//     const DomainDuration& default_delta() const { return m_delta; }
+//     const DomainDuration& last() const { return m_last_delta; }
+//     std::size_t num_steps() const { return m_num_steps; }
+//     DomainType domain() const { return m_delta.get_type(); }
+//
+// private:
+//     Steps(const DomainDuration& uniform_step_size, StepRounding rounding, std::size_t num_steps)
+//         : Steps(uniform_step_size, uniform_step_size, uniform_step_size, rounding, num_steps) {}
+//
+//
+//     /** @throws test_error for invalid deltas or step sizes */
+//     Steps(const DomainDuration& first_delta
+//           , const DomainDuration& delta
+//           , const DomainDuration& last_delta
+//           , StepRounding rounding
+//           , std::size_t num_steps)
+//         : m_first_delta(first_delta)
+//           , m_delta(delta)
+//           , m_last_delta(last_delta)
+//           , m_rounding(rounding)
+//           , m_num_steps(num_steps) {
+//         if (num_steps == 0)
+//             throw test_error("Number of steps must be > 0");
+//
+//         if (m_first_delta.get_value() <= 0)
+//             throw test_error("First delta must be > 0 (actual value: " + m_first_delta.to_string_compact() + ")");
+//
+//         if (m_delta.get_value() <= 0)
+//             throw test_error("delta must be > 0 (actual value: " + m_delta.to_string_compact() + ")");
+//
+//         if (m_last_delta.get_value() < 0)
+//             throw test_error("Last delta must be >= 0 (actual value: " + m_last_delta.to_string_compact() + ")");
+//     }
+//
+//
+//     void set_all(const DomainDuration& delta) {
+//         m_first_delta = delta;
+//         m_delta = delta;
+//         m_last_delta = delta;
+//     }
+//
+//
+//     DomainDuration m_first_delta{0.0};
+//     DomainDuration m_delta{0.0};
+//     DomainDuration m_last_delta{0.0};
+//
+//     StepRounding m_rounding;
+//
+//     std::size_t m_num_steps = 0;
+// };
 
-        if (duration.get_value() <= step_size.get_value())
-            throw test_error("Duration must be > step size (actual duration: "
-                             + duration.to_string_compact() + ", step size: " + step_size.to_string_compact() + ")");
-
-        if (duration.get_type() != step_size.get_type())
-            throw test_error("Duration and step size must be of the same type (actual duration: "
-                             + duration.to_string_compact() + ", step size: " + step_size.to_string_compact() + ")");
-
-        double r = duration.get_value();
-        double q = duration.get_value() / step_size.get_value();
-        DomainType t = duration.get_type();
-
-        if (rounding == StepRounding::exact_stop_before) {
-            return Steps(step_size, rounding, static_cast<std::size_t>(std::floor(q)));
-        }
-
-        if (rounding == StepRounding::exact_stop_after) {
-            return Steps(step_size, rounding, static_cast<std::size_t>(std::ceil(q)));
-        }
-
-        if (rounding == StepRounding::round_all) {
-            double n = std::round(q);
-            return Steps(DomainDuration(r / n, t), rounding, static_cast<std::size_t>(n));
-        }
-
-        if (rounding == StepRounding::round_first || rounding == StepRounding::round_last) {
-            double n = std::ceil(q);
-            auto num_steps = static_cast<std::size_t>(n);
-            auto fractional_step = step_size * utils::modulo(q, 1.0);
-
-            auto first = step_size;
-            auto mid = step_size;
-            auto last = step_size;
-
-            if (!utils::equals(fractional_step.get_value(), 0.0)) {
-                if (rounding == StepRounding::round_first) {
-                    first = fractional_step;
-                } else {
-                    if (num_steps < 3) {
-                        // TODO: implementation current doesn't handle this edge case. If there are fewer than 3 steps,
-                        //       the last value won't be used and the duration will be incorrect
-                        throw test_error("Unhandled case of rounding last with less than 3 steps");
-                    }
-                    last = fractional_step;
-                }
-            }
-
-            return Steps(first, mid, last, rounding, num_steps);
-        }
-
-        throw test_error("Unknown rounding value");
-    }
-
-
-    static Steps from_num_steps(std::size_t num_steps, const DomainDuration& step_size) {
-        // Note: rounding is not relevant in this case
-        return Steps(step_size, StepRounding::round_all, num_steps);
-    }
-
-
-    const DomainDuration& first() const { return m_first_delta; }
-    const DomainDuration& default_delta() const { return m_delta; }
-    const DomainDuration& last() const { return m_last_delta; }
-    std::size_t num_steps() const { return m_num_steps; }
-    DomainType domain() const { return m_delta.get_type(); }
-
-private:
-    Steps(const DomainDuration& uniform_step_size, StepRounding rounding, std::size_t num_steps)
-        : Steps(uniform_step_size, uniform_step_size, uniform_step_size, rounding, num_steps) {}
-
-
-    /** @throws test_error for invalid deltas or step sizes */
-    Steps(const DomainDuration& first_delta
-          , const DomainDuration& delta
-          , const DomainDuration& last_delta
-          , StepRounding rounding
-          , std::size_t num_steps)
-        : m_first_delta(first_delta)
-          , m_delta(delta)
-          , m_last_delta(last_delta)
-          , m_rounding(rounding)
-          , m_num_steps(num_steps) {
-        if (num_steps == 0)
-            throw test_error("Number of steps must be > 0");
-
-        if (m_first_delta.get_value() <= 0)
-            throw test_error("First delta must be > 0 (actual value: " + m_first_delta.to_string_compact() + ")");
-
-        if (m_delta.get_value() <= 0)
-            throw test_error("delta must be > 0 (actual value: " + m_delta.to_string_compact() + ")");
-
-        if (m_last_delta.get_value() < 0)
-            throw test_error("Last delta must be >= 0 (actual value: " + m_last_delta.to_string_compact() + ")");
-    }
-
-
-    void set_all(const DomainDuration& delta) {
-        m_first_delta = delta;
-        m_delta = delta;
-        m_last_delta = delta;
-    }
-
-
-    DomainDuration m_first_delta{0.0};
-    DomainDuration m_delta{0.0};
-    DomainDuration m_last_delta{0.0};
-
-    StepRounding m_rounding;
-
-    std::size_t m_num_steps = 0;
-};
-
-
-// ==============================================================================================
-
-
-// template<typename T>
 class TestConfig {
 public:
     const inline static auto DEFAULT_STEP_SIZE = DomainDuration(0.01, DomainType::ticks);
     constexpr static auto DEFAULT_DOMAIN_TYPE = DomainType::ticks;
     constexpr static std::optional<std::size_t> DEFAULT_HISTORY_CAPACITY = std::nullopt;
-    constexpr static auto DEFAULT_STEP_ROUNDING = StepRounding::round_last;
+    // constexpr static auto DEFAULT_STEP_ROUNDING = StepRounding::round_last;
 
 
     TestConfig() = default;
@@ -167,21 +166,119 @@ public:
     }
 
 
-    TestConfig& with_step_rounding(StepRounding rounding) {
-        step_rounding = rounding;
-        return *this;
-    }
+    // TestConfig& with_step_rounding(StepRounding rounding) {
+    //     step_rounding = rounding;
+    //     return *this;
+    // }
 
 
     TestConfig& with_step_size(const DomainDuration& size) {
+        if (size.get_value() <= 0) {
+            throw test_error("Step size must be > 0");
+        }
+
         step_size = size;
         return *this;
     }
 
+
     DomainDuration step_size = DEFAULT_STEP_SIZE;
-    StepRounding step_rounding = DEFAULT_STEP_ROUNDING;
+    // StepRounding step_rounding = DEFAULT_STEP_ROUNDING;
     std::optional<std::size_t> history_capacity = DEFAULT_HISTORY_CAPACITY;
 };
+
+
+// ==============================================================================================
+
+enum class StopType {
+    before, after
+};
+
+
+class StopCondition {
+public:
+    struct NumSteps {
+        std::size_t index;
+    };
+    struct StopAfter {
+        DomainTimePoint time;
+    };
+    struct StopBefore {
+        DomainTimePoint time;
+    };
+
+    using Condition = std::variant<NumSteps, StopAfter, StopBefore>;
+
+    explicit StopCondition(const Condition& condition) : m_condition(condition) {}
+
+
+    static StopCondition from_stop_type(const DomainTimePoint& t, StopType stop_type) {
+        if (stop_type == StopType::before) {
+            return StopCondition(StopBefore{t});
+        } else {
+            return StopCondition(StopAfter{t});
+        }
+    }
+
+
+    /** Naively predicts number of steps until stop condition,
+     *  under the assumption that the step size is constant and meter doesn't change */
+    std::size_t predict_num_steps(const TimePoint& current
+                                         , const DomainDuration& step_size) const {
+        return std::visit([&](const auto& c) -> std::size_t {
+            using T = std::decay_t<decltype(c)>;
+
+            if constexpr (std::is_same_v<T, NumSteps>) {
+                return c.index;
+            } else if constexpr (std::is_same_v<T, StopAfter>) {
+                return steps(current, c.time, step_size) + 1;
+            } else if constexpr (std::is_same_v<T, StopBefore>) {
+                return steps(current, c.time, step_size);
+            } else {
+                throw test_error("Unsupported condition type");
+            }
+        }, m_condition);
+    }
+
+
+    bool should_stop(std::size_t step_index, const TimePoint& t, const TimePoint& t_next) const {
+        return std::visit([&](const auto& cond) -> bool {
+            using T = std::decay_t<decltype(cond)>;
+            if constexpr (std::is_same_v<T, NumSteps>) {
+                return step_index >= cond.index;
+            } else if constexpr (std::is_same_v<T, StopAfter>) {
+                return t >= cond.time;
+            } else if constexpr (std::is_same_v<T, StopBefore>) {
+                return t_next >= cond.time;
+            } else {
+                throw test_error("Unsupported condition type");
+            }
+        }, m_condition);
+    }
+
+
+    template<typename T>
+    const T& as() const { return std::get<T>(m_condition); }
+
+
+    template<typename T>
+    bool is() const { return std::holds_alternative<T>(m_condition); }
+
+private:
+    static std::size_t steps(const TimePoint& current, const DomainTimePoint& target, const DomainDuration& step_size) {
+        auto distance = (target - current).as_type(step_size.get_type(), current.get_meter());
+        return static_cast<std::size_t>(std::ceil((distance / step_size).get_value()));
+    }
+
+
+    Condition m_condition;
+};
+
+
+// ==============================================================================================
+
+
+// template<typename T>
 
 
 // ==============================================================================================
@@ -193,7 +290,7 @@ public:
                         , const TestConfig& config = TestConfig()
                         , const TimePoint& initial_time = TimePoint{})
         : m_config(config)
-          , m_current_time(initial_time) {
+          , m_previous_end_time(initial_time) {
         if (output_node) {
             set_output_node(*output_node);
         }
@@ -223,38 +320,39 @@ public:
 
 
     RunResult<T> step_until(const DomainTimePoint& t
+                            , StopType stop_type
                             , std::optional<TestConfig> config = std::nullopt) noexcept {
-        if (t <= m_current_time) {
+        if (t <= m_previous_end_time) {
             return RunResult<T>::failure("Cannot step back in time (requested time: " + t.to_string() + ")"
-                , m_current_time, 0, t.get_type());
+                                         , m_previous_end_time, 0, t.get_type());
         }
 
-        try {
-            config = config.value_or(m_config);
-            auto duration = DomainDuration::distance(m_current_time, t);
-            auto steps = Steps::from_duration(duration, config->step_size, config->step_rounding);
 
-            return step_internal(steps, *config);
+        config = config.value_or(m_config);
+        auto stop_condition = StopCondition::from_stop_type(t, stop_type);
+
+        try {
+            return step_internal(stop_condition, *config, t.get_type());
         } catch (test_error& e) {
-            return RunResult<T>::failure(e.what(), m_current_time, 0, t.get_type());
+            return RunResult<T>::failure(e.what(), m_previous_end_time, 0, t.get_type());
         }
     }
 
 
-    RunResult<T> step_n(std::size_t num_steps, std::optional<TestConfig> config = std::nullopt) noexcept {
-        if (num_steps == 0) {
-            return RunResult<T>::failure("Step size must be > 0", m_current_time);
-        }
-
-        try {
-            config = config.value_or(m_config);
-            auto steps = Steps::from_num_steps(num_steps, config->step_size);
-
-            return step_internal(steps, *config);
-        } catch (test_error& e) {
-            return RunResult<T>::failure(e.what(), m_current_time);
-        }
-    }
+    // RunResult<T> step_n(std::size_t num_steps, std::optional<TestConfig> config = std::nullopt) noexcept {
+    //     if (num_steps == 0) {
+    //         return RunResult<T>::failure("Step size must be > 0", m_current_time);
+    //     }
+    //
+    //     try {
+    //         config = config.value_or(m_config);
+    //         auto steps = Steps::from_num_steps(num_steps, config->step_size);
+    //
+    //         return step_internal(steps, *config);
+    //     } catch (test_error& e) {
+    //         return RunResult<T>::failure(e.what(), m_current_time);
+    //     }
+    // }
 
 
     // TODO
@@ -310,72 +408,107 @@ private:
         }
     }
 
+
     /** @throws test_error if invalid values / configurations are provided.
      *  @note   If intermediate steps fails, will not throw errors but rather return `RunResult<T>::failure`
      */
-    RunResult<T> step_internal(const Steps& steps, const TestConfig& config) {
+    // RunResult<T> step_internal(const Steps& steps, const TestConfig& config) {
+    //     check_runner_validity();
+    //
+    //     auto history = Vec<StepResult<T> >::allocated(steps.num_steps() - 1);
+    //
+    //     for (int i = 0; i < steps.num_steps() - 1; ++i) {
+    //         if (i == 0) {
+    //             update_time(steps.first());
+    //         } else {
+    //             update_time(steps.default_delta());
+    //         }
+    //
+    //         auto output = process_step(i, steps.domain());
+    //
+    //         if (!output.is_successful()) {
+    //             // output is a StepResult<T>::failure
+    //             return RunResult<T>(output, history, steps.domain());
+    //         }
+    //
+    //         if (!config.history_capacity || *(config.history_capacity) > 0) {
+    //             // TODO: Handle exact size with circular buffer
+    //             history.append(output);
+    //         }
+    //     }
+    //
+    //     update_time(steps.last());
+    //     auto output = process_step(steps.num_steps() - 1, steps.domain());
+    //
+    //     return RunResult<T>(output, history, steps.domain());
+    // }
+
+
+    RunResult<T> step_internal(const StopCondition& stop_condition, const TestConfig& config, DomainType domain_type) {
         check_runner_validity();
 
-        auto history = Vec<StepResult<T> >::allocated(steps.num_steps() - 1);
+        auto t = m_previous_end_time;
+        const auto& step_size = config.step_size;
 
-        for (int i = 0; i < steps.num_steps() - 1; ++i) {
-            if (i == 0) {
-                update_time(steps.first());
-            } else {
-                update_time(steps.default_delta());
-            }
+        std::size_t num_predicted_steps = stop_condition.predict_num_steps(t, step_size);
 
-            auto output = process_step(i, steps.domain());
-
-            if (!output.is_successful()) {
-                // output is a StepResult<T>::failure
-                return RunResult<T>(output, history, steps.domain());
-            }
-
-            if (!config.history_capacity || *(config.history_capacity) > 0) {
-                // TODO: Handle exact size with circular buffer
-                history.append(output);
-            }
+        if (num_predicted_steps == 0) {
+            throw test_error("Predicted zero steps");
         }
 
-        update_time(steps.last());
-        auto output = process_step(steps.num_steps() - 1, steps.domain());
+        auto step_results = Vec<StepResult<T> >::allocated(num_predicted_steps);
 
-        return RunResult<T>(output, history, steps.domain());
+
+        std::size_t i = 0;
+        auto t_next = t.incremented(step_size);
+
+        while (!stop_condition.should_stop(i, t, t_next)) {
+            update_node_time(t);
+
+            step_results.append(process_step(i, t, domain_type));
+
+            if (!step_results.last()->is_successful()) {
+                m_previous_end_time = t;
+
+                // output here is a StepResult<T>::failure
+                return RunResult<T>(step_results, domain_type);
+            }
+
+            t = t_next;
+            t_next = t.incremented(step_size);
+            ++i;
+        }
+
+        m_previous_end_time = t;
+
+        return RunResult<T>(step_results, domain_type);
     }
 
 
     /** @throws test_error if delta is <= 0 */
-    void update_time(const DomainDuration& delta) {
-        if (delta.get_value() <= 0.0)
-            throw test_error("Delta must be > 0 (actual value: " + delta.to_string_compact() + ")");
-
-        m_current_time += delta;
-
+    void update_node_time(const TimePoint& current_time) {
         for (auto& g: m_generatives) {
-            g->update_time(m_current_time);
+            g->update_time(current_time);
         }
     }
 
 
-    StepResult<T> process_step(std::size_t step_index , const DomainType& t) noexcept {
+    StepResult<T> process_step(std::size_t step_index, const TimePoint& current_time, const DomainType& t) noexcept {
         // TODO: we will need to handle parameter / meter / time signature ramps/scheduled changes here too in the future!!
         try {
             auto output = m_output_node->process();
-            return StepResult<T>::success(output, m_current_time, step_index, t);
-
+            return StepResult<T>::success(output, current_time, step_index, t);
         } catch (const std::exception& e) {
-            return StepResult<T>::failure(e.what(), m_current_time, step_index, t);
-
+            return StepResult<T>::failure(e.what(), current_time, step_index, t);
         } catch (...) {
-            return StepResult<T>::failure("Unknown exception", m_current_time, step_index, t);
+            return StepResult<T>::failure("Unknown exception", current_time, step_index, t);
         }
     }
 
 
     TestConfig m_config;
 
-    TimePoint m_current_time;
+    TimePoint m_previous_end_time;
 
     Vec<Generative*> m_generatives;
     Node<T>* m_output_node = nullptr;

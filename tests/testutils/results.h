@@ -122,25 +122,27 @@ private:
 template<typename T>
 class RunResult {
 public:
-    RunResult(const StepResult<T>& output
-              , const Vec<StepResult<T> >& output_history
+    RunResult(const Vec<StepResult<T> >& run_output
               , DomainType primary_domain)
-        : m_output(output)
-          , m_output_history(output_history)
-          , m_primary_domain(primary_domain) {}
+        : m_run_output(run_output)
+          , m_primary_domain(primary_domain) {
+        if (run_output.size() == 0) throw test_error("Empty run output");
+    }
 
 
     static RunResult failure(const std::string& err
-                      , const TimePoint& t = TimePoint{}
-                      , std::size_t step_index = 0
-                      , DomainType primary_domain = DomainType::ticks
-                      , const Vec<StepResult<T> >& output_history = {}) {
-        return {StepResult<T>::failure(err, t, step_index, primary_domain), output_history, primary_domain};
+                             , const TimePoint& t = TimePoint{}
+                             , std::size_t step_index = 0
+                             , DomainType primary_domain = DomainType::ticks
+                             , const Vec<StepResult<T> >& output_history = {}) {
+        auto run_output = output_history.cloned();
+        run_output.append(StepResult<T>::failure(err, t, step_index, primary_domain));
+        return {run_output, primary_domain};
     }
 
 
     static RunResult dummy(const StepResult<T>& s) {
-        return RunResult(s, {}, DomainType::ticks);
+        return RunResult({s}, DomainType::ticks);
     }
 
 
@@ -150,13 +152,13 @@ public:
 
 
     static RunResult dummy(const T& v, const Vec<T>& history = Vec<T>()) {
-        auto h = Vec<StepResult<T> >::allocated(history.size());
+        auto h = Vec<StepResult<T> >::allocated(history.size() + 1);
         for (std::size_t i = 0; i < history.size(); ++i) {
             h.append(StepResult<T>::success(Voices<T>::singular(history[i]), TimePoint{}, i, DomainType::ticks));
         }
 
-        return RunResult(StepResult<T>::success(Voices<T>::singular(v), TimePoint{}, 0, DomainType::ticks),
-                         h, DomainType::ticks);
+        h.append(StepResult<T>::success(Voices<T>::singular(v), TimePoint{}, history.size(), DomainType::ticks));
+        return RunResult(h, DomainType::ticks);
     }
 
 
@@ -171,7 +173,7 @@ public:
 
 
     std::string to_string(bool compact = false, std::optional<std::size_t> num_decimals = std::nullopt) const {
-        return m_output.to_string(compact, num_decimals);
+        return last().to_string(compact, num_decimals);
     }
 
 
@@ -180,19 +182,20 @@ public:
     }
 
 
-    const Vec<StepResult<T> >& history() const { return m_output_history; }
+    Vec<StepResult<T>> history() const { return m_run_output.slice(0, -1); }
 
-    const StepResult<T>& output() const { return m_output; }
+    StepResult<T> last() const { return *m_run_output.last(); }
+
+    const Vec<StepResult<T> >& entire_output() const { return m_run_output; }
 
 
-    bool is_successful() const { return m_output.is_successful(); }
+    bool is_successful() const { return last().is_successful(); }
 
 
-    std::size_t num_steps() const { return m_output_history.size() + 1; }
+    std::size_t num_steps() const { return m_run_output.size(); }
 
 private:
-    StepResult<T> m_output;
-    Vec<StepResult<T> > m_output_history;
+    Vec<StepResult<T> > m_run_output; // Invariant: m_run_output.size() > 0
 
     DomainType m_primary_domain;
 };
