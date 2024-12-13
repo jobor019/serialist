@@ -2,6 +2,7 @@
 #define TESTUTILS_RESULTS_H
 
 #include <core/policies/policies.h>
+#include <core/algo/facet.h>
 #include <core/generative.h>
 #include <core/collections/vec.h>
 #include <catch2/catch_test_macros.hpp>
@@ -196,6 +197,24 @@ public:
     Vec<StepResult<T>> history() const { return m_run_output.slice(0, -1); }
 
     StepResult<T> last() const { return *m_run_output.last(); }
+
+    std::optional<T> v11() const {
+        if (is_successful()) {
+            return last().voices().first();
+        }
+        return std::nullopt;
+    }
+
+    template<typename U = T, typename = std::enable_if_t<std::is_same_v<U, Facet>>>
+    std::optional<double> v11f() const {
+        if (is_successful()) {
+            if (auto v = last().voices().first()) {
+                return static_cast<double>(*v);
+            }
+        }
+        return std::nullopt;
+    }
+
 
     const Vec<StepResult<T> >& entire_output() const { return m_run_output; }
 

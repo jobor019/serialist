@@ -140,7 +140,6 @@ public:
     const inline static auto DEFAULT_STEP_SIZE = DomainDuration(0.01, DomainType::ticks);
     constexpr static auto DEFAULT_DOMAIN_TYPE = DomainType::ticks;
     constexpr static std::optional<std::size_t> DEFAULT_HISTORY_CAPACITY = std::nullopt;
-    // constexpr static auto DEFAULT_STEP_ROUNDING = StepRounding::round_last;
 
 
     TestConfig() = default;
@@ -166,12 +165,6 @@ public:
     }
 
 
-    // TestConfig& with_step_rounding(StepRounding rounding) {
-    //     step_rounding = rounding;
-    //     return *this;
-    // }
-
-
     TestConfig& with_step_size(const DomainDuration& size) {
         if (size.get_value() <= 0) {
             throw test_error("Step size must be > 0");
@@ -181,9 +174,10 @@ public:
         return *this;
     }
 
+    DomainType domain_type() const { return step_size.get_type(); }
+
 
     DomainDuration step_size = DEFAULT_STEP_SIZE;
-    // StepRounding step_rounding = DEFAULT_STEP_ROUNDING;
     std::optional<std::size_t> history_capacity = DEFAULT_HISTORY_CAPACITY;
 };
 
@@ -218,6 +212,10 @@ public:
         } else {
             return LoopCondition(StopAfter{t});
         }
+    }
+
+    static LoopCondition from_num_steps(std::size_t num_steps) {
+        return LoopCondition(NumSteps{num_steps});
     }
 
 
@@ -338,20 +336,25 @@ public:
     }
 
 
-    // RunResult<T> step_n(std::size_t num_steps, std::optional<TestConfig> config = std::nullopt) noexcept {
-    //     if (num_steps == 0) {
-    //         return RunResult<T>::failure("Step size must be > 0", m_current_time);
-    //     }
-    //
-    //     try {
-    //         config = config.value_or(m_config);
-    //         auto steps = Steps::from_num_steps(num_steps, config->step_size);
-    //
-    //         return step_internal(steps, *config);
-    //     } catch (test_error& e) {
-    //         return RunResult<T>::failure(e.what(), m_current_time);
-    //     }
-    // }
+    RunResult<T> step_n(std::size_t num_steps, std::optional<TestConfig> config = std::nullopt) noexcept {
+        if (num_steps == 0) {
+            return RunResult<T>::failure("Step size must be > 0", m_current_time);
+        }
+
+        config = config.value_or(m_config);
+        auto loop_condition = LoopCondition::from_num_steps(num_steps);
+
+        try {
+            return step_internal(loop_condition, *config, config->domain_type());
+        } catch (test_error& e) {
+            return RunResult<T>::failure(e.what(), m_current_time, 0, config->domain_type());
+        }
+    }
+
+
+    RunResult<T> step(std::optional<TestConfig> config = std::nullopt) {
+        return step_n(1, std::move(config));
+    }
 
 
     // TODO

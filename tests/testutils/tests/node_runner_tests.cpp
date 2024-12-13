@@ -78,9 +78,7 @@ TEST_CASE("NodeRunner: step_until", "[node_runner]") {
             CAPTURE(i, t, r);
             REQUIRE(r.is_successful());
 
-            auto v = static_cast<double>(r.last().voices().first().value());
-            CAPTURE(v);
-            REQUIRE(utils::in(v,  t, t + step_size));
+            REQUIRE(utils::in(*r.v11f(),  t, t + step_size));
         }
     }
 
@@ -92,9 +90,7 @@ TEST_CASE("NodeRunner: step_until", "[node_runner]") {
             CAPTURE(i, t, r);
             REQUIRE(r.is_successful());
 
-            auto v = static_cast<double>(r.last().voices().first().value());
-            CAPTURE(v);
-            REQUIRE(utils::in(v,  t - step_size, t));
+            REQUIRE(utils::in(*r.v11f(),  t - step_size, t));
         }
     }
 }
@@ -164,8 +160,81 @@ TEST_CASE("NodeRunner: step_until edge cases", "[node_runner]") {
         REQUIRE(r.is_successful());
     }
 
+    SECTION("Consecutive steps (before)") {
+        auto target = GENERATE(2.0, 3.75, 10.0);
+        auto r = runner.step_until(DomainTimePoint(target, DomainType::ticks), Stop::before);
+        REQUIRE(r.is_successful());
+        REQUIRE(utils::in(*r.v11f(), target - step_size, target));
 
-
+        r = runner.step();
+        CAPTURE(r);
+        REQUIRE(r.is_successful());
+        REQUIRE(utils::in(*r.v11f(), target, target + step_size));
+    }
 }
 
 
+TEST_CASE("NodeRunner: step_n", "[node_runner]") {
+    std::size_t num_steps = GENERATE(1, 2, 10, 100, 1000);
+    double step_size = GENERATE(0.1, 1.0);
+
+    DummyNode node;
+    auto config = TestConfig().with_step_size(DomainDuration(step_size)).with_history_capacity(0);
+
+    NodeRunner runner{&node, config};
+
+    auto r = runner.step_n(num_steps);
+    CAPTURE(r);
+
+    REQUIRE(r.is_successful());
+    REQUIRE(r.num_steps() == num_steps);
+
+    // Since it's the first run, we're also processing the initial time, hence the final time will be (num_steps - 1)
+    auto expected_time = static_cast<double>(num_steps - 1) * step_size;
+    CAPTURE(expected_time);
+    REQUIRE(utils::equals(*r.v11f(), expected_time));
+}
+
+TEST_CASE("NodeRunner: step_n edge cases", "[node_runner]") {
+    double start_time = 1.0;
+    double step_size = 0.1;
+
+    DummyNode node;
+    auto config = TestConfig().with_step_size(DomainDuration(step_size));
+
+    TimePoint initial_time{start_time};
+    NodeRunner runner{&node, config, initial_time};
+
+
+    SECTION("num steps = 0") {
+        auto r = runner.step_n(0);
+        CAPTURE(r);
+        REQUIRE(!r.is_successful());
+    }
+
+    SECTION("Consecutiveness") {
+        std::size_t num_steps = GENERATE(1, 2, 10, 100);
+        auto r = runner.step_n(num_steps);
+
+        REQUIRE(r.is_successful());
+        REQUIRE(r.num_steps() == num_steps);
+        auto expected_time = start_time + static_cast<double>(num_steps - 1) * step_size;
+
+        auto last_value_first_run = *r.v11f();
+        CAPTURE(last_value_first_run);
+
+        REQUIRE(utils::equals(last_value_first_run, expected_time));
+
+        r = runner.step_n(num_steps);
+        REQUIRE(r.is_successful());
+        expected_time = start_time + static_cast<double>(2 * num_steps - 1) * step_size;
+        REQUIRE(utils::equals(*r.v11f(), expected_time));
+
+
+        auto first_value_last_run = static_cast<double>(r.entire_output().first()->voices().first().value());
+        CAPTURE(first_value_last_run);
+
+        // Diff before start of this run and end of previous run should be equal to step size
+        REQUIRE(utils::equals(first_value_last_run - last_value_first_run, step_size));
+    }
+}
