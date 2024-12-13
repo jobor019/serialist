@@ -51,19 +51,43 @@ TEST_CASE("Dummy Node", "[node_runner]") {
 
 // ==============================================================================================
 
-TEST_CASE("NodeRunner", "[node_runner]") {
+TEST_CASE("NodeRunner: step_until", "[node_runner]") {
     DummyNode node;
 
-    auto config = TestConfig().with_step_size(DomainDuration(1.0));
+    double step_size = GENERATE(0.1, 0.999);
+    double target_time = GENERATE(1.0, 10.0, 100.0);
+    CAPTURE(target_time, step_size);
+
+    auto config = TestConfig().with_step_size(DomainDuration(step_size)).with_history_capacity(0);
     NodeRunner runner{&node, config};
 
-    double target_time = GENERATE(1.0, 10.0, 100.0);
+    SECTION("Stop::after") {
+        for (int i = 0; i < 10; ++i) {
+            auto t = target_time * (i + 1);
+            auto r = runner.step_until(DomainTimePoint(t, DomainType::ticks), Stop::after);
 
-    auto r = runner.step_until(DomainTimePoint(target_time, DomainType::ticks), StopType::after);
-    auto num_steps = r.entire_output().size();
-    REQUIRE(utils::in<std::size_t>(num_steps
-        , static_cast<std::size_t>(std::floor(target_time - 1))
-        , static_cast<std::size_t>(std::ceil(target_time + 1))));
+            CAPTURE(i, t, r);
+            REQUIRE(r.is_successful());
 
-    REQUIRE(utils::equals(target_time - 1.0, static_cast<double>(r.last().voices().first().value())));
+            auto v = static_cast<double>(r.last().voices().first().value());
+            CAPTURE(v);
+            REQUIRE(utils::in(v,  t, t + step_size));
+        }
+    }
+
+    SECTION("Stop::before") {
+        for (int i = 0; i < 10; ++i) {
+            auto t = target_time * (i + 1);
+            auto r = runner.step_until(DomainTimePoint(t, DomainType::ticks), Stop::before);
+
+            CAPTURE(i, t, r);
+            REQUIRE(r.is_successful());
+
+            auto v = static_cast<double>(r.last().voices().first().value());
+            CAPTURE(v);
+            REQUIRE(utils::in(v,  t - step_size, t));
+        }
+    }
 }
+
+

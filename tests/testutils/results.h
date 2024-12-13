@@ -32,6 +32,12 @@ public:
     }
 
 
+    friend std::ostream& operator<<(std::ostream& os, const StepResult& obj) {
+        os << obj.to_string();
+        return os;
+    }
+
+
     void print(bool compact = false, std::optional<std::size_t> num_decimals = std::nullopt) const {
         std::cout << to_string(compact, num_decimals) << "\n";
     }
@@ -159,6 +165,11 @@ public:
 
         h.append(StepResult<T>::success(Voices<T>::singular(v), TimePoint{}, history.size(), DomainType::ticks));
         return RunResult(h, DomainType::ticks);
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const RunResult& obj) {
+        os << obj.to_string();
+        return os;
     }
 
 

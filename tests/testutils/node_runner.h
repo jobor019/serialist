@@ -190,12 +190,12 @@ public:
 
 // ==============================================================================================
 
-enum class StopType {
+enum class Stop {
     before, after
 };
 
 
-class StopCondition {
+class LoopCondition {
 public:
     struct NumSteps {
         std::size_t index;
@@ -209,14 +209,14 @@ public:
 
     using Condition = std::variant<NumSteps, StopAfter, StopBefore>;
 
-    explicit StopCondition(const Condition& condition) : m_condition(condition) {}
+    explicit LoopCondition(const Condition& condition) : m_condition(condition) {}
 
 
-    static StopCondition from_stop_type(const DomainTimePoint& t, StopType stop_type) {
-        if (stop_type == StopType::before) {
-            return StopCondition(StopBefore{t});
+    static LoopCondition from_stop_type(const DomainTimePoint& t, Stop stop_type) {
+        if (stop_type == Stop::before) {
+            return LoopCondition(StopBefore{t});
         } else {
-            return StopCondition(StopAfter{t});
+            return LoopCondition(StopAfter{t});
         }
     }
 
@@ -240,16 +240,16 @@ public:
         }, m_condition);
     }
 
-
-    bool should_stop(std::size_t step_index, const TimePoint& t, const TimePoint& t_next) const {
+    /** Note: continue while condition is true */
+    bool operator()(std::size_t step_index, const TimePoint& t, const TimePoint& t_prev) const {
         return std::visit([&](const auto& cond) -> bool {
             using T = std::decay_t<decltype(cond)>;
             if constexpr (std::is_same_v<T, NumSteps>) {
-                return step_index >= cond.index;
+                return step_index < cond.index;
             } else if constexpr (std::is_same_v<T, StopAfter>) {
-                return t >= cond.time;
+                return t_prev < cond.time;
             } else if constexpr (std::is_same_v<T, StopBefore>) {
-                return t_next >= cond.time;
+                return t < cond.time;
             } else {
                 throw test_error("Unsupported condition type");
             }
@@ -290,7 +290,7 @@ public:
                         , const TestConfig& config = TestConfig()
                         , const TimePoint& initial_time = TimePoint{})
         : m_config(config)
-          , m_previous_end_time(initial_time) {
+          , m_current_time(initial_time) {
         if (output_node) {
             set_output_node(*output_node);
         }
@@ -320,21 +320,21 @@ public:
 
 
     RunResult<T> step_until(const DomainTimePoint& t
-                            , StopType stop_type
+                            , Stop stop_type
                             , std::optional<TestConfig> config = std::nullopt) noexcept {
-        if (t <= m_previous_end_time) {
+        if (t <= m_current_time) {
             return RunResult<T>::failure("Cannot step back in time (requested time: " + t.to_string() + ")"
-                                         , m_previous_end_time, 0, t.get_type());
+                                         , m_current_time, 0, t.get_type());
         }
 
 
         config = config.value_or(m_config);
-        auto stop_condition = StopCondition::from_stop_type(t, stop_type);
+        auto loop_condition = LoopCondition::from_stop_type(t, stop_type);
 
         try {
-            return step_internal(stop_condition, *config, t.get_type());
+            return step_internal(loop_condition, *config, t.get_type());
         } catch (test_error& e) {
-            return RunResult<T>::failure(e.what(), m_previous_end_time, 0, t.get_type());
+            return RunResult<T>::failure(e.what(), m_current_time, 0, t.get_type());
         }
     }
 
@@ -444,42 +444,38 @@ private:
     // }
 
 
-    RunResult<T> step_internal(const StopCondition& stop_condition, const TestConfig& config, DomainType domain_type) {
+    RunResult<T> step_internal(const LoopCondition& loop_condition, const TestConfig& config, DomainType domain_type) {
         check_runner_validity();
 
-        auto t = m_previous_end_time;
         const auto& step_size = config.step_size;
 
-        std::size_t num_predicted_steps = stop_condition.predict_num_steps(t, step_size);
+        auto t_prev = m_current_time;
+        auto t = m_is_first_step ? t_prev : t_prev.incremented(step_size);
 
-        if (num_predicted_steps == 0) {
-            throw test_error("Predicted zero steps");
-        }
-
-        auto step_results = Vec<StepResult<T> >::allocated(num_predicted_steps);
-
+        auto step_results = Vec<StepResult<T> >::allocated(loop_condition.predict_num_steps(t, step_size));
 
         std::size_t i = 0;
-        auto t_next = t.incremented(step_size);
 
-        while (!stop_condition.should_stop(i, t, t_next)) {
+        while (loop_condition(i, t, t_prev)) {
             update_node_time(t);
 
             step_results.append(process_step(i, t, domain_type));
 
             if (!step_results.last()->is_successful()) {
-                m_previous_end_time = t;
-
-                // output here is a StepResult<T>::failure
-                return RunResult<T>(step_results, domain_type);
+                break;
             }
 
-            t = t_next;
-            t_next = t.incremented(step_size);
+            t_prev = t;
+            t += step_size;
             ++i;
         }
 
-        m_previous_end_time = t;
+        if (step_results.empty()) {
+            return RunResult<T>::failure("No steps executed", m_current_time, 0, domain_type);
+        }
+
+        m_is_first_step = false;
+        m_current_time = t_prev; // last executed time
 
         return RunResult<T>(step_results, domain_type);
     }
@@ -508,12 +504,14 @@ private:
 
     TestConfig m_config;
 
-    TimePoint m_previous_end_time;
+    TimePoint m_current_time;
 
     Vec<Generative*> m_generatives;
     Node<T>* m_output_node = nullptr;
 
     DomainDuration m_default_step_size;
+
+    bool m_is_first_step = true;
 };
 }
 
