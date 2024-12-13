@@ -175,9 +175,7 @@ GenericValueMatcher<T> in_range(const T& low, const T& high, bool end_inclusive 
     static_assert(std::is_arithmetic_v<T>, "T must be an arithmetic type");
 
     return GenericValueMatcher<T>("in range", [=](const T& v) {
-        bool lower_check = start_inclusive ? (v >= low) : (v > low);
-        bool upper_check = end_inclusive ? (v <= high) : (v < high);
-        return lower_check && upper_check;
+        return utils::in<T>(v, low, high, start_inclusive, end_inclusive);
     });
 }
 
@@ -341,7 +339,7 @@ inline ComparePrevious<Facet> strictly_decreasingf() { return strictly_decreasin
 
 template<typename T>
 AllHistoryMatcher<v11::GenericValueMatcher<T>, T> all(v11::GenericValueMatcher<T>&& matcher
-                                                      , bool check_last_step = false
+                                                      , bool check_last_step = true
                                                       , bool allow_no_history = false) {
     return AllHistoryMatcher<v11::GenericValueMatcher<T>, T>(
         std::make_unique<v11::GenericValueMatcher<T> >(std::move(matcher))
@@ -352,7 +350,7 @@ AllHistoryMatcher<v11::GenericValueMatcher<T>, T> all(v11::GenericValueMatcher<T
 
 
 inline AllHistoryMatcher<v11::GenericValueMatcher<Facet>, Facet> allf(v11::GenericValueMatcher<Facet>&& matcher
-                                                                      , bool check_last_step = false
+                                                                      , bool check_last_step = true
                                                                       , bool allow_no_history = false) {
     return all<Facet>(std::move(matcher), check_last_step, allow_no_history);
 }

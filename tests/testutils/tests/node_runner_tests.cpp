@@ -12,7 +12,7 @@ using namespace serialist::test;
 /** Dummy node that returns current time as a facet (independently of number of voices) */
 class DummyNode : public NodeBase<Facet> {
 public:
-    DummyNode(DomainType domain_type = DomainType::ticks)
+    explicit DummyNode(DomainType domain_type = DomainType::ticks)
     :  NodeBase("dummy", m_ph, &m_enabled, &m_num_voices, "DummyNode")
     , m_domain_type(domain_type) {}
 
@@ -212,7 +212,7 @@ TEST_CASE("NodeRunner: step_n edge cases", "[node_runner]") {
         REQUIRE(!r.is_successful());
     }
 
-    SECTION("Consecutiveness") {
+    SECTION("Run Consecutiveness") {
         std::size_t num_steps = GENERATE(1, 2, 10, 100);
         auto r = runner.step_n(num_steps);
 

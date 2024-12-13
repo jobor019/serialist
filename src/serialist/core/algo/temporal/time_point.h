@@ -80,6 +80,11 @@ public:
 
     explicit operator std::string() const { return to_string(); }
 
+    friend std::ostream& operator<<(std::ostream& os, const TimePoint& obj) {
+        os << obj.to_string();
+        return os;
+    }
+
     void increment(int64_t delta_nanos);
     void increment(double tick_increment);
     void increment(const DomainDuration& tick_increment);
@@ -207,6 +212,12 @@ public:
         return std::to_string(m_value) + " " + domain_type_to_string(m_type);
     }
 
+
+    friend std::ostream& operator<<(std::ostream& os, const DomainTimePoint& obj) {
+        os << obj.to_string();
+        return os;
+    }
+
     /** @throws TimeDomainError if `other` has a different type */
     static DomainTimePoint min(const DomainTimePoint& a, const DomainTimePoint& b) {
         if (a.m_type != b.m_type)
@@ -319,6 +330,12 @@ public:
 
     std::string to_string_compact() const {
         return std::to_string(m_value) + " " + domain_type_to_string(m_type);
+    }
+
+
+    friend std::ostream& operator<<(std::ostream& os, const DomainDuration& obj) {
+        os << obj.to_string();
+        return os;
     }
 
     bool supports(const DomainTimePoint& t) const {
