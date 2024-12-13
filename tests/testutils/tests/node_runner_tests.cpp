@@ -12,7 +12,9 @@ using namespace serialist::test;
 /** Dummy node that returns current time as a facet (independently of number of voices) */
 class DummyNode : public NodeBase<Facet> {
 public:
-    DummyNode() :  NodeBase("dummy", m_ph, &m_enabled, &m_num_voices, "DummyNode") {}
+    DummyNode(DomainType domain_type = DomainType::ticks)
+    :  NodeBase("dummy", m_ph, &m_enabled, &m_num_voices, "DummyNode")
+    , m_domain_type(domain_type) {}
 
     void update_time(const TimePoint& t) override {
         m_current_time = t;
@@ -20,10 +22,14 @@ public:
 
 
     Voices<Facet> process() override {
-        return Voices<Facet>::singular(Facet(m_current_time.get_tick()));
+        return Voices<Facet>::singular(Facet(m_current_time.get(m_domain_type)));
     }
 
+    void set_domain_type(DomainType domain_type) { m_domain_type = domain_type; }
+
 private:
+    DomainType m_domain_type;
+
     ParameterHandler m_ph = ParameterHandler();
     Sequence<Facet, bool> m_enabled{param::properties::enabled, m_ph, Voices<bool>::singular(true)};
     Variable<Facet, std::size_t> m_num_voices{param::properties::num_voices, m_ph, 0};
@@ -56,7 +62,10 @@ TEST_CASE("NodeRunner: step_until", "[node_runner]") {
 
     double step_size = GENERATE(0.1, 0.999);
     double target_time = GENERATE(1.0, 10.0, 100.0);
+    DomainType domain_type = GENERATE(DomainType::ticks, DomainType::beats, DomainType::bars);
     CAPTURE(target_time, step_size);
+
+    node.set_domain_type(domain_type);
 
     auto config = TestConfig().with_step_size(DomainDuration(step_size)).with_history_capacity(0);
     NodeRunner runner{&node, config};
@@ -64,7 +73,7 @@ TEST_CASE("NodeRunner: step_until", "[node_runner]") {
     SECTION("Stop::after") {
         for (int i = 0; i < 10; ++i) {
             auto t = target_time * (i + 1);
-            auto r = runner.step_until(DomainTimePoint(t, DomainType::ticks), Stop::after);
+            auto r = runner.step_until(DomainTimePoint(t, domain_type), Stop::after);
 
             CAPTURE(i, t, r);
             REQUIRE(r.is_successful());
@@ -78,7 +87,7 @@ TEST_CASE("NodeRunner: step_until", "[node_runner]") {
     SECTION("Stop::before") {
         for (int i = 0; i < 10; ++i) {
             auto t = target_time * (i + 1);
-            auto r = runner.step_until(DomainTimePoint(t, DomainType::ticks), Stop::before);
+            auto r = runner.step_until(DomainTimePoint(t, domain_type), Stop::before);
 
             CAPTURE(i, t, r);
             REQUIRE(r.is_successful());
@@ -88,6 +97,75 @@ TEST_CASE("NodeRunner: step_until", "[node_runner]") {
             REQUIRE(utils::in(v,  t - step_size, t));
         }
     }
+}
+
+
+TEST_CASE("NodeRunner: step_until edge cases", "[node_runner]") {
+    double start_time = 1.0;
+    double step_size = 0.1;
+
+    DummyNode node;
+    auto config = TestConfig().with_step_size(DomainDuration(step_size)).with_history_capacity(0);
+
+    TimePoint initial_time{start_time};
+    NodeRunner runner{&node, config, initial_time};
+
+    SECTION("Step size 0") {
+        REQUIRE_THROWS(config.with_step_size(DomainDuration(0)));
+    }
+
+    SECTION("Run to previous time") {
+        auto r = runner.step_until(DomainTimePoint(0.0, DomainType::ticks), Stop::before);
+        CAPTURE(r);
+        REQUIRE(!r.is_successful());
+    }
+
+    SECTION("Run to current time (Before)") {
+        auto r = runner.step_until(DomainTimePoint(start_time, DomainType::ticks), Stop::before);
+        CAPTURE(r);
+        REQUIRE(!r.is_successful());
+    }
+
+    // Technically we should be able to run to current time (after) if it's the first step. TODO: Look into this
+    // SECTION("Run to current time as first step (After)") {
+    //     auto r = runner.step_until(DomainTimePoint(start_time, DomainType::ticks), Stop::after);
+    //     CAPTURE(r);
+    //     REQUIRE(r.is_successful());
+    // }
+
+    SECTION("Run to current time + step_size (After)") {
+        auto r = runner.step_until(DomainTimePoint(start_time + step_size, DomainType::ticks), Stop::after);
+        CAPTURE(r);
+        REQUIRE(r.is_successful());
+        REQUIRE(r.last().voices().first().value() >= start_time + step_size);
+    }
+
+    SECTION("Run to current time + step_size (Before)") {
+        // On first run, this should be possible, as it will generate a single step at current time without incrementing
+        auto r = runner.step_until(DomainTimePoint(start_time + step_size, DomainType::ticks), Stop::before);
+        REQUIRE(r.is_successful());
+        REQUIRE(r.num_steps() == 1);
+    }
+
+    SECTION("Run to given time twice (Before)") {
+        auto r = runner.step_until(DomainTimePoint(2.0, DomainType::ticks), Stop::before);
+        REQUIRE(r.is_successful());
+        r = runner.step_until(DomainTimePoint(2.0, DomainType::ticks), Stop::before);
+        CAPTURE(r);
+        REQUIRE(!r.is_successful());
+    }
+
+    SECTION("Run to current time + step_size/2 (After)") {
+        // Consume first step
+        auto r = runner.step_until(DomainTimePoint(2.0, DomainType::ticks), Stop::after);
+        REQUIRE(r.is_successful());
+        r = runner.step_until(DomainTimePoint(2.0 + step_size/2, DomainType::ticks), Stop::after);
+        CAPTURE(r);
+        REQUIRE(r.is_successful());
+    }
+
+
+
 }
 
 

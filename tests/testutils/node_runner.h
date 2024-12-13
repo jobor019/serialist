@@ -267,7 +267,7 @@ public:
 private:
     static std::size_t steps(const TimePoint& current, const DomainTimePoint& target, const DomainDuration& step_size) {
         auto distance = (target - current).as_type(step_size.get_type(), current.get_meter());
-        return static_cast<std::size_t>(std::ceil((distance / step_size).get_value()));
+        return static_cast<std::size_t>(std::ceil(distance.get_value() / step_size.get_value()));
     }
 
 
@@ -326,7 +326,6 @@ public:
             return RunResult<T>::failure("Cannot step back in time (requested time: " + t.to_string() + ")"
                                          , m_current_time, 0, t.get_type());
         }
-
 
         config = config.value_or(m_config);
         auto loop_condition = LoopCondition::from_stop_type(t, stop_type);
