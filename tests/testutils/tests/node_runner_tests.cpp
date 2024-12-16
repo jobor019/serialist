@@ -3,6 +3,7 @@
 #include "core/policies/policies.h"
 #include "node_runner.h"
 #include "algo/facet.h"
+#include "conditions/c11.h"
 #include "generatives/sequence.h"
 #include "generatives/variable.h"
 #include "generatives/stereotypes/base_stereotypes.h"
@@ -57,7 +58,7 @@ TEST_CASE("Dummy Node", "[node_runner]") {
 
 // ==============================================================================================
 
-TEST_CASE("NodeRunner: step_until", "[node_runner]") {
+TEST_CASE("NodeRunner: step_until (time)", "[node_runner]") {
     DummyNode node;
 
     double step_size = GENERATE(0.1, 0.999);
@@ -96,7 +97,7 @@ TEST_CASE("NodeRunner: step_until", "[node_runner]") {
 }
 
 
-TEST_CASE("NodeRunner: step_until edge cases", "[node_runner]") {
+TEST_CASE("NodeRunner: step_until (time) edge cases", "[node_runner]") {
     double start_time = 1.0;
     double step_size = 0.1;
 
@@ -171,6 +172,28 @@ TEST_CASE("NodeRunner: step_until edge cases", "[node_runner]") {
         REQUIRE(r.is_successful());
         REQUIRE(utils::in(*r.v11f(), target, target + step_size));
     }
+}
+
+
+TEST_CASE("NodeRunner: step_until (condition)", "[node_runner]") {
+    DummyNode node;
+    auto step_size = 0.1;
+    auto config = TestConfig().with_step_size(DomainDuration(step_size));
+
+    NodeRunner runner{&node, config};
+
+    auto target = GENERATE(2.0, 3.75, 10.0);
+
+
+    // auto r = runner.step_until(std::make_unique<CompareValue<Facet>>([target](const Facet& f) {
+    //     return static_cast<double>(f) >= target;
+    // }));
+
+    // auto r = runner.step_until(c11::ge(Facet(target)));
+    auto r = runner.step_until(c11::gef(target));
+    REQUIRE(r.is_successful());
+    REQUIRE(utils::in(*r.v11f(),  target, target + config.step_size.get_value()));
+    REQUIRE(!r.history().empty());
 }
 
 

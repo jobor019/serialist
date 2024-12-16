@@ -6,6 +6,8 @@ add_library(testutils EXCLUDE_FROM_ALL
         ${CMAKE_CURRENT_SOURCE_DIR}/matchers/matchers_common.h
         generators.h
         exceptions.h
+        condition.h
+        conditions/c11.h
 )
 
 target_include_directories(testutils INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
