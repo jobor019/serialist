@@ -208,8 +208,13 @@ public:
         return ss.str();
     }
 
-    std::string to_string_compact() const {
-        return std::to_string(m_value) + " " + domain_type_to_string(m_type);
+    std::string to_string_compact(std::optional<std::size_t> num_decimals = std::nullopt) const {
+        std::stringstream ss;
+        if (num_decimals) {
+            ss << std::fixed << std::setprecision(static_cast<int>(*num_decimals));
+        }
+        ss << m_value << " " << domain_type_to_string(m_type);
+        return ss.str();
     }
 
 

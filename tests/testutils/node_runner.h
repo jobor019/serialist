@@ -273,9 +273,9 @@ public:
             } else if constexpr (std::is_same_v<VariantType, StopBefore>) {
                 return t < cond.time;
             } else if constexpr (std::is_same_v<VariantType, CompareTrue>) {
-                return cond.condition->matches(v).value_or(true);
+                return cond.condition->matches_last(v).value_or(true);
             } else if constexpr (std::is_same_v<VariantType, CompareFalse>) {
-                return !cond.condition->matches(v).value_or(false);
+                return !cond.condition->matches_last(v).value_or(false);
             } else {
                 throw test_error("Unsupported condition type");
             }

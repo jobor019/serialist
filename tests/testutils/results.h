@@ -51,7 +51,7 @@ public:
 
     std::string to_string(bool compact = false, std::optional<std::size_t> num_decimals = std::nullopt) const {
         if (is_successful()) {
-            return render_output(compact, num_decimals) + " " + render_step_info(compact, num_decimals);
+            return "StepResult(v=" + render_output(compact, num_decimals) + ", " + render_step_info(compact, num_decimals) + ")";
         } else {
             return render_error() + " " + render_step_info(compact, num_decimals);
         }
@@ -106,13 +106,12 @@ private:
     std::string render_step_info(bool compact = false, std::optional<std::size_t> num_decimals = std::nullopt) const {
         std::stringstream ss;
 
-        ss << " (i=" << m_step_index << ", t=";
+        ss << " i=" << m_step_index << ", t=";
         if (compact) {
             ss << DomainTimePoint::from_time_point(m_time, m_primary_domain).to_string_compact();
         } else {
-            ss << DomainTimePoint::from_time_point(m_time, m_primary_domain).to_string(num_decimals);
+            ss << DomainTimePoint::from_time_point(m_time, m_primary_domain).to_string_compact(num_decimals);
         }
-        ss << ")";
         return ss.str();
     }
 
@@ -133,7 +132,8 @@ public:
               , DomainType primary_domain)
         : m_run_output(run_output)
           , m_primary_domain(primary_domain) {
-        if (run_output.size() == 0) throw test_error("Empty run output");
+        // run_output should always contain at least a single StepResult<T>::failure or a single StepResult<T>::success
+        if (run_output.empty()) throw test_error("Empty run output");
     }
 
 
@@ -157,40 +157,37 @@ public:
         return dummy(StepResult<T>::success(v, TimePoint{}, 0, DomainType::ticks));
     }
 
+    static RunResult dummy(const T& v) {
+        return dummy(Voices<T>::singular(v));
+    }
 
-    static RunResult dummy(const T& v, const Vec<T>& history = Vec<T>()) {
-        auto h = Vec<StepResult<T> >::allocated(history.size() + 1);
-        for (std::size_t i = 0; i < history.size(); ++i) {
-            h.append(StepResult<T>::success(Voices<T>::singular(history[i]), TimePoint{}, i, DomainType::ticks));
+    static RunResult dummy(const Vec<T>& vs) {
+        auto h = Vec<StepResult<T> >::allocated(vs.size());
+        for (std::size_t i = 0; i < vs.size(); ++i) {
+            h.append(StepResult<T>::success(Voices<T>::singular(vs[i]), TimePoint{}, i, DomainType::ticks));
         }
-
-        h.append(StepResult<T>::success(Voices<T>::singular(v), TimePoint{}, history.size(), DomainType::ticks));
         return RunResult(h, DomainType::ticks);
     }
 
+
+
+
     friend std::ostream& operator<<(std::ostream& os, const RunResult& obj) {
-        os << obj.to_string();
+        // Note: we don't want to allow RunResult to be printed directly,
+        //       as this will lead to incredibly confusing results from Catch2 when evaluated over MatchType::any/all
         return os;
     }
 
-
-    void print() const {
-        std::cout << to_string() << "\n";
+    RunResult subset(std::size_t start, std::size_t end) const {
+        return RunResult(m_run_output.slice(start, end), m_primary_domain);
     }
 
-
-    void print_detailed(std::size_t num_decimals = StepResult<T>::NUM_DECIMALS_DETAILED) const {
-        std::cout << to_string_detailed(num_decimals) << "\n";
+    RunResult history_subset() const {
+        return RunResult(history(), m_primary_domain);
     }
 
-
-    std::string to_string(bool compact = false, std::optional<std::size_t> num_decimals = std::nullopt) const {
-        return last().to_string(compact, num_decimals);
-    }
-
-
-    std::string to_string_detailed(std::size_t num_decimals = StepResult<T>::NUM_DECIMALS_DETAILED) const {
-        return to_string(false, num_decimals);
+    RunResult last_subset() const {
+        return RunResult({last()}, m_primary_domain);
     }
 
 
@@ -223,6 +220,26 @@ public:
 
 
     std::size_t num_steps() const { return m_run_output.size(); }
+
+
+    void print() const {
+        std::cout << to_string() << "\n";
+    }
+
+
+    void print_detailed(std::size_t num_decimals = StepResult<T>::NUM_DECIMALS_DETAILED) const {
+        std::cout << to_string_detailed(num_decimals) << "\n";
+    }
+
+
+    std::string to_string(bool compact = false, std::optional<std::size_t> num_decimals = std::nullopt) const {
+        return last().to_string(compact, num_decimals);
+    }
+
+
+    std::string to_string_detailed(std::size_t num_decimals = StepResult<T>::NUM_DECIMALS_DETAILED) const {
+        return to_string(false, num_decimals);
+    }
 
 private:
     Vec<StepResult<T> > m_run_output; // Invariant: m_run_output.size() > 0
