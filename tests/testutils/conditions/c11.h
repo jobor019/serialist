@@ -18,6 +18,13 @@ std::unique_ptr<ValueComparison<T> > make_value_comparison(const T& expected, Co
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 template<typename T>
+std::unique_ptr<EmptyComparison<T> > empty() {
+    return std::make_unique<EmptyComparison<T>>();
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+template<typename T>
 std::unique_ptr<ValueComparison<T> > eq(const T& expected) {
     return make_value_comparison(expected, std::equal_to<T>());
 }

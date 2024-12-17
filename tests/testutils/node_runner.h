@@ -376,6 +376,18 @@ public:
     }
 
 
+    RunResult<T> step_while(std::unique_ptr<GenericCondition<T> > step_condition
+                            , std::optional<TestConfig> config = std::nullopt) noexcept {
+        config = config.value_or(m_config);
+        auto loop_condition = LoopCondition<T>::from_generic_condition(std::move(step_condition), true);
+        try {
+            return step_internal(loop_condition, *config, config->domain_type());
+        } catch (test_error& e) {
+            return RunResult<T>::failure(e.what(), m_current_time, 0, config->domain_type());
+        }
+    }
+
+
     RunResult<T> step_n(std::size_t num_steps, std::optional<TestConfig> config = std::nullopt) noexcept {
         if (num_steps == 0) {
             return RunResult<T>::failure("Step size must be > 0", m_current_time);
@@ -404,10 +416,6 @@ public:
     //     throw std::runtime_error("Not implemented");
     // }
     //
-    //
-    // // TODO: Pass lambda
-    // RunResult<T> step_while() { throw std::runtime_error("Not implemented"); };
-
     // RunResult<T> discontinuity(const DomainTimePoint& new_time) { throw std::runtime_error("Not implemented"); }
     //
     //
@@ -451,41 +459,10 @@ private:
     }
 
 
-    /** @throws test_error if invalid values / configurations are provided.
+    /**
+     *  @throws test_error if invalid values / configurations are provided.
      *  @note   If intermediate steps fails, will not throw errors but rather return `RunResult<T>::failure`
      */
-    // RunResult<T> step_internal(const Steps& steps, const TestConfig& config) {
-    //     check_runner_validity();
-    //
-    //     auto history = Vec<StepResult<T> >::allocated(steps.num_steps() - 1);
-    //
-    //     for (int i = 0; i < steps.num_steps() - 1; ++i) {
-    //         if (i == 0) {
-    //             update_time(steps.first());
-    //         } else {
-    //             update_time(steps.default_delta());
-    //         }
-    //
-    //         auto output = process_step(i, steps.domain());
-    //
-    //         if (!output.is_successful()) {
-    //             // output is a StepResult<T>::failure
-    //             return RunResult<T>(output, history, steps.domain());
-    //         }
-    //
-    //         if (!config.history_capacity || *(config.history_capacity) > 0) {
-    //             // TODO: Handle exact size with circular buffer
-    //             history.append(output);
-    //         }
-    //     }
-    //
-    //     update_time(steps.last());
-    //     auto output = process_step(steps.num_steps() - 1, steps.domain());
-    //
-    //     return RunResult<T>(output, history, steps.domain());
-    // }
-
-
     RunResult<T> step_internal(const LoopCondition<T>& loop_condition, const TestConfig& config,
                                DomainType domain_type) {
         check_runner_validity();
@@ -502,18 +479,24 @@ private:
 
         std::size_t i = 0;
 
-        while (loop_condition(i, t, t_prev, step_results)) {
-            update_node_time(t);
+        try {
+            while (loop_condition(i, t, t_prev, step_results)) {
+                update_node_time(t);
 
-            step_results.append(process_step(i, t, domain_type));
+                step_results.append(process_step(i, t, domain_type));
 
-            if (!step_results.last()->is_successful()) {
-                break;
+                if (!step_results.last()->is_successful()) {
+                    break;
+                }
+
+                t_prev = t;
+                t += step_size;
+                ++i;
             }
-
-            t_prev = t;
-            t += step_size;
-            ++i;
+        } catch (const test_error& e) {
+            // Note: process_step already handles all exceptions (including test_error),
+            //       the only errors caught here are the ones thrown by the loop_condition itself
+            step_results.append(StepResult<T>::failure(e.what(), t, i, domain_type));
         }
 
         if (step_results.empty()) {

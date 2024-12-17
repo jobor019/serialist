@@ -173,6 +173,9 @@ public:
         });
     }
 
+
+    Vec<int> compared_step_offsets() const override { return Vec{-1, 0}; }
+
 protected:
     std::optional<std::size_t> matches_vector(const Vec<StepResult<T> >& values,
                                               bool allow_no_comparison,
@@ -192,16 +195,24 @@ protected:
         return std::nullopt;
     }
 
-    Vec<int> compared_step_offsets() const override { return Vec{-1, 0}; }
 
-
-protected:
     /** @throws test_error if the comparison fails */
     virtual bool matches_internal(const StepResult<T>& previous, const StepResult<T>& current) const = 0;
 };
 
 
 // ==============================================================================================
+
+template<typename T>
+class EmptyComparison : public GenericOutputComparison<T> {
+    bool matches_internal(const StepResult<T>& current) const override {
+        return current.is_empty_like();
+    }
+};
+
+
+// ==============================================================================================
+
 
 template<typename T>
 class ValueComparison : public GenericOutputComparison<T> {
