@@ -4,7 +4,6 @@
 
 #include "matchers/matchers_common.h"
 #include "matchers/v11.h"
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 using namespace serialist::test;
 
@@ -57,9 +56,5 @@ TEST_CASE("testutils::v11 change comparison", "[testutils][v11]") {
         REQUIRE_THAT(d1, v11::strictly_increasingf());
         REQUIRE_THAT(d1, !v11::strictly_decreasingf());
         REQUIRE_THAT(d1, v11::strictly_decreasingf());
-        // REQUIRE_THAT(d1, v11::allf(v11::gef(0.0)));
-        // REQUIRE_THAT(d1, !v11::allf(v11::gef(0.5)));
-        // REQUIRE_THAT(d1, v11::allf(v11::lef(1.0)));
-        // REQUIRE_THAT(d1, !v11::allf(v11::lef(0.5)));
     }
 }

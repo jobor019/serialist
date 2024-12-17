@@ -6,7 +6,6 @@
 #include <core/generative.h>
 #include <core/collections/vec.h>
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "exceptions.h"
 
 
@@ -172,7 +171,7 @@ public:
 
 
 
-    friend std::ostream& operator<<(std::ostream& os, const RunResult& obj) {
+    friend std::ostream& operator<<(std::ostream& os, const RunResult&) {
         // Note: we don't want to allow RunResult to be printed directly,
         //       as this will lead to incredibly confusing results from Catch2 when evaluated over MatchType::any/all
         return os;

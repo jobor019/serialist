@@ -378,11 +378,11 @@ public:
 
         switch (source_type) {
             case DomainType::ticks:
-                return (target_type == DomainType::beats) ? meter.ticks2beats(t) : meter.ticks2bars(t);
+                return target_type == DomainType::beats ? meter.ticks2beats(t) : meter.ticks2bars(t);
             case DomainType::beats:
-                return (target_type == DomainType::ticks) ? meter.beats2ticks(t) : meter.beats2bars(t);
+                return target_type == DomainType::ticks ? meter.beats2ticks(t) : meter.beats2bars(t);
             case DomainType::bars:
-                return (target_type == DomainType::ticks) ? meter.bars2ticks(t) : meter.bars2beats(t);
+                return target_type == DomainType::ticks ? meter.bars2ticks(t) : meter.bars2beats(t);
         }
 
         throw std::runtime_error("Unknown source type");

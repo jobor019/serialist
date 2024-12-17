@@ -3,7 +3,6 @@
 #include "generative.h"
 #include "collections/vec.h"
 #include "results.h"
-#include <catch2/catch_test_macros.hpp>
 
 #include "condition.h"
 
@@ -410,6 +409,9 @@ public:
 
 
     // TODO
+    //
+    // TODO: If we ever implement step_for, it should always step for that duration,
+    //       not step until t + duration (as meter may change)
     // RunResult<T> step_for(const DomainDuration& t
     //                       , StepOutput<T> previous_step_handling = StepOutput<T>::output()
     //                       , std::optional<DomainDuration> step_size = std::nullopt) {
