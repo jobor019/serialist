@@ -1,4 +1,3 @@
-
 #ifndef SERIALISTLOOPER_VOICES_H
 #define SERIALISTLOOPER_VOICES_H
 
@@ -10,8 +9,8 @@
 #include "core/utility/traits.h"
 #include "core/collections/vec.h"
 
-namespace serialist {
 
+namespace serialist {
 template<typename T>
 using Voice = Vec<T>;
 
@@ -29,16 +28,41 @@ public:
     using iterator = typename std::vector<T>::iterator;
     using const_iterator = typename std::vector<T>::const_iterator;
 
+    template<typename U>
+    struct is_voices_like : std::disjunction<
+                std::is_same<U, T>,
+                std::is_same<U, Vec<T> >,
+                std::is_same<U, Voices>
+            > {};
+
+    template<typename U>
+    static constexpr bool is_voices_like_v = is_voices_like<U>::value;
+
 
     // =========================== CONSTRUCTORS ==========================
 
-    Voices(std::initializer_list<Voice<T>> v) : Voices(Vec<Voice<T>>(std::move(v))) {}
+    Voices(std::initializer_list<Voice<T> > v) : Voices(Vec<Voice<T> >(std::move(v))) {}
 
 
-    explicit Voices(Vec<Voice<T>> v) : m_voices(std::move(v)) {
+    explicit Voices(Vec<Voice<T> > v) : m_voices(std::move(v)) {
         // A `Voice` may be empty but a collection of `Voice`s should have at least one entry,
         //   even if the entry doesn't contain any data
         assert(!m_voices.empty());
+    }
+
+
+    template<typename U, typename = std::enable_if_t<is_voices_like_v<std::decay_t<U> > > >
+    static Voices from_voices_like(U&& voices_like) {
+        using DecayedU = std::decay_t<U>;
+
+        if constexpr (std::is_same_v<DecayedU, T>) {
+            return Voices::singular(std::forward<U>(voices_like));
+        } else if constexpr (std::is_same_v<DecayedU, Vec<T> >) {
+            return Voices::transposed(std::forward<U>(voices_like));
+        } else {
+            static_assert(std::is_same_v<DecayedU, Voices<T> >);
+            return voices_like;
+        }
     }
 
 
@@ -55,6 +79,7 @@ public:
     static Voices<T> singular(const T& value, std::size_t num_voices = 1) {
         return one_hot(value, 0, num_voices);
     }
+
 
     static Voices<T> singular(const Voice<T>& value, std::size_t num_voices = 1) {
         return one_hot(value, 0, num_voices);
@@ -76,13 +101,13 @@ public:
 
 
     static Voices<T> repeated(const T& value, std::size_t num_voices) {
-        auto v = Vec<Voice<T>>::repeated(num_voices, {value});
+        auto v = Vec<Voice<T> >::repeated(num_voices, {value});
         return Voices<T>(std::move(v));
     }
 
 
     static Voices<T> transposed(const Voice<T>& voice) {
-        auto output = Vec<Voice<T>>::allocated(voice.size());
+        auto output = Vec<Voice<T> >::allocated(voice.size());
         for (const auto& v: voice.vector()) {
             output.append(Voice<T>::singular(v));
         }
@@ -102,7 +127,7 @@ public:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_floating_point_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<std::is_floating_point_v<E> > >
     bool approx_equals(const Voices<T>& other, double epsilon = 1e-6) const {
         if (other.size() != m_voices.size()) {
             return false;
@@ -148,28 +173,28 @@ public:
 
     template<typename U = T>
     Voices<U> as_type() const {
-        std::vector<Voice<U>> output;
+        std::vector<Voice<U> > output;
         output.reserve(m_voices.size());
 
         for (const auto& voice: m_voices.vector()) {
             output.push_back(voice.template as_type<U>());
         }
 
-        auto vec = Vec<Voice<U>>(std::move(output));
+        auto vec = Vec<Voice<U> >(std::move(output));
         return Voices<U>(std::move(vec));
     }
 
 
     template<typename U = T>
     Voices<U> as_type(std::function<U(const T&)> f) const {
-        std::vector<Voice<U>> output;
+        std::vector<Voice<U> > output;
         output.reserve(m_voices.size());
 
         for (const auto& voice: m_voices.vector()) {
             output.push_back(voice.template as_type<U>(f));
         }
 
-        auto vec = Vec<Voice<U>>(std::move(output));
+        auto vec = Vec<Voice<U> >(std::move(output));
         return Voices<U>(std::move(vec));
     }
 
@@ -228,7 +253,7 @@ public:
      * @return a `Voices<T>` where all empty elements of this `Voices<T>` are replaced with the corresponding values in `other`
      */
     Voices& elementwise_or(const Voices& other) {
-        for (const auto& i : empty_indices()) {
+        for (const auto& i: empty_indices()) {
             if (other.size() > i) {
                 m_voices[i] = other.vec()[i];
             }
@@ -274,15 +299,15 @@ public:
     * @return The first value in the each Voice or std::nulllopt if voice is empty
     */
     template<typename U = T>
-    Vec<std::optional<U>> firsts() const {
-        std::vector<std::optional<U>> output;
+    Vec<std::optional<U> > firsts() const {
+        std::vector<std::optional<U> > output;
         output.reserve(m_voices.size());
 
         auto& v = m_voices.vector();
         std::transform(v.begin(), v.end(), std::back_inserter(output)
                        , [](const Voice<T>& voice) { return voice.first(); });
 
-        return Vec<std::optional<U>>(std::move(output));
+        return Vec<std::optional<U> >(std::move(output));
     }
 
 
@@ -300,7 +325,7 @@ public:
 
 
     template<typename U = T>
-    std::optional<Vec<U>> first_vec() const {
+    std::optional<Vec<U> > first_vec() const {
         if (m_voices.empty())
             return std::nullopt;
 
@@ -326,6 +351,7 @@ public:
         return fallback;
     }
 
+
     // =========================== MISC ==========================
 
     Vec<T> flattened() const {
@@ -337,7 +363,7 @@ public:
     }
 
 
-    std::pair<Voices<T>, Voices<T>> partition(std::function<bool(const T&)> f) const {
+    std::pair<Voices<T>, Voices<T> > partition(std::function<bool(const T&)> f) const {
         Voices<T> matching = Voices<T>::zeros(m_voices.size());
         Voices<T> non_matching = Voices<T>::zeros(m_voices.size());
 
@@ -377,7 +403,7 @@ public:
 
 
     std::string to_string(std::function<std::string(T)> f
-        , std::optional<std::size_t> double_precision = std::nullopt) const {
+                          , std::optional<std::size_t> double_precision = std::nullopt) const {
         if (is_empty_like()) {
             return "{[]}";
         }
@@ -398,14 +424,14 @@ public:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<utils::is_printable_v<E>>>
+    template<typename E = T, typename = std::enable_if_t<utils::is_printable_v<E> > >
     void print(std::optional<std::size_t> double_precision = std::nullopt) const {
         std::cout << to_string(double_precision) << std::endl;
     }
 
 
     void print(std::function<std::string(const T&)> f
-        , std::optional<std::size_t> double_precision = std::nullopt) const {
+               , std::optional<std::size_t> double_precision = std::nullopt) const {
         std::cout << to_string(f, double_precision) << std::endl;
     }
 
@@ -432,32 +458,29 @@ public:
         return !std::any_of(v.begin(), v.end(), [](const Voice<T>& voice) { return !voice.empty(); });
     }
 
+
     Vec<std::size_t> empty_indices() const {
         return m_voices.argwhere([](const Vec<T>& voice) { return voice.empty(); });
     }
 
 
-    const Vec<Voice<T>>& vec() const { return m_voices; }
+    const Vec<Voice<T> >& vec() const { return m_voices; }
 
 
-    Vec<Voice<T>>& vec_mut() { return m_voices; }
-
+    Vec<Voice<T> >& vec_mut() { return m_voices; }
 
 private:
-    static Vec<Voice<T>> create_empty_like(std::size_t num_voices) {
+    static Vec<Voice<T> > create_empty_like(std::size_t num_voices) {
         if (num_voices == 0) {
             throw std::invalid_argument("num_voices must be greater than 0");
         }
 
-        return Vec<Voice<T>>::repeated(num_voices, Voice<T>());
+        return Vec<Voice<T> >::repeated(num_voices, Voice<T>());
     }
 
 
-    Vec<Voice<T>> m_voices;
-
-
+    Vec<Voice<T> > m_voices;
 };
-
 } // namespace serialist
 
 #endif //SERIALISTLOOPER_VOICES_H

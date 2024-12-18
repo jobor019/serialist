@@ -12,6 +12,7 @@ using namespace serialist::test;
 
 
 namespace serialist::test::v11 {
+
 template<typename T>
 ResultMatcher<T> eq(const T& expected, MatchType match_type = MatchType::last, bool allow_no_comparison = false) {
     return {c11::eq(expected), "is == " + serialize(expected), match_type, allow_no_comparison};
