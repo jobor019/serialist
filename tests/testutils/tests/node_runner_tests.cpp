@@ -279,12 +279,11 @@ TEST_CASE("NodeRunner: schedule parameter change", "[node_runner]") {
 
     NodeRunner runner{&node};
 
-    auto e = std::make_unique<VariableChangeEvent<Facet, Facet, double>>(NodeRunnerCondition<Facet>::from_num_steps(10), node.mul_var(), 2.0);
+    auto e = std::make_unique<VariableChangeEvent<Facet, Facet, double>>(RunnerCondition<Facet>::from_num_steps(10), node.mul_var(), 2.0);
 
     runner.schedule_event(std::move(e));
 
-    auto r = runner.step_n(10);
+    auto r = runner.step_n(9);
     REQUIRE(r.is_successful());
-    r.print();
     REQUIRE(*r.v11f() == runner.get_time().get_tick());
 }

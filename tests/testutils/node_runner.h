@@ -96,7 +96,7 @@ public:
 
 
     RunResult<T> step_until(const DomainTimePoint& t
-                            , Anchor stop_type
+                            , Anchor anchor_type
                             , std::optional<TestConfig> config = std::nullopt) noexcept {
         if (t <= m_current_time) {
             return RunResult<T>::failure("Cannot step back in time (requested time: " + t.to_string() + ")"
@@ -104,10 +104,10 @@ public:
         }
 
         config = config.value_or(m_config);
-        auto loop_condition = NodeRunnerCondition<T>::from_time_point(t, stop_type);
+        auto stop_condition = RunnerCondition<T>::from_time_point(t, anchor_type);
 
         try {
-            return step_internal(loop_condition, *config, t.get_type());
+            return step_internal(stop_condition, *config, t.get_type());
         } catch (test_error& e) {
             return RunResult<T>::failure(e.what(), m_current_time, 0, t.get_type());
         }
@@ -117,9 +117,9 @@ public:
     RunResult<T> step_until(std::unique_ptr<GenericCondition<T> > stop_condition
                             , std::optional<TestConfig> config = std::nullopt) noexcept {
         config = config.value_or(m_config);
-        auto loop_condition = NodeRunnerCondition<T>::from_generic_condition(std::move(stop_condition), false);
+        auto c = RunnerCondition<T>::from_generic_condition(std::move(stop_condition), true);
         try {
-            return step_internal(loop_condition, *config, config->domain_type());
+            return step_internal(c, *config, config->domain_type());
         } catch (test_error& e) {
             return RunResult<T>::failure(e.what(), m_current_time, 0, config->domain_type());
         }
@@ -129,7 +129,7 @@ public:
     RunResult<T> step_while(std::unique_ptr<GenericCondition<T> > step_condition
                             , std::optional<TestConfig> config = std::nullopt) noexcept {
         config = config.value_or(m_config);
-        auto loop_condition = NodeRunnerCondition<T>::from_generic_condition(std::move(step_condition), true);
+        auto loop_condition = RunnerCondition<T>::from_generic_condition(std::move(step_condition), false);
         try {
             return step_internal(loop_condition, *config, config->domain_type());
         } catch (test_error& e) {
@@ -144,7 +144,7 @@ public:
         }
 
         config = config.value_or(m_config);
-        auto loop_condition = NodeRunnerCondition<T>::from_num_steps(num_steps);
+        auto loop_condition = RunnerCondition<T>::from_num_steps(num_steps);
 
         try {
             return step_internal(loop_condition, *config, config->domain_type());
@@ -225,7 +225,7 @@ private:
      *  @throws test_error if invalid values / configurations are provided.
      *  @note   If intermediate steps fails, will not throw errors but rather return `RunResult<T>::failure`
      */
-    RunResult<T> step_internal(const NodeRunnerCondition<T>& loop_condition, const TestConfig& config,
+    RunResult<T> step_internal(const RunnerCondition<T>& stop_condition, const TestConfig& config,
                                DomainType domain_type) {
         check_runner_validity();
 
@@ -234,7 +234,7 @@ private:
         auto t_prev = m_current_time;
         auto t = m_is_first_step ? t_prev : t_prev.incremented(step_size);
 
-        auto predicted_num_steps = loop_condition.predict_num_steps(t, step_size);
+        auto predicted_num_steps = stop_condition.predict_num_steps(t, step_size);
         auto step_results = predicted_num_steps
                                 ? Vec<StepResult<T> >::allocated(*predicted_num_steps)
                                 : Vec<StepResult<T> >();
@@ -242,7 +242,7 @@ private:
         std::size_t i = 0;
 
         try {
-            while (loop_condition(i, t, t_prev, step_results)) {
+            while (!stop_condition.evaluate(i, t, t_prev, step_results)) {
                 update_node_time(t);
 
                 process_events(i, t, t_prev, step_results);

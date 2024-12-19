@@ -34,7 +34,7 @@ public:
 template<typename NodeRunnerType, typename VariableOutputType, typename VariableInternalType = VariableOutputType>
 class VariableChangeEvent : public NodeRunnerEvent<NodeRunnerType> {
 public:
-    VariableChangeEvent(NodeRunnerCondition<NodeRunnerType>&& condition
+    VariableChangeEvent(RunnerCondition<NodeRunnerType>&& condition
                         , Variable<VariableOutputType, VariableInternalType>& node
                         , const VariableInternalType& new_value)
     : m_condition(std::move(condition)), m_node(node), m_new_value(new_value) {}
@@ -42,7 +42,7 @@ public:
 
     bool process(std::size_t step_index, const TimePoint& t, const TimePoint& t_prev
         , const Vec<StepResult<NodeRunnerType>>& v) override {
-        if (m_condition(step_index, t, t_prev, v)) {
+        if (m_condition.evaluate(step_index, t, t_prev, v)) {
             m_node.set_value(m_new_value);
             return true;
         }
@@ -50,7 +50,7 @@ public:
     }
 
 private:
-    NodeRunnerCondition<NodeRunnerType> m_condition;
+    RunnerCondition<NodeRunnerType> m_condition;
     Variable<VariableOutputType, VariableInternalType>& m_node;
     const VariableInternalType m_new_value;
 

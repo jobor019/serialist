@@ -150,6 +150,7 @@ class GenericChangeComparison : public GenericCondition<T> {
 public:
     using ChangeFunc = std::function<bool(const StepResult<T>&, const StepResult<T>&)>;
 
+
     std::optional<bool> matches_last(const Vec<StepResult<T> >& values) const final {
         if (values.size() < 2) {
             return std::nullopt;
@@ -161,17 +162,17 @@ public:
 
     std::optional<std::size_t> matches_all(const Vec<StepResult<T> >& values, bool allow_no_comparison) const final {
         return matches_vector(values, allow_no_comparison
-            , [this](const StepResult<T>& prev, const StepResult<T>& cur) {
-            return !matches_internal(prev, cur); // Fail if any element matches
-        });
+                              , [this](const StepResult<T>& prev, const StepResult<T>& cur) {
+                                  return !matches_internal(prev, cur); // Fail if any element matches
+                              });
     }
 
 
     std::optional<std::size_t> matches_any(const Vec<StepResult<T> >& values, bool allow_no_comparison) const final {
         return matches_vector(values, allow_no_comparison
-            , [this](const StepResult<T>& prev, const StepResult<T>& cur) {
-            return matches_internal(prev, cur); // Pass if any element matches
-        });
+                              , [this](const StepResult<T>& prev, const StepResult<T>& cur) {
+                                  return matches_internal(prev, cur); // Pass if any element matches
+                              });
     }
 
 
@@ -189,7 +190,7 @@ protected:
         }
 
         for (std::size_t i = 1; i < values.size(); ++i) {
-            if (match_func(values[i-1], values[i])) {
+            if (match_func(values[i - 1], values[i])) {
                 return i;
             }
         }
@@ -271,15 +272,15 @@ enum class Anchor {
 
 
 template<typename T>
-class NodeRunnerCondition {
+class RunnerCondition {
 public:
     struct NumSteps {
         std::size_t index;
     };
-    struct StopAfter {
+    struct After {
         DomainTimePoint time;
     };
-    struct StopBefore {
+    struct Before {
         DomainTimePoint time;
     };
     struct CompareTrue {
@@ -289,30 +290,30 @@ public:
         std::unique_ptr<GenericCondition<T> > condition;
     };
 
-    using Condition = std::variant<NumSteps, StopAfter, StopBefore, CompareTrue, CompareFalse>;
+    using Condition = std::variant<NumSteps, After, Before, CompareTrue, CompareFalse>;
 
-    explicit NodeRunnerCondition(Condition condition) : m_condition(std::move(condition)) {}
+    explicit RunnerCondition(Condition condition) : m_condition(std::move(condition)) {}
 
 
-    static NodeRunnerCondition from_time_point(const DomainTimePoint& t, Anchor stop_type) {
-        if (stop_type == Anchor::before) {
-            return NodeRunnerCondition(StopBefore{t});
+    static RunnerCondition from_time_point(const DomainTimePoint& t, Anchor anchor_type) {
+        if (anchor_type == Anchor::before) {
+            return RunnerCondition(Before{t});
         } else {
-            return NodeRunnerCondition(StopAfter{t});
+            return RunnerCondition(After{t});
         }
     }
 
 
-    static NodeRunnerCondition from_num_steps(std::size_t num_steps) {
-        return NodeRunnerCondition(NumSteps{num_steps});
+    static RunnerCondition from_num_steps(std::size_t num_steps) {
+        return RunnerCondition(NumSteps{num_steps});
     }
 
 
-    static NodeRunnerCondition from_generic_condition(std::unique_ptr<GenericCondition<T> > c, bool compare_true) {
+    static RunnerCondition from_generic_condition(std::unique_ptr<GenericCondition<T> > c, bool compare_true) {
         if (compare_true) {
-            return NodeRunnerCondition(CompareTrue{std::move(c)});
+            return RunnerCondition(CompareTrue{std::move(c)});
         } else {
-            return NodeRunnerCondition(CompareFalse{std::move(c)});
+            return RunnerCondition(CompareFalse{std::move(c)});
         }
     }
 
@@ -326,9 +327,9 @@ public:
 
             if constexpr (std::is_same_v<VariantType, NumSteps>) {
                 return c.index;
-            } else if constexpr (std::is_same_v<VariantType, StopAfter>) {
+            } else if constexpr (std::is_same_v<VariantType, After>) {
                 return steps(current, c.time, step_size) + 1;
-            } else if constexpr (std::is_same_v<VariantType, StopBefore>) {
+            } else if constexpr (std::is_same_v<VariantType, Before>) {
                 return steps(current, c.time, step_size);
             } else {
                 return std::nullopt; // Cannot predict number of steps for other conditions
@@ -338,22 +339,22 @@ public:
 
 
     /** Note: continue while condition is true */
-    bool operator()(std::size_t step_index
-                    , const TimePoint& t
-                    , const TimePoint& t_prev
-                    , const Vec<StepResult<T> >& v) const {
+    bool evaluate(std::size_t step_index
+                  , const TimePoint& t
+                  , const TimePoint& t_prev
+                  , const Vec<StepResult<T> >& v) const {
         return std::visit([&](const auto& cond) -> bool {
             using VariantType = std::decay_t<decltype(cond)>;
             if constexpr (std::is_same_v<VariantType, NumSteps>) {
-                return step_index < cond.index;
-            } else if constexpr (std::is_same_v<VariantType, StopAfter>) {
-                return t_prev < cond.time;
-            } else if constexpr (std::is_same_v<VariantType, StopBefore>) {
-                return t < cond.time;
+                return step_index >= cond.index;
+            } else if constexpr (std::is_same_v<VariantType, After>) {
+                return t_prev >= cond.time;
+            } else if constexpr (std::is_same_v<VariantType, Before>) {
+                return t >= cond.time;
             } else if constexpr (std::is_same_v<VariantType, CompareTrue>) {
-                return cond.condition->matches_last(v).value_or(true);
+                return cond.condition->matches_last(v).value_or(false);
             } else if constexpr (std::is_same_v<VariantType, CompareFalse>) {
-                return !cond.condition->matches_last(v).value_or(false);
+                return !cond.condition->matches_last(v).value_or(true);
             } else {
                 throw test_error("Unsupported condition type");
             }
