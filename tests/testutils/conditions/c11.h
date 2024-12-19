@@ -10,16 +10,25 @@ namespace serialist::test::c11 {
 // VALUE COMPARISONS
 // ==============================================================================================
 
-template<typename T, typename Comparator>
-std::unique_ptr<ValueComparison<T> > make_value_comparison(const T& expected, Comparator comp) {
-    return std::make_unique<ValueComparison<T> >(std::bind(comp, std::placeholders::_1, expected));
+
+// TODO: This shouldn't really live in c11
+template<typename T>
+std::unique_ptr<ValueComparison<T>> custom_comparison(const std::function<bool(const T&)>& f) {
+    return std::make_unique<ValueComparison<T>>(f);
 }
 
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+// TODO: This shouldn't really live in c11
 template<typename T>
 std::unique_ptr<EmptyComparison<T> > empty() {
     return std::make_unique<EmptyComparison<T>>();
+}
+
+// ==============================================================================================
+
+template<typename T, typename Comparator>
+std::unique_ptr<ValueComparison<T> > make_value_comparison(const T& expected, Comparator comp) {
+    return std::make_unique<ValueComparison<T> >(std::bind(comp, std::placeholders::_1, expected));
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -127,19 +136,19 @@ std::unique_ptr<ValueChangeComparison<T> > make_change_comparison(Comparator&& c
 }
 
 inline std::unique_ptr<ValueChangeComparison<Facet> > strictly_increasingf() {
-   return make_change_comparison<Facet>(std::greater<Facet>());
-}
-
-inline std::unique_ptr<ValueChangeComparison<Facet> > increasingf() {
-    return make_change_comparison<Facet>(std::greater_equal<Facet>());
-}
-
-inline std::unique_ptr<ValueChangeComparison<Facet> > strictly_decreasingf() {
    return make_change_comparison<Facet>(std::less<Facet>());
 }
 
-inline std::unique_ptr<ValueChangeComparison<Facet> > decreasingf() {
+inline std::unique_ptr<ValueChangeComparison<Facet> > increasingf() {
     return make_change_comparison<Facet>(std::less_equal<Facet>());
+}
+
+inline std::unique_ptr<ValueChangeComparison<Facet> > strictly_decreasingf() {
+   return make_change_comparison<Facet>(std::greater<Facet>());
+}
+
+inline std::unique_ptr<ValueChangeComparison<Facet> > decreasingf() {
+    return make_change_comparison<Facet>(std::greater_equal<Facet>());
 }
 
 

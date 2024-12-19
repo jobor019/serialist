@@ -51,6 +51,7 @@ public:
     }
 
 
+    /** utility function for passing either a T, a Vec<T>, or a Voices<T> to a Voices constructor */
     template<typename U, typename = std::enable_if_t<is_voices_like_v<std::decay_t<U> > > >
     static Voices from_voices_like(U&& voices_like) {
         using DecayedU = std::decay_t<U>;

@@ -11,8 +11,8 @@
 #include "core/utility/math.h"
 #include "core/utility/traits.h"
 
-namespace serialist {
 
+namespace serialist {
 template<typename T>
 class Vec {
 public:
@@ -576,6 +576,27 @@ public:
     }
 
 
+    Vec& erase(const Vec<std::size_t>& indices) {
+        if (indices.empty())
+            return *this;
+
+        std::vector<bool> to_remove(m_vector.size(), false);
+        for (std::size_t index: indices) {
+            if (index < m_vector.size()) {
+                to_remove[index] = true;
+            }
+        }
+        std::size_t index = 0;
+        m_vector.erase(std::remove_if(m_vector.begin(), m_vector.end(),
+                                      [&to_remove, &index](const T&) {
+                                          return to_remove[index++];
+                                      }),
+                       m_vector.end());
+
+        return *this;
+    }
+
+
     /**
      * Resize and append copies of the provided element
      */
@@ -646,7 +667,6 @@ public:
 
         return *this;
     }
-
 
 
     // =========================== FUNCTIONAL ==========================
@@ -865,7 +885,7 @@ public:
 
 
     std::string to_string(std::function<std::string(T)> f
-        , std::optional<std::size_t> double_precision = std::nullopt) const {
+                          , std::optional<std::size_t> double_precision = std::nullopt) const {
         if (empty()) {
             return "[]";
         }
@@ -948,6 +968,7 @@ public:
         }
         return std::nullopt;
     }
+
 
     Vec<std::size_t> argwhere(std::function<bool(const T&)> f) const {
         Vec<std::size_t> indices;
@@ -1372,8 +1393,6 @@ private:
 
     std::vector<T> m_vector;
 };
-
-
 } // namespace serialist
 
 #endif //SERIALISTLOOPER_VEC_H

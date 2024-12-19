@@ -239,17 +239,26 @@ TEST_CASE("Vec resize_default", "[resize_default]") {
 TEST_CASE("Vec erase", "[erase]") {
     Vec v = {1, 2, 3, 4, 5};
 
-    v.erase(2);
-    REQUIRE(v.size() == 4);
-    REQUIRE(v[0] == 1);
-    REQUIRE(v[1] == 2);
-    REQUIRE(v[2] == 4);
-    REQUIRE(v[3] == 5);
+    SECTION("Erase single") {
+        v.erase(2);
+        REQUIRE(v.size() == 4);
+        REQUIRE(v[0] == 1);
+        REQUIRE(v[1] == 2);
+        REQUIRE(v[2] == 4);
+        REQUIRE(v[3] == 5);
+    }
 
-    v.erase(1, 3);
-    REQUIRE(v.size() == 2);
-    REQUIRE(v[0] == 1);
-    REQUIRE(v[1] == 5);
+    SECTION("Erase slice") {
+        v.erase(1, 3);
+        REQUIRE(v.size() == 3);
+        REQUIRE(v == Vec{1, 4, 5});
+    }
+
+    SECTION("Erase multiple by index") {
+        v.erase(Vec<std::size_t>{1, 4});
+        REQUIRE(v.size() == 3);
+        REQUIRE(v == Vec{1, 3, 4});
+    }
 }
 
 

@@ -5,10 +5,10 @@
 #include "results.h"
 
 #include "condition.h"
+#include "events.h"
 
 
 namespace serialist::test {
-
 class TestConfig {
 public:
     const inline static auto DEFAULT_STEP_SIZE = DomainDuration(0.01, DomainType::ticks);
@@ -59,122 +59,6 @@ public:
 
 // ==============================================================================================
 
-enum class Stop {
-    before, after
-};
-
-
-template<typename T>
-class LoopCondition {
-public:
-    struct NumSteps {
-        std::size_t index;
-    };
-    struct StopAfter {
-        DomainTimePoint time;
-    };
-    struct StopBefore {
-        DomainTimePoint time;
-    };
-    struct CompareTrue {
-        std::unique_ptr<GenericCondition<T> > condition;
-    };
-    struct CompareFalse {
-        std::unique_ptr<GenericCondition<T> > condition;
-    };
-
-    using Condition = std::variant<NumSteps, StopAfter, StopBefore, CompareTrue, CompareFalse>;
-
-    explicit LoopCondition(Condition condition) : m_condition(std::move(condition)) {}
-
-
-    static LoopCondition from_stop_type(const DomainTimePoint& t, Stop stop_type) {
-        if (stop_type == Stop::before) {
-            return LoopCondition(StopBefore{t});
-        } else {
-            return LoopCondition(StopAfter{t});
-        }
-    }
-
-
-    static LoopCondition from_num_steps(std::size_t num_steps) {
-        return LoopCondition(NumSteps{num_steps});
-    }
-
-
-    static LoopCondition from_generic_condition(std::unique_ptr<GenericCondition<T> > c, bool compare_true) {
-        if (compare_true) {
-            return LoopCondition(CompareTrue{std::move(c)});
-        } else {
-            return LoopCondition(CompareFalse{std::move(c)});
-        }
-    }
-
-
-    /** Naively predicts number of steps until stop condition,
-     *  under the assumption that the step size is constant and meter doesn't change */
-    std::optional<std::size_t> predict_num_steps(const TimePoint& current
-                                                 , const DomainDuration& step_size) const {
-        return std::visit([&](const auto& c) -> std::optional<std::size_t> {
-            using VariantType = std::decay_t<decltype(c)>;
-
-            if constexpr (std::is_same_v<VariantType, NumSteps>) {
-                return c.index;
-            } else if constexpr (std::is_same_v<VariantType, StopAfter>) {
-                return steps(current, c.time, step_size) + 1;
-            } else if constexpr (std::is_same_v<VariantType, StopBefore>) {
-                return steps(current, c.time, step_size);
-            } else {
-                return std::nullopt; // Cannot predict number of steps for other conditions
-            }
-        }, m_condition);
-    }
-
-
-    /** Note: continue while condition is true */
-    bool operator()(std::size_t step_index
-                    , const TimePoint& t
-                    , const TimePoint& t_prev
-                    , const Vec<StepResult<T> >& v) const {
-        return std::visit([&](const auto& cond) -> bool {
-            using VariantType = std::decay_t<decltype(cond)>;
-            if constexpr (std::is_same_v<VariantType, NumSteps>) {
-                return step_index < cond.index;
-            } else if constexpr (std::is_same_v<VariantType, StopAfter>) {
-                return t_prev < cond.time;
-            } else if constexpr (std::is_same_v<VariantType, StopBefore>) {
-                return t < cond.time;
-            } else if constexpr (std::is_same_v<VariantType, CompareTrue>) {
-                return cond.condition->matches_last(v).value_or(true);
-            } else if constexpr (std::is_same_v<VariantType, CompareFalse>) {
-                return !cond.condition->matches_last(v).value_or(false);
-            } else {
-                throw test_error("Unsupported condition type");
-            }
-        }, m_condition);
-    }
-
-
-    template<typename U>
-    const U& as() const { return std::get<U>(m_condition); }
-
-
-    template<typename U>
-    bool is() const { return std::holds_alternative<U>(m_condition); }
-
-private:
-    static std::size_t steps(const TimePoint& current, const DomainTimePoint& target, const DomainDuration& step_size) {
-        auto distance = (target - current).as_type(step_size.get_type(), current.get_meter());
-        return static_cast<std::size_t>(std::ceil(distance.get_value() / step_size.get_value()));
-    }
-
-
-    Condition m_condition;
-};
-
-
-// ==============================================================================================
-
 template<typename T>
 class NodeRunner {
 public:
@@ -212,7 +96,7 @@ public:
 
 
     RunResult<T> step_until(const DomainTimePoint& t
-                            , Stop stop_type
+                            , Anchor stop_type
                             , std::optional<TestConfig> config = std::nullopt) noexcept {
         if (t <= m_current_time) {
             return RunResult<T>::failure("Cannot step back in time (requested time: " + t.to_string() + ")"
@@ -220,7 +104,7 @@ public:
         }
 
         config = config.value_or(m_config);
-        auto loop_condition = LoopCondition<T>::from_stop_type(t, stop_type);
+        auto loop_condition = NodeRunnerCondition<T>::from_time_point(t, stop_type);
 
         try {
             return step_internal(loop_condition, *config, t.get_type());
@@ -233,7 +117,7 @@ public:
     RunResult<T> step_until(std::unique_ptr<GenericCondition<T> > stop_condition
                             , std::optional<TestConfig> config = std::nullopt) noexcept {
         config = config.value_or(m_config);
-        auto loop_condition = LoopCondition<T>::from_generic_condition(std::move(stop_condition), false);
+        auto loop_condition = NodeRunnerCondition<T>::from_generic_condition(std::move(stop_condition), false);
         try {
             return step_internal(loop_condition, *config, config->domain_type());
         } catch (test_error& e) {
@@ -245,7 +129,7 @@ public:
     RunResult<T> step_while(std::unique_ptr<GenericCondition<T> > step_condition
                             , std::optional<TestConfig> config = std::nullopt) noexcept {
         config = config.value_or(m_config);
-        auto loop_condition = LoopCondition<T>::from_generic_condition(std::move(step_condition), true);
+        auto loop_condition = NodeRunnerCondition<T>::from_generic_condition(std::move(step_condition), true);
         try {
             return step_internal(loop_condition, *config, config->domain_type());
         } catch (test_error& e) {
@@ -260,7 +144,7 @@ public:
         }
 
         config = config.value_or(m_config);
-        auto loop_condition = LoopCondition<T>::from_num_steps(num_steps);
+        auto loop_condition = NodeRunnerCondition<T>::from_num_steps(num_steps);
 
         try {
             return step_internal(loop_condition, *config, config->domain_type());
@@ -272,6 +156,11 @@ public:
 
     RunResult<T> step(std::optional<TestConfig> config = std::nullopt) {
         return step_n(1, std::move(config));
+    }
+
+
+    void schedule_event(std::unique_ptr<NodeRunnerEvent<T>> event) {
+        m_events.append(std::move(event));
     }
 
 
@@ -320,6 +209,10 @@ public:
         return m_config;
     }
 
+    const TimePoint& get_time() const {
+        return m_current_time;
+    }
+
 private:
     void check_runner_validity() {
         if (!m_output_node) {
@@ -332,7 +225,7 @@ private:
      *  @throws test_error if invalid values / configurations are provided.
      *  @note   If intermediate steps fails, will not throw errors but rather return `RunResult<T>::failure`
      */
-    RunResult<T> step_internal(const LoopCondition<T>& loop_condition, const TestConfig& config,
+    RunResult<T> step_internal(const NodeRunnerCondition<T>& loop_condition, const TestConfig& config,
                                DomainType domain_type) {
         check_runner_validity();
 
@@ -351,6 +244,8 @@ private:
         try {
             while (loop_condition(i, t, t_prev, step_results)) {
                 update_node_time(t);
+
+                process_events(i, t, t_prev, step_results);
 
                 step_results.append(process_step(i, t, domain_type));
 
@@ -387,8 +282,20 @@ private:
     }
 
 
+    void process_events(std::size_t step_index, const TimePoint& current_time, const TimePoint& t_prev
+                        , const Vec<StepResult<T> >& step_results) {
+        Vec<std::size_t> indices_to_remove;
+
+        for (std::size_t i = 0; i < m_events.size(); ++i) {
+            if (m_events[i]->process(step_index, current_time, t_prev, step_results)) {
+                indices_to_remove.append(i);
+            }
+        }
+        m_events.erase(indices_to_remove);
+    }
+
+
     StepResult<T> process_step(std::size_t step_index, const TimePoint& current_time, const DomainType& t) noexcept {
-        // TODO: we will need to handle parameter / meter / time signature ramps/scheduled changes here too in the future!!
         try {
             auto output = m_output_node->process();
             return StepResult<T>::success(output, current_time, step_index, t);
@@ -408,6 +315,8 @@ private:
     Node<T>* m_output_node = nullptr;
 
     DomainDuration m_default_step_size;
+
+    Vec<std::unique_ptr<NodeRunnerEvent<T>> > m_events;
 
     bool m_is_first_step = true;
 };

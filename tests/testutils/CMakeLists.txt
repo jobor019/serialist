@@ -2,12 +2,13 @@ add_library(testutils EXCLUDE_FROM_ALL
         INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/node_runner.h
         ${CMAKE_CURRENT_SOURCE_DIR}/results.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/matchers/v11.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/matchers/m11.h
         ${CMAKE_CURRENT_SOURCE_DIR}/matchers/matchers_common.h
         generators.h
         exceptions.h
         condition.h
         conditions/c11.h
+        events.h
 )
 
 target_include_directories(testutils INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
@@ -18,7 +19,7 @@ add_library(${PROJECT_NAME}::testutils ALIAS testutils)
 
 
 add_executable(testutils_tests EXCLUDE_FROM_ALL
-        ${CMAKE_CURRENT_SOURCE_DIR}/tests/v11_tests.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/m11_tests.cpp
         tests/node_runner_tests.cpp
 )
 

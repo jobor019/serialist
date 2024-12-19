@@ -23,15 +23,26 @@ public:
 
 
     Voices<Facet> process() override {
-        return Voices<Facet>::singular(Facet(m_current_time.get(m_domain_type)));
+        double add = m_add_seq.process().first_or(0.0);
+        double mul = m_mul_var.process().first_or(1.0);
+        return Voices<Facet>::singular(Facet(mul * m_current_time.get(m_domain_type)) + add);
     }
 
     void set_domain_type(DomainType domain_type) { m_domain_type = domain_type; }
+
+    Variable<Facet, double>& mul_var() { return m_mul_var; }
+    Sequence<Facet, double>& add_seq() { return m_add_seq; }
 
 private:
     DomainType m_domain_type;
 
     ParameterHandler m_ph = ParameterHandler();
+
+    // Dummy Variable / Sequence for testing
+    Variable<Facet, double> m_mul_var{"mul", m_ph, 1.0};
+    Sequence<Facet, double> m_add_seq{"add", m_ph, 0.0};
+
+    // Unused but required by NodeBase
     Sequence<Facet, bool> m_enabled{param::properties::enabled, m_ph, Voices<bool>::singular(true)};
     Variable<Facet, std::size_t> m_num_voices{param::properties::num_voices, m_ph, 0};
 
@@ -74,7 +85,7 @@ TEST_CASE("NodeRunner: step_until (time)", "[node_runner]") {
     SECTION("Stop::after") {
         for (int i = 0; i < 10; ++i) {
             auto t = target_time * (i + 1);
-            auto r = runner.step_until(DomainTimePoint(t, domain_type), Stop::after);
+            auto r = runner.step_until(DomainTimePoint(t, domain_type), Anchor::after);
 
             CAPTURE(i, t, r);
             REQUIRE(r.is_successful());
@@ -86,7 +97,7 @@ TEST_CASE("NodeRunner: step_until (time)", "[node_runner]") {
     SECTION("Stop::before") {
         for (int i = 0; i < 10; ++i) {
             auto t = target_time * (i + 1);
-            auto r = runner.step_until(DomainTimePoint(t, domain_type), Stop::before);
+            auto r = runner.step_until(DomainTimePoint(t, domain_type), Anchor::before);
 
             CAPTURE(i, t, r);
             REQUIRE(r.is_successful());
@@ -112,13 +123,13 @@ TEST_CASE("NodeRunner: step_until (time) edge cases", "[node_runner]") {
     }
 
     SECTION("Run to previous time") {
-        auto r = runner.step_until(DomainTimePoint(0.0, DomainType::ticks), Stop::before);
+        auto r = runner.step_until(DomainTimePoint(0.0, DomainType::ticks), Anchor::before);
         CAPTURE(r);
         REQUIRE(!r.is_successful());
     }
 
     SECTION("Run to current time (Before)") {
-        auto r = runner.step_until(DomainTimePoint(start_time, DomainType::ticks), Stop::before);
+        auto r = runner.step_until(DomainTimePoint(start_time, DomainType::ticks), Anchor::before);
         CAPTURE(r);
         REQUIRE(!r.is_successful());
     }
@@ -131,7 +142,7 @@ TEST_CASE("NodeRunner: step_until (time) edge cases", "[node_runner]") {
     // }
 
     SECTION("Run to current time + step_size (After)") {
-        auto r = runner.step_until(DomainTimePoint(start_time + step_size, DomainType::ticks), Stop::after);
+        auto r = runner.step_until(DomainTimePoint(start_time + step_size, DomainType::ticks), Anchor::after);
         CAPTURE(r);
         REQUIRE(r.is_successful());
         REQUIRE(r.last().voices().first().value() >= start_time + step_size);
@@ -139,31 +150,31 @@ TEST_CASE("NodeRunner: step_until (time) edge cases", "[node_runner]") {
 
     SECTION("Run to current time + step_size (Before)") {
         // On first run, this should be possible, as it will generate a single step at current time without incrementing
-        auto r = runner.step_until(DomainTimePoint(start_time + step_size, DomainType::ticks), Stop::before);
+        auto r = runner.step_until(DomainTimePoint(start_time + step_size, DomainType::ticks), Anchor::before);
         REQUIRE(r.is_successful());
         REQUIRE(r.num_steps() == 1);
     }
 
     SECTION("Run to given time twice (Before)") {
-        auto r = runner.step_until(DomainTimePoint(2.0, DomainType::ticks), Stop::before);
+        auto r = runner.step_until(DomainTimePoint(2.0, DomainType::ticks), Anchor::before);
         REQUIRE(r.is_successful());
-        r = runner.step_until(DomainTimePoint(2.0, DomainType::ticks), Stop::before);
+        r = runner.step_until(DomainTimePoint(2.0, DomainType::ticks), Anchor::before);
         CAPTURE(r);
         REQUIRE(!r.is_successful());
     }
 
     SECTION("Run to current time + step_size/2 (After)") {
         // Consume first step
-        auto r = runner.step_until(DomainTimePoint(2.0, DomainType::ticks), Stop::after);
+        auto r = runner.step_until(DomainTimePoint(2.0, DomainType::ticks), Anchor::after);
         REQUIRE(r.is_successful());
-        r = runner.step_until(DomainTimePoint(2.0 + step_size/2, DomainType::ticks), Stop::after);
+        r = runner.step_until(DomainTimePoint(2.0 + step_size/2, DomainType::ticks), Anchor::after);
         CAPTURE(r);
         REQUIRE(r.is_successful());
     }
 
     SECTION("Consecutive steps (before)") {
         auto target = GENERATE(2.0, 3.75, 10.0);
-        auto r = runner.step_until(DomainTimePoint(target, DomainType::ticks), Stop::before);
+        auto r = runner.step_until(DomainTimePoint(target, DomainType::ticks), Anchor::before);
         REQUIRE(r.is_successful());
         REQUIRE(utils::in(*r.v11f(), target - step_size, target));
 
@@ -260,4 +271,20 @@ TEST_CASE("NodeRunner: step_n edge cases", "[node_runner]") {
         // Diff before start of this run and end of previous run should be equal to step size
         REQUIRE(utils::equals(first_value_last_run - last_value_first_run, step_size));
     }
+}
+
+
+TEST_CASE("NodeRunner: schedule parameter change", "[node_runner]") {
+    DummyNode node;
+
+    NodeRunner runner{&node};
+
+    auto e = std::make_unique<VariableChangeEvent<Facet, Facet, double>>(NodeRunnerCondition<Facet>::from_num_steps(10), node.mul_var(), 2.0);
+
+    runner.schedule_event(std::move(e));
+
+    auto r = runner.step_n(10);
+    REQUIRE(r.is_successful());
+    r.print();
+    REQUIRE(*r.v11f() == runner.get_time().get_tick());
 }

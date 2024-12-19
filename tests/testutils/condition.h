@@ -5,8 +5,9 @@
 #include "param/string_serialization.h"
 
 using namespace serialist;
-using namespace serialist::test;
 
+
+namespace serialist::test {
 // ==============================================================================================
 // CONSTANTS
 // ==============================================================================================
@@ -260,5 +261,122 @@ private:
 
     FuncType m_f;
 };
+
+
+// ==============================================================================================
+
+enum class Anchor {
+    before, after
+};
+
+
+template<typename T>
+class NodeRunnerCondition {
+public:
+    struct NumSteps {
+        std::size_t index;
+    };
+    struct StopAfter {
+        DomainTimePoint time;
+    };
+    struct StopBefore {
+        DomainTimePoint time;
+    };
+    struct CompareTrue {
+        std::unique_ptr<GenericCondition<T> > condition;
+    };
+    struct CompareFalse {
+        std::unique_ptr<GenericCondition<T> > condition;
+    };
+
+    using Condition = std::variant<NumSteps, StopAfter, StopBefore, CompareTrue, CompareFalse>;
+
+    explicit NodeRunnerCondition(Condition condition) : m_condition(std::move(condition)) {}
+
+
+    static NodeRunnerCondition from_time_point(const DomainTimePoint& t, Anchor stop_type) {
+        if (stop_type == Anchor::before) {
+            return NodeRunnerCondition(StopBefore{t});
+        } else {
+            return NodeRunnerCondition(StopAfter{t});
+        }
+    }
+
+
+    static NodeRunnerCondition from_num_steps(std::size_t num_steps) {
+        return NodeRunnerCondition(NumSteps{num_steps});
+    }
+
+
+    static NodeRunnerCondition from_generic_condition(std::unique_ptr<GenericCondition<T> > c, bool compare_true) {
+        if (compare_true) {
+            return NodeRunnerCondition(CompareTrue{std::move(c)});
+        } else {
+            return NodeRunnerCondition(CompareFalse{std::move(c)});
+        }
+    }
+
+
+    /** Naively predicts number of steps until stop condition,
+     *  under the assumption that the step size is constant and meter doesn't change */
+    std::optional<std::size_t> predict_num_steps(const TimePoint& current
+                                                 , const DomainDuration& step_size) const {
+        return std::visit([&](const auto& c) -> std::optional<std::size_t> {
+            using VariantType = std::decay_t<decltype(c)>;
+
+            if constexpr (std::is_same_v<VariantType, NumSteps>) {
+                return c.index;
+            } else if constexpr (std::is_same_v<VariantType, StopAfter>) {
+                return steps(current, c.time, step_size) + 1;
+            } else if constexpr (std::is_same_v<VariantType, StopBefore>) {
+                return steps(current, c.time, step_size);
+            } else {
+                return std::nullopt; // Cannot predict number of steps for other conditions
+            }
+        }, m_condition);
+    }
+
+
+    /** Note: continue while condition is true */
+    bool operator()(std::size_t step_index
+                    , const TimePoint& t
+                    , const TimePoint& t_prev
+                    , const Vec<StepResult<T> >& v) const {
+        return std::visit([&](const auto& cond) -> bool {
+            using VariantType = std::decay_t<decltype(cond)>;
+            if constexpr (std::is_same_v<VariantType, NumSteps>) {
+                return step_index < cond.index;
+            } else if constexpr (std::is_same_v<VariantType, StopAfter>) {
+                return t_prev < cond.time;
+            } else if constexpr (std::is_same_v<VariantType, StopBefore>) {
+                return t < cond.time;
+            } else if constexpr (std::is_same_v<VariantType, CompareTrue>) {
+                return cond.condition->matches_last(v).value_or(true);
+            } else if constexpr (std::is_same_v<VariantType, CompareFalse>) {
+                return !cond.condition->matches_last(v).value_or(false);
+            } else {
+                throw test_error("Unsupported condition type");
+            }
+        }, m_condition);
+    }
+
+
+    template<typename U>
+    const U& as() const { return std::get<U>(m_condition); }
+
+
+    template<typename U>
+    bool is() const { return std::holds_alternative<U>(m_condition); }
+
+private:
+    static std::size_t steps(const TimePoint& current, const DomainTimePoint& target, const DomainDuration& step_size) {
+        auto distance = (target - current).as_type(step_size.get_type(), current.get_meter());
+        return static_cast<std::size_t>(std::ceil(distance.get_value() / step_size.get_value()));
+    }
+
+
+    Condition m_condition;
+};
+}
 
 #endif //TESTUTILS_CONDITION_H
