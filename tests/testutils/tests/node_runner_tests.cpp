@@ -96,17 +96,17 @@ TEST_CASE("NodeRunner: step_until (time)", "[node_runner]") {
         }
     }
 
-    // SECTION("Stop::before") {
-    //     for (int i = 0; i < 10; ++i) {
-    //         auto t = target_time * (i + 1);
-    //         auto r = runner.step_until(DomainTimePoint(t, domain_type), Anchor::before);
-    //
-    //         CAPTURE(i, t, r);
-    //         REQUIRE(r.is_successful());
-    //
-    //         REQUIRE(utils::in(*r.v11f(), t - step_size, t));
-    //     }
-    // }
+    SECTION("Stop::before") {
+        for (int i = 0; i < 10; ++i) {
+            auto t = target_time * (i + 1);
+            auto r = runner.step_until(DomainTimePoint(t, domain_type), Anchor::before);
+
+            CAPTURE(i, t, r);
+            REQUIRE(r.is_successful());
+
+            REQUIRE(utils::in(*r.v11f(), t - step_size, t));
+        }
+    }
 }
 
 
@@ -279,37 +279,117 @@ TEST_CASE("NodeRunner: step_n edge cases", "[node_runner]") {
 }
 
 
-TEST_CASE("NodeRunner: schedule parameter change", "[node_runner]") {
+TEST_CASE("NodeRunner: schedule variable change (num steps)", "[node_runner]") {
     double step_size = 0.1;
     DummyNode node;
     auto config = TestConfig().with_step_size(DomainDuration(step_size));
 
     NodeRunner runner{&node, config};
 
-    auto e = std::make_unique<VariableChangeEvent<Facet, Facet, double> >(
-        RunnerCondition<Facet>::from_target_index(runner.get_step_index() + 10), node.mul_var(), 2.0);
+    runner.schedule_parameter_change(node.mul_var(), 2.0, runner.conditional_n(10));
 
-    runner.schedule_event(std::move(e));
-
+    // Multiple steps up to parameter change
     auto r = runner.step_n(9);
     REQUIRE(r.is_successful());
-    r.print();
     REQUIRE(utils::equals(*r.v11f(),step_size * 8.0));
     REQUIRE(runner.has_scheduled_events());
 
+    // Single step to change parameter
     r = runner.step();
     REQUIRE(r.is_successful());
-    r.print();
     REQUIRE(utils::equals(*r.v11f(),step_size * 9.0 * 2.0));
     REQUIRE(!runner.has_scheduled_events());
 
-    e = std::make_unique<VariableChangeEvent<Facet, Facet, double> >(
-        RunnerCondition<Facet>::from_target_index(runner.get_step_index()), node.mul_var(), 0.5);
+    runner.schedule_parameter_change(node.mul_var(), 0.5, runner.conditional_now());
 
-    runner.schedule_event(std::move(e));
+    // Single step to change parameter immediately
     r = runner.step();
     REQUIRE(r.is_successful());
-    r.print();
-    REQUIRE(utils::equals(*r.v11f(),runner.get_time().get_tick() * 0.5));
+    REQUIRE(utils::equals(*r.v11f(),step_size * 10.0 * 0.5));
     REQUIRE(!runner.has_scheduled_events());
+}
+
+
+TEST_CASE("NodeRunner: schedule sequence change (num steps)", "[node_runner]") {
+    double step_size = 0.1;
+    DummyNode node;
+    NodeRunner runner{&node, TestConfig().with_step_size(DomainDuration(step_size))};
+
+    auto cond = runner.conditional_n(5);
+
+    SECTION("const T&") {
+        runner.schedule_parameter_change(node.add_seq(), 10.0, std::move(cond));
+        auto r = runner.step_n(5);
+        REQUIRE(r.is_successful());
+        REQUIRE(utils::equals(*r.v11f(), step_size * 4.0 + 10.0));
+    }
+
+    SECTION("const Vec<T>&") {
+        runner.schedule_parameter_change(node.add_seq(), Vec{5.0, 6.0, 7.0}, std::move(cond));
+        auto r = runner.step_n(5);
+        REQUIRE(r.is_successful());
+        REQUIRE(utils::equals(*r.v11f(), step_size * 4.0 + 5.0)); // t + first value in sequence
+    }
+
+    SECTION("const Voices<T>&") {
+        runner.schedule_parameter_change(node.add_seq(), Voices<double>::transposed({2.0, 3.0, 4.0}),
+                                         std::move(cond));
+        auto r = runner.step_n(5);
+        REQUIRE(r.is_successful());
+        REQUIRE(utils::equals(*r.v11f(), step_size * 4.0 + 2.0)); // t + first value in sequence
+    }
+}
+
+
+TEST_CASE("NodeRunner: schedule variable change (time)", "[node_runner]") {
+    DummyNode node;
+
+    double step_size = 0.01;
+    NodeRunner runner{&node, TestConfig().with_step_size(DomainDuration(step_size))};
+
+    auto target_time = DomainTimePoint(10.0, DomainType::ticks);
+
+
+    SECTION("Before") {
+        auto anchor = Anchor::before;
+        auto cond = runner.conditional_time(target_time, anchor);
+        runner.schedule_parameter_change(node.mul_var(), 2.0, std::move(cond));
+
+        auto r = runner.step_until(target_time, anchor);
+        REQUIRE(r.is_successful());
+        REQUIRE(utils::in(*r.history_subset().v11f(), 10.0 - 2 * step_size, 10.0 - step_size));
+        REQUIRE(utils::in(*r.v11f(), (10.0 - step_size) * 2, 10.0 * 2));
+    }
+
+    SECTION("After") {
+        auto anchor = Anchor::after;
+        auto cond = runner.conditional_time(target_time, anchor);
+        runner.schedule_parameter_change(node.mul_var(), 2.0, std::move(cond));
+
+        auto r = runner.step_until(target_time, anchor);
+        REQUIRE(r.is_successful());
+        REQUIRE(utils::in(*r.history_subset().v11f(), 10.0 - step_size, 10.0));
+        REQUIRE(utils::in(*r.v11f(), 10.0 * 2, (10.0 + step_size) * 2));
+    }
+}
+
+
+TEST_CASE("NodeRunner: schedule variable change (output condition)", "[node_runner]") {
+    DummyNode node;
+
+    double step_size = 0.01;
+    NodeRunner runner{&node, TestConfig().with_step_size(DomainDuration(step_size))};
+
+    auto cond = runner.conditional_output(c11::gef(2.0));
+    runner.schedule_parameter_change(node.mul_var(), 2.0, std::move(cond));
+
+    auto r = runner.step_until(DomainTimePoint(2.0, DomainType::ticks), Anchor::after);
+    // Since conditional outputs are not evaluated until the end of the step, we expect no change to the output here
+    REQUIRE(r.is_successful());
+    REQUIRE(utils::in(*r.v11f(), 2.0, 2.0 + step_size));
+    // However, at the next step, we expect the change to have been applied
+    r = runner.step();
+    REQUIRE(r.is_successful());
+    REQUIRE(utils::in(*r.v11f(), 2.0 * 2, (2.0 + 2 * step_size) * 2));
+
 }

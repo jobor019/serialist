@@ -371,6 +371,10 @@ public:
     template<typename U>
     bool is() const { return std::holds_alternative<U>(m_condition); }
 
+    bool depends_on_step_output() const {
+        return std::holds_alternative<CompareTrue>(m_condition) || std::holds_alternative<CompareFalse>(m_condition);
+    }
+
 private:
     static std::size_t steps(const TimePoint& current, const DomainTimePoint& target, const DomainDuration& step_size) {
         auto distance = (target - current).as_type(step_size.get_type(), current.get_meter());
