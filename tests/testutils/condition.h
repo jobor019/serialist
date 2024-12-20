@@ -304,8 +304,8 @@ public:
     }
 
 
-    static RunnerCondition from_num_steps(std::size_t num_steps) {
-        return RunnerCondition(NumSteps{num_steps});
+    static RunnerCondition from_target_index(std::size_t target_index) {
+        return RunnerCondition(NumSteps{target_index});
     }
 
 
@@ -320,17 +320,18 @@ public:
 
     /** Naively predicts number of steps until stop condition,
      *  under the assumption that the step size is constant and meter doesn't change */
-    std::optional<std::size_t> predict_num_steps(const TimePoint& current
+    std::optional<std::size_t> predict_num_steps(const TimePoint& current_time
+                                                 , std::size_t current_step_index
                                                  , const DomainDuration& step_size) const {
         return std::visit([&](const auto& c) -> std::optional<std::size_t> {
             using VariantType = std::decay_t<decltype(c)>;
 
             if constexpr (std::is_same_v<VariantType, NumSteps>) {
-                return c.index;
+                return c.index - current_step_index;
             } else if constexpr (std::is_same_v<VariantType, After>) {
-                return steps(current, c.time, step_size) + 1;
+                return steps(current_time, c.time, step_size) + 1;
             } else if constexpr (std::is_same_v<VariantType, Before>) {
-                return steps(current, c.time, step_size);
+                return steps(current_time, c.time, step_size);
             } else {
                 return std::nullopt; // Cannot predict number of steps for other conditions
             }
@@ -338,19 +339,20 @@ public:
     }
 
 
-    /** Note: continue while condition is true */
-    bool evaluate(std::size_t step_index
+    bool matches(std::size_t step_index
                   , const TimePoint& t
-                  , const TimePoint& t_prev
+                  , const TimePoint& t_next
                   , const Vec<StepResult<T> >& v) const {
         return std::visit([&](const auto& cond) -> bool {
             using VariantType = std::decay_t<decltype(cond)>;
             if constexpr (std::is_same_v<VariantType, NumSteps>) {
+                // Cannot use step_index, since condition may be evaluated over multiple runs,
+                // where each run will reset the index to 0
                 return step_index >= cond.index;
             } else if constexpr (std::is_same_v<VariantType, After>) {
-                return t_prev >= cond.time;
-            } else if constexpr (std::is_same_v<VariantType, Before>) {
                 return t >= cond.time;
+            } else if constexpr (std::is_same_v<VariantType, Before>) {
+                return t_next >= cond.time;
             } else if constexpr (std::is_same_v<VariantType, CompareTrue>) {
                 return cond.condition->matches_last(v).value_or(false);
             } else if constexpr (std::is_same_v<VariantType, CompareFalse>) {

@@ -144,7 +144,7 @@ public:
         }
 
         config = config.value_or(m_config);
-        auto loop_condition = RunnerCondition<T>::from_num_steps(num_steps);
+        auto loop_condition = RunnerCondition<T>::from_target_index(m_current_step_index + num_steps);
 
         try {
             return step_internal(loop_condition, *config, config->domain_type());
@@ -159,8 +159,18 @@ public:
     }
 
 
-    void schedule_event(std::unique_ptr<NodeRunnerEvent<T>> event) {
+    void schedule_event(std::unique_ptr<NodeRunnerEvent<T> > event) {
         m_events.append(std::move(event));
+    }
+
+
+    void clear_scheduled_events() {
+        m_events.clear();
+    }
+
+
+    bool has_scheduled_events() const {
+        return !m_events.empty();
     }
 
 
@@ -205,13 +215,9 @@ public:
     //
     // GenerativeRunner& schedule_meter_change() { throw std::runtime_error("Not implemented"); }
 
-    const TestConfig& get_config() const {
-        return m_config;
-    }
-
-    const TimePoint& get_time() const {
-        return m_current_time;
-    }
+    const TestConfig& get_config() const { return m_config; }
+    const TimePoint& get_time() const { return m_current_time; }
+    std::size_t get_step_index() const { return m_current_step_index; }
 
 private:
     void check_runner_validity() {
@@ -221,54 +227,62 @@ private:
     }
 
 
+    bool is_first_step() const { return m_current_step_index == 0; }
+
+
     /**
      *  @throws test_error if invalid values / configurations are provided.
      *  @note   If intermediate steps fails, will not throw errors but rather return `RunResult<T>::failure`
      */
-    RunResult<T> step_internal(const RunnerCondition<T>& stop_condition, const TestConfig& config,
+    RunResult<T> step_internal(RunnerCondition<T>& step_condition, const TestConfig& config,
                                DomainType domain_type) {
         check_runner_validity();
 
         const auto& step_size = config.step_size;
 
         auto t_prev = m_current_time;
-        auto t = m_is_first_step ? t_prev : t_prev.incremented(step_size);
+        auto t = is_first_step() ? m_current_time : m_current_time.incremented(step_size);
+        auto t_next = t.incremented(step_size);
 
-        auto predicted_num_steps = stop_condition.predict_num_steps(t, step_size);
+        auto i = m_current_step_index + 1;
+
+        auto predicted_num_steps = step_condition.predict_num_steps(t, m_current_step_index, step_size);
         auto step_results = predicted_num_steps
                                 ? Vec<StepResult<T> >::allocated(*predicted_num_steps)
                                 : Vec<StepResult<T> >();
 
-        std::size_t i = 0;
-
         try {
-            while (!stop_condition.evaluate(i, t, t_prev, step_results)) {
+            // Based on the previous
+            bool done = step_condition.matches(m_current_step_index, t_prev, t, step_results);
+
+            while (!done) {
                 update_node_time(t);
-
-                process_events(i, t, t_prev, step_results);
-
-                step_results.append(process_step(i, t, domain_type));
+                process_events(i, t, t_next, step_results);
+                step_results.append(process_step(i - m_current_step_index, t, domain_type));
 
                 if (!step_results.last()->is_successful()) {
                     break;
                 }
 
+                done = step_condition.matches(i, t, t_next, step_results);
+
                 t_prev = t;
-                t += step_size;
+                t = t_next;
+                t_next += step_size;
                 ++i;
             }
         } catch (const test_error& e) {
             // Note: process_step already handles all exceptions (including test_error),
             //       the only errors caught here are the ones thrown by the loop_condition itself
-            step_results.append(StepResult<T>::failure(e.what(), t, i, domain_type));
+            step_results.append(StepResult<T>::failure(e.what(), t, i - m_current_step_index, domain_type));
         }
 
         if (step_results.empty()) {
             return RunResult<T>::failure("No steps executed", m_current_time, 0, domain_type);
         }
 
-        m_is_first_step = false;
         m_current_time = t_prev; // last executed time
+        m_current_step_index = i - 1;
 
         return RunResult<T>(step_results, domain_type);
     }
@@ -282,12 +296,12 @@ private:
     }
 
 
-    void process_events(std::size_t step_index, const TimePoint& current_time, const TimePoint& t_prev
+    void process_events(std::size_t step_index, const TimePoint& t, const TimePoint& t_next
                         , const Vec<StepResult<T> >& step_results) {
         Vec<std::size_t> indices_to_remove;
 
         for (std::size_t i = 0; i < m_events.size(); ++i) {
-            if (m_events[i]->process(step_index, current_time, t_prev, step_results)) {
+            if (m_events[i]->process(step_index, t, t_next, step_results)) {
                 indices_to_remove.append(i);
             }
         }
@@ -310,15 +324,14 @@ private:
     TestConfig m_config;
 
     TimePoint m_current_time;
+    std::size_t m_current_step_index = 0;
 
     Vec<Generative*> m_generatives;
     Node<T>* m_output_node = nullptr;
 
     DomainDuration m_default_step_size;
 
-    Vec<std::unique_ptr<NodeRunnerEvent<T>> > m_events;
-
-    bool m_is_first_step = true;
+    Vec<std::unique_ptr<NodeRunnerEvent<T> > > m_events;
 };
 }
 

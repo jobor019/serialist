@@ -24,7 +24,7 @@ public:
      */
     virtual bool process(std::size_t step_index
                          , const TimePoint& t
-                         , const TimePoint& t_prev
+                         , const TimePoint& t_next
                          , const Vec<StepResult<T> >& v) = 0;
 };
 
@@ -40,9 +40,9 @@ public:
     : m_condition(std::move(condition)), m_node(node), m_new_value(new_value) {}
 
 
-    bool process(std::size_t step_index, const TimePoint& t, const TimePoint& t_prev
+    bool process(std::size_t step_index, const TimePoint& t, const TimePoint& t_next
         , const Vec<StepResult<NodeRunnerType>>& v) override {
-        if (m_condition.evaluate(step_index, t, t_prev, v)) {
+        if (m_condition.matches(step_index, t, t_next, v)) {
             m_node.set_value(m_new_value);
             return true;
         }
