@@ -4,7 +4,7 @@
 #define SERIALIST_LOOPER_SCHEDULER_H
 
 #include <memory>
-#include "core/algo/temporal/transport.h"
+#include "core/temporal/transport.h"
 #include "voices.h"
 #include "multi_voiced.h"
 

@@ -3,9 +3,9 @@
 #define SERIALISTLOOPER_OSC_SENDER_H
 
 #include "core/generatives/stereotypes/base_stereotypes.h"
-#include "core/algo/temporal/trigger.h"
+#include "core/temporal/trigger.h"
 #include "osc.h"
-#include "core/algo/temporal/time_point.h"
+#include "core/temporal/time_point.h"
 
 namespace serialist {
 

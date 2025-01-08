@@ -3,11 +3,11 @@
 #define SERIALISTLOOPER_OSCILLATOR_H
 
 #include "core/algo/random.h"
-#include "core/algo/temporal/filters.h"
-#include "core/algo/temporal/phase_accumulator.h"
+#include "core/temporal/filters.h"
+#include "core/temporal/phase_accumulator.h"
 #include "core/algo/facet.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
-#include "core/algo/temporal/trigger.h"
+#include "core/temporal/trigger.h"
 #include "core/collections/multi_voiced.h"
 #include "sequence.h"
 #include "variable.h"

@@ -3,7 +3,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <iostream>
-#include "core/algo/temporal/filters.h"
+#include "core/temporal/filters.h"
 #include "core/collections/vec.h"
 #include "core/algo/random.h"
 #include "core/utility/math.h"

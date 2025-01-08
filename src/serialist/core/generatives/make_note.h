@@ -5,7 +5,7 @@
 #include "core/event.h"
 #include "core/generative.h"
 #include "core/algo/pitch/notes.h"
-#include "core/algo/temporal/trigger.h"
+#include "core/temporal/trigger.h"
 #include "core/algo/facet.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
 #include "sequence.h"

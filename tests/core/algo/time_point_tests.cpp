@@ -2,8 +2,8 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "core/algo/temporal/transport.h"
-#include "core/algo/temporal/time_point.h"
+#include "core/temporal/transport.h"
+#include "core/temporal/time_point.h"
 #include "matchers/matchers_common.h"
 
 using namespace serialist;

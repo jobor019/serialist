@@ -8,7 +8,7 @@
 #include "core/algo/fraction.h"
 #include "core/utility/math.h"
 #include "meter.h"
-#include "core/algo/temporal/time_point.h"
+#include "core/temporal/time_point.h"
 
 namespace serialist {
 

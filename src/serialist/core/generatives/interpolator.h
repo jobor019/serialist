@@ -6,7 +6,7 @@
 #include "core/collections/voices.h"
 #include "core/algo/facet.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
-#include "core/algo/temporal/trigger.h"
+#include "core/temporal/trigger.h"
 #include "core/utility/math.h"
 #include "sequence.h"
 #include "variable.h"

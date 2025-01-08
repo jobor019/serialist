@@ -5,11 +5,11 @@
 #include "core/generative.h"
 #include "core/param/socket_handler.h"
 #include "core/param/parameter_keys.h"
-#include "core/algo/temporal/time_gate.h"
+#include "core/temporal/time_gate.h"
 #include "core/collections/voices.h"
 #include "core/algo/facet.h"
-#include "core/algo/temporal/time_point.h"
-#include "algo/temporal/trigger.h"
+#include "core/temporal/time_point.h"
+#include "core/temporal/trigger.h"
 #include "collections/multi_voiced.h"
 
 namespace serialist {

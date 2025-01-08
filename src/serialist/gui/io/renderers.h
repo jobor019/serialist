@@ -5,7 +5,7 @@
 
 #include <vector>
 
-#include "core/algo/temporal/LEGACY_events.h"
+#include "core/temporal/LEGACY_events.h"
 #include "core/exceptions.h"
 
 #include "juce_audio_devices/juce_audio_devices.h"

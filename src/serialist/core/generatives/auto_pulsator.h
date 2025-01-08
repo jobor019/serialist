@@ -3,11 +3,11 @@
 //#define SERIALISTLOOPER_AUTO_PULSATOR_H
 //
 //#include "core/collections/scheduler.h"
-//#include "core/algo/temporal/pulse.h"
-//#include "core/algo/temporal/trigger.h"
+//#include "core/temporal/pulse.h"
+//#include "core/temporal/trigger.h"
 //#include "core/generatives/stereotypes/base_stereotypes.h"
 //#include "core/generatives/stereotypes/pulsator_stereotypes.h"
-//#include "core/algo/temporal/time_point.h"
+//#include "core/temporal/time_point.h"
 //
 //
 //

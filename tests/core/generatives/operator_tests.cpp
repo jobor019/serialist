@@ -3,7 +3,7 @@
 
 #include "serialist/core/policies/policies.h"
 #include "core/generatives/operator.h"
-#include "core/algo/temporal/time_point.h"
+#include "core/temporal/time_point.h"
 
 using namespace serialist;
 

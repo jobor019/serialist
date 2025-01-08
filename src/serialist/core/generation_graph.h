@@ -8,7 +8,7 @@
 #include "core/generative.h"
 #include "serialist/core/policies/policies.h"
 #include "core/param/parameter_keys.h"
-#include "core/algo/temporal/time_point.h"
+#include "core/temporal/time_point.h"
 
 namespace serialist {
 

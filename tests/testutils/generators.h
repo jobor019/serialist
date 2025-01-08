@@ -5,7 +5,7 @@
 #include <algo/facet.h>
 
 #include "algo/random.h"
-#include "algo/temporal/time_point.h"
+#include "core/temporal/time_point.h"
 
 
 namespace serialist::test {

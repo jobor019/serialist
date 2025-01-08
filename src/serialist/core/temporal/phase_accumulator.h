@@ -9,8 +9,8 @@
 #include "core/utility/math.h"
 #include "time_point.h"
 #include "core/utility/stateful.h"
-#include "core/algo/temporal/phase.h"
-#include "core/algo/temporal/time_point_generators.h"
+#include "core/temporal/phase.h"
+#include "core/temporal/time_point_generators.h"
 #include <map>
 
 namespace serialist {

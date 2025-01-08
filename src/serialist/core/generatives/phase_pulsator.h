@@ -2,10 +2,10 @@
 #ifndef SERIALIST_PHASE_PULSATOR_H
 #define SERIALIST_PHASE_PULSATOR_H
 
-#include "algo/temporal/trigger.h"
+#include "core/temporal/trigger.h"
 #include "collections/multi_voiced.h"
 #include "generatives/stereotypes/base_stereotypes.h"
-#include "algo/temporal/phase_pulse.h"
+#include "core/temporal/phase_pulse.h"
 #include "utility/stateful.h"
 #include "variable.h"
 #include "sequence.h"

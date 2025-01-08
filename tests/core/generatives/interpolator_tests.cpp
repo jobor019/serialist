@@ -4,7 +4,7 @@
 
 #include "core/policies/policies.h"
 #include "core/generatives/interpolator.h"
-#include "core/algo/temporal/time_point.h"
+#include "core/temporal/time_point.h"
 
 using namespace serialist;
 

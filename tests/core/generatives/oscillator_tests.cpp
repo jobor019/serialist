@@ -3,8 +3,8 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "core/policies/policies.h"
-#include "core/algo/temporal/phase_accumulator.h"
-#include "core/algo/temporal/time_point.h"
+#include "core/temporal/phase_accumulator.h"
+#include "core/temporal/time_point.h"
 #include "core/generatives/oscillator.h"
 
 #include <thread>

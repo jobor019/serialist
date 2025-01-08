@@ -2,12 +2,12 @@
 #ifndef SERIALISTLOOPER_PULSATOR_H
 #define SERIALISTLOOPER_PULSATOR_H
 
-#include "core/algo/temporal/pulse.h"
-#include "core/algo/temporal/trigger.h"
+#include "core/temporal/pulse.h"
+#include "core/temporal/trigger.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
-#include "core/algo/temporal/time_point.h"
+#include "core/temporal/time_point.h"
 #include "core/utility/stateful.h"
-#include "core/algo/temporal/time_point_generators.h"
+#include "core/temporal/time_point_generators.h"
 #include "variable.h"
 #include "sequence.h"
 #include <map>

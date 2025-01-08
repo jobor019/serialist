@@ -5,7 +5,7 @@
 #include "state/generative_component.h"
 #include "core/generatives/note_source_LEGACY.h"
 #include "bases/connector_component.h"
-#include "core/algo/temporal/transport.h"
+#include "core/temporal/transport.h"
 #include "core/collections/scheduler.h"
 #include "io/renderers.h"
 #include "core/param/parameter_policy.h"

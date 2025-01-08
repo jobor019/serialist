@@ -3,7 +3,7 @@
 //#define SERIALISTLOOPER_PARTIAL_NOTE_H
 //
 //#include <optional>
-//#include "core/algo/temporal/LEGACY_events.h"
+//#include "core/temporal/LEGACY_events.h"
 //#include "core/algo/facet.h"
 //
 // namespace serialist {

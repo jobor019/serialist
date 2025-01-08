@@ -5,7 +5,7 @@
 #include "juce_osc/juce_osc.h"
 #include "core/generative.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
-#include "core/algo/temporal/trigger.h"
+#include "core/temporal/trigger.h"
 
 namespace serialist {
 

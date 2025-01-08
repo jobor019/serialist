@@ -5,8 +5,8 @@
 
 #include "core/generative.h"
 #include "core/param/parameter_keys.h"
-#include "core/algo/temporal/trigger.h"
-#include "core/algo/temporal/time_point.h"
+#include "core/temporal/trigger.h"
+#include "core/temporal/time_point.h"
 
 namespace serialist {
 

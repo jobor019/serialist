@@ -2,7 +2,7 @@
 #define TESTUTILS_EVENTS_H
 #include "condition.h"
 #include "results.h"
-#include "algo/temporal/time_point.h"
+#include "core/temporal/time_point.h"
 #include "generatives/variable.h"
 #include "generatives/sequence.h"
 

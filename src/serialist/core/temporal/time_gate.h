@@ -3,8 +3,8 @@
 #define SERIALISTLOOPER_TIME_GATE_H
 
 #include <optional>
-#include "core/algo/temporal/transport.h"
-#include "core/algo/temporal/time_point.h"
+#include "core/temporal/transport.h"
+#include "core/temporal/time_point.h"
 
 namespace serialist {
 
