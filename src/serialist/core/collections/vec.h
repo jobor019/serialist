@@ -446,6 +446,10 @@ public:
      * @param ascending If true, assumes vector is sorted in ascending order. If false, assumes descending order.
      */
     void insert_sorted(T value, bool ascending = true) {
+        static_assert(std::is_invocable_v<std::less<>, const T&, const T&>,
+              "T must be comparable with std::less.");
+        static_assert(std::is_invocable_v<std::greater<>, const T&, const T&>, "T must be comparable with std::greater.");
+
         if (ascending) {
             auto it = std::lower_bound(m_vector.begin(), m_vector.end(), value);
             m_vector.insert(it, std::move(value));

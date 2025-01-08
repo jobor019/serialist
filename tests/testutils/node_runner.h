@@ -6,6 +6,7 @@
 
 #include "condition.h"
 #include "events.h"
+#include "collections/queue.h"
 
 
 namespace serialist::test {
@@ -64,31 +65,32 @@ public:
 template<typename T>
 class NodeRunner {
 
+    struct MeterChange {
+        std::size_t bar{};
+        Meter meter;
+
+        bool operator<(const MeterChange& other) const { return bar < other.bar; }
+        bool operator>(const MeterChange& other) const { return bar > other.bar; }
+    };
+
     class MeterChanges {
     public:
-        struct MeterChange {
-            std::size_t bar{};
-            Meter meter;
-        };
-
         void schedule(std::size_t bar, const Meter& meter) {
             // If a meter change already exists at the given bar, override it
             m_meter_changes.remove([bar](const MeterChange& c) { return c.bar == bar; });
             m_meter_changes.insert_sorted({bar, meter});
         }
 
-        std::optional<Meter> peek(const TimePoint& t) {
-            return peek(static_cast<std::size_t>(std::floor(t.get_bar())));
-        }
+        void schedule(const MeterChange& m) { schedule(m.bar, m.meter); }
 
         std::optional<Meter> peek(std::size_t bar) const {
             if (auto index = m_meter_changes.index([bar](const MeterChange& c) { return c.bar == bar; })) {
-                return m_meter_changes.at(index);
+                return {m_meter_changes[*index].meter};
             }
             return std::nullopt;
         }
 
-        std::optional<Meter> pop(std::size_t bar) {
+        std::optional<MeterChange> pop(std::size_t bar) {
             return m_meter_changes.pop_value([bar](const MeterChange& c) { return c.bar == bar; });
         }
 
@@ -97,6 +99,8 @@ class NodeRunner {
     private:
         Vec<MeterChange> m_meter_changes;
     };
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 public:
     explicit NodeRunner(Node<T>* output_node = nullptr
@@ -305,14 +309,18 @@ private:
 
         const auto& step_size = config.step_size;
 
+        auto applied_meter_changes = Queue<std::optional<MeterChange>>(2);
+
         auto t_prev = m_current_time;
         auto t = m_current_time;
-        if (is_first_step())
-            increment_time_point(t, step_size);
-
+        if (!is_first_step()) {
+            applied_meter_changes.push(increment_time_point(t, step_size));
+        } else {
+            applied_meter_changes.push(try_update_meter(t));
+        }
 
         auto t_next = t;
-        increment_time_point(t_next, step_size);
+        applied_meter_changes.push(increment_time_point(t_next, step_size));
 
         auto i = m_current_step_index + 1;
 
@@ -342,7 +350,7 @@ private:
 
                 t_prev = t;
                 t = t_next;
-                increment_time_point(t_next);
+                applied_meter_changes.push(increment_time_point(t_next, step_size));
                 ++i;
             }
         } catch (const test_error& e) {
@@ -358,6 +366,10 @@ private:
         m_current_time = t_prev;      // last executed time
         m_current_step_index = i - 1; // last executed step
 
+        // If either t or t_next applied (consumed) a MeterChange, we need to push these back onto the queue as we
+        // at m_current_time haven't processed them yet. Most of the time, this will just contain two std::nullopt
+        push_back_unused_meter_changes(applied_meter_changes);
+
         return RunResult<T>(step_results, domain_type);
     }
 
@@ -365,20 +377,33 @@ private:
      * (a) the current TimePoint is exactly at a barline and
      * (b) a meter change is scheduled at that exact bar
      */
-    void update_meter(TimePoint& t) {
+    std::optional<MeterChange> try_update_meter(TimePoint& t) {
         auto current_bar = static_cast<std::size_t>(std::floor(t.get_bar()));
         if (auto meter = m_scheduled_meter_changes.peek(current_bar)) {
-            if (auto successful_meter_change = t.try_set_meter(meter)) {
-                m_scheduled_meter_changes.pop(current_bar);
+            if (auto successful_meter_change = t.try_set_meter(*meter)) {
+                return m_scheduled_meter_changes.pop(current_bar);
             }
         }
+        return std::nullopt;
     }
 
-    void increment_time_point(TimePoint& t, const DomainDuration& step_size) {
+    std::optional<MeterChange> increment_time_point(TimePoint& t, const DomainDuration& step_size) {
         auto next_bar = t.next_bar();
         if (auto meter = m_scheduled_meter_changes.peek(next_bar)) {
-            if (auto successful_meter_change = t.try_set_meter(meter)) {
-                m_scheduled_meter_changes.pop(next_bar);
+            if (auto successful_meter_change = t.increment_with_meter_change(step_size, *meter)) {
+                return m_scheduled_meter_changes.pop(next_bar);
+            }
+        } else {
+            t.increment(step_size);
+        }
+
+        return std::nullopt;
+    }
+
+    void push_back_unused_meter_changes(Queue<std::optional<MeterChange>>& queue) {
+        for (const auto& meter_change : queue.pop_all()) {
+            if (meter_change) {
+                m_scheduled_meter_changes.schedule(*meter_change);
             }
         }
     }

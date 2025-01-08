@@ -117,6 +117,7 @@ public:
      * `new_meter` at the start of the bar and return true, otherwise keep old meter and return false.
      */
     bool increment_with_meter_change(double tick_increment, const Meter& new_meter);
+    bool increment_with_meter_change(const DomainDuration& delta, const Meter& new_meter);
 
 
     bool try_set_meter(const Meter& new_meter) {
@@ -133,7 +134,7 @@ public:
     std::pair<TimePoint, bool> incremented_with_meter_change(double tick_increment, const Meter& new_meter) const;
 
     double ticks_to_next_bar() const { return m_meter.bars2ticks(std::ceil(m_bar) - m_bar); }
-    bool is_at_barline() const { return utils::equals(utils::modulo(m_bar, 1.0), 1.0); }
+    bool is_at_barline() const { return utils::equals(utils::modulo(m_bar, 1.0), 0.0); }
 
 
     std::size_t next_bar() const {
@@ -561,6 +562,14 @@ inline bool TimePoint::increment_with_meter_change(double tick_increment, const 
 }
 
 
+inline bool TimePoint::increment_with_meter_change(const DomainDuration& delta, const Meter& new_meter) {
+    auto tick_increment = delta.as_type(DomainType::ticks, m_meter).get_value();
+    return increment_with_meter_change(tick_increment, new_meter);
+}
+
+
+
+
 inline TimePoint TimePoint::incremented(double tick_increment) const {
     TimePoint t(*this);
     t.increment(tick_increment);
@@ -573,6 +582,7 @@ inline TimePoint TimePoint::incremented(const DomainDuration& duration) const {
     t += duration;
     return t;
 }
+
 
 
 inline std::pair<TimePoint, bool> TimePoint::incremented_with_meter_change(double tick_increment

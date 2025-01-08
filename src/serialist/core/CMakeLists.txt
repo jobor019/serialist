@@ -2,16 +2,18 @@ SET(CORE_NAME core)
 
 add_library(${CORE_NAME}
         INTERFACE # TODO: Temporary - shouldn't be a header-only library in the end
-        ${CMAKE_CURRENT_SOURCE_DIR}/algo/temporal/equal_duration_sampling.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/algo/temporal/filters.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/algo/temporal/meter.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/algo/temporal/phase_accumulator.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/algo/temporal/pulse.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/algo/temporal/time_gate.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/algo/temporal/time_point.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/algo/temporal/time_point_generators.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/algo/temporal/transport.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/algo/temporal/trigger.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/temporal/equal_duration_sampling.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/temporal/filters.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/temporal/meter.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/temporal/phase.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/temporal/phase_accumulator.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/temporal/phase_pulse.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/temporal/pulse.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/temporal/time_gate.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/temporal/time_point.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/temporal/time_point_generators.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/temporal/transport.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/temporal/trigger.h
 
         ${CMAKE_CURRENT_SOURCE_DIR}/algo/pitch/notes.h
 
@@ -71,9 +73,9 @@ add_library(${CORE_NAME}
         policies/parameter_policy.h
         policies/socket_policy.h
         utility/mapping.h
-        algo/temporal/phase_pulse.h
         generatives/phase_pulsator.h
-        algo/temporal/phase.h
+
+
 )
 
 add_library(${PROJECT_NAME}::${CORE_NAME} ALIAS ${CORE_NAME})
