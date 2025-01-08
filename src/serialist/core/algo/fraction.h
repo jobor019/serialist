@@ -1,44 +1,38 @@
-
 #ifndef SERIALISTLOOPER_FRACTION_H
 #define SERIALISTLOOPER_FRACTION_H
 
 #include <cmath>
-#include <chrono>
 #include <sstream>
 
 #include "core/collections/vec.h"
 
-namespace serialist {
 
+namespace serialist {
 class Fraction {
 public:
-
     Fraction() : Fraction(0, 1) {}
+
 
     Fraction(long num, long denom) : n(num), d(denom) {
         assert(d > 0);
     }
 
 
-    explicit operator double() const {
-        return static_cast<double>(n) / static_cast<double>(d);
-    }
+    explicit operator double() const { return static_cast<double>(n) / static_cast<double>(d); }
+
+
+    bool operator==(const Fraction& other) const { return n == other.n && d == other.d; }
+    bool operator!=(const Fraction& other) const { return n != other.n || d != other.d; }
 
     bool operator>(const Fraction& other) const { return n * other.d > d * other.n; }
-
     bool operator<(const Fraction& other) const { return n * other.d < d * other.n; }
-
     bool operator>=(const Fraction& other) const { return n * other.d >= d * other.n; }
-
     bool operator<=(const Fraction& other) const { return n * other.d <= d * other.n; }
 
 
     bool operator>(const double& other) const { return static_cast<double>(n) > other * static_cast<double>(d); }
-
     bool operator<(const double& other) const { return static_cast<double>(n) < other * static_cast<double>(d); }
-
     bool operator>=(const double& other) const { return static_cast<double>(n) >= other * static_cast<double>(d); }
-
     bool operator<=(const double& other) const { return static_cast<double>(n) <= other * static_cast<double>(d); }
 
     long sign() const { return utils::sign(n); }
@@ -47,9 +41,6 @@ public:
     long n;
     long d;
 };
-
-
-
 
 
 // ==============================================================================================
@@ -61,13 +52,15 @@ class ExtendedFraction {
 public:
     ExtendedFraction() : ExtendedFraction(0, 1, 1) {}
 
+
     ExtendedFraction(long integral_part, long num, long denom)
-            : ExtendedFraction(integral_part, Fraction(num, denom)) {}
+        : ExtendedFraction(integral_part, Fraction(num, denom)) {}
+
 
     ExtendedFraction(long integral_part, Fraction fractional_part)
-            : m_integral_part(integral_part), m_fractional_part(fractional_part) {
+        : m_integral_part(integral_part), m_fractional_part(fractional_part) {
         assert(utils::sign(m_integral_part) == m_fractional_part.sign()
-               || m_integral_part == 0 || m_fractional_part.n == 0);
+            || m_integral_part == 0 || m_fractional_part.n == 0);
     }
 
 
@@ -113,8 +106,8 @@ public:
         double integral_part = std::floor(y);
         double fractional_part = y - integral_part;
 
-        long a = 0, b = 1;  // Left fraction (a / b)
-        long c = 1, d = 1;  // Right fraction (c / d)
+        long a = 0, b = 1; // Left fraction (a / b)
+        long c = 1, d = 1; // Right fraction (c / d)
 
         while (b + d <= max_denominator) {
             long mediant_numerator = a + c;
@@ -144,9 +137,11 @@ public:
         }
     }
 
+
     enum class Format {
         improper, mixed, list
     };
+
 
     std::string to_string(Format fmt = Format::mixed
                           , bool always_include_sign = false
@@ -158,6 +153,8 @@ public:
                 return format_mixed_number(always_include_sign, sep);
             case Format::list:
                 return format_fraction_list(sep);
+            default:
+                throw std::runtime_error("Unknown format");
         }
     }
 
@@ -196,10 +193,9 @@ public:
         return utils::sign(m_integral_part);
     }
 
-
 private:
     static ExtendedFraction normalized(double integral_part, long sign, long n, long d, long min_allowed_denom) {
-        return normalized(integral_part, sign, n, d, Vec<long>{min_allowed_denom});
+        return normalized(integral_part, sign, n, d, Vec{min_allowed_denom});
     }
 
 
@@ -266,8 +262,6 @@ private:
     long m_integral_part;
     Fraction m_fractional_part;
 };
-
-
 } // namespace serialist
 
 

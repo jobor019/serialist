@@ -9,6 +9,33 @@
 
 
 namespace serialist::test {
+template<typename T>
+class NodeRunner;
+
+template<typename T>
+class MeterChangeEvent : public NodeRunnerEvent<T> {
+public:
+    MeterChangeEvent(const Meter& meter, std::size_t bar_number)
+        : m_meter(meter)
+          , m_condition(RunnerCondition<T>::from_time_point(DomainTimePoint(static_cast<double>(bar_number), DomainType::bars), Anchor::after)) {
+    }
+
+
+    bool process(std::size_t step_index, const TimePoint& t, const TimePoint& t_next,
+                 const Vec<StepResult<T> >& v) override;
+
+
+    bool is_post_condition() const override { return false; }
+
+private:
+    const Meter& m_meter;
+
+    const RunnerCondition<T> m_condition;
+};
+
+
+// ==============================================================================================
+
 class TestConfig {
 public:
     const inline static auto DEFAULT_STEP_SIZE = DomainDuration(0.01, DomainType::ticks);
@@ -182,6 +209,15 @@ public:
             , value
             , std::move(trigger_condition)
         ));
+    }
+
+
+    void schedule_meter_change(const Meter& new_meter, std::size_t bar_number) {
+        if (m_current_time.get_bar() > static_cast<double>(bar_number)) {
+            throw test_error("Cannot schedule meter change in the past");
+        }
+
+        schedule_event(std::make_unique<MeterChangeEvent<T>>(new_meter, bar_number, *this));
     }
 
 
@@ -372,6 +408,7 @@ private:
         }
     }
 
+    friend class MeterChangeEvent<T>;
 
     TestConfig m_config;
 
@@ -386,6 +423,21 @@ private:
     Vec<std::unique_ptr<NodeRunnerEvent<T> > > m_pre_condition_events;
     Vec<std::unique_ptr<NodeRunnerEvent<T> > > m_post_condition_events;
 };
+
+
+// ==============================================================================================
+
+
+template<typename T>
+bool MeterChangeEvent<T>::process(std::size_t step_index, const TimePoint& t
+                                  , const TimePoint& t_next, const Vec<StepResult<T> >& v) {
+    if (m_condition.matches(step_index, t, t_next, v)) {
+        // TODO
+        return true;
+    }
+    return false;
 }
+}
+
 
 #endif // TESTUTILS_NODE_RUNNER_H

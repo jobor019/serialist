@@ -5,7 +5,7 @@ add_executable(core_tests EXCLUDE_FROM_ALL
         ${CMAKE_CURRENT_SOURCE_DIR}/algo/filters_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/algo/histogram_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/algo/random_tests.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/algo/transport_tests.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/algo/time_point_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/algo/voices_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/algo/fraction_tests.cpp
 

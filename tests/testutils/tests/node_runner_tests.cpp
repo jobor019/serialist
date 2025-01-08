@@ -391,5 +391,17 @@ TEST_CASE("NodeRunner: schedule variable change (output condition)", "[node_runn
     r = runner.step();
     REQUIRE(r.is_successful());
     REQUIRE(utils::in(*r.v11f(), 2.0 * 2, (2.0 + 2 * step_size) * 2));
+}
 
+TEST_CASE("NodeRunner: schedule meter change", "[node_runner]") {
+    DummyNode node;
+
+    NodeRunner runner{&node};
+
+    runner.schedule_meter_change(Meter{2, 8}, 2);
+
+    auto r = runner.step_until(DomainTimePoint(2.0, DomainType::bars), Anchor::before);
+    REQUIRE(r.last().time().get_meter() == Meter{4, 4}); // initial meter
+    r = runner.step();
+    REQUIRE(r.last().time().get_meter() == Meter{2, 8});
 }

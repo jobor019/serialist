@@ -46,9 +46,28 @@ public:
               , m_relative_beat(relative_beat.value_or(meter.ticks2bars_beats(tick).second))
               , m_bar(bar.value_or(meter.ticks2bars(tick)))
               , m_meter(meter)
-              , m_transport_running(transport_running) {}
+              , m_transport_running(transport_running) {
+        assert(tempo > 0.0);
+    }
 
     static TimePoint zero() { return TimePoint(); }
+
+    /**
+     * Typically used at construction time. Rewrites absolute/relative beat & bar in relation to tick.
+     * To change meter of running time point, use `increment_with_meter_change` */
+    TimePoint& with_meter(const Meter& meter) {
+        m_meter = meter;
+        m_absolute_beat = meter.ticks2beats(m_tick);
+        m_relative_beat = meter.ticks2bars_beats(m_tick).second;
+        m_bar = meter.ticks2bars(m_tick);
+        return *this;
+    }
+
+    TimePoint& with_tempo(double tempo) {
+        assert(tempo > 0.0);
+        m_tempo = tempo;
+        return *this;
+    }
 
     // double arithmetic operators
     TimePoint operator+(double tick_increment) const;
@@ -87,10 +106,20 @@ public:
 
     void increment(int64_t delta_nanos);
     void increment(double tick_increment);
-    void increment(const DomainDuration& tick_increment);
+    void increment(const DomainDuration& delta);
+
+    /**
+     * Increment the `TimePoint` by `tick_increment`. If the increment results in a bar change, change the meter to
+     * `new_meter` at the start of the bar and return true, otherwise keep old meter and return false.
+     */
+    bool increment_with_meter_change(double tick_increment, const Meter& new_meter);
 
     TimePoint incremented(double tick_increment) const;
     TimePoint incremented(const DomainDuration& duration) const;
+    TimePoint incremented_with_meter_change(double tick_increment, const Meter& new_meter) const;
+
+    double ticks_to_next_bar() const { return m_meter.bars2ticks(std::ceil(m_bar) - m_bar); }
+    bool increment_allows_meter_change(double tick_increment) const;
 
     double distance_to(double time_value, DomainType type) const;
 
@@ -116,24 +145,28 @@ public:
     }
 
 
-    std::string to_string() const {
-        return "TimePoint("
-               "tick=" + std::to_string(m_tick)
-               + ", beat=" + std::to_string(m_absolute_beat)
-               + ", bar=" + std::to_string(m_bar)
-               + ", tempo=" + std::to_string(m_tempo)
-               + ", meter=" + m_meter.to_string()
-               + ", transport_running=" + (m_transport_running ? "true" : "false")
-               + ")";
+    std::string to_string(std::optional<std::size_t> num_decimals = std::nullopt) const {
+        std::stringstream ss;
+
+        if (num_decimals) ss << std::fixed << std::setprecision(static_cast<int>(*num_decimals));
+
+        ss << "TimePoint(tick=" << m_tick
+           << ", abs_beat=" << m_absolute_beat
+           << ", rel_beat=" << m_relative_beat
+           << ", bar=" << m_bar
+           << ", tempo=" << m_tempo
+           << ", meter=" << m_meter.to_string() << ")";
+
+        return ss.str();
     }
 
 
 private:
-    double m_tick;
+    double m_tick;          // tick number since start, where 1.0 ticks equals 1 quarter note (indep. of meter)
     double m_tempo;
-    double m_absolute_beat;
-    double m_relative_beat;
-    double m_bar;
+    double m_absolute_beat; // beat number since start (fraction corresponds to position in current beat)
+    double m_relative_beat; // beat number since the last bar (fraction corresponds to position in current beat)
+    double m_bar;           // bar number since start (fraction corresponds to position in current bar)
     Meter m_meter;
     bool m_transport_running;
 
@@ -433,8 +466,7 @@ inline DomainTimePoint TimePoint::operator-(const DomainDuration& duration) cons
 
 
 inline TimePoint& TimePoint::operator+=(const DomainDuration& duration) {
-    auto tick_increment = duration.as_type(DomainType::ticks, m_meter).get_value();
-    increment(tick_increment);
+    increment(duration);
     return *this;
 }
 
@@ -454,8 +486,40 @@ inline void TimePoint::increment(double tick_increment) {
     m_tick += tick_increment;
     auto beat_increment = m_meter.ticks2beats(tick_increment);
     m_absolute_beat += beat_increment;
-    m_relative_beat = utils::modulo(m_relative_beat + beat_increment, m_meter.duration());
+    m_relative_beat = utils::modulo(m_relative_beat + beat_increment, static_cast<double>(m_meter.get_numerator()));
     m_bar += m_meter.ticks2bars(tick_increment);
+}
+
+inline void TimePoint::increment(const DomainDuration& delta) {
+    auto tick_increment = delta.as_type(DomainType::ticks, m_meter).get_value();
+    increment(tick_increment);
+}
+
+
+inline bool TimePoint::increment_with_meter_change(double tick_increment, const Meter& new_meter) {
+    // Case 1: Function called exactly at the start of a new bar - change meter before incrementing
+    if (utils::equals(utils::modulo(m_bar, 1.0), 1.0)) {
+        m_meter = new_meter;
+        increment(tick_increment);
+        return true;
+    }
+
+    double ticks_in_current_meter = ticks_to_next_bar();
+
+    // Case 2: Tick increment doesn't reach the next bar line - no meter change
+    if (tick_increment < ticks_in_current_meter) {
+        increment(tick_increment);
+        return false;
+    }
+
+    // Case 3: Tick increment reaches or goes past the next bar line
+    increment(ticks_in_current_meter);
+    m_meter = new_meter;
+
+    if (auto diff = tick_increment - ticks_in_current_meter; diff > 0) {
+        increment(diff);
+    }
+    return true;
 }
 
 
@@ -470,6 +534,19 @@ inline TimePoint TimePoint::incremented(const DomainDuration& duration) const {
     TimePoint t(*this);
     t += duration;
     return t;
+}
+
+
+inline TimePoint TimePoint::incremented_with_meter_change(double tick_increment, const Meter& new_meter) const {
+    TimePoint t(*this);
+    t.increment_with_meter_change(tick_increment, new_meter);
+    return t;
+}
+
+
+inline bool TimePoint::increment_allows_meter_change(double tick_increment) const {
+    // Meter change can occur either if the current bar % 1.0 == 0.0 or if tick increment transitions into next bar
+    return tick_increment > ticks_to_next_bar();
 }
 
 

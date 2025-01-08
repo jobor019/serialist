@@ -118,6 +118,12 @@ private:
 
     RunnerCondition<NodeRunnerType> m_condition;
 };
+
+
+// ==============================================================================================
+
+/** Meter and tempo events: see node_runner.h */
+
 }
 
 #endif //TESTUTILS_EVENTS_H
