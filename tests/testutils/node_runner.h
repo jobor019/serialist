@@ -113,6 +113,9 @@ public:
         }
     }
 
+    NodeRunner(Node<T>* output_node , const TimePoint& initial_time)
+        : NodeRunner(output_node, TestConfig(), initial_time) {}
+
 
     NodeRunner& add_generative(Generative& g) {
         if (!m_generatives.contains(&g)) {
@@ -226,6 +229,7 @@ public:
     }
 
 
+
     void schedule_meter_change(const Meter& new_meter, std::optional<std::size_t> bar_number) {
         if (!bar_number) {
             bar_number = m_current_time.next_bar();
@@ -236,6 +240,10 @@ public:
         }
 
         m_scheduled_meter_changes.schedule(*bar_number, new_meter);
+    }
+
+    void schedule_meter_change(int numerator, int denominator, std::optional<std::size_t> bar_number) {
+        schedule_meter_change(Meter(numerator, denominator), bar_number);
     }
 
 

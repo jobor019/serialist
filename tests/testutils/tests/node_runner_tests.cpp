@@ -395,13 +395,55 @@ TEST_CASE("NodeRunner: schedule variable change (output condition)", "[node_runn
 
 TEST_CASE("NodeRunner: schedule meter change", "[node_runner]") {
     DummyNode node;
-
     NodeRunner runner{&node};
 
-    runner.schedule_meter_change(Meter{2, 8}, 2);
+    SECTION("Schedule at current time (at start of bar)") {
+        // Schedule as soon as possible = at the start of the current bar if bar % 1.0 ≈ 0.0
+        runner.schedule_meter_change(Meter{2, 8}, std::nullopt);
+        auto r = runner.step();
+        REQUIRE(r.last().time().get_meter() == Meter{2, 8});
+    }
 
-    auto r = runner.step_until(DomainTimePoint(2.0, DomainType::bars), Anchor::before);
-    REQUIRE(r.last().time().get_meter() == Meter{4, 4}); // initial meter
-    r = runner.step();
-    REQUIRE(r.last().time().get_meter() == Meter{2, 8});
+    SECTION("Schedule as soon as possible (in the middle of bar)") {
+        runner.step_until(DomainTimePoint::bars(0.5), Anchor::after);
+        runner.schedule_meter_change(Meter{2, 8}, std::nullopt);
+        auto r = runner.step_until(DomainTimePoint::bars(1.0), Anchor::before);
+        REQUIRE(r.last().time().get_meter() == Meter{4, 4}); // initial meter
+        r = runner.step();
+        REQUIRE(r.last().time().get_meter() == Meter{2, 8});
+    }
+
+    SECTION("Schedule at future bar") {
+        runner.schedule_meter_change(Meter{2, 8}, 10);
+
+        auto r = runner.step_until(DomainTimePoint(10.0, DomainType::bars), Anchor::before);
+        REQUIRE(r.last().time().get_meter() == Meter{4, 4}); // initial meter
+        r = runner.step();
+        REQUIRE(r.last().time().get_meter() == Meter{2, 8});
+    }
+
+    SECTION("Multiple scheduled meter changes") {
+        runner.schedule_meter_change(Meter{1, 8}, 2);
+        runner.schedule_meter_change(Meter{2, 8}, 4);
+
+        auto r = runner.step_until(DomainTimePoint(2.0, DomainType::bars), Anchor::before);
+        REQUIRE(r.last().time().get_meter() == Meter{4, 4}); // initial meter
+
+        r = runner.step();
+        REQUIRE(r.last().time().get_meter() == Meter{1, 8});
+        r = runner.step_until(DomainTimePoint(4.0, DomainType::bars), Anchor::before);
+        REQUIRE(r.last().time().get_meter() == Meter{1, 8});
+
+        r = runner.step();
+        REQUIRE(r.last().time().get_meter() == Meter{2, 8});
+    }
+
+    SECTION("Schedule at elapsed time") {
+        auto m = Meter{4, 4};
+        runner.step_until(DomainTimePoint::bars(0.5), Anchor::after);
+        REQUIRE_THROWS(runner.schedule_meter_change(m, 0));
+        runner.step_until(DomainTimePoint::bars(4), Anchor::after);
+        REQUIRE_THROWS(runner.schedule_meter_change(m, 0));
+        REQUIRE_THROWS(runner.schedule_meter_change(m, 3));
+    }
 }
