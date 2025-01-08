@@ -893,6 +893,21 @@ TEST_CASE("Test insert function", "[insert]") {
 }
 
 
+TEST_CASE("Test insert_sorted function", "[insert_sorted]") {
+    SECTION("Ascending order") {
+        Vec<int> v = {1, 3, 5, 7};
+        v.insert_sorted(4);
+        REQUIRE(v == Vec<int>({1, 3, 4, 5, 7}));
+    }
+
+    SECTION("Descending order") {
+        Vec<int> v = {7, 5, 3, 1};
+        v.insert_sorted(4, false);
+        REQUIRE(v == Vec<int>({7, 5, 4, 3, 1}));
+    }
+}
+
+
 TEST_CASE("Test pop_value" "[pop]") {
     Vec v({1, 2, 3, 4});
 

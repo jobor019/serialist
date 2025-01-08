@@ -9,33 +9,6 @@
 
 
 namespace serialist::test {
-template<typename T>
-class NodeRunner;
-
-template<typename T>
-class MeterChangeEvent : public NodeRunnerEvent<T> {
-public:
-    MeterChangeEvent(const Meter& meter, std::size_t bar_number)
-        : m_meter(meter)
-          , m_condition(RunnerCondition<T>::from_time_point(DomainTimePoint(static_cast<double>(bar_number), DomainType::bars), Anchor::after)) {
-    }
-
-
-    bool process(std::size_t step_index, const TimePoint& t, const TimePoint& t_next,
-                 const Vec<StepResult<T> >& v) override;
-
-
-    bool is_post_condition() const override { return false; }
-
-private:
-    const Meter& m_meter;
-
-    const RunnerCondition<T> m_condition;
-};
-
-
-// ==============================================================================================
-
 class TestConfig {
 public:
     const inline static auto DEFAULT_STEP_SIZE = DomainDuration(0.01, DomainType::ticks);
@@ -86,14 +59,51 @@ public:
 
 // ==============================================================================================
 
+
+
 template<typename T>
 class NodeRunner {
+
+    class MeterChanges {
+    public:
+        struct MeterChange {
+            std::size_t bar{};
+            Meter meter;
+        };
+
+        void schedule(std::size_t bar, const Meter& meter) {
+            // If a meter change already exists at the given bar, override it
+            m_meter_changes.remove([bar](const MeterChange& c) { return c.bar == bar; });
+            m_meter_changes.insert_sorted({bar, meter});
+        }
+
+        std::optional<Meter> peek(const TimePoint& t) {
+            return peek(static_cast<std::size_t>(std::floor(t.get_bar())));
+        }
+
+        std::optional<Meter> peek(std::size_t bar) const {
+            if (auto index = m_meter_changes.index([bar](const MeterChange& c) { return c.bar == bar; })) {
+                return m_meter_changes.at(index);
+            }
+            return std::nullopt;
+        }
+
+        std::optional<Meter> pop(std::size_t bar) {
+            return m_meter_changes.pop_value([bar](const MeterChange& c) { return c.bar == bar; });
+        }
+
+        bool empty() const { return m_meter_changes.empty(); }
+
+    private:
+        Vec<MeterChange> m_meter_changes;
+    };
+
 public:
     explicit NodeRunner(Node<T>* output_node = nullptr
                         , const TestConfig& config = TestConfig()
                         , const TimePoint& initial_time = TimePoint{})
         : m_config(config)
-          , m_current_time(initial_time) {
+        , m_current_time(initial_time) {
         if (output_node) {
             set_output_node(*output_node);
         }
@@ -137,7 +147,7 @@ public:
     }
 
 
-    RunResult<T> step_until(std::unique_ptr<GenericCondition<T> > stop_condition
+    RunResult<T> step_until(std::unique_ptr<GenericCondition<T>> stop_condition
                             , std::optional<TestConfig> config = std::nullopt) noexcept {
         config = config.value_or(m_config);
         try {
@@ -148,7 +158,7 @@ public:
     }
 
 
-    RunResult<T> step_while(std::unique_ptr<GenericCondition<T> > loop_condition
+    RunResult<T> step_while(std::unique_ptr<GenericCondition<T>> loop_condition
                             , std::optional<TestConfig> config = std::nullopt) noexcept {
         config = config.value_or(m_config);
         try {
@@ -179,7 +189,7 @@ public:
     // Scheduling
     // ==============================================================================================
 
-    void schedule_event(std::unique_ptr<NodeRunnerEvent<T> > event) {
+    void schedule_event(std::unique_ptr<NodeRunnerEvent<T>> event) {
         if (event->is_post_condition()) {
             m_post_condition_events.append(std::move(event));
         } else {
@@ -192,7 +202,7 @@ public:
     void schedule_parameter_change(Variable<OutputType, StoredType>& variable
                                    , const StoredType& value
                                    , RunnerCondition<T>&& trigger_condition) {
-        schedule_event(std::make_unique<VariableChangeEvent<T, OutputType, StoredType> >(
+        schedule_event(std::make_unique<VariableChangeEvent<T, OutputType, StoredType>>(
             variable
             , value
             , std::move(trigger_condition)
@@ -204,7 +214,7 @@ public:
     void schedule_parameter_change(Sequence<OutputType, StoredType>& sequence
                                    , const VoicesLike& value
                                    , RunnerCondition<T>&& trigger_condition) {
-        schedule_event(std::make_unique<SequenceChangeEvent<T, OutputType, StoredType> >(
+        schedule_event(std::make_unique<SequenceChangeEvent<T, OutputType, StoredType>>(
             sequence
             , value
             , std::move(trigger_condition)
@@ -212,12 +222,16 @@ public:
     }
 
 
-    void schedule_meter_change(const Meter& new_meter, std::size_t bar_number) {
-        if (m_current_time.get_bar() > static_cast<double>(bar_number)) {
+    void schedule_meter_change(const Meter& new_meter, std::optional<std::size_t> bar_number) {
+        if (!bar_number) {
+            bar_number = m_current_time.next_bar();
+        }
+
+        if (m_current_time.get_bar() > static_cast<double>(*bar_number)) {
             throw test_error("Cannot schedule meter change in the past");
         }
 
-        schedule_event(std::make_unique<MeterChangeEvent<T>>(new_meter, bar_number, *this));
+        m_scheduled_meter_changes.schedule(*bar_number, new_meter);
     }
 
 
@@ -242,18 +256,18 @@ public:
     }
 
 
-    RunnerCondition<T> conditional_output(std::unique_ptr<GenericCondition<T> > output_condition
+    RunnerCondition<T> conditional_output(std::unique_ptr<GenericCondition<T>> output_condition
                                           , bool compare_true = true) const {
         return RunnerCondition<T>::from_generic_condition(std::move(output_condition), compare_true);
     }
 
 
     void clear_scheduled_events() {
-        for (auto& node: m_pre_condition_events) {
+        for (auto& node : m_pre_condition_events) {
             node->on_clear();
         }
 
-        for (auto& node: m_post_condition_events) {
+        for (auto& node : m_post_condition_events) {
             node->on_clear();
         }
 
@@ -265,38 +279,6 @@ public:
     bool has_scheduled_events() const {
         return !m_pre_condition_events.empty() || !m_post_condition_events.empty();
     }
-
-
-    // TODO
-    //
-    // TODO: If we ever implement step_for, it should always step for that duration,
-    //       not step until t + duration (as meter may change)
-    // RunResult<T> step_for(const DomainDuration& t
-    //                       , StepOutput<T> previous_step_handling = StepOutput<T>::output()
-    //                       , std::optional<DomainDuration> step_size = std::nullopt) {
-    //     throw std::runtime_error("Not implemented");
-    // }
-    //
-    // RunResult<T> discontinuity(const DomainTimePoint& new_time) { throw std::runtime_error("Not implemented"); }
-    //
-    // template<typename NodeValueType>
-    // GenerativeRunner& schedule_parameter_ramp(Node<NodeValueType>& node
-    //                              , const NodeValueType& start_value
-    //                              , const NodeValueType& end_value
-    //                              , const DomainTimePoint& end_time
-    //                              , const std::optional<DomainTimePoint>& start_time = std::nullopt) {
-    //     // TODO: Add node as output node if it's not already in m_generatives
-    //     throw std::runtime_error("Not implemented");
-    // }
-    //
-    //
-    // GenerativeRunner& set_tempo() { throw std::runtime_error("Not implemented"); }
-    //
-    // GenerativeRunner& schedule_tempo_change() { throw std::runtime_error("Not implemented"); }
-    //
-    // GenerativeRunner& schedule_tempo_ramp() { throw std::runtime_error("Not implemented"); }
-    //
-    // GenerativeRunner& schedule_meter_change() { throw std::runtime_error("Not implemented"); }
 
     const TestConfig& get_config() const { return m_config; }
     const TimePoint& get_time() const { return m_current_time; }
@@ -324,15 +306,20 @@ private:
         const auto& step_size = config.step_size;
 
         auto t_prev = m_current_time;
-        auto t = is_first_step() ? m_current_time : m_current_time.incremented(step_size);
-        auto t_next = t.incremented(step_size);
+        auto t = m_current_time;
+        if (is_first_step())
+            increment_time_point(t, step_size);
+
+
+        auto t_next = t;
+        increment_time_point(t_next, step_size);
 
         auto i = m_current_step_index + 1;
 
         auto predicted_num_steps = stop_condition.predict_num_steps(t, m_current_step_index, step_size);
         auto step_results = predicted_num_steps
-                                ? Vec<StepResult<T> >::allocated(*predicted_num_steps)
-                                : Vec<StepResult<T> >();
+                                ? Vec<StepResult<T>>::allocated(*predicted_num_steps)
+                                : Vec<StepResult<T>>();
 
         try {
             bool done = stop_condition.matches(m_current_step_index, t_prev, t, step_results);
@@ -355,7 +342,7 @@ private:
 
                 t_prev = t;
                 t = t_next;
-                t_next += step_size;
+                increment_time_point(t_next);
                 ++i;
             }
         } catch (const test_error& e) {
@@ -374,18 +361,40 @@ private:
         return RunResult<T>(step_results, domain_type);
     }
 
+    /** Update meter without incrementing the TimePoint. Will only work if
+     * (a) the current TimePoint is exactly at a barline and
+     * (b) a meter change is scheduled at that exact bar
+     */
+    void update_meter(TimePoint& t) {
+        auto current_bar = static_cast<std::size_t>(std::floor(t.get_bar()));
+        if (auto meter = m_scheduled_meter_changes.peek(current_bar)) {
+            if (auto successful_meter_change = t.try_set_meter(meter)) {
+                m_scheduled_meter_changes.pop(current_bar);
+            }
+        }
+    }
+
+    void increment_time_point(TimePoint& t, const DomainDuration& step_size) {
+        auto next_bar = t.next_bar();
+        if (auto meter = m_scheduled_meter_changes.peek(next_bar)) {
+            if (auto successful_meter_change = t.try_set_meter(meter)) {
+                m_scheduled_meter_changes.pop(next_bar);
+            }
+        }
+    }
+
 
     /** @throws test_error if delta is <= 0 */
     void update_node_time(const TimePoint& current_time) {
-        for (auto& g: m_generatives) {
+        for (auto& g : m_generatives) {
             g->update_time(current_time);
         }
     }
 
 
-    void process_events(Vec<std::unique_ptr<NodeRunnerEvent<T> > >& events
+    void process_events(Vec<std::unique_ptr<NodeRunnerEvent<T>>>& events
                         , std::size_t step_index, const TimePoint& t, const TimePoint& t_next
-                        , const Vec<StepResult<T> >& step_results) {
+                        , const Vec<StepResult<T>>& step_results) {
         Vec<std::size_t> indices_to_remove;
 
         for (std::size_t i = 0; i < events.size(); ++i) {
@@ -408,7 +417,7 @@ private:
         }
     }
 
-    friend class MeterChangeEvent<T>;
+
 
     TestConfig m_config;
 
@@ -420,23 +429,11 @@ private:
 
     DomainDuration m_default_step_size;
 
-    Vec<std::unique_ptr<NodeRunnerEvent<T> > > m_pre_condition_events;
-    Vec<std::unique_ptr<NodeRunnerEvent<T> > > m_post_condition_events;
+    Vec<std::unique_ptr<NodeRunnerEvent<T>>> m_pre_condition_events;
+    Vec<std::unique_ptr<NodeRunnerEvent<T>>> m_post_condition_events;
+
+    MeterChanges m_scheduled_meter_changes;
 };
-
-
-// ==============================================================================================
-
-
-template<typename T>
-bool MeterChangeEvent<T>::process(std::size_t step_index, const TimePoint& t
-                                  , const TimePoint& t_next, const Vec<StepResult<T> >& v) {
-    if (m_condition.matches(step_index, t, t_next, v)) {
-        // TODO
-        return true;
-    }
-    return false;
-}
 }
 
 

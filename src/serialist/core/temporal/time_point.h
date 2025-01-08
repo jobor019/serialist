@@ -1,4 +1,3 @@
-
 #ifndef SERIALISTLOOPER_TIME_POINT_H
 #define SERIALISTLOOPER_TIME_POINT_H
 
@@ -7,8 +6,8 @@
 #include "core/exceptions.h"
 #include <string>
 
-namespace serialist {
 
+namespace serialist {
 enum class DomainType {
     ticks, beats, bars
 };
@@ -40,15 +39,16 @@ public:
                        , std::optional<double> bar = std::nullopt
                        , Meter meter = Meter()
                        , bool transport_running = true)
-            : m_tick(tick)
-              , m_tempo(tempo)
-              , m_absolute_beat(absolute_beat.value_or(meter.ticks2beats(tick)))
-              , m_relative_beat(relative_beat.value_or(meter.ticks2bars_beats(tick).second))
-              , m_bar(bar.value_or(meter.ticks2bars(tick)))
-              , m_meter(meter)
-              , m_transport_running(transport_running) {
+        : m_tick(tick)
+        , m_tempo(tempo)
+        , m_absolute_beat(absolute_beat.value_or(meter.ticks2beats(tick)))
+        , m_relative_beat(relative_beat.value_or(meter.ticks2bars_beats(tick).second))
+        , m_bar(bar.value_or(meter.ticks2bars(tick)))
+        , m_meter(meter)
+        , m_transport_running(transport_running) {
         assert(tempo > 0.0);
     }
+
 
     static TimePoint zero() { return TimePoint(); }
 
@@ -63,11 +63,13 @@ public:
         return *this;
     }
 
+
     TimePoint& with_tempo(double tempo) {
         assert(tempo > 0.0);
         m_tempo = tempo;
         return *this;
     }
+
 
     // double arithmetic operators
     TimePoint operator+(double tick_increment) const;
@@ -87,9 +89,9 @@ public:
 
     // TP comparison operators
     bool operator<(const TimePoint& other) const { return m_tick < other.m_tick; }
-    bool operator<=(const TimePoint& other) const  { return m_tick <= other.m_tick; }
+    bool operator<=(const TimePoint& other) const { return m_tick <= other.m_tick; }
     bool operator>(const TimePoint& other) const { return m_tick > other.m_tick; }
-    bool operator>=(const TimePoint& other) const  { return m_tick >= other.m_tick; }
+    bool operator>=(const TimePoint& other) const { return m_tick >= other.m_tick; }
 
     // DTP comparison operators
     bool operator<(const DomainTimePoint& other) const;
@@ -99,10 +101,12 @@ public:
 
     explicit operator std::string() const { return to_string(); }
 
+
     friend std::ostream& operator<<(std::ostream& os, const TimePoint& obj) {
         os << obj.to_string();
         return os;
     }
+
 
     void increment(int64_t delta_nanos);
     void increment(double tick_increment);
@@ -114,12 +118,30 @@ public:
      */
     bool increment_with_meter_change(double tick_increment, const Meter& new_meter);
 
+
+    bool try_set_meter(const Meter& new_meter) {
+        if (is_at_barline()) {
+            m_meter = new_meter;
+            return true;
+        }
+        return false;
+    }
+
+
     TimePoint incremented(double tick_increment) const;
     TimePoint incremented(const DomainDuration& duration) const;
-    TimePoint incremented_with_meter_change(double tick_increment, const Meter& new_meter) const;
+    std::pair<TimePoint, bool> incremented_with_meter_change(double tick_increment, const Meter& new_meter) const;
 
     double ticks_to_next_bar() const { return m_meter.bars2ticks(std::ceil(m_bar) - m_bar); }
-    bool increment_allows_meter_change(double tick_increment) const;
+    bool is_at_barline() const { return utils::equals(utils::modulo(m_bar, 1.0), 1.0); }
+
+
+    std::size_t next_bar() const {
+        return is_at_barline()
+                   ? static_cast<std::size_t>(std::floor(m_bar))
+                   : static_cast<std::size_t>(std::ceil(m_bar));
+    }
+
 
     double distance_to(double time_value, DomainType type) const;
 
@@ -131,6 +153,7 @@ public:
     double get_bar() const { return m_bar; }
     const Meter& get_meter() const { return m_meter; }
     bool get_transport_running() const { return m_transport_running; }
+
 
     double get(DomainType type) const {
         switch (type) {
@@ -151,15 +174,14 @@ public:
         if (num_decimals) ss << std::fixed << std::setprecision(static_cast<int>(*num_decimals));
 
         ss << "TimePoint(tick=" << m_tick
-           << ", abs_beat=" << m_absolute_beat
-           << ", rel_beat=" << m_relative_beat
-           << ", bar=" << m_bar
-           << ", tempo=" << m_tempo
-           << ", meter=" << m_meter.to_string() << ")";
+                << ", abs_beat=" << m_absolute_beat
+                << ", rel_beat=" << m_relative_beat
+                << ", bar=" << m_bar
+                << ", tempo=" << m_tempo
+                << ", meter=" << m_meter.to_string() << ")";
 
         return ss.str();
     }
-
 
 private:
     double m_tick;          // tick number since start, where 1.0 ticks equals 1 quarter note (indep. of meter)
@@ -169,8 +191,6 @@ private:
     double m_bar;           // bar number since start (fraction corresponds to position in current bar)
     Meter m_meter;
     bool m_transport_running;
-
-
 };
 
 
@@ -179,7 +199,9 @@ private:
 
 class DomainTimePoint {
 public:
-    DomainTimePoint(double value, DomainType type) : m_value(value), m_type(type) {}
+    DomainTimePoint(double value, DomainType type) : m_value(value)
+                                                   , m_type(type) {}
+
 
     static DomainTimePoint from_time_point(const TimePoint& t, DomainType type) { return {t.get(type), type}; }
     static DomainTimePoint from_domain_duration(const DomainDuration& duration);
@@ -212,9 +234,11 @@ public:
     bool operator>(const TimePoint& t) const { return m_value > t.get(m_type); }
     bool operator>=(const TimePoint& t) const { return m_value >= t.get(m_type); }
 
+
     bool supports(const DomainTimePoint& t) const {
         return t.get_type() == m_type;
     }
+
 
     bool supports(const DomainDuration& other) const;
 
@@ -224,10 +248,12 @@ public:
         return *this;
     }
 
+
     DomainTimePoint& operator-=(double other) {
         m_value -= other;
         return *this;
     }
+
 
     std::string to_string(std::optional<std::size_t> num_decimals = std::nullopt) const {
         std::stringstream ss;
@@ -240,6 +266,7 @@ public:
 
         return ss.str();
     }
+
 
     std::string to_string_compact(std::optional<std::size_t> num_decimals = std::nullopt) const {
         std::stringstream ss;
@@ -256,6 +283,7 @@ public:
         return os;
     }
 
+
     /** @throws TimeDomainError if `other` has a different type */
     static DomainTimePoint min(const DomainTimePoint& a, const DomainTimePoint& b) {
         if (a.m_type != b.m_type)
@@ -263,6 +291,7 @@ public:
 
         return {std::min(a.m_value, b.m_value), a.m_type};
     }
+
 
     /** @throws TimeDomainError if `other` has a different type */
     static DomainTimePoint max(const DomainTimePoint& a, const DomainTimePoint& b) {
@@ -292,11 +321,14 @@ private:
 
 class DomainDuration {
 public:
-    explicit DomainDuration(double value = 1.0, DomainType type = DomainType::ticks) : m_value(value), m_type(type) {}
+    explicit DomainDuration(double value = 1.0, DomainType type = DomainType::ticks) : m_value(value)
+        , m_type(type) {}
+
 
     static DomainDuration from_domain_time_point(const DomainTimePoint& dtp) {
         return DomainDuration{dtp.get_value(), dtp.get_type()};
     }
+
 
     static DomainDuration ticks(double value) { return DomainDuration{value, DomainType::ticks}; }
     static DomainDuration beats(double value) { return DomainDuration{value, DomainType::beats}; }
@@ -366,6 +398,7 @@ public:
         return ss.str();
     }
 
+
     std::string to_string_compact() const {
         return std::to_string(m_value) + " " + domain_type_to_string(m_type);
     }
@@ -376,9 +409,11 @@ public:
         return os;
     }
 
+
     bool supports(const DomainTimePoint& t) const {
         return t.get_type() == m_type;
     }
+
 
     bool supports(const DomainDuration& other) const {
         return other.get_type() == m_type;
@@ -388,6 +423,7 @@ public:
     double get_value() const {
         return m_value;
     }
+
 
     DomainType get_type() const {
         return m_type;
@@ -404,6 +440,7 @@ private:
 class DomainConverter {
 public:
     DomainConverter() = delete;
+
 
     static double convert(double t, DomainType source_type, DomainType target_type, const Meter& meter) {
         if (source_type == target_type)
@@ -455,10 +492,10 @@ inline TimePoint& TimePoint::operator-=(double tick_decrement) {
 }
 
 
-
 inline DomainTimePoint TimePoint::operator+(const DomainDuration& duration) const {
     return DomainTimePoint{get(duration.get_type()) + duration.get_value(), duration.get_type()};
 }
+
 
 inline DomainTimePoint TimePoint::operator-(const DomainDuration& duration) const {
     return DomainTimePoint{get(duration.get_type()) - duration.get_value(), duration.get_type()};
@@ -474,7 +511,7 @@ inline TimePoint& TimePoint::operator+=(const DomainDuration& duration) {
 inline bool TimePoint::operator<(const DomainTimePoint& other) const { return other > *this; }
 inline bool TimePoint::operator<=(const DomainTimePoint& other) const { return other >= *this; }
 inline bool TimePoint::operator>(const DomainTimePoint& other) const { return other < *this; }
-inline bool TimePoint::operator>=(const DomainTimePoint& other)  const{ return other <= *this; }
+inline bool TimePoint::operator>=(const DomainTimePoint& other) const { return other <= *this; }
 
 
 inline void TimePoint::increment(int64_t delta_nanos) {
@@ -490,6 +527,7 @@ inline void TimePoint::increment(double tick_increment) {
     m_bar += m_meter.ticks2bars(tick_increment);
 }
 
+
 inline void TimePoint::increment(const DomainDuration& delta) {
     auto tick_increment = delta.as_type(DomainType::ticks, m_meter).get_value();
     increment(tick_increment);
@@ -498,7 +536,7 @@ inline void TimePoint::increment(const DomainDuration& delta) {
 
 inline bool TimePoint::increment_with_meter_change(double tick_increment, const Meter& new_meter) {
     // Case 1: Function called exactly at the start of a new bar - change meter before incrementing
-    if (utils::equals(utils::modulo(m_bar, 1.0), 1.0)) {
+    if (is_at_barline()) {
         m_meter = new_meter;
         increment(tick_increment);
         return true;
@@ -537,16 +575,11 @@ inline TimePoint TimePoint::incremented(const DomainDuration& duration) const {
 }
 
 
-inline TimePoint TimePoint::incremented_with_meter_change(double tick_increment, const Meter& new_meter) const {
+inline std::pair<TimePoint, bool> TimePoint::incremented_with_meter_change(double tick_increment
+                                                                           , const Meter& new_meter) const {
     TimePoint t(*this);
-    t.increment_with_meter_change(tick_increment, new_meter);
-    return t;
-}
-
-
-inline bool TimePoint::increment_allows_meter_change(double tick_increment) const {
-    // Meter change can occur either if the current bar % 1.0 == 0.0 or if tick increment transitions into next bar
-    return tick_increment > ticks_to_next_bar();
+    bool success = t.increment_with_meter_change(tick_increment, new_meter);
+    return {t, success};
 }
 
 
@@ -577,9 +610,11 @@ inline DomainDuration DomainTimePoint::operator-(const TimePoint& other) const {
     return DomainDuration::distance(other, *this);
 }
 
+
 inline DomainTimePoint DomainTimePoint::operator+(const DomainDuration& duration) const {
     return duration + *this;
 }
+
 
 inline DomainDuration DomainTimePoint::operator-(const DomainTimePoint& other) const {
     return DomainDuration::distance(other, *this);
@@ -597,7 +632,6 @@ inline DomainTimePoint DomainTimePoint::operator-(const DomainDuration& other) c
 inline bool DomainTimePoint::supports(const DomainDuration& other) const { return other.get_type() == m_type; }
 
 
-
 inline DomainTimePoint DomainTimePoint::as_type(DomainType target_type, const TimePoint& last_transport_tp) const {
     if (m_type == target_type) {
         return *this;
@@ -609,6 +643,7 @@ inline DomainTimePoint DomainTimePoint::as_type(DomainType target_type, const Ti
 
     return {time_in_target_type, target_type};
 }
+
 
 // ==============================================================================================
 // DomainDuration
@@ -629,6 +664,7 @@ inline DomainDuration DomainDuration::operator+(const DomainDuration& other) con
     }
     return DomainDuration(m_value + other.m_value, m_type);
 }
+
 
 inline DomainDuration DomainDuration::operator-(const DomainDuration& other) const {
     if (!supports(other)) {
@@ -654,7 +690,6 @@ inline DomainDuration DomainDuration::operator/(const DomainDuration& other) con
 }
 
 
-
 inline DomainDuration DomainDuration::as_type(DomainType target_type, const Meter& meter) const {
     if (m_type == target_type) {
         return *this;
@@ -662,8 +697,6 @@ inline DomainDuration DomainDuration::as_type(DomainType target_type, const Mete
 
     return DomainDuration{DomainConverter::convert(m_value, m_type, target_type, meter), m_type};
 }
-
-
 } // namespace serialist
 
 #endif //SERIALISTLOOPER_TIME_POINT_H

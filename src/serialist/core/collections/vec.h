@@ -440,6 +440,22 @@ public:
     }
 
 
+    /**
+     * Inserts a value into a sorted vector while maintaining the sort order.
+     * @param value The value to insert
+     * @param ascending If true, assumes vector is sorted in ascending order. If false, assumes descending order.
+     */
+    void insert_sorted(T value, bool ascending = true) {
+        if (ascending) {
+            auto it = std::lower_bound(m_vector.begin(), m_vector.end(), value);
+            m_vector.insert(it, std::move(value));
+        } else {
+            auto it = std::lower_bound(m_vector.begin(), m_vector.end(), value, std::greater<T>());
+            m_vector.insert(it, std::move(value));
+        }
+    }
+
+
     Vec<T>& insert(long index, T value) {
         auto signed_index = sign_index(index);
 
