@@ -24,6 +24,10 @@ std::unique_ptr<EmptyComparison<T> > empty() {
     return std::make_unique<EmptyComparison<T>>();
 }
 
+inline std::unique_ptr<EmptyComparison<Facet> > emptyf() {
+    return std::make_unique<EmptyComparison<Facet>>();
+}
+
 // ==============================================================================================
 
 template<typename T, typename Comparator>
@@ -43,8 +47,8 @@ template<typename T>
 std::unique_ptr<ValueComparison<Facet> > eqf(const T& expected) { return eq(fcast(expected)); }
 
 template<typename T>
-std::unique_ptr<ValueComparison<T> > approx_eq(const T& expected, const T& epsilon = EPSILON) {
-    assert(epsilon > 0);
+std::unique_ptr<ValueComparison<T> > approx_eq(const T& expected, const T& epsilon = static_cast<T>(EPSILON)) {
+    assert(epsilon > 0.0);
     return std::make_unique<ValueComparison<T> >([=](const T& v) {
         return utils::equals<T>(v, expected, epsilon);
     });

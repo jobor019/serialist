@@ -208,7 +208,7 @@ protected:
 template<typename T>
 class EmptyComparison : public GenericOutputComparison<T> {
     bool matches_internal(const StepResult<T>& current) const override {
-        return current.is_empty_like();
+        return current.voices().is_empty_like();
     }
 };
 

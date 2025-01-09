@@ -70,6 +70,23 @@ public:
         }
     }
 
+    std::optional<T> v11() const {
+        if (is_successful()) {
+            return voices().first();
+        }
+        return std::nullopt;
+    }
+
+    template<typename U = T, typename = std::enable_if_t<std::is_same_v<U, Facet>>>
+    std::optional<double> v11f() const {
+        if (is_successful()) {
+            if (auto v = voices().first()) {
+                return static_cast<double>(*v);
+            }
+        }
+        return std::nullopt;
+    }
+
 
     bool is_successful() const { return std::holds_alternative<Voices<T> >(m_value); }
     const TimePoint& time() const { return m_time; }
@@ -228,6 +245,12 @@ public:
 
     void print_detailed(std::size_t num_decimals = StepResult<T>::NUM_DECIMALS_DETAILED) const {
         std::cout << to_string_detailed(num_decimals) << "\n";
+    }
+
+    void print_all(std::optional<std::size_t> num_decimals = std::nullopt) const {
+        for (auto& r : m_run_output) {
+            r.print(false, num_decimals);
+        }
     }
 
 

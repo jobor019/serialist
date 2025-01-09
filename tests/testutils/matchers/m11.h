@@ -17,6 +17,17 @@ namespace serialist::test::m11 {
 // ==============================================================================================
 
 template<typename T>
+ResultMatcher<T> empty(MatchType match_type = MatchType::last, bool allow_no_comparison = false) {
+    return {c11::empty<T>(), "is empty", match_type, allow_no_comparison};
+}
+
+inline ResultMatcher<Facet> emptyf(MatchType match_type = MatchType::last, bool allow_no_comparison = false) {
+    return {c11::emptyf(), "is empty", match_type, allow_no_comparison};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+template<typename T>
 ResultMatcher<T> eq(const T& expected, MatchType match_type = MatchType::last, bool allow_no_comparison = false) {
     return {c11::eq(expected), "is == " + serialize(expected), match_type, allow_no_comparison};
 }
@@ -29,15 +40,17 @@ ResultMatcher<Facet> eqf(const T& expected, Args&&... args) {
 
 
 template<typename T>
-ResultMatcher<T> approx_eq(const T& expected, MatchType match_type = MatchType::last,
+ResultMatcher<T> approx_eq(const T& expected, const T& epsilon, MatchType match_type = MatchType::last,
                            bool allow_no_comparison = false) {
-    return {c11::approx_eq(expected), "is approximately == " + serialize(expected), match_type, allow_no_comparison};
+    return {c11::approx_eq(expected, epsilon)
+        , "is approximately (±" + serialize(epsilon) + ") == " + serialize(expected)
+        , match_type, allow_no_comparison};
 }
 
 
 template<typename T, typename... Args>
-ResultMatcher<Facet> approx_eqf(const T& expected, Args&&... args) {
-    return approx_eq(fcast(expected), std::forward<Args>(args)...);
+ResultMatcher<Facet> approx_eqf(const T& expected, const T& epsilon, Args&&... args) {
+    return approx_eq(fcast(expected), fcast(epsilon), std::forward<Args>(args)...);
 }
 
 

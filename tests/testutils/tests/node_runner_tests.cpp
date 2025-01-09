@@ -210,6 +210,37 @@ TEST_CASE("NodeRunner: step_until (condition)", "[node_runner]") {
 }
 
 
+TEST_CASE("NodeRunner: step_while (condition)", "[node_runner]") {
+    DummyNode node;
+    auto step_size = 0.1;
+    auto config = TestConfig().with_step_size(DomainDuration(step_size));
+
+    NodeRunner runner{&node, config};
+
+    SECTION("Positive cases") {
+        auto target = GENERATE(2.0, 3.75, 10.0);
+
+        auto r = runner.step_while(c11::lef(target));
+        REQUIRE(r.is_successful());
+
+        REQUIRE(!r.history().empty());
+        for (const auto& step : r.history()) {
+            REQUIRE(*step.v11f() < target);
+        }
+
+        REQUIRE(utils::in(*r.v11f(), target, target + config.step_size.get_value()));
+        REQUIRE(!r.history().empty());
+    }
+
+    SECTION("Negative cases") {
+        auto r = runner.step_while(c11::gef(100.0));
+        REQUIRE(r.is_successful());
+        REQUIRE(r.num_steps() == 1);
+        REQUIRE(*r.v11f() < 100.0);
+    }
+}
+
+
 TEST_CASE("NodeRunner: step_n", "[node_runner]") {
     // std::size_t num_steps = GENERATE(1, 2, 10, 100, 1000);
     std::size_t num_steps = 1;

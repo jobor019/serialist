@@ -46,6 +46,32 @@ TEST_CASE("testutils::m11 value comparison", "[testutils][m11]") {
         REQUIRE_THAT(d1, !m11::in_rangef(f + EPSILON, f + 2 * EPSILON));
         REQUIRE_THAT(d1, !m11::in_rangef(f - 2 * EPSILON, f - EPSILON));
     }
+
+    SECTION("emptyf") {
+         auto d_empty = RunResult<Facet>::dummy(Voices<Facet>::empty_like());
+         REQUIRE_THAT(d_empty, m11::emptyf());
+
+         auto d_non_empty = RunResult<Facet>::dummy(Voices<Facet>::singular(Facet{0.0}));
+         REQUIRE_THAT(d_non_empty, !m11::emptyf());
+
+     }
+
+    SECTION("approx_eq, approx_eqf") {
+         auto f = GENERATE(-100.0, -3.0, -1.0, -0.3, 0.3, 1.0, 3.0, 100.0);
+         auto epsilon = GENERATE(1.0, 0.1, 0.01);
+
+         auto d1 = RunResult<Facet>::dummy(Facet(f));
+         auto d2 = RunResult<Facet>::dummy(Facet(f + 0.99 * epsilon));
+         auto d3 = RunResult<Facet>::dummy(Facet(f - 0.99 * epsilon));
+         REQUIRE_THAT(d1, m11::approx_eqf(f, epsilon));
+         REQUIRE_THAT(d2, m11::approx_eqf(f, epsilon));
+         REQUIRE_THAT(d3, m11::approx_eqf(f, epsilon));
+
+         auto d4 = RunResult<Facet>::dummy(Facet(f + 1.01 * epsilon));
+         auto d5 = RunResult<Facet>::dummy(Facet(f - 1.01 * epsilon));
+         REQUIRE_THAT(d4, !m11::approx_eqf(f, epsilon));
+         REQUIRE_THAT(d5, !m11::approx_eqf(f, epsilon));
+     }
 }
 
 

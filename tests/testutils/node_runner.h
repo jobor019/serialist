@@ -138,6 +138,11 @@ public:
         return *this;
     }
 
+    void discontinuity(const TimePoint& new_time) {
+        m_current_time = new_time;
+        m_current_step_index = 0;
+    }
+
 
     // ==============================================================================================
     // Stepping
@@ -165,11 +170,17 @@ public:
     }
 
 
+    /**
+     * @note: Stepping while a condition is true implies returning the first value where the condition is false.
+     *        This has two consequences:
+     *          - This function will always step at least once
+     *          - The last value returned will never fulfil the provided condition
+     */
     RunResult<T> step_while(std::unique_ptr<GenericCondition<T>> loop_condition
                             , std::optional<TestConfig> config = std::nullopt) noexcept {
         config = config.value_or(m_config);
         try {
-            return step_internal(conditional_output(std::move(loop_condition), true)
+            return step_internal(conditional_output(std::move(loop_condition), false)
                                  , *config, config->domain_type());
         } catch (test_error& e) {
             return RunResult<T>::failure(e.what(), m_current_time, 0, config->domain_type());
