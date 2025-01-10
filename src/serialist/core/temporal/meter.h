@@ -1,6 +1,8 @@
 #ifndef SERIALISTLOOPER_METER_H
 #define SERIALISTLOOPER_METER_H
 
+#include "domain_type.h"
+#include "exceptions.h"
 #include "core/utility/math.h"
 #include "core/algo/fraction.h"
 
@@ -8,7 +10,9 @@
 namespace serialist {
 class Meter {
 public:
-    explicit Meter(int numerator = 4, int denominator = 4) : m_fraction(numerator, denominator) {}
+    Meter() : m_fraction(4, 4) {}
+
+    Meter(int numerator, int denominator) : m_fraction(numerator, denominator) {}
 
     bool operator==(const Meter& other) const { return m_fraction == other.m_fraction; }
     bool operator!=(const Meter& other) const { return !(*this == other); }
@@ -45,6 +49,31 @@ public:
 
     double bars_beats2ticks(double bars, double beats) const {
         return bars2ticks(bars) + beats2ticks(beats);
+    }
+
+    double ticks2domain(double ticks, DomainType domain) const {
+        switch (domain) {
+            case DomainType::ticks: return ticks;
+            case DomainType::bars: return ticks2bars(ticks);
+            case DomainType::beats: return ticks2beats(ticks);
+            default: throw TimeDomainError("Unsupported domain type");
+        }
+    }
+
+    double domain2ticks(double ticks, DomainType domain) const {
+        switch (domain) {
+            case DomainType::ticks: return ticks;
+            case DomainType::bars: return bars2ticks(ticks);
+            case DomainType::beats: return beats2ticks(ticks);
+            default: throw TimeDomainError("Unsupported domain type");
+        }
+    }
+
+    double domain2domain(double value, DomainType from, DomainType to) const {
+        if (from == to) {
+            return value;
+        }
+        return domain2ticks(ticks2domain(value, from), to);
     }
 
 

@@ -204,6 +204,21 @@ public:
         return *this;
     }
 
+    TimePointMatcher& with_epsilon(double epsilon) {
+        m_epsilon = epsilon;
+        return *this;
+    }
+
+
+    TimePointMatcher& with(const DomainType& type, double value) {
+        switch (type) {
+            case DomainType::ticks: return with_tick(value);
+            case DomainType::beats: return with_absolute_beat(value);
+            case DomainType::bars: return with_bar(value);
+            default: throw test_error("unsupported domain type");
+        }
+    }
+
 
     bool match(const TimePoint& arg) const override {
         std::stringstream ss;
@@ -244,7 +259,7 @@ private:
                           , bool is_first_arg) const {
         if (expected && !utils::equals(*expected, actual, m_epsilon)) {
             if (!is_first_arg) ss << ", ";
-            ss << str << ": " << *expected << " != " << actual;
+            ss << str << ": " << *expected << " (± " << m_epsilon << ") != " << actual;
             return false;
         }
         return true;

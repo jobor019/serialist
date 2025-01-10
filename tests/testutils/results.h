@@ -50,7 +50,8 @@ public:
 
     std::string to_string(bool compact = false, std::optional<std::size_t> num_decimals = std::nullopt) const {
         if (is_successful()) {
-            return "StepResult(v=" + render_output(compact, num_decimals) + ", " + render_step_info(compact, num_decimals) + ")";
+            return "StepResult(v=" + render_output(compact, num_decimals) + ", " + render_step_info(
+                       compact, num_decimals) + ")";
         } else {
             return render_error() + " " + render_step_info(compact, num_decimals);
         }
@@ -64,11 +65,12 @@ public:
 
     const Voices<T>& voices() const {
         if (is_successful()) {
-            return std::get<Voices<T> >(m_value);
+            return std::get<Voices<T>>(m_value);
         } else {
             throw test_error(render_error());
         }
     }
+
 
     std::optional<T> v11() const {
         if (is_successful()) {
@@ -76,6 +78,7 @@ public:
         }
         return std::nullopt;
     }
+
 
     template<typename U = T, typename = std::enable_if_t<std::is_same_v<U, Facet>>>
     std::optional<double> v11f() const {
@@ -88,7 +91,7 @@ public:
     }
 
 
-    bool is_successful() const { return std::holds_alternative<Voices<T> >(m_value); }
+    bool is_successful() const { return std::holds_alternative<Voices<T>>(m_value); }
     const TimePoint& time() const { return m_time; }
     std::size_t step_index() const { return m_step_index; }
 
@@ -97,7 +100,10 @@ private:
                , const TimePoint& time
                , std::size_t step_index
                , DomainType primary_domain)
-        : m_value(value), m_time(time), m_step_index(step_index), m_primary_domain(primary_domain) {}
+        : m_value(value)
+        , m_time(time)
+        , m_step_index(step_index)
+        , m_primary_domain(primary_domain) {}
 
 
     std::string render_output(bool compact, std::optional<std::size_t> num_decimals = std::nullopt) const {
@@ -144,10 +150,10 @@ private:
 template<typename T>
 class RunResult {
 public:
-    RunResult(const Vec<StepResult<T> >& run_output
+    RunResult(const Vec<StepResult<T>>& run_output
               , DomainType primary_domain)
         : m_run_output(run_output)
-          , m_primary_domain(primary_domain) {
+        , m_primary_domain(primary_domain) {
         // run_output should always contain at least a single StepResult<T>::failure or a single StepResult<T>::success
         if (run_output.empty()) throw test_error("Empty run output");
     }
@@ -157,7 +163,7 @@ public:
                              , const TimePoint& t = TimePoint{}
                              , std::size_t step_index = 0
                              , DomainType primary_domain = DomainType::ticks
-                             , const Vec<StepResult<T> >& output_history = {}) {
+                             , const Vec<StepResult<T>>& output_history = {}) {
         auto run_output = output_history.cloned();
         run_output.append(StepResult<T>::failure(err, t, step_index, primary_domain));
         return {run_output, primary_domain};
@@ -173,19 +179,19 @@ public:
         return dummy(StepResult<T>::success(v, TimePoint{}, 0, DomainType::ticks));
     }
 
+
     static RunResult dummy(const T& v) {
         return dummy(Voices<T>::singular(v));
     }
 
+
     static RunResult dummy(const Vec<T>& vs) {
-        auto h = Vec<StepResult<T> >::allocated(vs.size());
+        auto h = Vec<StepResult<T>>::allocated(vs.size());
         for (std::size_t i = 0; i < vs.size(); ++i) {
             h.append(StepResult<T>::success(Voices<T>::singular(vs[i]), TimePoint{}, i, DomainType::ticks));
         }
         return RunResult(h, DomainType::ticks);
     }
-
-
 
 
     friend std::ostream& operator<<(std::ostream& os, const RunResult&) {
@@ -194,16 +200,24 @@ public:
         return os;
     }
 
+
     RunResult subset(std::size_t start, std::size_t end) const {
         return RunResult(m_run_output.slice(start, end), m_primary_domain);
     }
+
 
     RunResult history_subset() const {
         return RunResult(history(), m_primary_domain);
     }
 
+
     RunResult last_subset() const {
         return RunResult({last()}, m_primary_domain);
+    }
+
+
+    auto unpack() const {
+        return std::make_tuple(history_subset(), last_subset());
     }
 
 
@@ -211,12 +225,14 @@ public:
 
     StepResult<T> last() const { return *m_run_output.last(); }
 
+
     std::optional<T> v11() const {
         if (is_successful()) {
             return last().voices().first();
         }
         return std::nullopt;
     }
+
 
     template<typename U = T, typename = std::enable_if_t<std::is_same_v<U, Facet>>>
     std::optional<double> v11f() const {
@@ -229,23 +245,20 @@ public:
     }
 
 
-    const Vec<StepResult<T> >& entire_output() const { return m_run_output; }
-
-
+    const Vec<StepResult<T>>& entire_output() const { return m_run_output; }
     bool is_successful() const { return last().is_successful(); }
-
-
     std::size_t num_steps() const { return m_run_output.size(); }
+    TimePoint time() const { return last().time(); }
+    std::size_t step_index() const { return last().step_index(); }
 
 
-    void print() const {
-        std::cout << to_string() << "\n";
-    }
+    void print() const { std::cout << to_string() << "\n"; }
 
 
     void print_detailed(std::size_t num_decimals = StepResult<T>::NUM_DECIMALS_DETAILED) const {
         std::cout << to_string_detailed(num_decimals) << "\n";
     }
+
 
     void print_all(std::optional<std::size_t> num_decimals = std::nullopt) const {
         for (auto& r : m_run_output) {
@@ -264,7 +277,7 @@ public:
     }
 
 private:
-    Vec<StepResult<T> > m_run_output; // Invariant: m_run_output.size() > 0
+    Vec<StepResult<T>> m_run_output; // Invariant: m_run_output.size() > 0
 
     DomainType m_primary_domain;
 };

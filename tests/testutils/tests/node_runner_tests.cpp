@@ -478,3 +478,39 @@ TEST_CASE("NodeRunner: schedule meter change", "[node_runner]") {
         REQUIRE_THROWS(runner.schedule_meter_change(m, 3));
     }
 }
+
+
+// ==============================================================================================
+
+TEST_CASE("RunResult: history_subset, last_subset, unpack", "[node_runner]") {
+    DummyNode node;
+    NodeRunner runner{&node};
+
+    SECTION("Positive cases") {
+        auto r = runner.step_n(10);
+        REQUIRE(r.is_successful());
+        REQUIRE(r.num_steps() == 10);
+        REQUIRE(r.v11f().has_value());
+        REQUIRE(r.last().v11f().has_value());
+        REQUIRE(r.last_subset().v11f().has_value());
+        REQUIRE(r.history_subset().num_steps() == 9);
+
+        auto [hist, last] = r.unpack();
+        REQUIRE(hist.num_steps() == 9);
+        REQUIRE(last.v11f().has_value());
+        REQUIRE(last.v11f().value() == *r.v11f());
+    }
+
+    SECTION("Negative cases") {
+        auto r = runner.step();
+        REQUIRE(r.is_successful());
+        REQUIRE(r.num_steps() == 1);
+        REQUIRE(r.v11f().has_value());
+        REQUIRE(r.last().v11f().has_value());
+        REQUIRE(r.last_subset().v11f().has_value());
+
+        // No history
+        REQUIRE_THROWS_AS(r.history_subset(), test_error);
+        REQUIRE_THROWS_AS(r.unpack(), test_error);
+    }
+}

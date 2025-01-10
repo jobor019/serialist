@@ -74,6 +74,7 @@ add_library(${CORE_NAME}
         policies/socket_policy.h
         utility/mapping.h
         generatives/phase_pulsator.h
+        temporal/domain_type.h
 
 
 )

@@ -1,27 +1,11 @@
 #ifndef SERIALISTLOOPER_TIME_POINT_H
 #define SERIALISTLOOPER_TIME_POINT_H
 
+#include "domain_type.h"
 #include "meter.h"
-#include "core/utility/math.h"
 #include "core/exceptions.h"
-#include <string>
-
 
 namespace serialist {
-enum class DomainType {
-    ticks, beats, bars
-};
-
-
-inline std::string domain_type_to_string(DomainType type) {
-    switch (type) {
-        case DomainType::ticks: return "ticks";
-        case DomainType::beats: return "beats";
-        case DomainType::bars: return "bars";
-    }
-    throw std::runtime_error("Unknown domain type");
-}
-
 
 // ==============================================================================================
 
