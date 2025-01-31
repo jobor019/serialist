@@ -19,55 +19,74 @@ TEST_CASE("Oscillator (TL): Period and offset control duration and start time of
 
     w.mode.set_value(PaMode::transport_locked);
 
-    auto [t0, period, offset, cycle_start, cycle_end, next_cycle_end, value_epsilon] = GENERATE(
+    auto step_size = GENERATE(0.001, 0.01);
+
+
+    auto [t0, period, offset, cycle_start, cycle_end, next_cycle_end, value_per_tick] = GENERATE(
         table<double, double, double, double, double, double, double>( {
-            { 0.0,   1.0,  0.0, 0.0,   1.0,   2.0,  0.01},
-            { 0.0,   2.0,  0.0, 0.0,   2.0,   4.0,  0.005},
-            // { 0.0,   0.1,  0.0, 0.0,   0.1,   0.2,  0.1}, // TODO: Fix rounding errors here
-            { 0.0,  10.0,  0.0, 0.0,  10.0,  20.0,  0.001},
-            { 0.0,   1.0,  0.5, 0.5,   1.5,   2.5,  0.01},
-            { 0.0,   2.0,  0.5, 0.5,   2.5,   4.5,  0.005},
-            { 0.0,   2.0,  0.1, 0.1,   2.1,   4.1,  0.005},
-            { 0.0,   2.0,  1.9, 1.9,   3.9,   5.9,  0.005},
-            {10.0,   2.0,  1.9, 11.9,  13.9,  15.9, 0.005},
-        })
+            { 0.0, 1.0, 0.0, 0.0, 1.0, 2.0, 1.0},
+            { 0.0, 2.0, 0.0, 0.0, 2.0, 4.0, 0.5},
+            { 0.0, 0.1, 0.0, 0.0, 0.1, 0.2, 10.0},
+            { 0.0, 10.0, 0.0, 0.0, 10.0, 20.0, 0.1},
+            { 0.0, 1.0, 0.5, 0.5, 1.5, 2.5, 1.0},
+            { 0.0, 2.0, 0.5, 0.5, 2.5, 4.5, 0.5},
+            { 0.0, 2.0, 0.1, 0.1, 2.1, 4.1, 0.5},
+            { 0.0, 2.0, 1.9, 1.9, 3.9, 5.9, 0.5},
+            {10.0, 2.0, 1.9, 11.9, 13.9, 15.9, 0.5},
+            })
     );
+
+    // Precision: how close to 1.0 the value is at the end of the cycle given the current step size
+    auto value_epsilon = step_size * value_per_tick + EPSILON;
 
     CAPTURE(t0, period, offset, cycle_start, cycle_end, next_cycle_end, value_epsilon);
 
     w.period.set_values(period);
     w.offset.set_values(offset);
 
-    NodeRunner runner{&w.oscillator, TimePoint(t0)};
+    NodeRunner runner{&w.oscillator, TestConfig().with_step_size(DomainDuration::ticks(step_size)), TimePoint(t0)};
 
+    // Step until first value in first cycle
     if (offset > 0.0) {
         auto r = runner.step_until(DomainTimePoint::ticks(cycle_start), Anchor::after);
         REQUIRE_THAT(r, m11::approx_eqf(0.0, value_epsilon));
     }
-    auto r = runner.step_until(DomainTimePoint::ticks(cycle_end), Anchor::before);
-    REQUIRE_THAT(r, m11::in_rangef(0.0, 1.0, MatchType::all));
-    REQUIRE_THAT(r, m11::approx_eqf(1.0, value_epsilon));
-    REQUIRE_THAT(r, m11::strictly_increasingf());
 
-    r = runner.step_until(DomainTimePoint::ticks(next_cycle_end), Anchor::before);
+    // Step an entire cycle + one more value (operationalized by the strictly_increasingf condition)
+    auto r = runner.step_while(c11::strictly_increasingf());
     REQUIRE_THAT(r, m11::in_rangef(0.0, 1.0, MatchType::all));
-    REQUIRE_THAT(r, m11::approx_eqf(1.0, value_epsilon));
-    REQUIRE_THAT(r, m11::strictly_increasingf());
+
+    auto [complete_cycle, first_value_of_new_cycle] = r.unpack();
+    REQUIRE_THAT(complete_cycle, m11::approx_eqf(1.0, value_epsilon, MatchType::last));
+    REQUIRE_THAT(first_value_of_new_cycle, m11::approx_eqf(0.0, value_epsilon));
+
+    // Check that the new cycle starts at exactly at the expected time
+    REQUIRE_THAT(first_value_of_new_cycle.time()
+                 , TimePointMatcher().with(DomainType::ticks, cycle_end).with_epsilon(step_size));
+
+    r = runner.step_while(c11::strictly_increasingf());
+    REQUIRE_THAT(r, m11::in_rangef(0.0, 1.0, MatchType::all));
+    REQUIRE_THAT(r.history_subset(), m11::approx_eqf(1.0, value_epsilon, MatchType::last));
+    REQUIRE_THAT(r.last_subset().time()
+                 , TimePointMatcher().with(DomainType::ticks, next_cycle_end).with_epsilon(step_size));
 }
 
-TEST_CASE("Oscillator (TL): Negative period yields phase-inverted cycles", "[oscillator]") {
+
+TEST_CASE("Oscillator (TL): Negative period yields phase-inverted cycles (R1.1.2a)", "[oscillator]") {
     auto w = OscillatorWrapper();
     auto step_size = 0.01;
 
-    auto [period_value, value_epsilon] = GENERATE(
+    auto [period_value, value_per_tick] = GENERATE(
         table<double, double>( {
-            {-1.0, 0.01},
-            // {-2.0, 0.005},
-            // {-0.5, 0.02},
-            // {-0.1, 0.1},
-            // {-10.0, 0.001},
+            {-1.0, 1.0},
+            {-2.0, 0.5},
+            {-0.5, 2.0},
+            {-0.1, 10.0},
+            {-10.0, 0.1},
             }));
-    value_epsilon += EPSILON;
+    // Precision: how close to 1.0 the value is at the end of the cycle given the current step size
+    auto value_epsilon = step_size * value_per_tick + EPSILON;
+
 
     CAPTURE(period_value, value_epsilon);
 
@@ -78,22 +97,88 @@ TEST_CASE("Oscillator (TL): Negative period yields phase-inverted cycles", "[osc
 
     // Step one full cycle and a single value into the next cycle
     auto r = runner.step_while(c11::strictly_decreasingf());
-    r.print_all();
     REQUIRE_THAT(r, m11::in_rangef(0.0, 1.0, MatchType::all));
 
-    auto [hist, last] = r.unpack();
+    auto [complete_cycle, first_value_of_next_cycle] = r.unpack();
 
     // Ensure that last value is the start of a new cycle and the previous value the end of the previous cycle
-    REQUIRE_THAT(hist.first_subset(), m11::approx_eqf(1.0, value_epsilon, MatchType::last));
-    REQUIRE_THAT(hist, m11::approx_eqf(0.0, value_epsilon, MatchType::last));
-    REQUIRE_THAT(last, m11::approx_eqf(1.0, value_epsilon));
+    REQUIRE_THAT(complete_cycle.first_subset(), m11::approx_eqf(1.0, value_epsilon, MatchType::last));
+    REQUIRE_THAT(complete_cycle, m11::approx_eqf(0.0, value_epsilon, MatchType::last));
+    REQUIRE_THAT(first_value_of_next_cycle, m11::approx_eqf(1.0, value_epsilon));
 
     // Ensure that the elapsed duration corresponding to one cycle is equivalent to the period
-    REQUIRE_THAT(last.time(), TimePointMatcher(std::abs(period_value)).with_epsilon(step_size));
+    REQUIRE_THAT(first_value_of_next_cycle.time(), TimePointMatcher(std::abs(period_value)).with_epsilon(step_size));
+}
+
+
+TEST_CASE("Oscillator (TL): Zero period yields constant value 0 (R1.1.2b)", "[oscillator]") {
+    auto w = OscillatorWrapper();
+
+    auto offset = GENERATE(0.0, 0.1, 1.0, 100.0);
+
+    w.mode.set_value(PaMode::transport_locked);
+    w.period.set_values(0.0);
+    w.offset.set_values(offset);
+
+    NodeRunner runner(&w.oscillator);
+
+    auto r = runner.step_n(1000);
+    REQUIRE_THAT(r, m11::eqf(0.0, MatchType::all));
+}
+
+
+TEST_CASE("Oscillator (TL): Offset range is mapped onto [0.0, abs(period)), (R1.1.2c)", "[oscillator]") {
+    auto w = OscillatorWrapper();
+    w.mode.set_value(PaMode::transport_locked);
+
+    NodeRunner runner(&w.oscillator);
+
+    auto value_epsilon = TestConfig::DEFAULT_STEP_SIZE.get_value() + EPSILON;
+
+    SECTION("Offset == abs(Period) or Offset % abs(Period) = 0.0") {
+        auto [period, offset, expected_initial_value] = GENERATE(
+            table<double, double, double>({
+                {1.0, 1.0, 0.0},
+                {2.0, 2.0, 0.0},
+                {0.5, 0.5, 0.0},
+                {0.1, 1.0, 0.0},
+                {-1.0, 1.0, 1.0}, // expected value is technically std::nextafter(1.0, 0.0)
+                })
+        );
+        CAPTURE(period, offset, expected_initial_value);
+
+        w.period.set_values(period);
+        w.offset.set_values(offset);
+
+        auto r = runner.step();
+        REQUIRE_THAT(r, m11::eqf(expected_initial_value, MatchType::last));
+    }
+
+    SECTION("Offset > abs(Period)") {
+        auto [period, offset, expected_cycle_start_time, expected_cycle_initial_value] = GENERATE(
+            table<double, double, double, double>({
+                // offset > period
+                {1.0, 1.1, 0.1, 0.0},
+                {2.0, 5.1, 1.1, 0.0},
+                {-1.0, 1.1, 0.1, 1.0}
+                })
+        );
+        CAPTURE(period, offset, expected_cycle_start_time, expected_cycle_initial_value);
+
+        w.period.set_values(period);
+        w.offset.set_values(offset);
+
+        auto r = runner.step_until(DomainTimePoint::ticks(expected_cycle_start_time), Anchor::after);
+        REQUIRE_THAT( r, m11::approx_eqf(expected_cycle_initial_value, value_epsilon, MatchType::last
+            ));
+    }
 }
 
 
 // ==============================================================================================
+// ==============================================================================================
+// ==============================================================================================
+
 
 TEST_CASE("Oscillator: ctor", "[oscillator]") {
     auto w = OscillatorWrapper();
@@ -247,49 +332,6 @@ TEST_CASE("Oscillator: Offset controls the value offset in mode FP", "[oscillato
 }
 
 
-TEST_CASE("Oscillator: Negative period yields phase-inverted oscillation in modes TL/FP", "[oscillator]") {
-    auto w = OscillatorWrapper();
-    auto step_size = 0.01;
-
-    // With offset = 0 and no changes in period, we expect the same behaviour for TL and FP
-    auto mode = GENERATE(PaMode::transport_locked, PaMode::free_periodic);
-
-    // The precision of the oscillator's output (i.e. how close to 1.0 it is at the end of the cycle)
-    // depends on the step size in relation to the period. Formula is:
-    // epsilon = step_size / period + EPSILON
-    auto [period_value, value_epsilon] = GENERATE(
-        table<double, double>( {
-            {-1.0, 0.01},
-            {-2.0, 0.005},
-            {-0.5, 0.02},
-            {-0.1, 0.1},
-            {-10.0, 0.001},
-            }));
-    value_epsilon += EPSILON;
-
-    w.mode.set_value(mode);
-    w.period.set_values(period_value);
-    w.period_type.set_value(DomainType::ticks);
-
-    NodeRunner runner(&w.oscillator, TestConfig().with_step_size(DomainDuration::ticks(step_size)));
-
-    // Step one full cycle and a single value into the next cycle
-    auto r = runner.step_while(c11::strictly_decreasingf());
-    REQUIRE(r.is_successful());
-    REQUIRE_THAT(r, m11::in_rangef(0.0, 1.0, MatchType::all));
-
-    auto [hist, last] = r.unpack();
-
-    // Ensure that last value is the start of a new cycle and the previous value the end of the previous cycle
-    REQUIRE_THAT(hist.first_subset(), m11::approx_eqf(1.0, value_epsilon, MatchType::last));
-    REQUIRE_THAT(hist, m11::approx_eqf(0.0, value_epsilon, MatchType::last));
-    REQUIRE_THAT(last, m11::approx_eqf(1.0, value_epsilon));
-
-    // Ensure that the elapsed duration corresponding to one cycle is equivalent to the period
-    REQUIRE_THAT(last.time(), TimePointMatcher(std::abs(period_value)).with_epsilon(step_size));
-}
-
-
 TEST_CASE("Oscillator: Offset range is determined by period in mode TL", "[oscillator]") {
     auto w = OscillatorWrapper();
     auto step_size = 0.01;
@@ -300,9 +342,9 @@ TEST_CASE("Oscillator: Offset range is determined by period in mode TL", "[oscil
     auto [period, offset, expected, following_cycle] = GENERATE(
         table<double, double, double, double>( {
             {2.0, 1.3, 1.3, 3.3},
-            // {2.0, 2.3, 0.3, 2.3},
-            // {-2.0, 1.3, 1.3, 3.3},
-            // {-2.0, 2.3, 0.3, 2.3}
+            {2.0, 2.3, 0.3, 2.3},
+            {-2.0, 1.3, 1.3, 3.3},
+            {-2.0, 2.3, 0.3, 2.3}
             })
     );
     CAPTURE(period, offset);

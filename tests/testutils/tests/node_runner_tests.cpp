@@ -136,12 +136,13 @@ TEST_CASE("NodeRunner: step_until (time) edge cases", "[node_runner]") {
         REQUIRE(!r.is_successful());
     }
 
-    // Technically we should be able to run to current time (after) if it's the first step. TODO: Look into this
-    // SECTION("Run to current time as first step (After)") {
-    //     auto r = runner.step_until(DomainTimePoint(start_time, DomainType::ticks), Stop::after);
-    //     CAPTURE(r);
-    //     REQUIRE(r.is_successful());
-    // }
+    SECTION("Run to current time as first step (After)") {
+        auto r = runner.step_until(DomainTimePoint(start_time, DomainType::ticks), Anchor::after);
+        CAPTURE(r);
+        // "After" indicates greater than or equal to.
+        // Since our initial time already is equal to the current time, this is not possible and should fail
+        REQUIRE(!r.is_successful());
+    }
 
     SECTION("Run to current time + step_size (After)") {
         auto r = runner.step_until(DomainTimePoint(start_time + step_size, DomainType::ticks), Anchor::after);
