@@ -1,5 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/generators/catch_generators.hpp>
+#include <catch2/generators/catch_generators_all.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "matchers/matchers_common.h"
@@ -71,6 +71,15 @@ TEST_CASE("testutils::m11 value comparison", "[testutils][m11]") {
          auto d5 = RunResult<Facet>::dummy(Facet(f - 1.01 * epsilon));
          REQUIRE_THAT(d4, !m11::approx_eqf(f, epsilon));
          REQUIRE_THAT(d5, !m11::approx_eqf(f, epsilon));
+     }
+
+    SECTION("circular_eq, circular_eqf") {
+         REQUIRE_THAT(RunResult<Facet>::dummy(Facet{1.0}), m11::circular_eqf(0.0, EPSILON));
+         REQUIRE_THAT(RunResult<Facet>::dummy(Facet{0.99}), m11::circular_eqf(0.0, 0.02));
+         REQUIRE_THAT(RunResult<Facet>::dummy(Facet{0.7}), m11::circular_eqf(0.1, 0.5));
+         REQUIRE_THAT(RunResult<Facet>::dummy(Facet{0.5}), m11::circular_eqf(0.0, EPSILON, 0.5));
+
+         REQUIRE_THAT(RunResult<Facet>::dummy(Facet{0.99}), !m11::circular_eqf(0.0, EPSILON));
      }
 }
 

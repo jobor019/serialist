@@ -10,8 +10,7 @@
 
 
 namespace serialist::test {
-template<typename T>
-class StepResult {
+template<typename T> class StepResult {
 public:
     static constexpr std::size_t NUM_DECIMALS_DETAILED = 16;
 
@@ -80,8 +79,7 @@ public:
     }
 
 
-    template<typename U = T, typename = std::enable_if_t<std::is_same_v<U, Facet>>>
-    std::optional<double> v11f() const {
+    template<typename U = T, typename = std::enable_if_t<std::is_same_v<U, Facet>>> std::optional<double> v11f() const {
         if (is_successful()) {
             if (auto v = voices().first()) {
                 return static_cast<double>(*v);
@@ -147,8 +145,7 @@ private:
 
 // ==============================================================================================
 
-template<typename T>
-class RunResult {
+template<typename T> class RunResult {
 public:
     RunResult(const Vec<StepResult<T>>& run_output
               , DomainType primary_domain)
@@ -170,18 +167,12 @@ public:
     }
 
 
-    static RunResult dummy(const StepResult<T>& s) {
-        return RunResult({s}, DomainType::ticks);
-    }
+    static RunResult dummy(const T& v) { return dummy(Voices<T>::singular(v)); }
+    static RunResult dummy(const StepResult<T>& s) { return RunResult({s}, DomainType::ticks); }
 
 
     static RunResult dummy(const Voices<T>& v) {
         return dummy(StepResult<T>::success(v, TimePoint{}, 0, DomainType::ticks));
-    }
-
-
-    static RunResult dummy(const T& v) {
-        return dummy(Voices<T>::singular(v));
     }
 
 
@@ -206,23 +197,14 @@ public:
     }
 
 
-    RunResult history_subset() const {
-        return RunResult(history(), m_primary_domain);
-    }
-
-
-    RunResult last_subset() const {
-        return RunResult({last()}, m_primary_domain);
-    }
-
-
-    auto unpack() const {
-        return std::make_tuple(history_subset(), last_subset());
-    }
-
+    RunResult history_subset() const { return RunResult(history(), m_primary_domain); }
+    RunResult last_subset() const { return RunResult({last()}, m_primary_domain); }
+    RunResult first_subset() const { return RunResult({first()}, m_primary_domain); }
+    auto unpack() const { return std::make_tuple(history_subset(), last_subset()); }
 
     Vec<StepResult<T>> history() const { return m_run_output.slice(0, -1); }
 
+    StepResult<T> first() const { return *m_run_output.first(); }
     StepResult<T> last() const { return *m_run_output.last(); }
 
 
@@ -234,8 +216,7 @@ public:
     }
 
 
-    template<typename U = T, typename = std::enable_if_t<std::is_same_v<U, Facet>>>
-    std::optional<double> v11f() const {
+    template<typename U = T, typename = std::enable_if_t<std::is_same_v<U, Facet>>> std::optional<double> v11f() const {
         if (is_successful()) {
             if (auto v = last().voices().first()) {
                 return static_cast<double>(*v);

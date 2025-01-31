@@ -21,7 +21,7 @@ namespace serialist::utils {
  * @return The remainder of the division `n` by `d`, always positive.
  */
 template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
-inline T modulo(T n, T d) {
+T modulo(T n, T d) {
     if constexpr (std::is_integral_v<T>) {
         return ((n % d) + d) % d;
     } else {
@@ -30,7 +30,7 @@ inline T modulo(T n, T d) {
 }
 
 template<typename T, typename = std::enable_if_t<std::is_floating_point_v<T>>>
-inline T modulo(T n, T d, T epsilon) {
+T modulo(T n, T d, T epsilon) {
     auto r = modulo(n, d);
     if (std::abs(r - d) < epsilon) {
         return 0.0;
@@ -39,14 +39,14 @@ inline T modulo(T n, T d, T epsilon) {
 }
 
 template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
-inline std::pair<T, T> divmod(T n, T d) {
+std::pair<T, T> divmod(T n, T d) {
     T remainder = modulo(n, d);
     T quotient = (n - remainder) / d;
     return std::make_pair(quotient, remainder);
 }
 
 template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
-inline std::pair<T, T> divmod(T n, T d, T epsilon) {
+std::pair<T, T> divmod(T n, T d, T epsilon) {
     T remainder = modulo(n, d, epsilon);
     T quotient = (n - remainder) / d;
     return std::make_pair(quotient, remainder);
@@ -56,7 +56,7 @@ inline std::pair<T, T> divmod(T n, T d, T epsilon) {
 // ==============================================================================================
 
 template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
-inline T clip(T position
+T clip(T position
               , std::optional<T> lower_bound = std::nullopt
               , std::optional<T> upper_bound = std::nullopt) {
     if (lower_bound.has_value()) {
@@ -72,7 +72,7 @@ inline T clip(T position
 
 // Overload for cases where both lower and upper bounds are provided directly
 template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
-inline T clip(T position, T lower_bound, T upper_bound) {
+T clip(T position, T lower_bound, T upper_bound) {
     return clip(position, std::optional<T>(lower_bound), std::optional<T>(upper_bound));
 }
 
@@ -80,7 +80,7 @@ inline T clip(T position, T lower_bound, T upper_bound) {
 // ==============================================================================================
 
 template<typename IntType, typename = std::enable_if_t<std::is_integral_v<IntType>>>
-inline IntType sign_index(IntType index, std::size_t container_size) {
+IntType sign_index(IntType index, std::size_t container_size) {
     if (index < 0) {
         return static_cast<IntType>(container_size) + index;
     }
@@ -114,16 +114,28 @@ inline T decrement(T value, T fold_value = std::numeric_limits<T>::max()) {
 // ==============================================================================================
 
 template<typename T = double, typename = std::enable_if_t<std::is_floating_point_v<T>>>
-inline bool equals(T a, T b, T epsilon = 1e-6) {
+bool equals(T a, T b, T epsilon = 1e-6) {
     return std::abs(a - b) < epsilon;
 }
 
 template<typename T = double, typename = std::enable_if_t<std::is_floating_point_v<T>>>
-inline bool equals(std::optional<T> a, std::optional<T> b, T epsilon = 1e-6) {
+bool equals(std::optional<T> a, std::optional<T> b, T epsilon = 1e-6) {
     if (!a.has_value() || !b.has_value()) {
         return !a.has_value() && !b.has_value();
     }
     return equals(*a, *b, epsilon);
+}
+
+template<typename T = double, typename = std::enable_if_t<std::is_floating_point_v<T>>>
+bool circular_equals(T a, T b, T epsilon = 1e-6, T modulo_range = static_cast<T>(1.0)) {
+    assert(epsilon > 0.0);
+    assert(modulo_range > 0.0);
+
+    auto diff = std::abs(a - b);
+    if (diff > modulo_range / static_cast<T>(2)) {
+        diff = modulo_range - diff;
+    }
+    return diff < epsilon;
 }
 
 

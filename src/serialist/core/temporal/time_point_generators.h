@@ -180,6 +180,11 @@ private:
             return 0.0;
         }
 
+        if (period < 0.0) {
+            static double one = std::nextafter(1.0, 0.0); // highest value in range [0.0, 1.0)
+            return one - utils::modulo(t - offset, std::abs(period)) / std::abs(period);
+        }
+
         return utils::modulo(t - offset, period) / period;
     }
 
