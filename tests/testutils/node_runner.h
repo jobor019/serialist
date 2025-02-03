@@ -138,6 +138,8 @@ public:
         return *this;
     }
 
+    DomainDuration get_step_size() const { return m_config.step_size; }
+
     void discontinuity(const TimePoint& new_time) {
         m_current_time = new_time;
         m_current_step_index = 0;

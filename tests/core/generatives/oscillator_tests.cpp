@@ -169,8 +169,94 @@ TEST_CASE("Oscillator (TL): Offset range is mapped onto [0.0, abs(period)), (R1.
         w.offset.set_values(offset);
 
         auto r = runner.step_until(DomainTimePoint::ticks(expected_cycle_start_time), Anchor::after);
-        REQUIRE_THAT( r, m11::approx_eqf(expected_cycle_initial_value, value_epsilon, MatchType::last
-            ));
+        REQUIRE_THAT(r, m11::approx_eqf(expected_cycle_initial_value, value_epsilon, MatchType::last ));
+    }
+}
+
+
+TEST_CASE("Oscillator (TL): Edge cases do not impact output (R1.1.2d, R1.4)", "[oscillator]") {
+    auto w = OscillatorWrapper();
+    w.mode.set_value(PaMode::transport_locked);
+    NodeRunner runner(&w.oscillator);
+
+    auto t1 = DomainTimePoint::ticks(5.0);
+    auto [period, expected_value_at_t1, value_per_tick] = GENERATE(
+        table<double, double, double>({
+            {1.0, 0.0, 1.0},         // (5 % 1)/1 = 0
+            {2.0, 0.5, 0.5},         // (5 % 2)/2 = 0.5
+            {4.0, 0.25, 0.25},       // (5 % 4)/4 = 0.25
+            {6.0, 5.0/6.0, 1.0/6.0}, // (5 % 6)/6 = 0.83333333ö
+            })
+    );
+    auto value_epsilon = runner.get_step_size().get_value() * value_per_tick + EPSILON;
+    CAPTURE(period, expected_value_at_t1, value_epsilon);
+
+    w.period.set_values(period);
+
+    SECTION("Mode Switching") {
+        auto mode = GENERATE(PaMode::triggered, PaMode::free_periodic);
+        w.mode.set_value(mode);
+
+        auto r = runner.step_until(t1, Anchor::before);
+        REQUIRE(r.is_successful());
+
+        w.mode.set_value(PaMode::transport_locked);
+        r = runner.step();
+        REQUIRE_THAT(r, m11::approx_eqf(expected_value_at_t1, value_epsilon));
+    }
+
+    SECTION("Enable/Disable") {
+        w.enabled.set_values(false);
+
+        auto r = runner.step_until(t1, Anchor::before);
+        REQUIRE(r.is_successful());
+
+        w.enabled.set_values(true);
+        r = runner.step();
+        REQUIRE_THAT(r, m11::approx_eqf(expected_value_at_t1, value_epsilon));
+    }
+
+    SECTION("Reset") {
+        auto r = runner.step_until(t1, Anchor::before);
+        REQUIRE(r.is_successful());
+
+        w.trigger.set_values(Trigger::pulse_on());
+        r = runner.step();
+        REQUIRE_THAT(r, m11::approx_eqf(expected_value_at_t1, value_epsilon));
+    }
+
+    SECTION("Step Size") {
+        auto step_size = GENERATE(0.1, 0.2, 0.3, 0.7, -0.1);
+        w.step_size.set_values(step_size);
+
+        auto r = runner.step_until(t1, Anchor::before);
+        REQUIRE(r.is_successful());
+
+        r = runner.step();
+        REQUIRE_THAT(r, m11::approx_eqf(expected_value_at_t1, value_epsilon));
+    }
+
+    SECTION("Value Changes") {
+        auto initial_period_value = GENERATE(0.1, 3.4, -0.5);
+        auto initial_period_type = GENERATE(DomainType::ticks, DomainType::beats);
+        auto initial_offset_value = GENERATE(0.0, 0.2);
+        auto initial_offset_type = GENERATE(DomainType::ticks, DomainType::bars);
+
+        w.period.set_values(initial_period_value);
+        w.period_type.set_value(initial_period_type);
+        w.offset.set_values(initial_offset_value);
+        w.offset_type.set_value(initial_offset_type);
+
+        auto r = runner.step_until(t1, Anchor::before);
+        REQUIRE(r.is_successful());
+
+        w.period.set_values(period);
+        w.period_type.set_value(DomainType::ticks);
+        w.offset.set_values(0.0);
+        w.offset_type.set_value(DomainType::ticks);
+
+        r = runner.step();
+        REQUIRE_THAT(r, m11::approx_eqf(expected_value_at_t1, value_epsilon));
     }
 }
 
