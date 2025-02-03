@@ -19,28 +19,32 @@ public:
     Transport() : Transport(TimePoint(), false) {}
 
 
-    explicit Transport(bool active) : Transport(TimePoint(), active) {}
+    explicit Transport(bool active) : Transport(TimePoint::zero(), active) {}
 
 
-    explicit Transport(TimePoint&& initial_time, bool active)
-            : m_time_point(initial_time)
-              , m_active(active)
+    explicit Transport(const TimePoint& initial_time, bool active)
+            : m_time_point(TimePoint{initial_time}.with_transport_running(active))
               , m_previous_update_time(std::chrono::system_clock::now()) {}
 
 
     void start() {
-        m_active = true;
+        m_time_point.with_transport_running(true);
         m_previous_update_time = std::chrono::system_clock::now();
     }
 
 
     void stop() {
-        m_active = false;
+        m_time_point.with_transport_running(false);
+    }
+
+
+    void set_tempo(double tempo) {
+        m_time_point.with_tempo(tempo);
     }
 
 
     const TimePoint& update_time() {
-        if (m_active) {
+        if (active()) {
             auto current_time = std::chrono::system_clock::now();
             auto time_delta = std::chrono::duration_cast<std::chrono::nanoseconds>(
                     current_time - m_previous_update_time).count();
@@ -51,11 +55,12 @@ public:
         return m_time_point;
     }
 
+    bool active() const { return m_time_point.get_transport_running(); }
+
 
 private:
     TimePoint m_time_point;
 
-    bool m_active;
     std::chrono::time_point<std::chrono::system_clock> m_previous_update_time;
 
 

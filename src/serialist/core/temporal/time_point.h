@@ -54,6 +54,11 @@ public:
         return *this;
     }
 
+    TimePoint& with_transport_running(bool transport_running) {
+        m_transport_running = transport_running;
+        return *this;
+    }
+
 
     // double arithmetic operators
     TimePoint operator+(double tick_increment) const;
