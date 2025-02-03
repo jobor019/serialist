@@ -13,6 +13,24 @@
 using namespace serialist;
 using namespace serialist::test;
 
+/**
+*  ==============================================================================================
+*  Oscillator Testing Guidelines:
+*  ==============================================================================================
+*
+*  In most cases where we need to know that a cycle starts / ends at a particular time, the best solution is to
+*  `step_while(c11::strictly_increasingf/c11:strictly_decreasingf)` and check that this time matches our expectation,
+*  rather than to step until the expected time and check if the value is 0.0.
+*
+*  The reason for this is (obviously) rounding errors. While `step_until(t, Anchor::before)` ensures that
+*  current_time < t, we cannot be sure that `f(current_time) < f(t)`.
+*
+*  In case of the Oscillator, if we for example have period = 2.0 and we step until t < 2.0, we can be sure that
+*  t < 2.0, but we cannot be sure that (t / p) < 1.0 (where 1.0 is the oscillator's internal modulo condition).
+*
+*  Still, if it's strictly necessary to test a given time, we can use `c11::circular_eqf()` to check if a value
+*  is approximately equal to 0.0 modulo 1.0.
+*/
 
 TEST_CASE("Oscillator (TL): Period and offset control duration and start time of cycle (R1.1.1)", "[oscillator]") {
     auto w = OscillatorWrapper();
@@ -174,7 +192,7 @@ TEST_CASE("Oscillator (TL): Offset range is mapped onto [0.0, abs(period)), (R1.
 }
 
 
-TEST_CASE("Oscillator (TL): Edge cases do not impact output (R1.1.2d, R1.4)", "[oscillator]") {
+TEST_CASE("Oscillator (TL): Edge cases do not impact output (R1.1.2d, R1.3)", "[oscillator]") {
     auto w = OscillatorWrapper();
     w.mode.set_value(PaMode::transport_locked);
     NodeRunner runner(&w.oscillator);
@@ -261,8 +279,135 @@ TEST_CASE("Oscillator (TL): Edge cases do not impact output (R1.1.2d, R1.4)", "[
 }
 
 
+TEST_CASE("Oscillator (TL): Two oscillators with same config produce the same output", "[oscillator]") {
+    auto w1 = OscillatorWrapper();
+    auto w2 = OscillatorWrapper();
+
+    auto period = GENERATE(1.0, 2.0, 3.0, 0.4);
+    auto runner2_start_time = GENERATE(0.0, 0.2, 0.5, 0.6);
+    auto end_time = DomainTimePoint::ticks(1.0);
+
+    w1.mode.set_value(PaMode::transport_locked);
+    w1.period.set_values(period);
+    w2.mode.set_value(PaMode::transport_locked);
+    w2.period.set_values(period);
+
+    NodeRunner runner1{&w1.oscillator};
+    NodeRunner runner2{&w2.oscillator, TimePoint{runner2_start_time}};
+
+    auto r1 = runner1.step_until(end_time, Anchor::before);
+    auto r2 = runner2.step_until(end_time, Anchor::before);
+
+    REQUIRE(r1.v11() == r2.v11());
+}
+
+
+TEST_CASE("Oscillator (TL): Period and offset type controls time domain type of cycle (R1.2.1)", "[oscillator]") {
+    // Note: All of this could technically be tested in R1.1.1 as most of it is pure duplication of that test.
+    //       Regardless, this is implemented as a separate test to more clearly separate the two requirements and
+    //       to avoid building tests that are testing too many things at once.
+
+    auto w = OscillatorWrapper();
+
+    // type = ticks is already tested in earlier tests. This test only tests period_type == offset_type.
+    auto type = GENERATE(DomainType::beats, DomainType::bars);
+
+    auto meter = GENERATE(Meter{4, 4}, Meter{5, 8}, Meter{3, 2});
+
+    w.period_type.set_value(type);
+    w.offset_type.set_value(type);
+
+    auto [period, offset, cycle_start, cycle_end, value_per_tick] = GENERATE(
+        table<double, double, double, double, double>( {
+            {1.0, 0.0, 0.0, 1.0, 1.0},
+            {2.0, 0.0, 0.0, 2.0, 0.5},
+            {0.1, 0.0, 0.0, 0.1, 10.0},
+            {10.0, 0.0, 0.0, 10.0, 0.1},
+            {1.0, 0.5, 0.5, 1.5, 1.0},
+            {2.0, 0.5, 0.5, 2.5, 0.5},
+            {2.0, 0.1, 0.1, 2.1, 0.5},
+            {2.0, 1.9, 1.9, 3.9, 0.5},
+            {2.0, 1.9, 11.9, 13.9, 0.5},
+            })
+    );
+
+    auto step_size = 0.01;
+    auto value_epsilon = step_size * value_per_tick + EPSILON;
+
+    CAPTURE(type, period, offset, cycle_start, cycle_end, value_epsilon, meter);
+
+    w.period.set_values(period);
+    w.offset.set_values(offset);
+
+    NodeRunner runner{&w.oscillator
+                      , TestConfig().with_step_size(DomainDuration{step_size, type})
+                      , TimePoint::zero().with_meter(meter)
+    };
+
+    // Step until first value in first cycle
+    if (offset > 0.0) {
+        auto r = runner.step_until(DomainTimePoint{cycle_start, type}, Anchor::after);
+        REQUIRE_THAT(r, m11::approx_eqf(0.0, value_epsilon));
+    }
+
+    // Step an entire cycle + one more value (operationalized by the strictly_increasingf condition)
+    auto r = runner.step_while(c11::strictly_increasingf());
+    REQUIRE_THAT(r, m11::in_rangef(0.0, 1.0, MatchType::all));
+
+    auto [complete_cycle, first_value_of_new_cycle] = r.unpack();
+    REQUIRE_THAT(complete_cycle, m11::approx_eqf(1.0, value_epsilon, MatchType::last));
+    REQUIRE_THAT(first_value_of_new_cycle, m11::approx_eqf(0.0, value_epsilon));
+
+    // Check that the new cycle starts at exactly at the expected time
+    REQUIRE_THAT(first_value_of_new_cycle.time()
+                 , TimePointMatcher().with(type, cycle_end).with_epsilon(step_size));
+}
+
+
+TEST_CASE("Oscillator (TL): Mixed types are treated as ticks when one type is ticks (R1.2.2a)", "[oscillator]") {
+    REQUIRE(false); // TODO: This test is incomplete and incorrect
+
+    auto w = OscillatorWrapper();
+    w.mode.set_value(PaMode::transport_locked);
+
+    auto step_size = 0.01;
+
+    auto t1 = DomainTimePoint::ticks(1.0);
+    auto [period, offset, meter, expected_value_at_t1, value_per_tick] = GENERATE(
+        table<DomainDuration, DomainDuration, Meter, double, double>({
+            // 4/4 meter, i.e. 1.0 ticks = 1.0 beats = 0.25 bars
+            {DomainDuration::ticks(1.0), DomainDuration::beats(0.5), Meter{4, 4}, 0.5, 1.0},
+            {DomainDuration::ticks(2.0), DomainDuration::beats(0.25), Meter{4, 4}, 0.5, 1.0},
+            {DomainDuration::ticks(1.0), DomainDuration::bars(0.125), Meter{4, 4}, 0.5, 1.0},
+
+            // // 5/8 meter, i.e. 1.0 ticks = 2.0 beats = 0.4 bars // TODO
+            //
+            // // 4/2 meter, i.e. 1.0 ticks = 0.5 beats = 0.125 bars // TODO
+            //
+            // // offset (converted to ticks) > period // TODO
+            {DomainDuration::ticks(1.0), DomainDuration::bars(0.5), Meter{4, 4}, 0.0, 1.0}
+            })
+    );
+    auto value_epsilon = step_size * value_per_tick + EPSILON;
+    CAPTURE(period, offset, meter, expected_value_at_t1, value_epsilon);
+
+    w.period.set_values(period.get_value());
+    w.period_type.set_value(period.get_type());
+    w.offset.set_values(offset.get_value());
+    w.offset_type.set_value(offset.get_type());
+
+    NodeRunner runner{&w.oscillator
+                      , TestConfig().with_step_size(DomainDuration::ticks(step_size))
+                      , TimePoint::zero().with_meter(meter)
+    };
+
+    auto r = runner.step_until(t1, Anchor::after);
+    REQUIRE_THAT(r, m11::approx_eqf(expected_value_at_t1, value_epsilon));
+}
+
+
 // ==============================================================================================
-// ==============================================================================================
+// = LEGACY TESTS =
 // ==============================================================================================
 
 
