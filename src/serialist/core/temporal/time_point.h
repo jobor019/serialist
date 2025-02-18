@@ -105,6 +105,7 @@ public:
      * Increment the `TimePoint` by `tick_increment`. If the increment results in a bar change, change the meter to
      * `new_meter` at the start of the bar and return true, otherwise keep old meter and return false.
      */
+    bool increment_with_meter_change(int64_t delta_nanos, const Meter& new_meter);
     bool increment_with_meter_change(double tick_increment, const Meter& new_meter);
     bool increment_with_meter_change(const DomainDuration& delta, const Meter& new_meter);
 
@@ -172,6 +173,8 @@ public:
 
         return ss.str();
     }
+
+    double nanos2ticks(int64_t delta_nanos) const { return static_cast<double>(delta_nanos) * 1e-9 * m_tempo / 60.0; }
 
 private:
     double m_tick;          // tick number since start, where 1.0 ticks equals 1 quarter note (indep. of meter)
@@ -505,7 +508,7 @@ inline bool TimePoint::operator>=(const DomainTimePoint& other) const { return o
 
 
 inline void TimePoint::increment(int64_t delta_nanos) {
-    increment(static_cast<double>(delta_nanos) * 1e-9 * m_tempo / 60.0);
+    increment(nanos2ticks(delta_nanos));
 }
 
 
@@ -522,6 +525,12 @@ inline void TimePoint::increment(const DomainDuration& delta) {
     auto tick_increment = delta.as_type(DomainType::ticks, m_meter).get_value();
     increment(tick_increment);
 }
+
+
+inline bool TimePoint::increment_with_meter_change(int64_t delta_nanos, const Meter& new_meter) {
+    return increment_with_meter_change(nanos2ticks(delta_nanos), new_meter);
+}
+
 
 
 inline bool TimePoint::increment_with_meter_change(double tick_increment, const Meter& new_meter) {

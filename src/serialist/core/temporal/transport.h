@@ -1,5 +1,3 @@
-
-
 #ifndef SERIALIST_LOOPER_TRANSPORT_H
 #define SERIALIST_LOOPER_TRANSPORT_H
 
@@ -10,8 +8,8 @@
 #include "meter.h"
 #include "core/temporal/time_point.h"
 
-namespace serialist {
 
+namespace serialist {
 // ==============================================================================================
 
 class Transport {
@@ -23,49 +21,82 @@ public:
 
 
     explicit Transport(const TimePoint& initial_time, bool active)
-            : m_time_point(TimePoint{initial_time}.with_transport_running(active))
-              , m_previous_update_time(std::chrono::system_clock::now()) {}
+        : m_time_point(TimePoint{initial_time}.with_transport_running(active))
+        , m_previous_update_time(std::chrono::system_clock::now()) {}
 
 
-    void start() {
+    const TimePoint& start() {
         m_time_point.with_transport_running(true);
         m_previous_update_time = std::chrono::system_clock::now();
+        return m_time_point;
     }
 
 
-    void stop() {
-        m_time_point.with_transport_running(false);
+    const TimePoint& pause() {
+        return m_time_point.with_transport_running(false);
     }
 
 
-    void set_tempo(double tempo) {
-        m_time_point.with_tempo(tempo);
+    const TimePoint& reset() {
+        auto new_time = TimePoint::zero()
+                .with_meter(m_time_point.get_meter())
+                .with_tempo(m_time_point.get_tempo())
+                .with_transport_running(m_time_point.get_transport_running());
+        m_time_point = new_time;
+        return m_time_point;
     }
+
+
+    const TimePoint& stop() {
+        reset();
+        return pause();
+    }
+
+
+    void set_tempo(double tempo) { m_time_point.with_tempo(tempo); }
+
+    void set_next_meter(const std::optional<Meter>& meter) { m_next_meter = meter; }
 
 
     const TimePoint& update_time() {
         if (active()) {
             auto current_time = std::chrono::system_clock::now();
-            auto time_delta = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                    current_time - m_previous_update_time).count();
-            m_time_point.increment(time_delta);
+            auto delta_nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                current_time - m_previous_update_time).count();
+
+            if (m_next_meter) {
+                if (m_time_point.increment_with_meter_change(delta_nanos, *m_next_meter)) {
+                    m_next_meter = std::nullopt;
+                }
+            }
+            else {
+                m_time_point.increment(delta_nanos);
+            }
+
             m_previous_update_time = current_time;
         }
 
         return m_time_point;
     }
 
+
     bool active() const { return m_time_point.get_transport_running(); }
 
+
+    /**
+     * @return current `TimePoint` without updating the time
+     */
+    const TimePoint& get_time() const {
+        return m_time_point;
+    }
 
 private:
     TimePoint m_time_point;
 
     std::chrono::time_point<std::chrono::system_clock> m_previous_update_time;
 
-
+    std::optional<Meter> m_next_meter = std::nullopt;
 };
-
 } // namespace serialist
 
 #endif //SERIALIST_LOOPER_TRANSPORT_H
