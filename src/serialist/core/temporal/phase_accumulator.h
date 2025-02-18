@@ -81,8 +81,13 @@ public:
             return Phase::phase_mod(offset);
         }
 
-        auto q = offset / period;
+        auto q = offset / std::abs(period);
         return Phase::phase_mod(q);
+    }
+
+    static double phasor_value_offset(const TimePoint& t, const PaParameters& p) {
+        auto offset = p.offset->get_value();
+        return Phase::phase_mod(offset);
     }
 };
 
@@ -111,19 +116,20 @@ public:
     double process(const TimePoint& t, PaState& s, PaParameters& p) override {
         if (!s.x) {
             // first callback => set to initial phase
-            s.x = offset_as_phase(t, p);
+            s.x = phasor_value_offset(t, p);
         } else {
             assert(s.previous_callback.has_value()); // invariant: s.x.has_value() <-> s.previous_callback.has_value()
 
             auto type = p.period->get_type();
             auto dt = t.get(type) - s.previous_callback->get(type);
 
+            // time skip occurred
             if (dt < 0.0) {
-                s.x = offset_as_phase(t, p);
-            } else {
+                s.x = phasor_value_offset(t, p);;
+            } else if (!utils::equals(p.period->get_value(), 0.0)) {
                 auto dx = dt / p.period->get_value();
                 s.x = Phase::phase_mod(*s.x + dx);
-            }
+            } // else: no change, output previous value
         }
 
         return *s.x;

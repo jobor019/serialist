@@ -32,6 +32,10 @@ using namespace serialist::test;
 *  is approximately equal to 0.0 modulo 1.0.
 */
 
+// ==============================================================================================
+// R1.: Periodic with Grid Alignment (TL)
+// ==============================================================================================
+
 TEST_CASE("Oscillator (TL): Period and offset control duration and start time of cycle (R1.1.1)", "[oscillator]") {
     auto w = OscillatorWrapper();
 
@@ -404,6 +408,80 @@ TEST_CASE("Oscillator (TL): Mixed types are treated as ticks when one type is ti
     auto r = runner.step_until(t1, Anchor::after);
     REQUIRE_THAT(r, m11::approx_eqf(expected_value_at_t1, value_epsilon));
 }
+
+
+
+// ==============================================================================================
+// = R2. Periodic without Grid Alignment (FP) =
+// ==============================================================================================
+
+TEST_CASE("Oscillator (FP): Period and offset control duration and start value of cycle (R2.1.1a)", "[oscillator]") {
+    auto w = OscillatorWrapper();
+
+    w.mode.set_value(PaMode::free_periodic);
+
+    auto step_size = GENERATE(0.001, 0.01);
+    auto period = GENERATE(0.5, 1.0, 2.0, 10.0);
+    auto offset = GENERATE(0.1, 0.2, 0.5, 0.8);
+
+    w.period.set_values(period);
+    w.offset.set_values(offset);
+
+    CAPTURE(period, offset, step_size);
+
+    NodeRunner runner{&w.oscillator, TestConfig().with_step_size(DomainDuration::ticks(step_size))};
+
+    // First value should be offset
+    auto r = runner.step();
+    REQUIRE_THAT(r, m11::eqf(offset));
+
+    // Step until end of current cycle
+    r = runner.step_until(c11::eqf(0.0));
+    REQUIRE_THAT(r.history_subset(), m11::strictly_increasingf());
+
+    // Step until one full period has elapsed from the initial value
+    r = runner.step_until(DomainTimePoint::ticks(period), Anchor::after);
+    REQUIRE_THAT(r, m11::strictly_increasingf());
+    REQUIRE_THAT(r, m11::approx_eqf(offset, step_size + EPSILON));
+}
+
+TEST_CASE("Oscillator (FP): Output is continuous when period changes (R2.1.1b)", "[oscillator]") {
+    // TODO
+}
+
+
+TEST_CASE("Oscillator (FP): Zero period yields constant previous/offset value  (R2.1.2b)", "[oscillator]") {
+    auto w = OscillatorWrapper();
+
+    // auto offset = GENERATE(0.0, 0.1, 1.0, 100.0);
+    auto offset = GENERATE(0.0);
+
+    w.mode.set_value(PaMode::free_periodic);
+    w.offset.set_values(offset);
+
+    SECTION("No previous value: yield offset value") {
+        w.period.set_values(0.0);
+        NodeRunner runner(&w.oscillator);
+        auto r = runner.step_n(1000);
+        REQUIRE_THAT(r, m11::eqf(offset, MatchType::all));
+    }
+
+    SECTION("Previous value exists: yield previous value") {
+        w.period.set_values(1.0);
+        NodeRunner runner(&w.oscillator);
+
+        double target_value = 0.5;
+
+        auto r = runner.step_until(c11::eqf(target_value));
+        REQUIRE_THAT(r, m11::eqf(target_value, MatchType::last));
+
+        w.period.set_values(0.0);
+        r = runner.step_n(100);
+        REQUIRE_THAT(r, m11::eqf(target_value, MatchType::all));
+    }
+}
+
+
 
 
 // ==============================================================================================
