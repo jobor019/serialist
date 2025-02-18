@@ -190,7 +190,7 @@ public:
 
     void reset() {
         m_state.previous_callback = std::nullopt;
-        m_state.x = 0.0;
+        m_state.x = std::nullopt;
     }
 
     void set_period(const DomainDuration& period) { m_params.period = period; }
