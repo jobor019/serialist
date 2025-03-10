@@ -1,6 +1,6 @@
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/Catch2 EXCLUDE_FROM_ALL)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/expected EXCLUDE_FROM_ALL)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/JUCE EXCLUDE_FROM_ALL)
+#add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/JUCE EXCLUDE_FROM_ALL)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/magic_enum EXCLUDE_FROM_ALL)
 
