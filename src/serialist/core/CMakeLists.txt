@@ -75,6 +75,7 @@ add_library(${CORE_NAME}
         utility/mapping.h
         generatives/phase_pulsator.h
         temporal/domain_type.h
+        generatives/temp_phase_pulsator.h
 
 
 )
