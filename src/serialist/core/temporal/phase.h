@@ -83,6 +83,10 @@ public:
         return distance(*this, end, interval_direction);
     }
 
+    double distance_to(double end, std::optional<Direction> interval_direction = std::nullopt) const {
+        return distance(*this, Phase{end}, interval_direction);
+    }
+
 
     double get() const { return m_phase; }
 
