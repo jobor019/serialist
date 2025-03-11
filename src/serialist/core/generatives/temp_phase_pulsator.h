@@ -1,5 +1,5 @@
-#ifndef INVALID_INVALID_INVALID_H // TODO: REMOVE
-#define INVALID_INVALID_INVALID_H
+#ifndef SERIALIST_PHASE_PULSATOR_H
+#define SERIALIST_PHASE_PULSATOR_H
 
 #include "core/collections/voices.h"
 #include "temporal/phase.h"
@@ -7,9 +7,8 @@
 #include "temporal/trigger.h"
 #include "utility/stateful.h"
 
-using namespace serialist;
+namespace serialist {
 
-// Type definitions
 using ThresholdIndex = std::size_t;
 using DurationIndex = std::size_t;
 
@@ -49,14 +48,14 @@ struct LegatoThreshold {
 
 
 struct PhasePulsatorState {
-    Phase previous_cursor;
+    std::optional<Phase> previous_cursor = std::nullopt;
 
-    std::optional<ThresholdIndex> last_threshold;
-    std::optional<ThresholdIndex> expected_next_threshold;
-    std::optional<DurationIndex> current_segment;
+    std::optional<ThresholdIndex> last_threshold = std::nullopt;
+    std::optional<ThresholdIndex> expected_next_threshold = std::nullopt;
+    std::optional<DurationIndex> current_segment = std::nullopt;
 
-    std::optional<LegatoThreshold> previous_legato_threshold;
-    std::optional<LegatoThreshold> current_legato_threshold;
+    std::optional<LegatoThreshold> previous_legato_threshold = std::nullopt;
+    std::optional<LegatoThreshold> current_legato_threshold = std::nullopt;
 };
 
 
@@ -93,31 +92,51 @@ public:
 
 
 class SingleThresholdStrategy {
+public:
+    static constexpr double JUMP_DETECTION_THRESHOLD = 0.3;
+
+    using State = PhasePulsatorState;
+    using Params = PhasePulsatorParameters;
+
     SingleThresholdStrategy() = delete;
 
 
-    static Voice<Trigger> process(const Phase& cursor, PhasePulsatorState& s, const PhasePulsatorParameters& p) {
+    static Voice<Trigger> process(const Phase& cursor, State& s, const Params& p) {
         Voice<Trigger> triggers;
 
-        if (detect_jump_to_threshold()) {
-            triggers.extend(continuous_jump());
-        } else if (crosses_threshold(cursor)) {}
+        if (detect_jump_to_threshold(cursor, s, p)) {
+            triggers.extend(continuous_jump(cursor, s, p));
+        } else if (crosses_threshold(cursor, s, p)) {
+            triggers.extend(handle_threshold_crossing(cursor, s, p));
+        }
 
+        triggers.extend(process_legato_thresholds(cursor, s, p));
 
-        // ...
-        m_previous_cursor = cursor;
+        s.previous_cursor = cursor;
         return triggers;
     }
 
 
-    static Voice<Trigger> on_activate(PhasePulsatorState& s, const PhasePulsatorParameters& p);
+    static Voice<Trigger> on_activate(State& s, const Params& p);
     static Voice<Trigger> handle_legato_change(double old_legato_value, State& s, const Params& p);
+
+private:
+
+    static Voice<Trigger> continuous_jump(const Phase& cursor, State& s, const Params& p);
+    static Voice<Trigger> handle_threshold_crossing(const Phase& cursor, State& s, const Params& p);
+    static Voice<Trigger> process_legato_thresholds(const Phase& cursor, State& s, const Params& p);
+
+
+    static bool detect_jump_to_threshold(const Phase& cursor, const State& s, const Params& p);
+    static bool crosses_threshold(const Phase& cursor, const State& s, const Params& p);
+
 };
 
 
 // ==============================================================================================
 
 class MultiThresholdStrategy {
+public:
     static constexpr double JUMP_PROXIMITY_THRESHOLD = 1e-3;
 
     using State = PhasePulsatorState;
@@ -143,6 +162,7 @@ class MultiThresholdStrategy {
         }
 
         triggers.extend(process_legato_thresholds(cursor));
+
         s.previous_cursor = cursor;
         return triggers;
     }
@@ -154,6 +174,7 @@ class MultiThresholdStrategy {
     static Voice<Trigger> handle_legato_change(double old_legato_value, State& s, const Params& p);
 
 
+private:
     static bool is_jump_to_threshold(const std::optional<ThresholdIndex> threshold, const State& s) {
         return threshold && !is_adjacent(*threshold, s);
     }
@@ -165,7 +186,7 @@ class MultiThresholdStrategy {
 
 
     static std::optional<SegmentIndex> detect_jump_to_segment(cursor, const State& s) {
-        assert(!threshold_close_to(cursor));
+
     }
 
 
@@ -223,8 +244,12 @@ public:
     }
 
 
-    void set_legato(double legato);
-    void set_durations(Vec<double> durations);
+    void set_legato(double legato) { m_parameters.new_legato = legato; }
+
+    void set_durations(Vec<double> durations) {
+        assert(!durations.empty());
+        m_parameters.new_durations = durations;
+    }
 
 private:
     Voice<Trigger> handle_duration_change() {
@@ -233,11 +258,26 @@ private:
 
         auto new_durations = *m_parameters.new_durations;
 
+        auto new_size = new_durations.size();
+        auto old_size = m_parameters.durations.size();
+
         // negative durations d correspond to pauses with duration abs(d)
+        m_parameters.is_pause = new_durations.as_type<bool>([](double d) { return d <= 0.0; });
         m_parameters.durations = new_durations.map([](double d) { return std::abs(d); });
-        m_parameters.is_pause = new_durations.map([](double d) { return d > 0.0; });
+
+        // Normalize to 1.0
+        auto sum = m_parameters.durations.sum();
+        assert(sum > 0.0);
+        m_parameters.durations.map([sum](double d){ return d / sum; });
 
         m_parameters.new_durations = std::nullopt;
+
+        if (new_size == 1 && old_size != 1) {
+            return SingleThresholdStrategy::on_activate(m_state, m_parameters);
+        } else if (new_size > 1 && old_size == 1) {
+            return MultiThresholdStrategy::on_activate(m_state, m_parameters);
+        }
+        return {}; // Change from N > 1 to M > 1
     };
 
 
@@ -282,3 +322,7 @@ private:
     PhasePulsatorState m_state;
     PhasePulsatorParameters m_parameters;
 };
+
+}
+
+#endif // SERIALIST_PHASE_PULSATOR_H

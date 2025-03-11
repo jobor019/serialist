@@ -35,6 +35,14 @@ public:
     }
 
 
+    // Alias due to the slightly confusing choice of name `abs_delta_phase`
+    static double distance(const Phase& start
+        , const Phase& end
+        , std::optional<Direction> interval_direction = std::nullopt) {
+        return abs_delta_phase(start, end, interval_direction);
+    }
+
+
     static double abs_delta_phase(const Phase& start
                                   , const Phase& end
                                   , std::optional<Direction> interval_direction = std::nullopt) {
@@ -69,6 +77,10 @@ public:
 
         // similarly, delta >= 0.5 implies a wrapped around negative delta
         return Direction::backward;
+    }
+
+    double distance_to(const Phase& end, std::optional<Direction> interval_direction = std::nullopt) const {
+        return distance(*this, end, interval_direction);
     }
 
 
