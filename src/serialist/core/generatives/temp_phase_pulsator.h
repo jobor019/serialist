@@ -14,19 +14,26 @@ using DurationIndex = std::size_t;
 
 enum class ThresholdDirection { forward, backward };
 
-struct DirectedModInterval {
-    double m_from;
-    double m_to;
-    double m_modulo = 1.0;
+inline ThresholdDirection reverse_direction(ThresholdDirection direction) {
+    if (direction == ThresholdDirection::forward) {
+        return ThresholdDirection::backward
+    }
+    return ThresholdDirection::forward;
+}
 
-    bool contains(double position, std::optional<ThresholdDirection> expected_direction = std::nullopt);
-};
+inline Phase::Direction to_phase_direction(ThresholdDirection direction) {
+    if (direction == ThresholdDirection::backward) {
+        return Phase::Direction::backward;
+    }
+    return Phase::Direction::forward;
+}
+
 
 struct LegatoThreshold {
     std::size_t trigger_id;
     double legato_value;
 
-    double threshold_position;
+    Phase threshold_position;
 
     ThresholdIndex pulse_on_threshold;
     ThresholdIndex associated_threshold; // Different if legato > 1.0
@@ -41,7 +48,91 @@ struct LegatoThreshold {
     // Return true if repositioning would move the threshold past
     //   the cursor. Also, implementation is probably different for
     //   N=1 and N>1
-    bool reposition(double new_legato_value, const Phase& cursor);
+    bool reposition(double new_legato_value, const Phase& cursor) {
+        assert(new_legato_value >= 0.0);
+
+        // TODO: This assertion should obviously be removed, but is for now a way to ensure that
+        //       we don't forget about handling the associated threshold in the MultiThreshold case.
+        //
+        // TODO: NOTE that this implementation is probably specific for SingleThreshold, and should be refactored there
+        assert(associated_threshold == 0);
+
+        if (utils::equals(legato_value, new_legato_value)) {
+            return false;
+        }
+
+        // Note: maximum/minimum delta legato is +/- 1.99999...
+        auto delta_legato = new_legato_value - legato_value;
+
+        auto new_threshold_position = expected_direction == ThresholdDirection::forward
+                                              ? threshold_position + delta_legato
+                                              : threshold_position - delta_legato;
+
+        bool should_be_released = false;
+
+        // Note: this code could be simplified to fewer blocks, but that would severly impact the readability
+        if (delta_legato >= 1.0) {
+            // Increment equal to or more than one full cycle. In this scenario, the legato threshold will always move
+            //   past the cursor exactly once, since we know that the legato threshold always is ahead of the cursor
+            //   (otherwise it would already have been released).
+            //
+            // For example,
+            //   - Given expected_direction = forward, old_legato = 0.0001 and new_legato = 1.9999, we know that the
+            //        cursor is in [0.0, 0.0001), otherwise the legato threshold would already have been crossed.
+            //   - Similarly, expected_direction = backward, old_legato = 0.0001, and new_legato = 1.9999 would mean
+            //        that the cursor always is in (0.9999, 1).
+            //
+            // Also note that we cannot use Phase::contains here since e.g. a change from legato 0.1 to 1.2 will be
+            //   treated as Phase(0.1) -> Phase(0.2)), which for example does not contain a cursor Phase(0.0).
+            has_remaining_passes = true;
+
+        } else if (delta_legato > 0.0) {
+            // Increment <1.0 (delta between 0 and 1): This case can move past the cursor 0 or 1 time in the incremental
+            //   direction (same direction as expected_direction), where we need to alter has_remaining_passes in the
+            //   latter scenario
+            auto incremental_direction = to_phase_direction(expected_direction);
+            if (Phase::contains(threshold_position, new_threshold_position, cursor, incremental_direction) {
+                has_remaining_passes = true;
+            }
+
+        } else if (delta_legato >= -1.0) {
+            // Decrement <=1.0 (delta between -1 and 0): This case can move past the cursor 0 or 1 time in the
+            //   decremental direction (opposite direction of expected_direction), where we need to alter
+            //   has_remaining_passes or release the threshold in the latter scenario
+            auto decremental_direction = to_phase_direction(reverse_direction(expected_direction));
+            if (Phase::contains(threshold_position, new_threshold_position, cursor, decremental_direction)) {
+                if (has_remaining_passes) {
+                    has_remaining_passes = false;
+                } else {
+                    should_be_released = true;
+                }
+            }
+
+        } else {
+            // Decrement > 1.0: This case can move past the cursor 1 or 2 times in the negative direction. Note that
+            //   Phase::contains is a valid strategy here since we're only interested in the fractional part
+            //
+            // For example,
+            //   - Given expected_direction = forward, old_legato = 1.2 and new_legato = 0.1, we only need to check
+            //       if the cursor is in the interval (0.1 -> 0.2), in which case it should be decremented twice
+            //       (i.e. always released)
+            auto decremental_direction = to_phase_direction(reverse_direction(expected_direction));
+            if (Phase::contains(threshold_position, new_threshold_position, cursor, decremental_direction)) {
+                should_be_released = true;
+            } else {
+                if (has_remaining_passes) {
+                    has_remaining_passes = false;
+                } else {
+                    should_be_released = true;
+                }
+            }
+        }
+
+        legato_value = new_legato_value;
+        threshold_position = new_threshold_position;
+        return should_be_released;
+    }
+
 
     bool flip(ThresholdIndex last_threshold);
 
@@ -62,7 +153,6 @@ struct PhasePulsatorState {
 
     // Only used by SingleThresholdStrategy
     std::optional<ThresholdDirection> expected_direction = std::nullopt;
-
 
 
     Voice<Trigger> reposition(double new_legato_value, const Phase& cursor) {
@@ -131,11 +221,6 @@ public:
 
 
     static ThresholdIndex next_expected(ThresholdIndex crossed_threshold, Phase::Direction);
-
-
-    static bool is_wrap_around(const Phase& cursor_from, const Phase& cursor_to) {
-        return DirectedModInterval{cursor_from.get(), cursor_to.get()}.contains(0.0);
-    }
 
 
     static bool PhasePulsatorStrategies::is_jump_to_threshold(ThresholdIndex threshold
@@ -209,13 +294,15 @@ private:
         if (!s.previous_cursor)
             return s.flush();
 
-        auto transition_interval = DirectedModInterval{s.previous_cursor->get(), cursor.get()};
         Voice<Trigger> triggers;
 
         auto process_threshold = [&](std::optional<LegatoThreshold>& threshold) {
             if (!threshold) return;
             auto& t = threshold.value();
-            if (transition_interval.contains(t.threshold_position, t.expected_direction)) {
+            if (Phase::contains_directed(*s.previous_cursor
+                                         , cursor
+                                         , t.threshold_position
+                                         , to_phase_direction(t.expected_direction))) {
                 if (t.has_remaining_passes) {
                     t.has_remaining_passes = false;
                 } else {
@@ -236,8 +323,6 @@ private:
 
         return triggers;
     }
-
-
 
 
     static Voice<Trigger> trigger_pulse(const Phase& cursor, State& s, const Params& p) {
@@ -281,6 +366,7 @@ private:
         }
     }
 
+
     static void flip_legato_thresholds(const ThresholdDirection& new_direction, State& s, const Params& p) {
         if (s.previous_legato_threshold) {
             s.previous_legato_threshold->expected_direction = new_direction;
@@ -306,7 +392,7 @@ private:
         if (!s.previous_cursor)
             return false;
 
-        return PhasePulsatorStrategies::is_wrap_around(*s.previous_cursor, cursor);
+        return Phase::wraps_around(*s.previous_cursor, cursor);
     }
 
 
@@ -506,10 +592,11 @@ private:
     bool duration_change_applicable(const Phase& cursor) const {
         return m_parameters.m_new_durations
                && (m_parameters.apply_duration_change_immediately
-                   || (PhasePulsatorStrategies::is_wrap_around(m_state.previous_cursor, cursor) ||
+                   || (Phase::wraps_around(m_state.previous_cursor, cursor) ||
                        PhasePulsatorStrategies::is_jump_to_threshold(0, cursor, m_state, m_parameters))
                );
     }
+
 
     void assert_invariants() const {
         // previous legato threshold should never exist if current legato threshold doesn't

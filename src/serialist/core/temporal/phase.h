@@ -1,4 +1,3 @@
-
 #ifndef SERIALIST_PHASE_H
 #define SERIALIST_PHASE_H
 
@@ -19,6 +18,8 @@ public:
 
     explicit Phase(double phase = 0.0, double epsilon = EPSILON)
             : m_phase(phase_mod(phase, epsilon)), m_epsilon(epsilon) {}
+
+    static Phase zero(double epsilon = EPSILON) { return Phase(0.0, epsilon); }
 
 
     static double phase_mod(double x, double epsilon = EPSILON) {
@@ -77,6 +78,70 @@ public:
 
         // similarly, delta >= 0.5 implies a wrapped around negative delta
         return Direction::backward;
+    }
+
+    /** Checks whether the transition from start to end (optionally: in `interval_direction`) contains `position` */
+    static bool contains(const Phase& start
+        , const Phase& end
+        , const Phase& position
+        , std::optional<Direction> interval_direction = std::nullopt) {
+        if (start == end) {
+            return position == start;
+        }
+
+        if (!interval_direction) {
+            interval_direction = direction(start, end);
+        }
+
+        if (interval_direction == Direction::unchanged) {
+            return position == start;
+        }
+
+        if (interval_direction == Direction::forward) {
+            if (start.m_phase <= end.m_phase) {
+                // No wrap-around case
+                return utils::in(position.m_phase, start.m_phase, end.m_phase, true, true);
+            } else {
+                // Wrap-around case
+                return utils::in(position.m_phase, start.m_phase, 1.0, true, false) || 
+                       utils::in(position.m_phase, 0.0, end.m_phase, true, true);
+            }
+        } else { // interval_direction == Direction::backward
+            if (start.m_phase >= end.m_phase) {
+                // No wrap-around case
+                return utils::in(position.m_phase, end.m_phase, start.m_phase, true, true);
+            } else {
+                // Wrap-around case
+                return utils::in(position.m_phase, 0.0, start.m_phase, true, true) || 
+                       utils::in(position.m_phase, end.m_phase, 1.0, true, false);
+            }
+        }
+    }
+
+
+    /**
+     * Checks whether the transition from start to end (optionally: in `interval_direction`) crosses through
+     * `position` in `position_direction`.
+     */
+    static bool contains_directed(const Phase& start
+                                  , const Phase& end
+                                  , const Phase& position
+                                  , Direction position_direction
+                                  , std::optional<Direction> interval_direction = std::nullopt) {
+
+        if (!interval_direction) {
+            interval_direction = direction(start, end);
+        }
+
+        if (*interval_direction != position_direction) {
+            return false;
+        }
+
+        return contains(start, end, position, interval_direction);
+    }
+
+    static bool wraps_around(const Phase& start, const Phase& end, std::optional<Direction> interval_direction) {
+        return contains(start, end, zero(), interval_direction);
     }
 
     double distance_to(const Phase& end, std::optional<Direction> interval_direction = std::nullopt) const {
