@@ -7,6 +7,7 @@
 #include <core/collections/vec.h>
 #include <catch2/catch_test_macros.hpp>
 #include "exceptions.h"
+#include "temporal/trigger.h"
 
 
 namespace serialist::test {
@@ -79,11 +80,21 @@ public:
     }
 
 
-    template<typename U = T, typename = std::enable_if_t<std::is_same_v<U, Facet>>> std::optional<double> v11f() const {
+    template<typename U = T, typename = std::enable_if_t<std::is_same_v<U, Facet>>>
+    std::optional<double> v11f() const {
         if (is_successful()) {
             if (auto v = voices().first()) {
                 return static_cast<double>(*v);
             }
+        }
+        return std::nullopt;
+    }
+
+
+    template<typename U = T, typename = std::enable_if_t<std::is_same_v<U, Trigger>>>
+    std::optional<std::size_t> trigger_id() const {
+        if (auto t = v11()) {
+            return t->get_id();
         }
         return std::nullopt;
     }
@@ -221,6 +232,15 @@ public:
             if (auto v = last().voices().first()) {
                 return static_cast<double>(*v);
             }
+        }
+        return std::nullopt;
+    }
+
+
+    template<typename U = T, typename = std::enable_if_t<std::is_same_v<U, Trigger>>>
+    std::optional<std::size_t> trigger_id() const {
+        if (auto t = v11()) {
+            return t->get_id();
         }
         return std::nullopt;
     }

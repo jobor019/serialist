@@ -9,7 +9,6 @@ namespace serialist::test::c11 {
 // ==============================================================================================
 
 
-// TODO: This shouldn't really live in c11
 template<typename T>
 std::unique_ptr<ValueComparison<T>> custom_comparison(const std::function<bool(const T&)>& f) {
     return std::make_unique<ValueComparison<T>>(f);

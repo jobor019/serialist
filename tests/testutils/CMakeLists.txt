@@ -9,6 +9,8 @@ add_library(testutils EXCLUDE_FROM_ALL
         condition.h
         conditions/c11.h
         events.h
+        conditions/c1m.h
+        matchers/m1m.h
 )
 
 target_include_directories(testutils INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})

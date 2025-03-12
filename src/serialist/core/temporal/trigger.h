@@ -136,6 +136,12 @@ public:
         return contains_pulse_on(triggers) || contains_pulse_off(triggers);
     }
 
+    static std::string format(Type type, std::optional<std::size_t> id) {
+        std::string t = type == Type::pulse_on ? "pulse_on" : "pulse_off";
+            t += "(" + ( id ? std::to_string(*id) : "*" )+ ")";
+        return t;
+    }
+
     bool operator==(const Trigger& other) const {
         return m_type == other.m_type && m_id == other.m_id;
     }
