@@ -3,8 +3,8 @@
 
 #include "utility/math.h"
 
-namespace serialist {
 
+namespace serialist {
 /** A phase value in range [0, 1). */
 class Phase {
 public:
@@ -17,7 +17,9 @@ public:
 
 
     explicit Phase(double phase = 0.0, double epsilon = EPSILON)
-            : m_phase(phase_mod(phase, epsilon)), m_epsilon(epsilon) {}
+        : m_phase(phase_mod(phase, epsilon))
+        , m_epsilon(epsilon) {}
+
 
     static Phase zero(double epsilon = EPSILON) { return Phase(0.0, epsilon); }
 
@@ -31,6 +33,7 @@ public:
         return Phase(phase_mod(x.m_phase, epsilon));
     }
 
+
     static double max(double epsilon = EPSILON) {
         return std::nextafter(1.0 - epsilon, 0.0);
     }
@@ -38,8 +41,8 @@ public:
 
     // Alias due to the slightly confusing choice of name `abs_delta_phase`
     static double distance(const Phase& start
-        , const Phase& end
-        , std::optional<Direction> interval_direction = std::nullopt) {
+                           , const Phase& end
+                           , std::optional<Direction> interval_direction = std::nullopt) {
         return abs_delta_phase(start, end, interval_direction);
     }
 
@@ -66,7 +69,7 @@ public:
 
 
     /** Estimate the direction based on closest distance between start and end (modulo 1.0) */
-    static Direction direction(const Phase& start, const Phase& end, double epsilon=1e-6) {
+    static Direction direction(const Phase& start, const Phase& end, double epsilon = 1e-6) {
         double delta = end.m_phase - start.m_phase; // delta is in (-1.0, 1.0)
         if (utils::equals(delta, 0.0, epsilon)) {
             return Direction::unchanged;
@@ -80,11 +83,12 @@ public:
         return Direction::backward;
     }
 
+
     /** Checks whether the transition from start to end (optionally: in `interval_direction`) contains `position` */
     static bool contains(const Phase& start
-        , const Phase& end
-        , const Phase& position
-        , std::optional<Direction> interval_direction = std::nullopt) {
+                         , const Phase& end
+                         , const Phase& position
+                         , std::optional<Direction> interval_direction = std::nullopt) {
         if (start == end) {
             return position == start;
         }
@@ -103,7 +107,7 @@ public:
                 return utils::in(position.m_phase, start.m_phase, end.m_phase, true, true);
             } else {
                 // Wrap-around case
-                return utils::in(position.m_phase, start.m_phase, 1.0, true, false) || 
+                return utils::in(position.m_phase, start.m_phase, 1.0, true, false) ||
                        utils::in(position.m_phase, 0.0, end.m_phase, true, true);
             }
         } else { // interval_direction == Direction::backward
@@ -112,7 +116,7 @@ public:
                 return utils::in(position.m_phase, end.m_phase, start.m_phase, true, true);
             } else {
                 // Wrap-around case
-                return utils::in(position.m_phase, 0.0, start.m_phase, true, true) || 
+                return utils::in(position.m_phase, 0.0, start.m_phase, true, true) ||
                        utils::in(position.m_phase, end.m_phase, 1.0, true, false);
             }
         }
@@ -128,7 +132,6 @@ public:
                                   , const Phase& position
                                   , Direction position_direction
                                   , std::optional<Direction> interval_direction = std::nullopt) {
-
         if (!interval_direction) {
             interval_direction = direction(start, end);
         }
@@ -140,17 +143,36 @@ public:
         return contains(start, end, position, interval_direction);
     }
 
-    static bool wraps_around(const Phase& start, const Phase& end, std::optional<Direction> interval_direction) {
+
+    static bool wraps_around(const Phase& start
+                             , const Phase& end
+                             , std::optional<Direction> interval_direction = std::nullopt) {
         return contains(start, end, zero(), interval_direction);
     }
+
 
     double distance_to(const Phase& end, std::optional<Direction> interval_direction = std::nullopt) const {
         return distance(*this, end, interval_direction);
     }
 
+
     double distance_to(double end, std::optional<Direction> interval_direction = std::nullopt) const {
         return distance(*this, Phase{end}, interval_direction);
     }
+
+
+    Phase& invert() {
+        if (m_phase == 0.0) {
+            m_phase = max(m_epsilon);
+            return *this;
+        }
+
+        m_phase = 1 - m_phase;
+        return *this;
+    }
+
+
+    Phase inverted() const { return Phase(*this).invert(); }
 
 
     double get() const { return m_phase; }
@@ -173,6 +195,7 @@ public:
 
     friend Phase operator*(double lhs, const Phase& rhs) { return rhs * lhs; }
 
+
     Phase& operator+=(const Phase& other) {
         m_phase = phase_mod(m_phase + other.m_phase, m_epsilon);
         return *this;
@@ -184,10 +207,12 @@ public:
         return *this;
     }
 
+
     Phase& operator+=(double other) {
         m_phase = phase_mod(m_phase + other, m_epsilon);
         return *this;
     }
+
 
     Phase& operator-=(double other) {
         m_phase = phase_mod(m_phase - other, m_epsilon);
@@ -200,19 +225,17 @@ public:
         return *this;
     }
 
+
     bool operator==(const Phase& other) const { return utils::equals(m_phase, other.m_phase, m_epsilon); }
     bool operator!=(const Phase& other) const { return !operator==(other); }
 
     bool operator==(double other) const { return utils::equals(m_phase, other, m_epsilon); }
     bool operator!=(double other) const { return !operator==(other); }
 
-
 private:
     double m_phase;
     double m_epsilon;
 };
-
-
 } // namespace serialist
 
 #endif //SERIALIST_PHASE_H
