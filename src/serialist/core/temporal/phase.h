@@ -109,7 +109,6 @@ public:
                 return utils::in(position.m_phase, start.m_phase, end.m_phase, start_inclusive, end_inclusive);
             } else {
                 // Wrap-around case
-                // TODO: Ill-defined case (end = 0, end_inclusive = false) gives second interval [0, 0)
                 return utils::in(position.m_phase, start.m_phase, 1.0, start_inclusive, false) ||
                        utils::in(position.m_phase, 0.0, end.m_phase, true, end_inclusive);
             }
@@ -120,7 +119,6 @@ public:
                 return utils::in(position.m_phase, end.m_phase, start.m_phase, end_inclusive, start_inclusive);
             } else {
                 // Wrap-around case
-                // TODO: Ill-defined case (start = 0, start_inclusive = false) gives first interval [0, 0)
                 return utils::in(position.m_phase, 0.0, start.m_phase, true, start_inclusive) ||
                        utils::in(position.m_phase, end.m_phase, 1.0, end_inclusive, false);
             }
@@ -136,7 +134,9 @@ public:
                                   , const Phase& end
                                   , const Phase& position
                                   , Direction position_direction
-                                  , std::optional<Direction> interval_direction = std::nullopt) {
+                                  , std::optional<Direction> interval_direction = std::nullopt
+                                  , bool end_inclusive = true
+                                  , bool start_inclusive = true) {
         if (!interval_direction) {
             interval_direction = direction(start, end);
         }
@@ -145,7 +145,7 @@ public:
             return false;
         }
 
-        return contains(start, end, position, interval_direction);
+        return contains(start, end, position, interval_direction, end_inclusive, start_inclusive);
     }
 
 

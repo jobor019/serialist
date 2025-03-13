@@ -1,175 +1,68 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+
 #include "core/policies/policies.h"
+#include "node_runner.h"
 #include "core/generatives/phase_pulsator.h"
+#include "generatives/oscillator.h"
+
+#include "generators.h"
+#include "matchers/m1m.h"
+#include "matchers/m11.h"
 
 using namespace serialist;
+using namespace serialist::test;
 
 
-TEST_CASE("PhasePulsator ctors") {
-    PhasePulsator p;
-    PhasePulsatorWrapper<> w;
+TEST_CASE("PhasePulsator: TEMP SANITY CHECK TEST (Requirements not formalized", "[phase_pulsator]") {
+    auto p = PhasePulsatorWrapper();
+
+    p.legato_amount.set_values(1.0);
+
+    auto o = OscillatorWrapper();
+    o.period.set_values(1.0);
+    o.period_type.set_value(DomainType::ticks);
+    o.offset.set_values(0.0);
+
+    p.pulsator_node.set_cursor(&o.oscillator);
+
+    NodeRunner runner{&p.pulsator_node};
+    runner.add_generative(o.oscillator);
+    auto time_epsilon = runner.get_config().step_size.get_value() + EPSILON;
+
+    std::cout << "======== STEP 0 ========\n";
+    auto r = runner.step();
+
+
+    REQUIRE_THAT(r, m1m::equalst_on());
+    auto pulse_on_id = *r.pulse_on_id();
+
+
+    std::cout << "======== STEP 1 ======== \n";
+    r = runner.step_while(c1m::emptyt());
+    // r = runner.step();
+
+    r.print();
+    o.oscillator.process().print();
+    REQUIRE_THAT(r, m1m::containst_off(pulse_on_id));
+    REQUIRE_THAT(r, m1m::containst_on());
+    REQUIRE_THAT(r, m1m::sizet(2));
+
+    REQUIRE_THAT(r.time(), TimePointMatcher(1.0).with_epsilon(time_epsilon));
+    pulse_on_id = *r.pulse_on_id();
+
+    r = runner.step_while(c1m::emptyt());
+    // r = runner.step();
+
+    r.print();
+    o.oscillator.process().print();
+    REQUIRE_THAT(r, m1m::containst_off(pulse_on_id));
+    REQUIRE_THAT(r, m1m::containst_on());
+    REQUIRE_THAT(r, m1m::sizet(2));
+
+    REQUIRE_THAT(r.time(), TimePointMatcher(2.0).with_epsilon(time_epsilon));
+
+    r.print_all();
+    std::cout << r.num_steps() << "\n";
 }
-
-
-TEST_CASE("PhasePulsatorWrapper default settings") {
-    PhasePulsatorWrapper<double> w;
-    auto delta_time = PhasePulsator::MINIMUM_SEGMENT_DURATION * 1.01;
-    auto delta_phase = PhasePulsator::DISCONTINUITY_THRESHOLD * 0.99;
-
-    auto current_phase = Phase(0.0);
-    auto previous_phase = Phase(0.0);
-    auto time = TimePoint();
-
-    w.cursor.set_values(current_phase.get());
-    w.pulsator_node.update_time(time);
-
-    auto triggers = w.pulsator_node.process();
-    REQUIRE(triggers.size() == 1);
-    REQUIRE(triggers[0].size() == 1);
-    REQUIRE(Trigger::contains_pulse_on(triggers[0]));
-    std::size_t num_triggers = 1;
-
-    for (auto i = 0; i < 1000; ++i) {
-        previous_phase = current_phase;
-        current_phase += delta_phase;
-        time += delta_time;
-
-        w.cursor.set_values(current_phase.get());
-        w.pulsator_node.update_time(time);
-
-        triggers = w.pulsator_node.process();
-
-        if (previous_phase.get() > current_phase.get()) {
-            // cursor wrapped around from ~1.0 to ~0.0
-            REQUIRE(triggers.size() == 1);
-            REQUIRE(triggers[0].size() == 2);
-            REQUIRE(Trigger::contains_pulse_on(triggers[0]));
-            REQUIRE(Trigger::contains_pulse_off(triggers[0]));
-            ++num_triggers;
-
-        } else {
-            REQUIRE(triggers.is_empty_like());
-        }
-    }
-
-    REQUIRE(num_triggers > 2);
-}
-
-
-template<typename T = double>
-void evaluate_n_static_cycles(PhasePulsatorWrapper<T>& w, std::size_t num_cycles, double legato) {
-    assert(legato >= 0.0 && legato < 1.0); // While legato may be >= 1.0, this test won't be able to handle such a case
-
-    auto delta_time = PhasePulsator::MINIMUM_SEGMENT_DURATION * 1.01;
-    auto delta_phase = PhasePulsator::DISCONTINUITY_THRESHOLD * 0.99;
-
-    auto current_phase = Phase(0.0);
-    auto previous_phase = Phase(0.0);
-    auto time = TimePoint();
-
-    std::size_t num_pulse_on = 0;
-    std::size_t num_pulse_off = 0;
-
-    w.cursor.set_values(current_phase.get());
-    w.pulsator_node.update_time(time);
-
-    auto triggers = w.pulsator_node.process();
-    REQUIRE(triggers.size() == 1);
-    REQUIRE(triggers[0].size() == 1);
-    REQUIRE(Trigger::contains_pulse_on(triggers[0]));
-    auto previous_trigger_phase = current_phase;
-
-    for (auto i = 0; i < 1000; ++i) {
-        previous_phase = current_phase;
-        current_phase += delta_phase;
-        time += delta_time;
-
-        std::cout << i << ": " << current_phase.get() << std::endl;
-        w.cursor.set_values(current_phase.get());
-        w.pulsator_node.update_time(time);
-
-        triggers = w.pulsator_node.process();
-
-        if (!triggers.is_empty_like()) {
-            triggers.print();
-        }
-
-        auto pulse_off_phase = utils::modulo(previous_trigger_phase.get() + legato, 1.0);
-
-        if (utils::in(pulse_off_phase, previous_phase.get(), current_phase.get(), true, true)) {
-            REQUIRE(!triggers.is_empty_like());
-            REQUIRE(triggers[0].size() == 1);
-            REQUIRE(Trigger::contains_pulse_off(triggers[0]));
-            ++num_pulse_off;
-
-
-        } else if (previous_phase.get() > current_phase.get()) {
-            // cursor wrapped around from ~1.0 to ~0.0
-            REQUIRE(!triggers.is_empty_like());
-            REQUIRE(triggers[0].size() == 1);
-
-            REQUIRE(Trigger::contains_pulse_on(triggers[0]));
-            previous_trigger_phase = current_phase;
-            ++num_pulse_on;
-
-        } else {
-            REQUIRE(triggers.is_empty_like());
-        }
-    }
-
-    REQUIRE(num_pulse_on > 0);
-    REQUIRE(num_pulse_off > 0);
-    REQUIRE(std::fabs(num_pulse_on - num_pulse_off) < 2);
-}
-
-
-TEST_CASE("PhasePulsatorWrapper legato 0.5") {
-    PhasePulsatorWrapper<double> w;
-    double legato = 0.5;
-    w.legato_amount.set_values(legato);
-
-    evaluate_n_static_cycles(w, 100, legato);
-}
-
-//TEST_CASE("PhasePulsatorWrapper legato 0.9 empty corpus") {
-//    PhasePulsatorWrapper<double> w;
-//    double legato = 0.9;
-//    w.duration.set_values(0.0);
-//    w.legato_amount.set_values(legato);
-//
-//    evaluate_n_static_cycles(w, 100, legato);
-//}
-
-// TODO: Need to implement separate test case for this
-//TEST_CASE("PhasePulsatorWrapper legato 1.1") {
-//    PhasePulsatorWrapper<double> w;
-//    double legato = 1.1;
-//    w.legato_amount.set_values(legato);
-//
-//    evaluate_n_static_cycles(w, 100, legato);
-//}
-
-
-TEST_CASE("Phase::abs_delta_phase") {
-    REQUIRE_THAT(Phase::abs_delta_phase(Phase{0.0}, Phase{0.1}), Catch::Matchers::WithinAbs(0.1, 1e-8));
-    REQUIRE_THAT(Phase::abs_delta_phase(Phase{0.1}, Phase{0.0}), Catch::Matchers::WithinAbs(0.1, 1e-8));
-    REQUIRE_THAT(Phase::abs_delta_phase(Phase{0.0}, Phase{0.9}), Catch::Matchers::WithinAbs(0.1, 1e-8));
-    REQUIRE_THAT(Phase::abs_delta_phase(Phase{0.9}, Phase{0.0}), Catch::Matchers::WithinAbs(0.1, 1e-8));
-    REQUIRE_THAT(Phase::abs_delta_phase(Phase{0.9}, Phase{0.8}), Catch::Matchers::WithinAbs(0.1, 1e-8));
-    REQUIRE_THAT(Phase::abs_delta_phase(Phase{0.01}, Phase{0.5}), Catch::Matchers::WithinAbs(0.49, 1e-8));
-    REQUIRE_THAT(Phase::abs_delta_phase(Phase{0.0}, Phase{0.51}), Catch::Matchers::WithinAbs(0.49, 1e-8));
-}
-
-TEST_CASE("Phase::direction") {
-    REQUIRE(Phase::direction(Phase{0.0}, Phase{0.1}) == Phase::Direction::forward);
-    REQUIRE(Phase::direction(Phase{0.9}, Phase{0.0}) == Phase::Direction::forward);
-
-    REQUIRE(Phase::direction(Phase{0.1}, Phase{0.0}) == Phase::Direction::backward);
-    REQUIRE(Phase::direction(Phase{0.0}, Phase{0.9}) == Phase::Direction::backward);
-
-    REQUIRE(Phase::direction(Phase{0.0}, Phase{0.0}) == Phase::Direction::unchanged);
-    REQUIRE(Phase::direction(Phase{0.9}, Phase{0.9}) == Phase::Direction::unchanged);
-}
-

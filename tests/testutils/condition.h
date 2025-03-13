@@ -273,7 +273,6 @@ private:
         const auto& v = current.voices();
 
         if (v.is_empty_like()) throw test_error("Empty result: " + current.to_string() + ")");
-        if (!is_singular(v)) throw test_error("Non-singular result: " + current.to_string() + ")");
 
         return m_f(v[0]);
     }

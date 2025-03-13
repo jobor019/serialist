@@ -1,4 +1,3 @@
-
 #ifndef SERIALIST_PHASE_PULSATOR_H
 #define SERIALIST_PHASE_PULSATOR_H
 
@@ -9,8 +8,8 @@
 #include "variable.h"
 #include "sequence.h"
 
-namespace serialist {
 
+namespace serialist {
 using ThresholdIndex = std::size_t;
 using DurationIndex = std::size_t;
 
@@ -283,11 +282,13 @@ public:
             triggers.extend(s.flush());
         }
 
+        if (*s.previous_cursor == cursor) {
+            return {};
+        }
+
         if (detect_jump_to_threshold(cursor, s)) {
-            std::cout << "cont jump\n";
             triggers.extend(continuous_jump(cursor, s, p));
         } else if (crosses_threshold(cursor, s)) {
-            std::cout << "crossing\n";
             triggers.extend(handle_threshold_crossing(cursor, s, p));
         }
 
@@ -307,6 +308,7 @@ public:
 
 
     static Voice<Trigger> handle_legato_change(State& s, const Params& p) {
+        std::cout << "legato change\n";
         if (s.previous_cursor) {
             return s.reposition(p.legato, *s.previous_cursor);
         } else {
@@ -316,11 +318,13 @@ public:
 
 private:
     static Voice<Trigger> continuous_jump(const Phase& cursor, State& s, const Params& p) {
+        std::cout << "continuous jump\n";
         return trigger_pulse(cursor, s, p);
     }
 
 
     static Voice<Trigger> handle_threshold_crossing(const Phase& cursor, State& s, const Params& p) {
+        std::cout << "threshold crossing\n";
         if (auto crossing_direction = direction(cursor);
             !s.expected_direction || crossing_direction == *s.expected_direction) {
             return trigger_pulse(cursor, s, p);
@@ -343,7 +347,10 @@ private:
             if (Phase::contains_directed(*s.previous_cursor
                                          , cursor
                                          , t.threshold_position
-                                         , to_phase_direction(t.expected_direction))) {
+                                         , to_phase_direction(t.expected_direction)
+                                         , std::nullopt
+                                         , true
+                                         , false)) {
                 if (t.has_remaining_passes) {
                     t.has_remaining_passes = false;
                 } else {
@@ -367,6 +374,7 @@ private:
 
 
     static Voice<Trigger> trigger_pulse(const Phase& cursor, State& s, const Params& p) {
+        std::cout << "triggering new pulse\n";
         Voice<Trigger> triggers;
 
         // Release previous threshold (We're never supposed to hold more than two pulses at a time)
@@ -399,7 +407,7 @@ private:
                 , crossing_direction == ThresholdDirection::forward
                       ? Phase(legato_fraction)
                       : Phase(1.0 - legato_fraction)
-                , p.legato > 1.0
+                , p.legato >= 1.0 // if exactly 1.0, we're going to check this threshold in the same cycle as it was added
                 , crossing_direction
             };
         } else {
@@ -411,6 +419,7 @@ private:
 
 
     static void flip_legato_thresholds(const ThresholdDirection& new_direction, State& s) {
+        std::cout << "flipping thresholds\n";
         if (s.previous_legato_threshold) {
             s.previous_legato_threshold->flip(new_direction);
         }
@@ -578,9 +587,11 @@ public:
         m_parameters.new_durations = durations;
     }
 
+
     Voice<Trigger> flush() override {
         return m_state.flush();
     }
+
 
     Voice<Trigger> handle_time_skip(const TimePoint&) {
         m_state.previous_cursor = std::nullopt;
@@ -669,6 +680,7 @@ public:
         static const inline std::string CLASS_NAME = "phase_pulsator";
     };
 
+
     PhasePulsatorNode(const std::string& identifier
                       , ParameterHandler& parent
                       , Node<Facet>* durations = nullptr
@@ -676,11 +688,13 @@ public:
                       , Node<Facet>* cursor = nullptr
                       , Node<Facet>* enabled = nullptr
                       , Node<Facet>* num_voices = nullptr)
-            : PulsatorBase(identifier, parent, enabled, num_voices, Keys::CLASS_NAME)
-              , m_durations(add_socket(Keys::DURATION, durations))
-              , m_legato(add_socket(Keys::LEGATO_AMOUNT, legato))
-              , m_cursor(add_socket(Keys::CURSOR, cursor)) {}
+        : PulsatorBase(identifier, parent, enabled, num_voices, Keys::CLASS_NAME)
+        , m_durations(add_socket(Keys::DURATION, durations))
+        , m_legato(add_socket(Keys::LEGATO_AMOUNT, legato))
+        , m_cursor(add_socket(Keys::CURSOR, cursor)) {}
 
+
+    void set_cursor(Node<Facet>* cursor) const { m_cursor = cursor; }
 
 private:
     std::size_t get_voice_count() override {
@@ -688,6 +702,7 @@ private:
         //       More elements means a longer sequence, not more simultaneous voices.
         return voice_count(m_legato.voice_count(), m_cursor.voice_count());
     }
+
 
     std::optional<Voices<Trigger>> handle_enabled_state(EnabledState state) override {
         if (state == EnabledState::disabled_this_cycle) {
@@ -697,6 +712,7 @@ private:
         }
         return std::nullopt;
     }
+
 
     void update_parameters(std::size_t num_voices, bool size_has_changed) override {
         if (size_has_changed || m_legato.has_changed()) {
@@ -716,6 +732,7 @@ private:
         // Note: cursor should not be updated here as it's not a parameter (member variable) of PhasePulsator
     }
 
+
     std::optional<Voices<Trigger>> handle_transport_events(const TimePoint& t, const Vec<TimeEvent>& events) override {
         if (events.contains(TimeEvent::time_skip)) {
             auto& p = pulsators();
@@ -728,8 +745,8 @@ private:
         }
 
         return std::nullopt;
-
     }
+
 
     Voices<Trigger> process_pulsator(const TimePoint& t, std::size_t num_voices) override {
         auto triggers = Voices<Trigger>::zeros(num_voices);
@@ -757,8 +774,7 @@ private:
     Socket<Facet>& m_durations;
     Socket<Facet>& m_legato;
     Socket<Facet>& m_cursor;
-//    Socket<Facet>& m_legato_type; // TODO: implement types: absolute / relative legato
-
+    //    Socket<Facet>& m_legato_type; // TODO: implement types: absolute / relative legato
 };
 
 
@@ -766,15 +782,18 @@ private:
 
 template<typename FloatType = double>
 struct PhasePulsatorWrapper {
-
     using Keys = PhasePulsatorNode::Keys;
 
     ParameterHandler parameter_handler;
 
-    Sequence<Facet, FloatType> duration{Keys::DURATION, parameter_handler
-                                        , Voices<FloatType>::transposed(PhasePulsatorParameters::DEFAULT_DURATIONS)};
-    Sequence<Facet, FloatType> legato_amount{Keys::LEGATO_AMOUNT, parameter_handler
-                                             , Voices<FloatType>::singular(PhasePulsatorParameters::DEFAULT_LEGATO)};
+    Sequence<Facet, FloatType> duration{Keys::DURATION
+                                        , parameter_handler
+                                        , Voices<FloatType>::transposed(PhasePulsatorParameters::DEFAULT_DURATIONS)
+    };
+    Sequence<Facet, FloatType> legato_amount{Keys::LEGATO_AMOUNT
+                                             , parameter_handler
+                                             , Voices<FloatType>::singular(PhasePulsatorParameters::DEFAULT_LEGATO)
+    };
     Sequence<Facet, FloatType> cursor{Keys::CURSOR, parameter_handler, Voices<FloatType>::singular(0.0)};
 
     Sequence<Facet, bool> enabled{param::properties::enabled, parameter_handler, Voices<bool>::singular(true)};
@@ -786,11 +805,9 @@ struct PhasePulsatorWrapper {
                                     , &legato_amount
                                     , &cursor
                                     , &enabled
-                                    , &num_voices};
-
+                                    , &num_voices
+    };
 };
-
-
 } // namespace serialist
 
 #endif //SERIALIST_PHASE_PULSATOR_H

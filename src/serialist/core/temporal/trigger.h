@@ -138,7 +138,7 @@ public:
 
     static std::string format(Type type, std::optional<std::size_t> id) {
         std::string t = type == Type::pulse_on ? "pulse_on" : "pulse_off";
-            t += "(" + ( id ? std::to_string(*id) : "*" )+ ")";
+            t += "(id=" + ( id ? std::to_string(*id) : "*" )+ ")";
         return t;
     }
 
@@ -165,9 +165,9 @@ public:
         return start.m_type == Type::pulse_on && m_type == Type::pulse_off && start.m_id == m_id;
     }
 
-    bool is(const Type& type) const {
-        return m_type == type;
-    }
+    bool is(const Type& type) const { return m_type == type; }
+    bool is_pulse_on() const { return is(Type::pulse_on); }
+    bool is_pulse_off() const { return is(Type::pulse_off); }
 
     Type get_type() const { return m_type; }
 
