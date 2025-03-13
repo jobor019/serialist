@@ -204,12 +204,17 @@ public:
     }
 
 
-    static RunResult dummy(const Vec<T>& vs) {
-        auto h = Vec<StepResult<T>>::allocated(vs.size());
-        for (std::size_t i = 0; i < vs.size(); ++i) {
-            h.append(StepResult<T>::success(Voices<T>::singular(vs[i]), TimePoint{}, i, DomainType::ticks));
+    static RunResult dummy(const Vec<T>& vs, bool transpose = true) {
+        if (transpose) {
+            auto h = Vec<StepResult<T>>::allocated(vs.size());
+            for (std::size_t i = 0; i < vs.size(); ++i) {
+                h.append(StepResult<T>::success(Voices<T>::singular(vs[i]), TimePoint{}, i, DomainType::ticks));
+            }
+            return RunResult(h, DomainType::ticks);
+        } else {
+            auto voices = Voices<T>{vs};
+            return RunResult({StepResult<T>::success(voices, TimePoint{}, 0, DomainType::ticks)}, DomainType::ticks);
         }
-        return RunResult(h, DomainType::ticks);
     }
 
 

@@ -91,6 +91,14 @@ inline std::unique_ptr<VoiceComparison<Trigger>> equalst_off(std::optional<std::
     return equalst(Trigger::Type::pulse_off, id);
 }
 
+inline std::unique_ptr<VoiceComparison<Trigger>> sortedt() {
+    return std::make_unique<VoiceComparison<Trigger>>([](const Voice<Trigger>& v) {
+        return Trigger::is_sorted(v);
+    });
+}
+
+
+
 
 }
 

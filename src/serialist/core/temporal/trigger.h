@@ -1,7 +1,7 @@
-
 #ifndef SERIALISTLOOPER_TRIGGER_H
 #define SERIALISTLOOPER_TRIGGER_H
 
+#include <unordered_set>
 #include "core/collections/vec.h"
 #include "core/collections/voices.h"
 
@@ -136,6 +136,44 @@ public:
         return contains_pulse_on(triggers) || contains_pulse_off(triggers);
     }
 
+    static bool is_sorted(const Vec<Trigger>& triggers) {
+        // Empty vector or single trigger is always sorted
+        if (triggers.size() <= 1) {
+            return true;
+        }
+
+        // Track the last ID we've seen and which IDs we've seen pulse_on/pulse_off for
+        std::size_t last_id = 0;
+        std::unordered_set<std::size_t> seen_pulse_on;
+        std::unordered_set<std::size_t> seen_pulse_off;
+        
+        for (const auto& trigger : triggers) {
+            const std::size_t id = trigger.get_id();
+            
+            // Skip NO_ID triggers for ID ordering check
+            if (id != TriggerIds::NO_ID) {
+                // Check if IDs are in ascending order
+                if (id < last_id) {
+                    return false;  // Higher ID comes before lower ID
+                }
+                last_id = id;
+                
+                // Check pulse_on/pulse_off ordering
+                if (trigger.is_pulse_on()) {
+                    // If we've already seen a pulse_off with this ID, that's not sorted
+                    if (seen_pulse_off.find(id) != seen_pulse_off.end()) {
+                        return false;  // pulse_off before its corresponding pulse_on
+                    }
+                    seen_pulse_on.insert(id);
+                } else if (trigger.is_pulse_off()) {
+                    seen_pulse_off.insert(id);
+                }
+            }
+        }
+        
+        return true;
+    }
+
     static std::string format(Type type, std::optional<std::size_t> id) {
         std::string t = type == Type::pulse_on ? "pulse_on" : "pulse_off";
             t += "(id=" + ( id ? std::to_string(*id) : "*" )+ ")";
@@ -151,8 +189,9 @@ public:
     }
 
     explicit operator std::string() const {
-        return std::string("Trigger(type=") + std::to_string(static_cast<int>(m_type)) +
-               ", id=" + std::to_string(m_id) + ")";
+        return std::string("Trigger(type=")
+        + (m_type == Type::pulse_on ? "pulse_on" : "pulse_off")
+        + ", id=" + std::to_string(m_id) + ")";
     }
 
 

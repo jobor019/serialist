@@ -94,6 +94,11 @@ inline ResultMatcher<Trigger> equalst_on(std::optional<std::size_t> id = std::nu
             , allow_no_comparison
     };
 }
+
+inline ResultMatcher<Trigger> sortedt(MatchType match_type = MatchType::last, bool allow_no_comparison = false) {
+    return {c1m::sortedt(), "is sorted", match_type, allow_no_comparison};
+}
+
 }
 
 #endif //TEST_UTILS_M1M_H

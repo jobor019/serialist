@@ -1,4 +1,3 @@
-
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
@@ -15,54 +14,56 @@ using namespace serialist;
 using namespace serialist::test;
 
 
-TEST_CASE("PhasePulsator: TEMP SANITY CHECK TEST (Requirements not formalized", "[phase_pulsator]") {
-    auto p = PhasePulsatorWrapper();
+struct OscillatorPairedPulsator {
+    explicit OscillatorPairedPulsator(double initial_legato = 1.0
+               , double period = 1.0
+               , double offset = 0.0
+               , DomainType type = DomainType::ticks) {
+        phase_pulsator.legato_amount.set_values(initial_legato);
 
-    p.legato_amount.set_values(1.0);
+        oscillator.period.set_values(period);
+        oscillator.offset.set_values(offset);
+        oscillator.period_type.set_value(type);
+        oscillator.offset_type.set_value(type);
 
-    auto o = OscillatorWrapper();
-    o.period.set_values(1.0);
-    o.period_type.set_value(DomainType::ticks);
-    o.offset.set_values(0.0);
+        phase_pulsator.pulsator_node.set_cursor(&oscillator.oscillator);
 
-    p.pulsator_node.set_cursor(&o.oscillator);
+        runner = NodeRunner<Trigger>{&phase_pulsator.pulsator_node};
+        runner.add_generative(oscillator.oscillator);
 
-    NodeRunner runner{&p.pulsator_node};
-    runner.add_generative(o.oscillator);
-    auto time_epsilon = runner.get_config().step_size.get_value() + EPSILON;
+        time_epsilon = runner.get_config().step_size.get_value() + EPSILON;
+    }
 
-    std::cout << "======== STEP 0 ========\n";
+    PhasePulsatorWrapper<> phase_pulsator;
+    OscillatorWrapper<> oscillator;
+    double time_epsilon;
+    NodeRunner<Trigger> runner;
+};
+
+
+TEST_CASE("PhasePulsator: Forward phase triggers new pulse exactly at period (R1.1.1)", "[phase_pulsator]") {
+    OscillatorPairedPulsator p;
+    auto& runner = p.runner;
+
+    // initial step to phase 0.0 => trigger pulse_on
     auto r = runner.step();
-
-
     REQUIRE_THAT(r, m1m::equalst_on());
     auto pulse_on_id = *r.pulse_on_id();
 
-
-    std::cout << "======== STEP 1 ======== \n";
+    // step one full period (1.0 ticks) => trigger pulse_off matching previous and new pulse_on in same step
     r = runner.step_while(c1m::emptyt());
-    // r = runner.step();
-
-    r.print();
-    o.oscillator.process().print();
     REQUIRE_THAT(r, m1m::containst_off(pulse_on_id));
     REQUIRE_THAT(r, m1m::containst_on());
     REQUIRE_THAT(r, m1m::sizet(2));
-
-    REQUIRE_THAT(r.time(), TimePointMatcher(1.0).with_epsilon(time_epsilon));
+    REQUIRE_THAT(r, m1m::sortedt());
+    REQUIRE_THAT(r.time(), TimePointMatcher(1.0).with_epsilon(p.time_epsilon));
     pulse_on_id = *r.pulse_on_id();
 
+    // step another full period (2.0 ticks) => trigger pulse_off matching previous and new pulse_on in same step
     r = runner.step_while(c1m::emptyt());
-    // r = runner.step();
-
-    r.print();
-    o.oscillator.process().print();
     REQUIRE_THAT(r, m1m::containst_off(pulse_on_id));
     REQUIRE_THAT(r, m1m::containst_on());
     REQUIRE_THAT(r, m1m::sizet(2));
-
-    REQUIRE_THAT(r.time(), TimePointMatcher(2.0).with_epsilon(time_epsilon));
-
-    r.print_all();
-    std::cout << r.num_steps() << "\n";
+    REQUIRE_THAT(r, m1m::sortedt());
+    REQUIRE_THAT(r.time(), TimePointMatcher(2.0).with_epsilon(p.time_epsilon));
 }

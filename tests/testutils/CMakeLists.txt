@@ -23,6 +23,7 @@ add_library(${PROJECT_NAME}::testutils ALIAS testutils)
 add_executable(testutils_tests EXCLUDE_FROM_ALL
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/m11_tests.cpp
         tests/node_runner_tests.cpp
+        tests/m1m_tests.cpp
 )
 
 target_link_libraries(testutils_tests

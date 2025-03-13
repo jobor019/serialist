@@ -211,6 +211,9 @@ struct PhasePulsatorParameters {
     static const inline Vec<double> DEFAULT_DURATIONS{1.0};
     static constexpr double DEFAULT_LEGATO = 1.0;
 
+    static constexpr double LEGATO_LOWER_BOUND = 0.0;
+    static constexpr double LEGATO_UPPER_BOUND = 2.0 - 1e-8;
+
 
     explicit PhasePulsatorParameters(const Vec<double>& d = DEFAULT_DURATIONS) : new_durations(d) {
         update_durations();
@@ -407,7 +410,8 @@ private:
                 , crossing_direction == ThresholdDirection::forward
                       ? Phase(legato_fraction)
                       : Phase(1.0 - legato_fraction)
-                , p.legato >= 1.0 // if exactly 1.0, we're going to check this threshold in the same cycle as it was added
+                , p.legato >=
+                  1.0 // if exactly 1.0, we're going to check this threshold in the same cycle as it was added
                 , crossing_direction
             };
         } else {
@@ -577,8 +581,9 @@ public:
 
 
     void set_legato(double legato) {
-        assert(legato >= 0.0);
-        m_parameters.new_legato = legato;
+        m_parameters.new_legato = utils::clip(legato
+                                              , PhasePulsatorParameters::LEGATO_LOWER_BOUND
+                                              , PhasePulsatorParameters::LEGATO_UPPER_BOUND);
     }
 
 
