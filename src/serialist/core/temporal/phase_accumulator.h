@@ -85,7 +85,7 @@ public:
         return Phase::phase_mod(q);
     }
 
-    static double phasor_value_offset(const TimePoint& t, const PaParameters& p) {
+    static double phasor_value_offset(const TimePoint&, const PaParameters& p) {
         auto offset = p.offset->get_value();
         return Phase::phase_mod(offset);
     }

@@ -1,11 +1,23 @@
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "core/policies/policies.h"
 #include "core/generatives/phase_pulsator.h"
 
 using namespace serialist;
 
+TEST_CASE("Phase: zero", "[phase]") {
+    auto epsilon = GENERATE(1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-16);
+    REQUIRE_THAT(Phase::zero(epsilon).get(), Catch::Matchers::WithinAbs(0, 1e-16));
+}
+
+TEST_CASE("Phase: one", "[phase]") {
+    // Ensuring that Phase::one doesn't wrap around to 0.0 nor goes above 1.0
+    auto epsilon = GENERATE(1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-16);
+    REQUIRE(Phase::one(epsilon).get() > 0.9);
+    REQUIRE(Phase::one(epsilon).get() < 1.0);
+}
 
 
 TEST_CASE("Phase: abs_delta_phase", "[phase]") {

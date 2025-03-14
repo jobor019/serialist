@@ -22,7 +22,7 @@ static PhaseAccumulator initialize_phase_accumulator(double step_size, double ph
 }
 
 
-TEST_CASE("m_phasor stepped", "[phasor]") {
+TEST_CASE("PhaseAccumulator (T): Stepping", "[phasor]") {
     SECTION("unit m_phasor") {
         double step = 0.1;
         auto p = initialize_phase_accumulator(step, 0.0, PaMode::triggered);
