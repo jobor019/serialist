@@ -517,15 +517,13 @@ TEST_CASE("PhasePulsator: Change of legato value (R1.2.3)", "[phase_pulsator]") 
             auto first_pulse_on_id = *r.pulse_on_id();
 
             // Step until end of cycle
-            assert(SingleThresholdStrategy::JUMP_DETECTION_THRESHOLD > 0.1);
-            for (auto cursor_value = 0.0; cursor_value < PHASE_MAX; cursor_value += 0.1) {
-                cursor.set_values(cursor_value);
-                REQUIRE_THAT(runner.step(), m1m::emptyt());
-            }
+            runner.schedule_parameter_ramp(w.cursor, 0.0, 0.9, 10);
+            REQUIRE_THAT(runner.step_n(10), m1m::emptyt());
 
             // Second pulse triggered at phase=1.0 (still with legato=1.5, but to be changed)
             cursor.set_values(0.0);
-            REQUIRE_THAT(runner.step(), m1m::containst_on());
+            r = runner.step();
+            REQUIRE_THAT(r, m1m::containst_on());
             auto second_pulse_on_id = *r.pulse_on_id();
 
             cursor.set_values(0.1);
@@ -534,16 +532,11 @@ TEST_CASE("PhasePulsator: Change of legato value (R1.2.3)", "[phase_pulsator]") 
             // Change legato: no change to first pulse but second pulse should be triggered at phase=1.7
             legato.set_values(0.7);
 
-            cursor.set_values(0.2); // 1.2
-            REQUIRE_THAT(runner.step(), m1m::emptyt());
+            // Step until end of cycle
+            runner.schedule_parameter_ramp(w.cursor, 0.1, 0.4, 10);
+            REQUIRE_THAT(runner.step_n(10), m1m::emptyt());
 
-            cursor.set_values(0.3); // 1.3
-            REQUIRE_THAT(runner.step(), m1m::emptyt());
-
-            cursor.set_values(0.4); // 1.4
-            REQUIRE_THAT(runner.step(), m1m::emptyt());
-
-            // Phase=1.5, Triger first pulse_off
+            // Phase=1.5, Trigger first pulse_off
             cursor.set_values(0.5 + EPSILON);
             REQUIRE_THAT(runner.step(), m1m::equalst_off(first_pulse_on_id));
 
