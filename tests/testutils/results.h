@@ -90,6 +90,7 @@ public:
         return std::nullopt;
     }
 
+
     /** Returns the id of the last trigger in the first voice, if any */
     template<typename U = T, typename = std::enable_if_t<std::is_same_v<U, Trigger>>>
     std::optional<std::size_t> trigger_id() const {
@@ -99,21 +100,34 @@ public:
         return std::nullopt;
     }
 
-    /** Returns the id of the last pulse_on in the first voice, if any */
+
+    /** Returns the id of the last trigger of the given type in the first voice, if any */
     template<typename U = T, typename = std::enable_if_t<std::is_same_v<U, Trigger>>>
-    std::optional<std::size_t> pulse_on_id() const {
+    std::optional<std::size_t> trigger_id_of_type(Trigger::Type type) const {
         if (is_successful()) {
-            const Trigger* last_pulse_on = nullptr;
+            const Trigger* last_trigger_of_type = nullptr;
             for (const Trigger& trigger : voices()[0]) {
-                if (trigger.is_pulse_on()) {
-                    last_pulse_on = &trigger;
+                if (trigger.is(type)) {
+                    last_trigger_of_type = &trigger;
                 }
             }
-            if (last_pulse_on) {
-                return last_pulse_on->get_id();
+            if (last_trigger_of_type) {
+                return last_trigger_of_type->get_id();
             }
         }
         return std::nullopt;
+    }
+
+
+    template<typename U = T, typename = std::enable_if_t<std::is_same_v<U, Trigger>>>
+    std::optional<std::size_t> pulse_on_id() const {
+        return trigger_id_of_type(Trigger::Type::pulse_on);
+    }
+
+
+    template<typename U = T, typename = std::enable_if_t<std::is_same_v<U, Trigger>>>
+    std::optional<std::size_t> pulse_off_id() const {
+        return trigger_id_of_type(Trigger::Type::pulse_off);
     }
 
 
@@ -273,6 +287,16 @@ public:
     std::optional<std::size_t> pulse_on_id() const {
         if (is_successful()) {
             return last().pulse_on_id();
+        }
+        return std::nullopt;
+    }
+
+
+    /** Returns the id of the last pulse_off in the first voice, if any */
+    template<typename U = T, typename = std::enable_if_t<std::is_same_v<U, Trigger>>>
+    std::optional<std::size_t> pulse_off_id() const {
+        if (is_successful()) {
+            return last().pulse_off_id();
         }
         return std::nullopt;
     }
