@@ -56,6 +56,7 @@ TEST_CASE("PhasePulsator: Phase triggers new pulse exactly at period (R1.1.1 & R
             {1.0, 0.0},
             {-1.0, 1.0}
         }));
+    CAPTURE(period, expected_phase_at_trigger);
 
     OscillatorPairedPulsator p(1.0, period);
     auto& runner = p.runner;
@@ -161,7 +162,7 @@ TEST_CASE("PhasePulsator: Threshold crossings in opposite directions (R1.1.3)", 
     }
 }
 
-TEST_CASE("PhasePulsator: Initial cursor position", "[phase_pulsator]") {
+TEST_CASE("PhasePulsator: Initial cursor position (R1.1.4)", "[phase_pulsator]") {
     PhasePulsatorWrapper w;
     auto& cursor = w.cursor;
     NodeRunner runner{&w.pulsator_node};
@@ -178,6 +179,7 @@ TEST_CASE("PhasePulsator: Initial cursor position", "[phase_pulsator]") {
 
     SECTION("Initial cursor not close to threshold does not trigger pulse") {
         auto cursor_position = GENERATE(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9);
+        CAPTURE(cursor_position);
         cursor.set_values(cursor_position);
         REQUIRE_THAT(runner.step(), m1m::emptyt());
     }
@@ -205,8 +207,69 @@ TEST_CASE("PhasePulsator: Initial cursor position", "[phase_pulsator]") {
         cursor.set_values(PHASE_MAX);
         REQUIRE_THAT(runner.step(), m1m::containst_on());
     }
+}
 
+TEST_CASE("PhasePulsator: Cursor jumps are treated as initial cursor position (R1.1.5)", "[phase_pulsator]") {
+    PhasePulsatorWrapper w;
+    auto& cursor = w.cursor;
+    NodeRunner runner{&w.pulsator_node};
 
+    // Before jumping: step until middle of phase
+    auto cursor_value = 0.0;
+    while (cursor_value < 0.5) {
+        cursor.set_values(cursor_value);
+        cursor_value += 0.1;
+    }
+
+    SECTION("Cursor jump to 0.0") {
+        // Sanity check in case JUMP_DETECTION_THRESHOLD is changed
+        assert(cursor_value > SingleThresholdStrategy::JUMP_DETECTION_THRESHOLD);
+
+        cursor.set_values(0.0);
+        REQUIRE_THAT(runner.step(), m1m::containst_on());
+    }
+
+    SECTION("Cursor jump to 1.0") {
+        // Sanity check in case JUMP_DETECTION_THRESHOLD is changed
+        assert(PHASE_MAX - cursor_value > SingleThresholdStrategy::JUMP_DETECTION_THRESHOLD);
+
+        cursor.set_values(PHASE_MAX);
+        REQUIRE_THAT(runner.step(), m1m::containst_on());
+    }
+
+    SECTION("Cursor jump to between 0.0 and 1.0") {
+        auto jump_position = GENERATE(0.1, 0.9);
+        CAPTURE(jump_position);
+
+        // Sanity check in case JUMP_DETECTION_THRESHOLD is changed
+        assert(std::abs(jump_position - cursor_value) > SingleThresholdStrategy::JUMP_DETECTION_THRESHOLD);
+
+        cursor.set_values(jump_position);
+        REQUIRE_THAT(runner.step(), m1m::emptyt());
+    }
+}
+
+TEST_CASE("PhasePulsator: Constant cursor does not trigger output (R1.1.6)", "[phase_pulsator]") {
+    PhasePulsatorWrapper w;
+    auto& cursor = w.cursor;
+    NodeRunner runner{&w.pulsator_node};
+
+    SECTION("Constant cursor at threshold") {
+        auto cursor_position = GENERATE(0.0, PHASE_MAX);
+        CAPTURE(cursor_position);
+        cursor.set_values(cursor_position);
+        REQUIRE_THAT(runner.step(), m1m::equalst_on());
+
+        REQUIRE_THAT(runner.step_n(100), m1m::emptyt(MatchType::all));
+    }
+
+    SECTION("Constant cursor between 0.0 and 1.0") {
+        cursor.set_values(0.0);
+        REQUIRE_THAT(runner.step(), m1m::equalst_on());
+
+        cursor.set_values(0.1);
+        REQUIRE_THAT(runner.step_n(100), m1m::emptyt());
+    }
 }
 
 
