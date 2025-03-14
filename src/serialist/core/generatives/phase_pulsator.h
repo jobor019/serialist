@@ -333,6 +333,7 @@ private:
             return trigger_pulse(cursor, s, p);
         } else {
             flip_legato_thresholds(crossing_direction, s);
+            s.expected_direction = crossing_direction;
             return {};
         }
     }

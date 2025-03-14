@@ -28,10 +28,15 @@ struct OscillatorPairedPulsator {
 
         phase_pulsator.pulsator_node.set_cursor(&oscillator.oscillator);
 
-        runner = NodeRunner<Trigger>{&phase_pulsator.pulsator_node};
+        runner = NodeRunner{&phase_pulsator.pulsator_node};
         runner.add_generative(oscillator.oscillator);
 
         time_epsilon = runner.get_config().step_size.get_value() + EPSILON;
+    }
+
+    OscillatorPairedPulsator& with_period(double period) {
+        oscillator.period.set_values(period);
+        return *this;
     }
 
     PhasePulsatorWrapper<> phase_pulsator;
@@ -48,6 +53,7 @@ TEST_CASE("PhasePulsator: Forward phase triggers new pulse exactly at period (R1
     // initial step to phase 0.0 => trigger pulse_on
     auto r = runner.step();
     REQUIRE_THAT(r, m1m::equalst_on());
+    REQUIRE_THAT(RunResult<Facet>::dummy(p.oscillator.oscillator.process()), m11::eqf(0.0));
     auto pulse_on_id = *r.pulse_on_id();
 
     // step one full period (1.0 ticks) => trigger pulse_off matching previous and new pulse_on in same step
@@ -67,3 +73,36 @@ TEST_CASE("PhasePulsator: Forward phase triggers new pulse exactly at period (R1
     REQUIRE_THAT(r, m1m::sortedt());
     REQUIRE_THAT(r.time(), TimePointMatcher(2.0).with_epsilon(p.time_epsilon));
 }
+
+TEST_CASE("PhasePulsator: Backward phase triggers new pulse exactly at period (R1.1.2)", "[phase_pulsator]") {
+    OscillatorPairedPulsator p;
+    p.with_period(-1.0);
+    auto& runner = p.runner;
+
+    // initial Oscillator step to phase ~1.0 => trigger pulse_on
+    auto r = runner.step();
+    REQUIRE_THAT(r, m1m::equalst_on());
+    REQUIRE_THAT(RunResult<Facet>::dummy(p.oscillator.oscillator.process()), m11::eqf(1.0));
+    auto pulse_on_id = *r.pulse_on_id();
+
+    // step one full period (1.0 ticks) => trigger pulse_off matching previous and new pulse_on in same step
+    r = runner.step_while(c1m::emptyt());
+    CAPTURE(p.oscillator.oscillator.process());
+    REQUIRE_THAT(r, m1m::containst_off(pulse_on_id));
+    REQUIRE_THAT(r, m1m::containst_on());
+    REQUIRE_THAT(r, m1m::sizet(2));
+    REQUIRE_THAT(r, m1m::sortedt());
+    REQUIRE_THAT(r.time(), TimePointMatcher(1.0).with_epsilon(p.time_epsilon));
+    pulse_on_id = *r.pulse_on_id();
+
+    // step another full period (2.0 ticks) => trigger pulse_off matching previous and new pulse_on in same step
+    r = runner.step_while(c1m::emptyt());
+    REQUIRE_THAT(r, m1m::containst_off(pulse_on_id));
+    REQUIRE_THAT(r, m1m::containst_on());
+    REQUIRE_THAT(r, m1m::sizet(2));
+    REQUIRE_THAT(r, m1m::sortedt());
+    REQUIRE_THAT(r.time(), TimePointMatcher(2.0).with_epsilon(p.time_epsilon));
+
+
+}
+
