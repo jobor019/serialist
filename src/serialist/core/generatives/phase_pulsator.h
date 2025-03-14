@@ -289,13 +289,13 @@ public:
             return {};
         }
 
+        triggers.extend(process_legato_thresholds(cursor, s));
+
         if (detect_jump_to_threshold(cursor, s)) {
             triggers.extend(continuous_jump(cursor, s, p));
         } else if (crosses_threshold(cursor, s)) {
             triggers.extend(handle_threshold_crossing(cursor, s, p));
         }
-
-        triggers.extend(process_legato_thresholds(cursor, s));
 
         s.previous_cursor = cursor;
         return triggers;
@@ -411,8 +411,7 @@ private:
                 , crossing_direction == ThresholdDirection::forward
                       ? Phase(legato_fraction)
                       : Phase(1.0 - legato_fraction)
-                , p.legato >=
-                  1.0 // if exactly 1.0, we're going to check this threshold in the same cycle as it was added
+                , p.legato >= 1.0 // TODO: Subject to change
                 , crossing_direction
             };
         } else {
