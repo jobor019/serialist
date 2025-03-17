@@ -39,11 +39,12 @@ struct LegatoThreshold {
     bool reposition(double new_legato_value, const Phase& cursor) {
         assert(new_legato_value >= 0.0);
 
-        // TODO: NOTE that this implementation is probably specific for SingleThreshold
-        // assert(associated_threshold == 0);
-
         if (utils::equals(legato_value, new_legato_value)) {
             return false;
+        }
+
+        if (new_legato_value == 0.0) {
+            return true;
         }
 
         // Note: maximum/minimum delta legato is +/- 1.99(999...)
@@ -78,20 +79,34 @@ struct LegatoThreshold {
             if (Phase::contains(threshold_position, new_threshold_position, cursor, incremental_direction)) {
                 has_remaining_passes = true;
             }
-        } else if (delta_legato >= -1.0) {
-            // Decrement <=1.0 (delta between -1 and 0): This case can move past the cursor 0 or 1 time in the
+        } else if (utils::equals(delta_legato, -1.0)) {
+            // Decrement = -1.0. Since decrements around 1.0 can lead to rounding errors, this needs its own case.
+            //
+            // For example, a decrement from 1.4 (1.3999999999999999) to 0.4 (0.40000000000000002)
+            //   will yield a delta -0.99999999999999988, but Phase::contains(Phase(1.4), Phase(0.4)) will only
+            //   be true if the cursor is exactly 0.4.
+            if (has_remaining_passes) {
+                has_remaining_passes = false;
+            } else {
+                should_be_released = true;
+            }
+        } else if (delta_legato > -1.0) {
+            // Decrement <1.0 (delta between -1 and 0): This case can move past the cursor 0 or 1 time in the
             //   decremental direction (opposite direction of expected_direction), where we need to alter
             //   has_remaining_passes or release the threshold in the latter scenario
             auto decremental_direction = to_phase_direction(reverse_direction(expected_direction));
-            if (Phase::contains(threshold_position, new_threshold_position, cursor, decremental_direction)) {
+            if (Phase::contains(threshold_position, new_threshold_position, cursor, decremental_direction, true, false)) {
                 if (has_remaining_passes) {
                     has_remaining_passes = false;
                 } else {
                     should_be_released = true;
                 }
             }
+        } else if (utils::equals(delta_legato, -2.0)) {
+            // Decrements = -2.0. Once again, needs its own case as it is subject to rounding errors
+            should_be_released = true;
         } else {
-            // Decrement > 1.0: This case can move past the cursor 1 or 2 times in the negative direction. Note that
+            // Decrement >= 1.0: This case can move past the cursor 1 or 2 times in the negative direction. Note that
             //   Phase::contains is a valid strategy here since we're only interested in the fractional part
             //
             // For example,
@@ -369,7 +384,8 @@ private:
 
         // Ensure previous threshold is not extended past current
         if (!s.current_legato_threshold && s.previous_legato_threshold) {
-            triggers.append(s.previous_legato_threshold->trigger());
+            // insert at front to ensure that the outgoing triggers are sorted
+            triggers.insert(0, s.previous_legato_threshold->trigger());
             s.previous_legato_threshold = std::nullopt;
         }
 

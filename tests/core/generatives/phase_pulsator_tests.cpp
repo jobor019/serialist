@@ -73,21 +73,23 @@ struct OscillatorPairedPulsator {
         auto v = r.last().voices();
         assert(v.size() == 1);      // This function only works for single voiced triggers
 
-        // pulse_off occurred right before threshold crossing, pulse_on should occur right after
-        if (v[0].size() == 1) {
-            // we always expect the pulse_off to appear before the new pulse on in this scenario, since the pulse_on
-            // will always be output at the crossing from 0.999 to 0.0, while the pulse_of may be output at 0.9999
-            if (!v[0][0].is_pulse_off()) {
-                throw test_error("expected pulse off before pulse on. actual: " + r.to_string());
-            }
-
-            auto r2 = runner.step();
-            return r.merged(r2.last());
-        } else if (v[0].size() > 2) {
+        if (v[0].size() > 2) {
             throw test_error("expected at most two triggers. actual:" + r.to_string());
-        } else {
-            return r; // pulse_off and pulse_on occurred in the same time step
         }
+
+        // pulse_off and pulse_on occurred in the same time step
+        if (v[0].size() == 2) {
+            return r;
+        }
+        // only pulse_off was triggered (v[0].size() == 1)
+        //   we always expect the pulse_off to appear before the new pulse on in this scenario, since the pulse_on
+        //   will always be output at the crossing from 0.999 to 0.0, while the pulse_of may be output at 0.9999
+        if (!v[0][0].is_pulse_off()) {
+            throw test_error("expected pulse off before pulse on. actual: " + r.to_string());
+        }
+
+        auto r2 = runner.step();
+        return r.merged(r2.last());
     }
 
 
@@ -540,22 +542,38 @@ TEST_CASE("PhasePulsator: Change of legato value (R1.2.3)", "[phase_pulsator]") 
     NodeRunner runner{&w.pulsator_node};
 
     SECTION("Decrease past cursor should trigger pulse_off") {
-        // TODO: Don't forget to test this with period = -1
-        legato.set_values(1.0);
+            auto new_legato_value = GENERATE(0.0, 0.1, 0.5, 0.6);
+            CAPTURE(new_legato_value);
 
-        // pulse triggered at phase=0.0
-        auto r = runner.step();
-        REQUIRE_THAT(r, m1m::equalst_on());
-        auto pulse_on_id = *r.pulse_on_id();
+            legato.set_values(1.0);
 
-        runner.schedule_parameter_ramp(w.cursor, 0.0, 0.5, 10);
-        REQUIRE_THAT(runner.step_n(10), m1m::emptyt(MatchType::all));
+            // pulse triggered at phase=0.0
+            auto r = runner.step();
+            REQUIRE_THAT(r, m1m::equalst_on());
+            auto pulse_on_id = *r.pulse_on_id();
 
-        // Change legato to point that has passed the cursor
-        legato.set_values(0.4);
-        cursor.set_values(0.6);
-        REQUIRE_THAT(runner.step(), m1m::equalst_off(pulse_on_id));
+        SECTION("Forward direction") {
+            runner.schedule_parameter_ramp(w.cursor, 0.0, 0.5, 10);
+            REQUIRE_THAT(runner.step_n(10), m1m::emptyt(MatchType::all));
+
+            // Change legato to point that has passed the cursor
+            legato.set_values(new_legato_value);
+            cursor.set_values(0.6 + EPSILON);
+            REQUIRE_THAT(runner.step(), m1m::equalst_off(pulse_on_id));
+        }
+
+        SECTION("Backward direction") {
+            runner.schedule_parameter_ramp(w.cursor, 0.9, 0.5, 10);
+            REQUIRE_THAT(runner.step_n(10), m1m::emptyt(MatchType::all));
+
+            // Change legato to point that has passed the cursor
+            legato.set_values(new_legato_value);
+            cursor.set_values(0.4 - EPSILON);
+            REQUIRE_THAT(runner.step(), m1m::equalst_off(pulse_on_id));
+        }
     }
+
+    // TODO: Decreases / Increases to/from exactly legato=1.0 and legato=2.0 with various cursor positions
 
     SECTION("Changes to the legato parameter should by default not affect the previous pulse") {
         legato.set_values(1.5);
@@ -599,6 +617,38 @@ TEST_CASE("PhasePulsator: Change of legato value (R1.2.3)", "[phase_pulsator]") 
             REQUIRE_THAT(runner.step(), m1m::equalst_off(second_pulse_on_id));
         }
 
+        SECTION("Decrease beyond first pulse_off should trigger both") {
+            SECTION("Decrease in same step") {
+                // Change: second pulse (and therefore first pulse too) should be triggered at next step
+                legato.set_values(0.2);
+
+                // Phase=1.2, trigger first pulse_off => trigger second pulse_off too
+                cursor.set_values(0.2 + EPSILON);
+                r = runner.step();
+                REQUIRE_THAT(r, m1m::sizet(2));
+                REQUIRE_THAT(r, m1m::sortedt());
+                REQUIRE_THAT(r, m1m::containst_off(first_pulse_on_id));
+                REQUIRE_THAT(r, m1m::containst_off(second_pulse_on_id));
+            }
+
+            SECTION("Decrease in earlier step") {
+                // Change: second pulse (and therefore first pulse too) should be triggered at phase=1.3
+                legato.set_values(0.3);
+
+                // Phase=1.2, no output
+                cursor.set_values(0.2);
+                REQUIRE_THAT(runner.step(), m1m::emptyt());
+
+                // Phase=1.3, trigger first pulse_off => trigger second pulse_off too
+                cursor.set_values(0.3 + EPSILON);
+                r = runner.step();
+                REQUIRE_THAT(r, m1m::sizet(2));
+                REQUIRE_THAT(r, m1m::sortedt());
+                REQUIRE_THAT(r, m1m::containst_off(first_pulse_on_id));
+                REQUIRE_THAT(r, m1m::containst_off(second_pulse_on_id));
+            }
+        }
+
         SECTION("Increase") {
             // Change legato: no change to first pulse but second pulse should be triggered at phase=2.7
             legato.set_values(1.7);
@@ -627,4 +677,44 @@ TEST_CASE("PhasePulsator: Change of legato value (R1.2.3)", "[phase_pulsator]") 
             REQUIRE_THAT(runner.step(), m1m::equalst_off(second_pulse_on_id));
         }
     }
+
+    SECTION("Consecutive changes") {
+        cursor.set_values(0.0);
+        auto r = runner.step();
+        REQUIRE_THAT(r, m1m::equalst_on());
+        auto pulse_on_id = *r.pulse_on_id();
+
+        // Stepping forward while continuously decreasing/increasing legato to a value greater than the current cursor
+        legato.set_values(0.2);
+        cursor.set_values(0.1 + EPSILON);
+        REQUIRE_THAT(runner.step(), m1m::emptyt());
+
+        legato.set_values(1.4);
+        cursor.set_values(0.2 + EPSILON);
+        REQUIRE_THAT(runner.step(), m1m::emptyt());
+
+        SECTION("Triggered once elapsed") {
+            legato.set_values(0.4);
+            cursor.set_values(0.3 + EPSILON);
+            REQUIRE_THAT(runner.step(), m1m::emptyt());
+
+            legato.set_values(0.7);
+            cursor.set_values(0.5 + EPSILON);
+            REQUIRE_THAT(runner.step(), m1m::emptyt());
+
+            cursor.set_values(0.6 + EPSILON);
+            REQUIRE_THAT(runner.step(), m1m::emptyt());
+
+            // Stepping past the threshold normally triggers a pulse with the last set legato threshold
+            cursor.set_values(0.7 + EPSILON);
+            REQUIRE_THAT(runner.step(), m1m::equalst_off(pulse_on_id));
+        }
+
+        SECTION("Triggered due to change past cursor") {
+            legato.set_values(0.2);
+            cursor.set_values(0.2 + EPSILON);
+            REQUIRE_THAT(runner.step(), m1m::equalst_off(pulse_on_id));
+        }
+    }
+
 }
