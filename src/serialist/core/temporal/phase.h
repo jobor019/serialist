@@ -2,6 +2,7 @@
 #define SERIALIST_PHASE_H
 
 #include "utility/math.h"
+#include "algo/facet.h"
 
 
 namespace serialist {
@@ -19,6 +20,8 @@ public:
     explicit Phase(double phase = 0.0, double epsilon = EPSILON)
         : m_phase(phase_mod(phase, epsilon))
         , m_epsilon(epsilon) {}
+
+    explicit Phase(const Facet& f, double epsilon = EPSILON) : Phase(f.get(), epsilon) {}
 
 
     static Phase zero(double epsilon = EPSILON) { return Phase(0.0, epsilon); }

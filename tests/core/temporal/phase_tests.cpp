@@ -19,6 +19,34 @@ TEST_CASE("Phase: one", "[phase]") {
     REQUIRE(Phase::one(epsilon).get() < 1.0);
 }
 
+TEST_CASE("Phase: constructor", "[phase]") {
+    // Values in range [0.0, 1.0)
+    REQUIRE_THAT(Phase(0.0).get(), Catch::Matchers::WithinAbs(0.0, 1e-8));
+    REQUIRE_THAT(Phase(0.1).get(), Catch::Matchers::WithinAbs(0.1, 1e-8));
+    REQUIRE_THAT(Phase(0.9999).get(), Catch::Matchers::WithinAbs(0.9999, 1e-8));
+
+    // Values < 0.0
+    REQUIRE_THAT(Phase(-0.1).get(), Catch::Matchers::WithinAbs(0.9, 1e-8));
+    REQUIRE_THAT(Phase(-0.9).get(), Catch::Matchers::WithinAbs(0.1, 1e-8));
+    REQUIRE_THAT(Phase(-1.2).get(), Catch::Matchers::WithinAbs(0.8, 1e-8));
+
+    // Values >= 1.0
+    REQUIRE_THAT(Phase(1.0).get(), Catch::Matchers::WithinAbs(0.0, 1e-8));
+    REQUIRE_THAT(Phase(1.1).get(), Catch::Matchers::WithinAbs(0.1, 1e-8));
+    REQUIRE_THAT(Phase(1.9999).get(), Catch::Matchers::WithinAbs(0.9999, 1e-8));
+}
+
+TEST_CASE("Phase: arithmetic operators", "[phase]") {
+    SECTION("Addition") {
+        REQUIRE_THAT((Phase(0.1) + 0.0).get(), Catch::Matchers::WithinAbs(0.1, 1e-8));
+        REQUIRE_THAT((Phase(0.1) + 0.2).get(), Catch::Matchers::WithinAbs(0.3, 1e-8));
+        REQUIRE_THAT((Phase(0.1) + 0.9).get(), Catch::Matchers::WithinAbs(0.0, 1e-8));
+
+        REQUIRE_THAT((Phase(0.0) + -0.1).get(), Catch::Matchers::WithinAbs(0.9, 1e-8));
+    }
+}
+
+
 
 TEST_CASE("Phase: abs_delta_phase", "[phase]") {
     REQUIRE_THAT(Phase::abs_delta_phase(Phase{0.0}, Phase{0.1}), Catch::Matchers::WithinAbs(0.1, 1e-8));

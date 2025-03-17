@@ -18,6 +18,7 @@ using namespace serialist::test;
 
 const double PHASE_MAX = Phase::one().get();
 
+
 struct OscillatorPairedPulsator {
     explicit OscillatorPairedPulsator(double initial_legato = 1.0
                                       , double period = 1.0
@@ -42,6 +43,51 @@ struct OscillatorPairedPulsator {
     OscillatorPairedPulsator& with_period(double period) {
         oscillator.period.set_values(period);
         return *this;
+    }
+
+    /**
+     * Function designed to handle problematic threshold crossings where we expect both a pulse_off and pulse_on exactly at
+     * the threshold, but due to rounding errors cannot be sure that they appear in the same time step.
+     *
+     * A typical use case would be scenarios where legato = 1.0 or ~2.0.
+     * ```
+     *   r = w.step_past_threshold();
+     *   REQUIRE_THAT(r, m1m::sizet(2));
+     *   REQUIRE_THAT(r, m1m::sortedt());
+     *   REQUIRE_THAT(r, m1m::containst_off(some_id));
+     *   REQUIRE_THAT(r, m1m::containst_on());
+     * ```
+     */
+     RunResult<Trigger> step_past_threshold() {
+        auto r = runner.step_while(c1m::emptyt());
+        auto current_phase = Phase(*oscillator.oscillator.process().first());
+        if (Phase::distance(current_phase, Phase::zero()) > runner.get_step_size().get_value() + EPSILON) {
+            throw test_error("this function should only be used when the output of runner.step_while(c1m::emptyt()) "
+                             "is expected to cross a threshold (actual phase: " + std::to_string(current_phase.get()) + ")");
+        }
+
+        if (!r.is_successful()) {
+            throw test_error(r.to_string());
+        }
+
+        auto v = r.last().voices();
+        assert(v.size() == 1);      // This function only works for single voiced triggers
+
+        // pulse_off occurred right before threshold crossing, pulse_on should occur right after
+        if (v[0].size() == 1) {
+            // we always expect the pulse_off to appear before the new pulse on in this scenario, since the pulse_on
+            // will always be output at the crossing from 0.999 to 0.0, while the pulse_of may be output at 0.9999
+            if (!v[0][0].is_pulse_off()) {
+                throw test_error("expected pulse off before pulse on. actual: " + r.to_string());
+            }
+
+            auto r2 = runner.step();
+            return r.merged(r2.last());
+        } else if (v[0].size() > 2) {
+            throw test_error("expected at most two triggers. actual:" + r.to_string());
+        } else {
+            return r; // pulse_off and pulse_on occurred in the same time step
+        }
     }
 
 
@@ -115,7 +161,7 @@ TEST_CASE("PhasePulsator: Phase triggers new pulse exactly at period (R1.1.1 & R
     auto pulse_on_id = *r.pulse_on_id();
 
     // step one full period (1.0 ticks) => trigger pulse_off matching previous and new pulse_on in same step
-    r = runner.step_while(c1m::emptyt());
+    r = p.step_past_threshold();
     REQUIRE_THAT(r, m1m::containst_off(pulse_on_id));
     REQUIRE_THAT(r, m1m::containst_on());
     REQUIRE_THAT(r, m1m::sizet(2));
@@ -124,7 +170,7 @@ TEST_CASE("PhasePulsator: Phase triggers new pulse exactly at period (R1.1.1 & R
     pulse_on_id = *r.pulse_on_id();
 
     // step another full period (2.0 ticks) => trigger pulse_off matching previous and new pulse_on in same step
-    r = runner.step_while(c1m::emptyt());
+    r = p.step_past_threshold();
     REQUIRE_THAT(r, m1m::containst_off(pulse_on_id));
     REQUIRE_THAT(r, m1m::containst_on());
     REQUIRE_THAT(r, m1m::sizet(2));
@@ -465,38 +511,24 @@ TEST_CASE("PhasePulsator: Phase triggers pulse_off exactly at legato value (R1.2
         auto second_pulse_on_id = *r.pulse_on_id();
         CAPTURE(second_pulse_on_id);
 
-        // Step another full cycle (t=2.0): pulse off should match the first pulse
-        r = runner.step_while(c1m::emptyt());
-
-        // PROBLEMATIC EDGE CASE:
+        // NOTE: step_past_threshold usage
         //  We cannot be entirely sure here that the new pulse_on and old pulse_off will appear in the same time step.
         //  Since the legato value is close to 2.0 but not exactly 2.0, the new pulse_on might be produced in this
         //  cycle depending on rounding errors of the Oscillator's phase as well as the step size of the runner.
 
-        if (r.last().voices()[0].size() == 1) {
-            REQUIRE_THAT(r, m1m::equalst_off(first_pulse_on_id));
-            r = runner.step();
-            REQUIRE_THAT(r, m1m::equalst_on());
-        } else {
-            REQUIRE_THAT(r, m1m::sizet(2));
-            REQUIRE_THAT(r, m1m::containst_off(first_pulse_on_id));
-            REQUIRE_THAT(r, m1m::containst_on());
-        }
+        // Step another full cycle (t=2.0): pulse off should match the first pulse
+        r = p.step_past_threshold();
         REQUIRE_THAT(r.time(), p.time_matcher(2.0));
+        REQUIRE_THAT(r, m1m::sizet(2));
+        REQUIRE_THAT(r, m1m::containst_off(first_pulse_on_id));
+        REQUIRE_THAT(r, m1m::containst_on());
 
         // Step another full cycle (t=3.0):
-        r = runner.step_while(c1m::emptyt());
-
-        if (r.last().voices()[0].size() == 1) {
-            REQUIRE_THAT(r, m1m::equalst_off(second_pulse_on_id));
-            r = runner.step();
-            REQUIRE_THAT(r, m1m::equalst_on());
-        } else {
-            REQUIRE_THAT(r, m1m::sizet(2));
-            REQUIRE_THAT(r, m1m::containst_off(second_pulse_on_id));
-            REQUIRE_THAT(r, m1m::containst_on());
-        }
+        r = p.step_past_threshold();
         REQUIRE_THAT(r.time(), p.time_matcher(3.0));
+        REQUIRE_THAT(r, m1m::sizet(2));
+        REQUIRE_THAT(r, m1m::containst_off(second_pulse_on_id));
+        REQUIRE_THAT(r, m1m::containst_on());
     }
 }
 
@@ -507,50 +539,92 @@ TEST_CASE("PhasePulsator: Change of legato value (R1.2.3)", "[phase_pulsator]") 
     auto& legato = w.legato_amount;
     NodeRunner runner{&w.pulsator_node};
 
+    SECTION("Decrease past cursor should trigger pulse_off") {
+        // TODO: Don't forget to test this with period = -1
+        legato.set_values(1.0);
+
+        // pulse triggered at phase=0.0
+        auto r = runner.step();
+        REQUIRE_THAT(r, m1m::equalst_on());
+        auto pulse_on_id = *r.pulse_on_id();
+
+        runner.schedule_parameter_ramp(w.cursor, 0.0, 0.5, 10);
+        REQUIRE_THAT(runner.step_n(10), m1m::emptyt(MatchType::all));
+
+        // Change legato to point that has passed the cursor
+        legato.set_values(0.4);
+        cursor.set_values(0.6);
+        REQUIRE_THAT(runner.step(), m1m::equalst_off(pulse_on_id));
+    }
+
     SECTION("Changes to the legato parameter should by default not affect the previous pulse") {
+        legato.set_values(1.5);
+
+        // First pulse triggered at phase=0.0 with legato=1.5 (expected pulse_off at 1.5)
+        auto r = runner.step();
+        REQUIRE_THAT(r, m1m::equalst_on());
+        auto first_pulse_on_id = *r.pulse_on_id();
+
+
+        // Step until end of cycle
+        runner.schedule_parameter_ramp(w.cursor, 0.0, 0.9, 10);
+        REQUIRE_THAT(runner.step_n(10), m1m::emptyt());
+
+        // Second pulse triggered at phase=1.0 (still with legato=1.5, but to be changed)
+        cursor.set_values(0.0);
+        r = runner.step();
+        REQUIRE_THAT(r, m1m::equalst_on());
+        auto second_pulse_on_id = *r.pulse_on_id();
+
+        cursor.set_values(0.1);
+        REQUIRE_THAT(runner.step(), m1m::emptyt());
 
         SECTION("Decrease") {
-            legato.set_values(1.5);
-            // First pulse triggered at phase=0.0 with legato=1.5 (expected pulse_off at 1.5)
-            auto r = runner.step();
-            REQUIRE_THAT(r, m1m::equalst_on());
-            auto first_pulse_on_id = *r.pulse_on_id();
-
-            // Step until end of cycle
-            runner.schedule_parameter_ramp(w.cursor, 0.0, 0.9, 10);
-            REQUIRE_THAT(runner.step_n(10), m1m::emptyt());
-
-            // Second pulse triggered at phase=1.0 (still with legato=1.5, but to be changed)
-            cursor.set_values(0.0);
-            r = runner.step();
-            REQUIRE_THAT(r, m1m::containst_on());
-            auto second_pulse_on_id = *r.pulse_on_id();
-
-            cursor.set_values(0.1);
-            REQUIRE_THAT(runner.step(), m1m::emptyt());
-
             // Change legato: no change to first pulse but second pulse should be triggered at phase=1.7
             legato.set_values(0.7);
 
-            // Step until end of cycle
+            // Step until right before first pulse_off
             runner.schedule_parameter_ramp(w.cursor, 0.1, 0.4, 10);
-            REQUIRE_THAT(runner.step_n(10), m1m::emptyt());
+            REQUIRE_THAT(runner.step_n(10), m1m::emptyt(MatchType::all));
 
-            // Phase=1.5, Trigger first pulse_off
+            // Phase=1.5, Trigger first pulse_off, unchanged by new legato value
             cursor.set_values(0.5 + EPSILON);
             REQUIRE_THAT(runner.step(), m1m::equalst_off(first_pulse_on_id));
 
             cursor.set_values(0.6); // 1.6
             REQUIRE_THAT(runner.step(), m1m::emptyt());
 
-            cursor.set_values(0.7 + EPSILON); // 1.7
+            // Phase=1.5, Trigger second pulse_off
+            cursor.set_values(0.7 + EPSILON);
             REQUIRE_THAT(runner.step(), m1m::equalst_off(second_pulse_on_id));
         }
 
-        SECTION("Increase")
-        {}
+        SECTION("Increase") {
+            // Change legato: no change to first pulse but second pulse should be triggered at phase=2.7
+            legato.set_values(1.7);
 
+            // Step until right before first pulse_off
+            runner.schedule_parameter_ramp(w.cursor, 0.1, 0.4, 10);
+            REQUIRE_THAT(runner.step_n(10), m1m::emptyt(MatchType::all));
 
+            // Phase=1.5, Trigger first pulse_off, unchanged by new legato value
+            cursor.set_values(0.5 + EPSILON);
+            REQUIRE_THAT(runner.step(), m1m::equalst_off(first_pulse_on_id));
+
+            // Step until next pulse_on
+            runner.schedule_parameter_ramp(w.cursor, 0.5 + EPSILON, Phase::one().get(), 10);
+            REQUIRE_THAT(runner.step_n(10), m1m::emptyt(MatchType::all));
+
+            // Phase=2.0, Trigger new pulse_on
+            cursor.set_values(0.0);
+            REQUIRE_THAT(runner.step(), m1m::equalst_on());
+
+            runner.schedule_parameter_ramp(w.cursor, 0.0, 0.6, 10);
+            REQUIRE_THAT(runner.step_n(10), m1m::emptyt(MatchType::all));
+
+            // Phase=2.7, Trigger second pulse_off
+            cursor.set_values(0.7 + EPSILON);
+            REQUIRE_THAT(runner.step(), m1m::equalst_off(second_pulse_on_id));
+        }
     }
 }
-

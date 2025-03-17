@@ -411,7 +411,7 @@ private:
                 , crossing_direction == ThresholdDirection::forward
                       ? Phase(legato_fraction)
                       : Phase(1.0 - legato_fraction)
-                , p.legato >= 1.0 // TODO: Subject to change
+                , p.legato > 1.0
                 , crossing_direction
             };
         } else {

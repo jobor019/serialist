@@ -32,6 +32,33 @@ public:
     }
 
 
+    StepResult edited(const Voices<T>& new_voices
+                              , const TimePoint& new_time
+                              , std::size_t new_step_index) const {
+        if (!is_successful()) {
+            throw test_error("Cannot edit a failed StepResult: " + to_string());
+        }
+
+        return StepResult(new_voices, new_time, new_step_index, m_primary_domain, voices());
+    }
+
+
+    StepResult merged(const StepResult& new_result) const {
+        if (!is_successful()) {
+            throw test_error("Cannot merge a failed StepResult. lhs:" + to_string());
+        }
+
+        if (!new_result.is_successful()) {
+            throw test_error("Cannot merge a failed StepResult. rhs:" + new_result.to_string());
+        }
+
+        auto merged_voices = voices().cloned().merge(new_result.voices());
+        auto new_time = new_result.time();
+        auto new_step_index = step_index() + 1;
+        return edited(merged_voices, new_time, new_step_index);
+    }
+
+
     friend std::ostream& operator<<(std::ostream& os, const StepResult& obj) {
         os << obj.to_string();
         return os;
@@ -50,8 +77,10 @@ public:
 
     std::string to_string(bool compact = false, std::optional<std::size_t> num_decimals = std::nullopt) const {
         if (is_successful()) {
-            return "StepResult(v=" + render_output(compact, num_decimals) + ", " + render_step_info(
-                       compact, num_decimals) + ")";
+            return std::string{"StepResult"}
+                   + (edited() ? "[edited]" : "")
+                   + "(v=" + render_output(compact, num_decimals)
+                   + ", " + render_step_info( compact, num_decimals) + ")";
         } else {
             return render_error() + " " + render_step_info(compact, num_decimals);
         }
@@ -63,6 +92,7 @@ public:
     }
 
 
+    // TODO: Returning const& is risky here since the object could be destroyed before the result is used
     const Voices<T>& voices() const {
         if (is_successful()) {
             return std::get<Voices<T>>(m_value);
@@ -135,15 +165,21 @@ public:
     const TimePoint& time() const { return m_time; }
     std::size_t step_index() const { return m_step_index; }
 
+    bool edited() const { return static_cast<bool>(m_value_before_edit); }
+    std::optional<Voices<T>> before_edit() const { return m_value_before_edit; }
+
+
 private:
     StepResult(const std::variant<Voices<T>, std::string>& value
                , const TimePoint& time
                , std::size_t step_index
-               , DomainType primary_domain)
+               , DomainType primary_domain
+               , std::optional<Voices<T>> value_before_edit = std::nullopt)
         : m_value(value)
         , m_time(time)
         , m_step_index(step_index)
-        , m_primary_domain(primary_domain) {}
+        , m_primary_domain(primary_domain)
+        , m_value_before_edit(value_before_edit) {}
 
 
     std::string render_output(bool compact, std::optional<std::size_t> num_decimals = std::nullopt) const {
@@ -182,6 +218,8 @@ private:
     TimePoint m_time;
     std::size_t m_step_index;
     DomainType m_primary_domain;
+
+    std::optional<Voices<T>> m_value_before_edit = std::nullopt;
 };
 
 
@@ -229,6 +267,18 @@ public:
             auto voices = Voices<T>{vs};
             return RunResult({StepResult<T>::success(voices, TimePoint{}, 0, DomainType::ticks)}, DomainType::ticks);
         }
+    }
+
+    RunResult merged(const StepResult<T>& result_to_merge) const {
+        if (!is_successful()) {
+            throw test_error("Cannot merge failed RunResult. lhs: " + to_string());
+        }
+
+        auto run_output = history();
+        auto lhs_to_merge = last();
+
+        run_output.append(lhs_to_merge.merged(result_to_merge));
+        return RunResult(run_output, m_primary_domain);
     }
 
 
