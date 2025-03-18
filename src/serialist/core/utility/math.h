@@ -142,7 +142,7 @@ bool circular_equals(T a, T b, T epsilon = 1e-6, T modulo_range = static_cast<T>
 // ==============================================================================================
 
 template<typename T = double, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
-inline bool in(T value, T start, T end, bool start_inclusive = true, bool end_inclusive = false) {
+bool in(T value, T start, T end, bool start_inclusive = true, bool end_inclusive = false) {
     return (start_inclusive ? value >= start : value > start) && (end_inclusive ? value <= end : value < end);
 }
 

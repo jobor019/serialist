@@ -61,10 +61,8 @@ public:
 // ==============================================================================================
 
 
-
 template<typename T>
 class NodeRunner {
-
     struct MeterChange {
         std::size_t bar{};
         Meter meter;
@@ -81,7 +79,9 @@ class NodeRunner {
             m_meter_changes.insert_sorted({bar, meter});
         }
 
+
         void schedule(const MeterChange& m) { schedule(m.bar, m.meter); }
+
 
         std::optional<Meter> peek(std::size_t bar) const {
             if (auto index = m_meter_changes.index([bar](const MeterChange& c) { return c.bar == bar; })) {
@@ -90,9 +90,11 @@ class NodeRunner {
             return std::nullopt;
         }
 
+
         std::optional<MeterChange> pop(std::size_t bar) {
             return m_meter_changes.pop_value([bar](const MeterChange& c) { return c.bar == bar; });
         }
+
 
         bool empty() const { return m_meter_changes.empty(); }
 
@@ -113,7 +115,8 @@ public:
         }
     }
 
-    NodeRunner(Node<T>* output_node , const TimePoint& initial_time)
+
+    NodeRunner(Node<T>* output_node, const TimePoint& initial_time)
         : NodeRunner(output_node, TestConfig(), initial_time) {}
 
 
@@ -138,7 +141,9 @@ public:
         return *this;
     }
 
+
     DomainDuration get_step_size() const { return m_config.step_size; }
+
 
     void discontinuity(const TimePoint& new_time) {
         m_current_time = new_time;
@@ -242,6 +247,27 @@ public:
     }
 
 
+    template<typename OutputType, typename StoredType = OutputType, typename VoicesLike
+             , typename = std::enable_if_t<std::is_arithmetic_v<OutputType>>>
+    void schedule_parameter_ramp(Sequence<OutputType, StoredType>& sequence
+                                 , const VoicesLike& start_value_inclusive
+                                 , const VoicesLike& end_value_inclusive
+                                 , std::size_t num_steps) {
+        std::size_t step_index = 1;
+        for (auto& v : Vec<StoredType>::linspace(static_cast<StoredType>(start_value_inclusive)
+                                                            , static_cast<StoredType>(end_value_inclusive)
+                                                            , num_steps, true)) {
+
+            schedule_event(std::make_unique<SequenceChangeEvent<T, OutputType, StoredType>>(
+                sequence
+                , v
+                , conditional_n(step_index)
+            ));
+
+            ++step_index;
+        }
+    }
+
 
     void schedule_meter_change(const Meter& new_meter, std::optional<std::size_t> bar_number) {
         if (!bar_number) {
@@ -254,6 +280,7 @@ public:
 
         m_scheduled_meter_changes.schedule(*bar_number, new_meter);
     }
+
 
     void schedule_meter_change(int numerator, int denominator, std::optional<std::size_t> bar_number) {
         schedule_meter_change(Meter(numerator, denominator), bar_number);
@@ -305,6 +332,7 @@ public:
         return !m_pre_condition_events.empty() || !m_post_condition_events.empty();
     }
 
+
     const TestConfig& get_config() const { return m_config; }
     const TimePoint& get_time() const { return m_current_time; }
     std::size_t get_step_index() const { return m_current_step_index; }
@@ -324,8 +352,7 @@ private:
      *  @throws test_error if invalid values / configurations are provided.
      *  @note   If intermediate steps fails, will not throw errors but rather return `RunResult<T>::failure`
      */
-    RunResult<T> step_internal(RunnerCondition<T>&& stop_condition, const TestConfig& config,
-                               DomainType domain_type) {
+    RunResult<T> step_internal(RunnerCondition<T>&& stop_condition, const TestConfig& config, DomainType domain_type) {
         check_runner_validity();
 
         const auto& step_size = config.step_size;
@@ -394,6 +421,7 @@ private:
         return RunResult<T>(step_results, domain_type);
     }
 
+
     /** Update meter without incrementing the TimePoint. Will only work if
      * (a) the current TimePoint is exactly at a barline and
      * (b) a meter change is scheduled at that exact bar
@@ -408,6 +436,7 @@ private:
         return std::nullopt;
     }
 
+
     std::optional<MeterChange> increment_time_point(TimePoint& t, const DomainDuration& step_size) {
         auto next_bar = t.next_bar();
         if (auto meter = m_scheduled_meter_changes.peek(next_bar)) {
@@ -420,6 +449,7 @@ private:
 
         return std::nullopt;
     }
+
 
     void push_back_unused_meter_changes(Queue<std::optional<MeterChange>>& queue) {
         for (const auto& meter_change : queue.pop_all()) {
@@ -439,7 +469,9 @@ private:
 
 
     void process_events(Vec<std::unique_ptr<NodeRunnerEvent<T>>>& events
-                        , std::size_t step_index, const TimePoint& t, const TimePoint& t_next
+                        , std::size_t step_index
+                        , const TimePoint& t
+                        , const TimePoint& t_next
                         , const Vec<StepResult<T>>& step_results) {
         Vec<std::size_t> indices_to_remove;
 
@@ -462,7 +494,6 @@ private:
             return StepResult<T>::failure("Unknown exception", current_time, step_index, t);
         }
     }
-
 
 
     TestConfig m_config;

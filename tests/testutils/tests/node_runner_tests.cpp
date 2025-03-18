@@ -425,6 +425,23 @@ TEST_CASE("NodeRunner: schedule variable change (output condition)", "[node_runn
     REQUIRE(utils::in(*r.v11f(), 2.0 * 2, (2.0 + 2 * step_size) * 2));
 }
 
+TEST_CASE("NodeRunner: schedule parameter ramp", "[node_runner]") {
+    DummyNode node;
+
+    double step_size = 0.01;
+    NodeRunner runner{&node, TestConfig().with_step_size(DomainDuration(step_size))};
+
+    // Adding 1-5 to TimePoint should effectively yield output like 1.01, 2.02, 3.03, etc.
+    runner.schedule_parameter_ramp(node.add_seq(), 1.0, 5.0, 5);
+
+    REQUIRE(utils::in(*runner.step().v11f(), 1.0, 1.1));
+    REQUIRE(utils::in(*runner.step().v11f(), 2.0, 2.1));
+    REQUIRE(utils::in(*runner.step().v11f(), 3.0, 3.1));
+    REQUIRE(utils::in(*runner.step().v11f(), 4.0, 4.1));
+    REQUIRE(utils::in(*runner.step().v11f(), 5.0, 5.1));
+}
+
+
 TEST_CASE("NodeRunner: schedule meter change", "[node_runner]") {
     DummyNode node;
     NodeRunner runner{&node};

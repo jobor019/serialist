@@ -213,6 +213,34 @@ class EmptyComparison : public GenericOutputComparison<T> {
 };
 
 
+template<typename T>
+class FixedSizeComparison : public GenericOutputComparison<T> {
+public:
+    explicit FixedSizeComparison(std::size_t voices_size, std::size_t voice_size)
+    : m_voices_size(voices_size), m_voice_size(voice_size) {
+        assert(m_voices_size > 0); // This is a user input error: voices cannot be empty
+    }
+
+private:
+    bool matches_internal(const StepResult<T>& current) const override {
+        const auto& voices = current.voices();
+
+        if (voices.size() != m_voices_size) return false;
+
+        for (const auto& voice : voices) {
+            if (voice.size() != m_voice_size) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    std::size_t m_voices_size;
+    std::size_t m_voice_size;
+
+};
+
+
 // ==============================================================================================
 
 
@@ -234,6 +262,26 @@ private:
 
     std::function<bool(const T&)> m_f;
 };
+
+template<typename T>
+class VoiceComparison : public GenericOutputComparison<T> {
+public:
+    explicit VoiceComparison(const std::function<bool(const Voice<T>&)>& f) : m_f(f) {}
+
+private:
+    bool matches_internal(const StepResult<T>& current) const final {
+        const auto& v = current.voices();
+
+        if (v.is_empty_like()) throw test_error("Empty result: " + current.to_string() + ")");
+
+        return m_f(v[0]);
+    }
+
+
+    std::function<bool(const Voice<T>&)> m_f;
+};
+
+
 
 
 // ==============================================================================================
@@ -262,6 +310,7 @@ private:
 
     FuncType m_f;
 };
+
 
 
 // ==============================================================================================

@@ -1,4 +1,3 @@
-
 #ifndef SERIALIST_PHASE_PULSATOR_H
 #define SERIALIST_PHASE_PULSATOR_H
 
@@ -6,193 +5,732 @@
 #include "collections/multi_voiced.h"
 #include "generatives/stereotypes/base_stereotypes.h"
 #include "core/temporal/phase_pulse.h"
-#include "utility/stateful.h"
 #include "variable.h"
 #include "sequence.h"
 
+
 namespace serialist {
+using ThresholdIndex = std::size_t;
+using DurationIndex = std::size_t;
 
-class PhasePulsator : public Flushable<Trigger> {
+enum class ThresholdDirection { forward, backward };
+
+
+inline ThresholdDirection reverse_direction(ThresholdDirection direction) {
+    if (direction == ThresholdDirection::forward) {
+        return ThresholdDirection::backward;
+    }
+    return ThresholdDirection::forward;
+}
+
+
+inline Phase::Direction to_phase_direction(ThresholdDirection direction) {
+    if (direction == ThresholdDirection::backward) {
+        return Phase::Direction::backward;
+    }
+    return Phase::Direction::forward;
+}
+
+inline ThresholdDirection from_phase_direction(Phase::Direction direction) {
+    if (direction == Phase::Direction::backward) {
+        return ThresholdDirection::backward;
+    }
+    return ThresholdDirection::forward;
+}
+
+
+class LegatoThreshold {
 public:
-    static constexpr double DISCONTINUITY_THRESHOLD = 0.1; // unit: phases
-    static constexpr double MINIMUM_SEGMENT_DURATION = 0.03; // unit: ticks, smallest allowed duration ≈ 128d-notes
-    static constexpr double DEFAULT_LEGATO = 1.0;
-    static constexpr double DEFAULT_DURATION = 1.0;
+    LegatoThreshold(std::size_t trigger_id
+        , double legato_value
+        , const Phase& threshold_position
+        , std::size_t num_remaining_passes)
+        : m_trigger_id(trigger_id)
+        , m_legato_value(legato_value)
+        , m_threshold_position(threshold_position)
+        , m_num_remaining_passes(num_remaining_passes){}
 
-    PhasePulsator() = default;
+    /** Return true if the threshold should be released after cursor is updated */
+    bool process_cursor_update(const Phase& previous_cursor
+        , const Phase& cursor
+        , ThresholdDirection expected_threshold_direction
+        , std::optional<Phase::Direction> cursor_direction = std::nullopt) {
 
+        if (!cursor_direction) {
+            cursor_direction = Phase::direction(previous_cursor, cursor);
+        }
 
-    Voice<Trigger> process(const TimePoint& t, const Phase& cursor) {
-        Voice<Trigger> triggers;
-        auto direction = cursor_direction(cursor);
-        if (m_previous_trigger_time && (m_durations.changed() || is_discontinuous(cursor) || direction_changed(direction))) {
-            m_pulses.flag_discontinuity();
-            m_current_segment = cursor_segment(cursor);
+        if (Phase::contains(previous_cursor
+                                         , cursor
+                                         , m_threshold_position
+                                         , cursor_direction
+                                         , true
+                                         , false)) {
+            if (to_phase_direction(expected_threshold_direction) == cursor_direction) {
+                // Crossing in expected direction
+                return decrement_passes();
+            } else {
+                // Crossing in opposite direction
+                increment_passes();
+            }
+        }
+        return false;
+    }
 
-        } else if (is_first_call()) {
-            // On the first call, we don't know where in the segment we're starting, and we don't know the
-            //   direction the cursor is moving. For this reason, we'll always trigger a new pulse equal to the segment
-            //   duration, but flag it as discontinuous to ensure that it doesn't extend beyond the next segment.
-            auto segment_index = cursor_segment(cursor);
-            triggers.append(new_pulse(segment_index));
-            m_current_segment = segment_index;
-            m_previous_trigger_time = t;
-            m_pulses.flag_discontinuity();
+    /** Return true if the threshold should be released after repositioning */
+    bool reposition(double new_legato_value, const Phase& cursor, ThresholdDirection expected_threshold_direction) {
+        assert(new_legato_value >= 0.0);
 
-        } else {
-            m_pulses.increment_phase(Phase::abs_delta_phase(*m_previous_cursor, cursor));
-            // For previously flagged discontinuous pulses, we'll use their original duration if
-            //   (at the moment of evaluation) legato < 1.0. Otherwise (legato 1.0 or greater), we'll override their
-            //   durations and extend them until the next pulse on.
+        if (utils::equals(m_legato_value, new_legato_value)) {
+            return false;
+        }
+
+        if (new_legato_value == 0.0) {
+            return true;
+        }
+
+        // Note: maximum/minimum delta legato is +/- 1.99(999...)
+        auto delta_legato = new_legato_value - m_legato_value;
+
+        auto new_threshold_position = expected_threshold_direction == ThresholdDirection::forward
+                                          ? m_threshold_position + delta_legato
+                                          : m_threshold_position - delta_legato;
+
+        bool should_be_released = false;
+
+        // Note: this code could be simplified to fewer blocks, but that would severely impact the readability
+        if (delta_legato >= 1.0) {
+            // Increment equal to or more than one full cycle. In this scenario, the legato threshold will always move
+            //   past the cursor exactly once, since we know that the legato threshold always is ahead of the cursor
+            //   (otherwise it would already have been released).
             //
-            // Note that a proper implementation of legato requires prediction of the future, which we cannot do,
-            //   as the parameters may change at any given moment. But this way we'll ensure that for legato >= 1.0,
-            //   we'll never have any gaps in the output pulses, even if the corpus / cursor / direction changes.
-            bool include_discontinuous = m_legato >= 1.0;
-            triggers.extend(m_pulses.drain_elapsed_as_triggers(include_discontinuous));
-
-            if (auto edge_index = detect_edge(t, cursor)) {
-                // If legato is exactly 1.0, we'll flush all pulses just to make sure they end up in the same cycle
-                if (utils::equals(m_legato, 1.0)) {
-                    triggers.extend(m_pulses.flush());
-                } else {
-                    triggers.extend(m_pulses.drain_discontinuous_as_triggers());
-                }
-
-                triggers.append(new_pulse(*edge_index));
-                m_current_segment = edge_index;
-                m_previous_trigger_time = t;
+            // For example,
+            //   - Given expected_direction = forward, old_legato = 0.0001 and new_legato = 1.9999, we know that the
+            //        cursor is in [0.0, 0.0001), otherwise the legato threshold would already have been crossed.
+            //   - Similarly, expected_direction = backward, old_legato = 0.0001, and new_legato = 1.9999 would mean
+            //        that the cursor always is in (0.9999, 1).
+            //
+            // Also note that we cannot use Phase::contains here since e.g. a change from legato 0.1 to 1.2 will be
+            //   treated as Phase(0.1) -> Phase(0.2)), which for example does not contain a cursor Phase(0.0).
+            increment_passes();
+        } else if (delta_legato > 0.0) {
+            // Increment <1.0 (delta between 0 and 1): This case can move past the cursor 0 or 1 time in the incremental
+            //   direction (same direction as expected_direction), where we need to alter has_remaining_passes in the
+            //   latter scenario
+            auto incremental_direction = to_phase_direction(expected_threshold_direction);
+            if (Phase::contains(m_threshold_position, new_threshold_position, cursor, incremental_direction)) {
+                increment_passes();
+            }
+        } else if (utils::equals(delta_legato, -1.0)) {
+            // Decrement = -1.0. Since decrements around 1.0 can lead to rounding errors, this needs its own case.
+            //
+            // For example, a decrement from 1.4 (1.3999999999999999) to 0.4 (0.40000000000000002)
+            //   will yield a delta -0.99999999999999988, but Phase::contains(Phase(1.4), Phase(0.4)) will only
+            //   be true if the cursor is exactly 0.4.
+            should_be_released = decrement_passes();
+        } else if (delta_legato > -1.0) {
+            // Decrement <1.0 (delta between -1 and 0): This case can move past the cursor 0 or 1 time in the
+            //   decremental direction (opposite direction of expected_direction), where we need to alter
+            //   has_remaining_passes or release the threshold in the latter scenario
+            auto decremental_direction = to_phase_direction(reverse_direction(expected_threshold_direction));
+            if (Phase::contains(m_threshold_position, new_threshold_position, cursor, decremental_direction, true, false)) {
+                should_be_released = decrement_passes();
+            }
+        } else if (utils::equals(delta_legato, -2.0)) {
+            // Decrements = -2.0. Once again, needs its own case as it is subject to rounding errors
+            should_be_released = true;
+        } else {
+            // Decrement >= 1.0: This case can move past the cursor 1 or 2 times in the negative direction. Note that
+            //   Phase::contains is a valid strategy here since we're only interested in the fractional part
+            //
+            // For example,
+            //   - Given expected_direction = forward, old_legato = 1.2 and new_legato = 0.1, we only need to check
+            //       if the cursor is in the interval (0.1 -> 0.2), in which case it should be decremented twice
+            //       (i.e. always released)
+            auto decremental_direction = to_phase_direction(reverse_direction(expected_threshold_direction));
+            if (Phase::contains(m_threshold_position, new_threshold_position, cursor, decremental_direction)) {
+                should_be_released = true;
+            } else {
+                should_be_released = decrement_passes();
             }
         }
 
-        if (direction != Phase::Direction::unchanged) {
-            m_cursor_direction = direction;
+        m_legato_value = new_legato_value;
+        m_threshold_position = new_threshold_position;
+        return should_be_released;
+    }
+
+
+    void flip(const ThresholdDirection&) {
+        m_threshold_position.invert();
+    }
+
+
+    Trigger trigger() const { return Trigger::pulse_off(m_trigger_id); }
+    std::size_t trigger_id() const { return m_trigger_id; }
+    double legato_value() const { return m_legato_value; }
+
+
+private:
+
+    bool has_remaining_passes() const { return m_num_remaining_passes > 0; }
+    void increment_passes(std::size_t increment_count = 1) { m_num_remaining_passes += increment_count; }
+
+    /** Returns true if decrement should release threshold */
+    bool decrement_passes(std::size_t decrement_count = 1) {
+        if (decrement_count > m_num_remaining_passes) {
+            m_num_remaining_passes = 0;
+            return true;
+        }
+        m_num_remaining_passes -= decrement_count;
+        return false;
+    }
+
+    std::size_t m_trigger_id;
+    double m_legato_value;
+
+    Phase m_threshold_position;
+
+    // ThresholdIndex pulse_on_threshold;
+    // ThresholdIndex associated_threshold; // Different if legato > 1.0
+
+    // Only relevant for N=1
+    std::size_t m_num_remaining_passes;
+    // Only relevant for N=1, but should be handled in N>1 too since
+    //   existing legato point might change from N>1 to N=1 on change of dur
+    // ThresholdDirection m_expected_direction;
+};
+
+
+struct PhasePulsatorState {
+    std::optional<Phase> previous_cursor = std::nullopt;
+
+    std::optional<LegatoThreshold> previous_legato_threshold = std::nullopt;
+    std::optional<LegatoThreshold> current_legato_threshold = std::nullopt;
+
+    // Only used by MultiThresholdStrategy
+    std::optional<ThresholdIndex> last_threshold = std::nullopt;
+    std::optional<ThresholdIndex> expected_next_threshold = std::nullopt;
+    std::optional<DurationIndex> current_segment = std::nullopt;
+
+    // Only used by SingleThresholdStrategy
+    std::optional<ThresholdDirection> expected_direction = std::nullopt;
+
+
+    Voice<Trigger> reposition(double new_legato_value, const Phase& cursor) {
+        if (!current_legato_threshold) {
+            return {};
         }
 
-        m_previous_cursor = cursor;
-        m_durations.clear_flag();
+        if (current_legato_threshold->reposition(new_legato_value, cursor, *expected_direction)) {
+            Voice<Trigger> released;
+
+            // We should never reposition the previous threshold, but in the case that the current threshold is released
+            //   due to a reposition, the previous threshold should be released as well, since the previous pulse
+            //   should never be held past the duration of the current pulse
+            //
+            // Note that this is added before the current, to ensure that the order of the output vector is correct
+
+            if (previous_legato_threshold) {
+                released.append(previous_legato_threshold->trigger());
+                previous_legato_threshold = std::nullopt;
+            }
+
+            released.append(current_legato_threshold->trigger());
+            current_legato_threshold = std::nullopt;
+
+            return released;
+        }
+
+        return {};
+    }
+
+
+    Voice<Trigger> flush() {
+        Voice<Trigger> triggers;
+
+        if (previous_legato_threshold) {
+            triggers.append(previous_legato_threshold->trigger());
+            previous_legato_threshold = std::nullopt;
+        }
+
+        if (current_legato_threshold) {
+            triggers.append(current_legato_threshold->trigger());
+            current_legato_threshold = std::nullopt;
+        }
+
+        return triggers;
+    }
+};
+
+
+// ==============================================================================================
+
+struct PhasePulsatorParameters {
+    static const inline Vec<double> DEFAULT_DURATIONS{1.0};
+    static constexpr double DEFAULT_LEGATO = 1.0;
+
+    static constexpr double LEGATO_LOWER_BOUND = 0.0;
+    static constexpr double LEGATO_UPPER_BOUND = 2.0 - 1e-8;
+
+
+    explicit PhasePulsatorParameters(const Vec<double>& d = DEFAULT_DURATIONS) : new_durations(d) {
+        update_durations();
+    }
+
+
+    void update_durations() {
+        if (!new_durations)
+            return;
+
+        // negative durations d correspond to pauses with duration abs(d)
+        is_pause = new_durations->as_type<bool>([](double d) { return d <= 0.0; });
+        durations = new_durations->map([](double d) { return std::abs(d); });
+
+        // Normalize to 1.0
+        auto sum = durations.sum();
+        assert(sum > 0.0);
+        durations.map([sum](double d) { return d / sum; });
+
+        new_durations = std::nullopt;
+    }
+
+
+    Vec<double> durations; // should not contain negative values
+    Vec<bool> is_pause;
+    std::optional<Voice<double>> new_durations; // may contain negative values
+    bool apply_duration_change_immediately = false;
+
+    Vec<double> thresholds;
+    double legato = DEFAULT_LEGATO;
+    std::optional<double> new_legato;
+};
+
+
+// ==============================================================================================
+
+class SingleThresholdStrategy {
+public:
+    static constexpr double JUMP_DETECTION_THRESHOLD = 0.3;
+    static constexpr double THRESHOLD_PROXIMITY = 1e-3;
+
+    using State = PhasePulsatorState;
+    using Params = PhasePulsatorParameters;
+
+    SingleThresholdStrategy() = delete;
+
+
+    static Voice<Trigger> process(const Phase& cursor, State& s, const Params& p) {
+        Voice<Trigger> triggers;
+
+        if (!s.previous_cursor) {
+            triggers.extend(s.flush());
+        }
+
+        if (*s.previous_cursor == cursor) {
+            return {};
+        }
+
+        if (detect_jump(cursor, s)) {
+            if (close_to_threshold(cursor)) {
+                triggers.extend(continuous_jump(cursor, s, p));
+            } else {
+                triggers.extend(discontinuous_jump(cursor, s));
+            }
+        } else {
+            triggers.extend(process_legato_thresholds(cursor, s));
+
+            if (crosses_threshold(cursor, s)) {
+                triggers.extend(handle_threshold_crossing(cursor, s, p));
+            }
+        }
+
+        s.previous_cursor = cursor;
+        return triggers;
+    }
+
+
+    static Voice<Trigger> on_activate(State&, const Params&) {
+        // TODO: ignored until we implement MultiThresholdStrategy
+        //   convert last_threshold / expected_next_threshold / current_segment to expected_direction
+        //   handle legato thresholds
+        return {};
+    }
+
+
+    static Voice<Trigger> handle_legato_change(State& s, const Params& p) {
+        if (s.previous_cursor) {
+            return s.reposition(p.legato, *s.previous_cursor);
+        } else {
+            return s.flush();
+        }
+    }
+
+private:
+    static Voice<Trigger> continuous_jump(const Phase& cursor, State& s, const Params& p) {
+        return trigger_pulse(cursor, s, p);
+    }
+
+    static Voice<Trigger> discontinuous_jump(const Phase& cursor, State& s) {
+        assert(!close_to_threshold(cursor)); // by definition, a jump is not discontinuous if it's close to threshold
+
+        if (!s.previous_cursor) {
+            return {}; // No legato thresholds to process
+        }
+        // a discontinuous jump is treated as a step in the direction that never trigger a new pulse
+        auto jump_direction = Phase::inverse_direction(Phase::crossing_direction(*s.previous_cursor, cursor));
+
+        return process_legato_thresholds(cursor, s, jump_direction);
+    }
+
+
+    static Voice<Trigger> handle_threshold_crossing(const Phase& cursor, State& s, const Params& p) {
+        if (auto crossing_direction = direction(cursor);
+            !s.expected_direction || crossing_direction == *s.expected_direction) {
+            return trigger_pulse(cursor, s, p);
+        } else {
+            flip_legato_thresholds(crossing_direction, s);
+            s.expected_direction = crossing_direction;
+            return {};
+        }
+    }
+
+
+    static Voice<Trigger> process_legato_thresholds(
+        const Phase& cursor
+        , State& s
+        , std::optional<Phase::Direction> explicit_crossing_direction = std::nullopt) {
+        if (!s.previous_cursor)
+            return {};
+
+        Voice<Trigger> triggers;
+
+        auto process_threshold = [&](std::optional<LegatoThreshold>& threshold) {
+            if (!threshold) return;
+
+            if (threshold->process_cursor_update(*s.previous_cursor
+                , cursor
+                , *s.expected_direction
+                , explicit_crossing_direction)) {
+                triggers.append(threshold->trigger());
+                threshold = std::nullopt;
+            }
+        };
+
+        process_threshold(s.previous_legato_threshold);
+        process_threshold(s.current_legato_threshold);
+
+        // Ensure previous threshold is not extended past current
+        if (!s.current_legato_threshold && s.previous_legato_threshold) {
+            // insert at front to ensure that the outgoing triggers are sorted
+            triggers.insert(0, s.previous_legato_threshold->trigger());
+            s.previous_legato_threshold = std::nullopt;
+        }
 
         return triggers;
     }
 
 
-    Voice<Trigger> flush() override {
-        return m_pulses.flush();
+    static Voice<Trigger> trigger_pulse(const Phase& cursor, State& s, const Params& p) {
+        Voice<Trigger> triggers;
+
+        auto crossing_direction = direction(cursor);
+
+        // Release previous threshold (We're never supposed to hold more than two pulses at a time)
+        if (s.previous_legato_threshold) {
+            triggers.append(s.previous_legato_threshold->trigger());
+            s.previous_legato_threshold = std::nullopt;
+        }
+
+        // Release current threshold or move it to previous
+        if (s.current_legato_threshold) {
+            if (s.current_legato_threshold->legato_value() <= 1.0 || p.legato == 0.0) {
+                triggers.append(s.current_legato_threshold->trigger());
+            } else {
+                s.previous_legato_threshold = s.current_legato_threshold;
+
+                assert(s.expected_direction); // If a legato threshold exists, the expected direction should exist
+
+                // Edge case: when triggered by a jump to threshold in the opposite of expected direction
+                if (crossing_direction != *s.expected_direction) {
+                    s.previous_legato_threshold->flip(crossing_direction);
+                }
+
+            }
+            s.current_legato_threshold = std::nullopt;
+        }
+
+        // Generate new pulse
+        auto pulse_on = Trigger::pulse_on();
+        triggers.append(pulse_on);
+        s.expected_direction = crossing_direction;
+
+        if (p.legato > 0.0) {
+            auto legato_fraction = utils::modulo(p.legato, 1.0);
+            s.current_legato_threshold = LegatoThreshold{
+                pulse_on.get_id()
+                , p.legato
+                , crossing_direction == ThresholdDirection::forward
+                      ? Phase(legato_fraction)
+                      : Phase(1.0 - legato_fraction)
+                , static_cast<std::size_t>(p.legato > 1.0)
+            };
+        } else {
+            triggers.append(Trigger::pulse_off(pulse_on.get_id()));
+        }
+
+        return triggers;
     }
 
 
-    Voice<Trigger> handle_time_skip(const TimePoint& new_time) {
-        m_previous_trigger_time = new_time;
+    static void flip_legato_thresholds(const ThresholdDirection& new_direction, State& s) {
+        if (s.previous_legato_threshold) {
+            s.previous_legato_threshold->flip(new_direction);
+        }
+
+        if (s.current_legato_threshold) {
+            s.current_legato_threshold->flip(new_direction);
+        }
+    }
+
+    static bool detect_jump(const Phase& cursor, const State& s) {
+        // First value received
+        if (!s.previous_cursor) {
+            return true;
+        }
+
+        return s.previous_cursor->distance_to(cursor) > JUMP_DETECTION_THRESHOLD;
+    }
+
+
+    static bool crosses_threshold(const Phase& cursor, const State& s) {
+        if (!s.previous_cursor)
+            return false;
+
+        return Phase::wraps_around(*s.previous_cursor, cursor);
+    }
+
+
+    static bool close_to_threshold(const Phase& cursor) {
+        return cursor.distance_to(0.0) < THRESHOLD_PROXIMITY;
+    }
+
+
+    static ThresholdDirection direction(const Phase& current_cursor) {
+        // Since there's only threshold, if we know that we've crossed the threshold, we can safely assume that
+        // the direction we've crossed in is the direction given by the value we're closest to of (0.0, 1.0)
+        if (current_cursor.get() < 0.5) {
+            return ThresholdDirection::forward;
+        }
+        return ThresholdDirection::backward;
+    }
+};
+
+
+// ==============================================================================================
+
+// TODO: This class might be entirely redundant.
+//   It will be preserved for now, in case testing proves that it's needed. But if not, it should be removed and the
+//   code should be significantly refactored (could be changed to a single class without the need for the
+//   State-Strategy-Parameter pattern at all.
+
+// class MultiThresholdStrategy {
+// public:
+//     static constexpr double JUMP_PROXIMITY_THRESHOLD = 1e-3;
+//
+//     using State = PhasePulsatorState;
+//     using Params = PhasePulsatorParameters;
+//
+//     SingleThresholdStrategy() = delete;
+//
+//
+//     static Voice<Trigger> process(const Phase& cursor, State& s, const Params& p) {
+//         Voice<Trigger> triggers;
+//
+//         auto threshold = threshold_close_to(c);
+//
+//         if (is_jump_to_threshold(threshold, s)) {
+//             triggers.extend(handle_continuous_jump(*threshold));
+//         } else if (auto segment = segment_changed(cursor, s)) {
+//             if (is_threshold_crossing(*segment, s)) {
+//                 triggers.extend(handle_threshold_crossing(*segment));
+//             } else {
+//                 triggers.extend(handle_discontinuous_jump(*segment));
+//             }
+//         }
+//
+//         triggers.extend(process_legato_thresholds(cursor));
+//
+//         s.previous_cursor = cursor;
+//         return triggers;
+//     }
+//
+//
+//     static Voice<Trigger> on_activate(State& s, const Params& p);
+//     static Voice<Trigger> handle_legato_change(State& s, const Params& p);
+//
+// private:
+//     static bool is_jump_to_threshold(const std::optional<ThresholdIndex> threshold, const State& s) {
+//         return threshold && !is_adjacent(*threshold, s);
+//     }
+//
+//
+//     static bool is_threshold_crossing(const DurationIndex segment, const State& s) {
+//         return is_adjacent(segment);
+//     }
+//
+//
+//     static std::optional<SegmentIndex> detect_jump_to_segment(cursor, const State& s) {}
+//
+//
+//     static std::optional<ThresholdIndex> detect_threshold_crossing(cursor, const State& s);
+//
+//     // State Mutators
+//     static Voice<Trigger> handle_continuous_jump(ThresholdIndex threshold, State& s, const Params& p);
+//     static Voice<Trigger> handle_discontinuous_jump(SegmentIndex segment, State& s, const Params& p);
+//
+//
+//     static Voice<Trigger> handle_threshold_crossing(SegmentIndex segment, State& s, const Params& p) {
+//         auto threshold = threshold_crossed(s.current_segment, segment);
+//         if (is_same_as_last(threshold)) {
+//             flip_legato_thresholds(segment, threshold);
+//             return {};
+//
+//             // TODO .. (and don't forget to handle pauses)
+//         }
+//     }
+//
+//
+//     static process_legato_thresholds(const Phase& cursor, State& s);
+//     void flip_legato_thresholds(SegmentIndex new_segment
+//                                 , ThresholdIndex threshold_crossed
+//                                 , State& s
+//                                 , const Params& p);
+//
+//     static std::optional<ThresholdIndex> threshold_close_to(const Phase& cursor, const State& s);
+//     static bool is_adjacent(ThresholdIndex threshold, const State& s);
+//     static bool is_same_as_last(ThresholdIndex threshold, const State& s);
+//
+//     static std::optional<DurationIndex> segment_changed(const Phase& cursor);
+//     static DurationIndex segment_of(const Phase& cursor, const Params& p);
+//     static bool is_adjacent(SegmentIndex);
+// };
+
+
+// ==============================================================================================
+
+class PhasePulsator : public Flushable<Trigger> {
+public:
+    Voice<Trigger> process(const Phase& cursor) {
+        assert_invariants();
+
+        Voice<Trigger> triggers;
+
+        if (duration_change_applicable(cursor)) {
+            triggers.extend(handle_duration_change());
+        }
+
+        if (m_parameters.new_legato) {
+            triggers.extend(handle_legato_change());
+        }
+
+        triggers.extend(process_cursor(cursor));
+        return triggers;
+    }
+
+
+    void set_legato(double legato) {
+        m_parameters.new_legato = utils::clip(legato
+                                              , PhasePulsatorParameters::LEGATO_LOWER_BOUND
+                                              , PhasePulsatorParameters::LEGATO_UPPER_BOUND);
+    }
+
+
+    void set_durations(const Vec<double>& durations) {
+        assert(!durations.empty());
+        m_parameters.new_durations = durations;
+    }
+
+
+    Voice<Trigger> flush() override {
+        return m_state.flush();
+    }
+
+
+    Voice<Trigger> handle_time_skip(const TimePoint&) {
+        m_state.previous_cursor = std::nullopt;
         return flush();
     }
 
-
-    void set_durations(const Voice<double>& durations) {
-        auto d = durations.cloned().filter_drain([](double p) { return p <= 0.0; });
-
-        if (d.empty()) {
-            m_durations = Voice<double>::singular(1.0);
-
-        } else {
-            d.normalize_l1();
-            m_durations = d;
-        }
-    }
-
-
-    void set_legato(double new_legato) {
-        assert(new_legato >= 0.0);
-
-        if (!utils::equals(m_legato, 0.0)) {
-            m_pulses.scale(new_legato / m_legato);
-        }
-
-        m_legato = new_legato;
-
-    }
-
-
 private:
-    Trigger new_pulse(std::size_t edge_index) {
-        return m_pulses.new_pulse(m_durations.get()[edge_index] * m_legato);
-    }
+    Voice<Trigger> handle_duration_change() {
+        assert(m_parameters.new_durations);
+        assert(!m_parameters.new_durations->empty());
 
+        auto new_size = m_parameters.new_durations->size();
+        auto old_size = m_parameters.durations.size();
 
-    std::optional<std::size_t> detect_edge(const TimePoint& t, const Phase& cursor) const {
-        if (too_close_to_previous_trigger(t) || !m_current_segment) {
-            return std::nullopt;
+        m_parameters.update_durations();
+
+        if (new_size == 1 && old_size != 1) {
+            return SingleThresholdStrategy::on_activate(m_state, m_parameters);
+        } else if (new_size > 1 && old_size == 1) {
+            throw std::runtime_error("MultiThresholdStrategy::on_activate: not implemented");
+            // return MultiThresholdStrategy::on_activate(m_state, m_parameters);
         }
+        return {}; // Change from N > 1 to M > 1
+    }
 
-        auto new_segment_index = cursor_segment(cursor);
-        if (new_segment_index != *m_current_segment)
-            return new_segment_index;
 
-        if (m_durations->size() == 1 && std::abs(m_previous_cursor->get() - cursor.get()) > DISCONTINUITY_THRESHOLD) {
-            // If the corpus consists of exactly one segment, the step from phase ~1 to phase ~0 (or vice versa) would
-            // // still be considered an edge. When this function is called, we know that it's not discontinuous,
-            //    meaning that any raw abs diff greater than DISCONTINUITY_THRESHOLD indicates that the cursor indeed
-            //    has wrapped around, and thus should trigger an edge at the current (only) segment.
-            return 0;
+    Voice<Trigger> handle_legato_change() {
+        assert(m_parameters.new_legato);
+
+        m_parameters.legato = *m_parameters.new_legato;
+        m_parameters.new_legato = std::nullopt;
+
+        if (m_parameters.durations.size() == 1) {
+            return SingleThresholdStrategy::handle_legato_change(m_state, m_parameters);
+        } else {
+            throw std::runtime_error("MultiThresholdStrategy::handle_legato_change: not implemented");
+            // return MultiThresholdStrategy::handle_legato_change(m_state, m_parameters);
         }
-
-        return std::nullopt;
-
     }
 
 
-    std::size_t cursor_segment(const Phase& cursor) const {
-        double sum = 0.0;
-        for (std::size_t i = 0; i < m_durations->size(); ++i) {
-            sum += m_durations.get()[i];
-            if (sum > cursor.get()) {
-                return i;
-            }
+    Voice<Trigger> process_cursor(const Phase& cursor) {
+        if (m_parameters.durations.size() == 1) {
+            return SingleThresholdStrategy::process(cursor, m_state, m_parameters);
+        } else {
+            throw std::runtime_error("MultiThresholdStrategy::process: not implemented");
+            // return MultiThresholdStrategy::process(cursor, m_state, m_parameters);
         }
-        return 0;
     }
 
 
-    bool too_close_to_previous_trigger(const TimePoint& t) const {
-        return m_previous_trigger_time &&
-               std::abs(t.get_tick() - m_previous_trigger_time->get_tick()) < MINIMUM_SEGMENT_DURATION;
+    bool legato_changed() const { return static_cast<bool>(m_parameters.new_legato); }
+
+
+    bool duration_change_applicable(const Phase& cursor) const {
+        return m_parameters.new_durations
+               && (m_parameters.apply_duration_change_immediately
+                   || (m_state.previous_cursor
+                       && (Phase::wraps_around(*m_state.previous_cursor, cursor)
+                           // TODO: This would only be relevant for MultiThreshold
+                           // || PhasePulsatorStrategies::is_jump_to_threshold(0, cursor, m_state, m_parameters)
+                       )
+                   ));
     }
 
 
-    bool is_first_call() const {
-        return m_previous_cursor == std::nullopt;
+    void assert_invariants() const {
+        // previous legato threshold should never exist if current legato threshold doesn't
+        assert(!m_state.previous_legato_threshold || m_state.current_legato_threshold);
     }
 
 
-    std::optional<Phase::Direction> cursor_direction(const Phase& cursor) const {
-        if (!m_previous_cursor)
-            return std::nullopt;
-
-        return Phase::direction(*m_previous_cursor, cursor);
-    }
-
-
-    bool is_discontinuous(const Phase& cursor) const {
-        return m_previous_cursor && Phase::abs_delta_phase(*m_previous_cursor, cursor) > DISCONTINUITY_THRESHOLD;
-    }
-
-
-    bool direction_changed(std::optional<Phase::Direction> new_direction) const {
-        if (!m_cursor_direction || new_direction == Phase::Direction::unchanged)
-            return false;
-        return *m_cursor_direction != *new_direction;
-    }
-
-
-    PhasePulses m_pulses;
-    WithChangeFlag<Voice<double>> m_durations{Voice<double>::singular(DEFAULT_DURATION)}; // INVARIANT: Minimum size 1
-    double m_legato = DEFAULT_LEGATO;
-
-    std::optional<Phase> m_previous_cursor = std::nullopt;
-    std::optional<Phase::Direction> m_cursor_direction = std::nullopt;
-    std::optional<TimePoint> m_previous_trigger_time = std::nullopt;
-    std::optional<std::size_t> m_current_segment = std::nullopt;
+    PhasePulsatorState m_state;
+    PhasePulsatorParameters m_parameters;
 };
-
 
 // ==============================================================================================
 
@@ -206,6 +744,7 @@ public:
         static const inline std::string CLASS_NAME = "phase_pulsator";
     };
 
+
     PhasePulsatorNode(const std::string& identifier
                       , ParameterHandler& parent
                       , Node<Facet>* durations = nullptr
@@ -213,11 +752,13 @@ public:
                       , Node<Facet>* cursor = nullptr
                       , Node<Facet>* enabled = nullptr
                       , Node<Facet>* num_voices = nullptr)
-            : PulsatorBase<PhasePulsator>(identifier, parent, enabled, num_voices, Keys::CLASS_NAME)
-              , m_durations(add_socket(Keys::DURATION, durations))
-              , m_legato(add_socket(Keys::LEGATO_AMOUNT, legato))
-              , m_cursor(add_socket(Keys::CURSOR, cursor)) {}
+        : PulsatorBase(identifier, parent, enabled, num_voices, Keys::CLASS_NAME)
+        , m_durations(add_socket(Keys::DURATION, durations))
+        , m_legato(add_socket(Keys::LEGATO_AMOUNT, legato))
+        , m_cursor(add_socket(Keys::CURSOR, cursor)) {}
 
+
+    void set_cursor(Node<Facet>* cursor) const { m_cursor = cursor; }
 
 private:
     std::size_t get_voice_count() override {
@@ -225,6 +766,7 @@ private:
         //       More elements means a longer sequence, not more simultaneous voices.
         return voice_count(m_legato.voice_count(), m_cursor.voice_count());
     }
+
 
     std::optional<Voices<Trigger>> handle_enabled_state(EnabledState state) override {
         if (state == EnabledState::disabled_this_cycle) {
@@ -235,16 +777,17 @@ private:
         return std::nullopt;
     }
 
+
     void update_parameters(std::size_t num_voices, bool size_has_changed) override {
         if (size_has_changed || m_legato.has_changed()) {
             auto legato = m_legato.process()
                     .adapted_to(num_voices)
-                    .firsts_or(PhasePulsator::DEFAULT_LEGATO);
+                    .firsts_or(PhasePulsatorParameters::DEFAULT_LEGATO);
             pulsators().set(&PhasePulsator::set_legato, std::move(legato));
         }
 
         if (size_has_changed || m_durations.has_changed()) {
-            // Note: We do not handle polyphonic sequences. If we need multiple sequences sync'ed to a single
+            // Note: We do not handle polyphonic sequences. If we need multiple sequences synchronized to a single
             //       oscillator, the optimal approach is to use multiple PhasePulsator objects instead.
             auto durations = m_durations.process().firsts_or(0.0);
             pulsators().set(&PhasePulsator::set_durations, durations);
@@ -252,6 +795,7 @@ private:
 
         // Note: cursor should not be updated here as it's not a parameter (member variable) of PhasePulsator
     }
+
 
     std::optional<Voices<Trigger>> handle_transport_events(const TimePoint& t, const Vec<TimeEvent>& events) override {
         if (events.contains(TimeEvent::time_skip)) {
@@ -265,8 +809,8 @@ private:
         }
 
         return std::nullopt;
-
     }
+
 
     Voices<Trigger> process_pulsator(const TimePoint& t, std::size_t num_voices) override {
         auto triggers = Voices<Trigger>::zeros(num_voices);
@@ -284,7 +828,7 @@ private:
         assert(p.size() == num_voices);
 
         for (std::size_t i = 0; i < p.size(); ++i) {
-            triggers[i] = p[i].process(t, cursors[i]);
+            triggers[i] = p[i].process(cursors[i]);
         }
 
         return triggers;
@@ -294,24 +838,26 @@ private:
     Socket<Facet>& m_durations;
     Socket<Facet>& m_legato;
     Socket<Facet>& m_cursor;
-//    Socket<Facet>& m_legato_type; // TODO: implement types: absolute / relative legato
-
+    //    Socket<Facet>& m_legato_type; // TODO: implement types: absolute / relative legato
 };
 
 
 // ==============================================================================================
 
-template<typename FloatType = float>
+template<typename FloatType = double>
 struct PhasePulsatorWrapper {
-
     using Keys = PhasePulsatorNode::Keys;
 
     ParameterHandler parameter_handler;
 
-    Sequence<Facet, FloatType> duration{Keys::DURATION, parameter_handler
-                                        , Voices<FloatType>::singular(PhasePulsator::DEFAULT_DURATION)};
-    Sequence<Facet, FloatType> legato_amount{Keys::LEGATO_AMOUNT, parameter_handler
-                                             , Voices<FloatType>::singular(PhasePulsator::DEFAULT_LEGATO)};
+    Sequence<Facet, FloatType> duration{Keys::DURATION
+                                        , parameter_handler
+                                        , Voices<FloatType>::transposed(PhasePulsatorParameters::DEFAULT_DURATIONS)
+    };
+    Sequence<Facet, FloatType> legato_amount{Keys::LEGATO_AMOUNT
+                                             , parameter_handler
+                                             , Voices<FloatType>::singular(PhasePulsatorParameters::DEFAULT_LEGATO)
+    };
     Sequence<Facet, FloatType> cursor{Keys::CURSOR, parameter_handler, Voices<FloatType>::singular(0.0)};
 
     Sequence<Facet, bool> enabled{param::properties::enabled, parameter_handler, Voices<bool>::singular(true)};
@@ -323,11 +869,9 @@ struct PhasePulsatorWrapper {
                                     , &legato_amount
                                     , &cursor
                                     , &enabled
-                                    , &num_voices};
-
+                                    , &num_voices
+    };
 };
-
-
 } // namespace serialist
 
 #endif //SERIALIST_PHASE_PULSATOR_H
