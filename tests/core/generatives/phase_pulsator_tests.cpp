@@ -786,19 +786,19 @@ TEST_CASE("PhasePulsator: Change of cursor direction (R1.2.4)", "[phase_pulsator
     }
 
     SECTION("Crossing legato threshold in wrong direction") {
-        // legato threshold at phase=1.1 forward (i.e. 0.1 with one extra pass)
+        // legato threshold at phase=1.1 forward (i.e. 0.1 num_passes=1)
         legato.set_values(1.1);
 
-        // moving past legato threshold in the expected direction. expected: forward direction, no passes remaining
+        // moving past legato threshold in the expected direction. expected=forward, num_passes=0
         cursor.set_values(0.1 + EPSILON);
         REQUIRE_THAT(runner.step(), m1m::emptyt());
 
-        // returning past legato threshold in opposite direction. expected: backward direction
+        // returning past legato threshold in opposite direction. expected=forward, num_passes=1
         cursor.set_values(0.0 + EPSILON);
         REQUIRE_THAT(runner.step(), m1m::emptyt());
 
         SECTION("Crossing twice should trigger in the correct direction") {
-            // returning past legato threshold once again. expected: forward direction
+            // returning past legato threshold once again. expected=forward, num_passes=0
             cursor.set_values(0.1 + EPSILON);
             REQUIRE_THAT(runner.step(), m1m::emptyt());
 
@@ -815,16 +815,17 @@ TEST_CASE("PhasePulsator: Change of cursor direction (R1.2.4)", "[phase_pulsator
             REQUIRE_THAT(runner.step(), m1m::equalst_off(pulse_on_id));
         }
 
-        SECTION("Crossing once should switch direction") {
-            // Continuing in the backwards direction (expected: still backward direction)
+        SECTION("Crossing once then changing direction") {
+            // Continuing in the backwards direction. expected=forward, num_passes=1
             cursor.set_values(0.0);
             REQUIRE_THAT(runner.step(), m1m::emptyt());
 
             // one full cycle: we're both passing the trigger threshold, which should
             //   - not trigger any pulse, since it's not the expected direction
-            //   - flip the expected _trigger_ direction
-            //   - flip the legato threshold (position + direction). expected: forward direction @ phase=0.9
-            // and the legato threshold in the (now) non-expected direction. flip -> expected: backward direction
+            //   - flip the expected direction:
+            //   - flip the legato threshold's direction.
+            //   ≈> expected=backward, num_passes=1, position=0.9
+            // and then pass the legato threshold in the (now) expected direction. num_passes=0
             runner.schedule_parameter_ramp(w.cursor, 0.95, 0.15, 10);
             r = runner.step_n(10);
             REQUIRE_THAT(r, m1m::emptyt(MatchType::all));
@@ -843,7 +844,68 @@ TEST_CASE("PhasePulsator: Change of cursor direction (R1.2.4)", "[phase_pulsator
     }
 }
 
-TEST_CASE("PhasePulsator: Cursor jumps (R1.2.5)", "[phase_pulsator]") { }
+
+TEST_CASE("PhasePulsator: Cursor jumps (R1.2.5)", "[phase_pulsator]") {
+    PhasePulsatorWrapper w;
+    auto& cursor = w.cursor;
+    auto& legato = w.legato_amount;
+    NodeRunner runner{&w.pulsator_node};
+
+
+    cursor.set_values(0.0);
+    auto r = runner.step();
+    REQUIRE_THAT(r, m1m::equalst_on());
+    auto pulse_on_id = *r.pulse_on_id();
+
+    SECTION("Continuous jump") {
+        auto start = GENERATE(0.31, 0.5, 0.69);
+        auto end = GENERATE(Phase::one().get(), Phase::zero().get());
+        CAPTURE(start, end);
+
+        assert(std::abs(start - end) > SingleThresholdStrategy::JUMP_DETECTION_THRESHOLD);
+
+        SECTION("Jump passing legato threshold < 1.0") {
+            auto legato_value = GENERATE(0.7, 0.8, 0.9, 0.9999);
+            CAPTURE(legato_value);
+            legato.set_values(legato_value);
+
+            // Step until start
+            runner.schedule_parameter_ramp(cursor, 0.0, start, 10);
+            REQUIRE_THAT(runner.step_n(10), m1m::emptyt(MatchType::all));
+
+            // Continuous jump to end
+            cursor.set_values(end);
+            r = runner.step();
+            REQUIRE_THAT(r, m1m::sizet(2));
+            REQUIRE_THAT(r, m1m::containst_on());
+            REQUIRE_THAT(r, m1m::containst_off(pulse_on_id));
+            REQUIRE_THAT(r, m1m::sortedt());
+        }
+
+        SECTION("Jump passing legato threshold >= 1.0") {
+            // auto legato_value = GENERATE(1.1, 1.2, 1.8, 1.9, 1.9999);
+            // CAPTURE(legato_value);
+            // legato.set_values(legato_value);
+            //
+            // // Step one full cycle
+            // runner.schedule_parameter_ramp(cursor, 0.0, 0.9, 10);
+            // REQUIRE_THAT(runner.step_n(10), m1m::emptyt(MatchType::all));
+            //
+            // // Continuous jump to end
+            // cursor.set_values(0.0);
+            // r = runner.step();
+            // REQUIRE_THAT(r, m1m::sizet(2));
+            // REQUIRE_THAT(r, m1m::containst_on());
+            // REQUIRE_THAT(r, m1m::containst_off(pulse_on_id));
+            // REQUIRE_THAT(r, m1m::sortedt());
+        }
+
+        SECTION("Jump not passing legato threshold") { }
+    }
+
+    SECTION("Discontinuous jump") {}
+
+}
 
 
 TEST_CASE("PhasePulsator: Legato edge cases (R1.2.6)", "[phase_pulsator]") {
@@ -878,7 +940,7 @@ TEST_CASE("PhasePulsator: Legato edge cases (R1.2.6)", "[phase_pulsator]") {
 
             // Switching direction and stepping past legato threshold in the same step
             cursor.set_values(0.99);
-            REQUIRE_THAT(r, m1m::emptyt()); // TODO: Fails
+            REQUIRE_THAT(runner.step(), m1m::emptyt());
         }
     }
 
