@@ -45,6 +45,7 @@ struct OscillatorPairedPulsator {
         return *this;
     }
 
+
     /**
      * Function designed to handle problematic threshold crossings where we expect both a pulse_off and pulse_on exactly at
      * the threshold, but due to rounding errors cannot be sure that they appear in the same time step.
@@ -58,12 +59,13 @@ struct OscillatorPairedPulsator {
      *   REQUIRE_THAT(r, m1m::containst_on());
      * ```
      */
-     RunResult<Trigger> step_past_threshold() {
+    RunResult<Trigger> step_past_threshold() {
         auto r = runner.step_while(c1m::emptyt());
         auto current_phase = Phase(*oscillator.oscillator.process().first());
         if (Phase::distance(current_phase, Phase::zero()) > runner.get_step_size().get_value() + EPSILON) {
             throw test_error("this function should only be used when the output of runner.step_while(c1m::emptyt()) "
-                             "is expected to cross a threshold (actual phase: " + std::to_string(current_phase.get()) + ")");
+                             "is expected to cross a threshold (actual phase: " + std::to_string(current_phase.get()) +
+                             ")");
         }
 
         if (!r.is_successful()) {
@@ -130,13 +132,12 @@ struct OscillatorPairedPulsator {
 *
 *  While `step_until(t, Anchor::before)` ensures that current_time < t, we cannot be sure that `f(current_time) < f(t)`.
 *
-*  This is highly problematic in all tests below that use the OscillatorPairedPulsator. For example, we cannot be sure
+*  This is problematic in all tests below that use the OscillatorPairedPulsator. For example, we cannot be sure
 *  that an Oscillator with period = 1.0 will yield phase 0.0 at time = 3.0, even if it yields it at time = 1.0 and 2.0.
 *
-*  Also, using phase
-*
-*  // TODO: Note that many tests below still apply this strategy.
-*           This needs to be handled at a later stage for test correctness.
+*  For this reason, we'll always be using `step_while(c1m::emptyt())`.
+*  For the problematic edge case where we don't know if the pulse_off and next pulse_on will occur in the same time step
+*    or in consecutive time steps (e.g. legato = 1.0, legato = 20), use the `step_past_threshold()` function.
 */
 
 // ==============================================================================================
@@ -542,15 +543,15 @@ TEST_CASE("PhasePulsator: Change of legato value (R1.2.3)", "[phase_pulsator]") 
     NodeRunner runner{&w.pulsator_node};
 
     SECTION("Decrease past cursor should trigger pulse_off") {
-            auto new_legato_value = GENERATE(0.0, 0.1, 0.5, 0.6);
-            CAPTURE(new_legato_value);
+        auto new_legato_value = GENERATE(0.0, 0.1, 0.5, 0.6);
+        CAPTURE(new_legato_value);
 
-            legato.set_values(1.0);
+        legato.set_values(1.0);
 
-            // pulse triggered at phase=0.0
-            auto r = runner.step();
-            REQUIRE_THAT(r, m1m::equalst_on());
-            auto pulse_on_id = *r.pulse_on_id();
+        // pulse triggered at phase=0.0
+        auto r = runner.step();
+        REQUIRE_THAT(r, m1m::equalst_on());
+        auto pulse_on_id = *r.pulse_on_id();
 
         SECTION("Forward direction") {
             runner.schedule_parameter_ramp(w.cursor, 0.0, 0.5, 10);
@@ -716,5 +717,179 @@ TEST_CASE("PhasePulsator: Change of legato value (R1.2.3)", "[phase_pulsator]") 
             REQUIRE_THAT(runner.step(), m1m::equalst_off(pulse_on_id));
         }
     }
+}
+
+
+TEST_CASE("PhasePulsator: Change of cursor direction (R1.2.4)", "[phase_pulsator]") {
+    PhasePulsatorWrapper w;
+    auto& cursor = w.cursor;
+    auto& legato = w.legato_amount;
+    NodeRunner runner{&w.pulsator_node};
+
+    cursor.set_values(0.0);
+    auto r = runner.step();
+    REQUIRE_THAT(r, m1m::equalst_on());
+    auto pulse_on_id = *r.pulse_on_id();
+
+    SECTION("Moving back and forth past trigger threshold flips legato threshold correctly") {
+        legato.set_values(0.1);
+        auto n = GENERATE(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        CAPTURE(n);
+
+        // Initial expected duration
+        auto direction = ThresholdDirection::forward;
+        auto cursor_value = 0.05;
+
+        // Step back and forth past threshold (0.95 -> 0.05 -> 0.95 -> ...) n times without output
+        for (int i = 0; i < n; ++i) {
+            if (direction == ThresholdDirection::forward) {
+                cursor_value -= 0.1;
+                direction = ThresholdDirection::backward;
+            } else {
+                cursor_value += 0.1;
+                direction = ThresholdDirection::forward;
+            }
+            cursor.set_values(cursor_value);
+            CAPTURE(cursor_value);
+            REQUIRE_THAT(runner.step(), m1m::emptyt());
+        }
+
+        // continue past legato threshold (Phase = 0.15 or 0.85 depending on last direction)
+        cursor.set_values(direction == ThresholdDirection::forward ? 0.15 : -0.15);
+        REQUIRE_THAT(runner.step(), m1m::equalst_off(pulse_on_id));
+    }
+
+    SECTION("Legato threshold is correctly shifted when crossing trigger threshold") {
+        // TODO: Technically same test as above?
+
+        // Move legato threshold to 0.8
+        legato.set_values(0.8);
+
+        // Change of direction (new direction: Backward) past trigger threshold: legato threshold moved to 0.2
+        cursor.set_values(0.9);
+        REQUIRE_THAT(runner.step(), m1m::emptyt());
+
+        // Crossing old legato threshold does not produce output
+        cursor.set_values(0.8 - EPSILON);
+        REQUIRE_THAT(runner.step(), m1m::emptyt());
+
+        // Change of direction (new direction: Forward), but not past trigger threshold does not produce output
+        cursor.set_values(0.9);
+        REQUIRE_THAT(runner.step(), m1m::emptyt());
+
+        runner.schedule_parameter_ramp(w.cursor, 0.8, 0.3, 10);
+        REQUIRE_THAT(runner.step_n(10), m1m::emptyt(MatchType::all));
+
+        // Crossing new legato threshold produces output
+        cursor.set_values(0.2 - EPSILON);
+        REQUIRE_THAT(runner.step(), m1m::equalst_off(pulse_on_id));
+    }
+
+    SECTION("Crossing legato threshold in wrong direction") {
+        // legato threshold at phase=1.1 forward (i.e. 0.1 with one extra pass)
+        legato.set_values(1.1);
+
+        // moving past legato threshold in the expected direction. expected: forward direction, no passes remaining
+        cursor.set_values(0.1 + EPSILON);
+        REQUIRE_THAT(runner.step(), m1m::emptyt());
+
+        // returning past legato threshold in opposite direction. expected: backward direction
+        cursor.set_values(0.0 + EPSILON);
+        REQUIRE_THAT(runner.step(), m1m::emptyt());
+
+        SECTION("Crossing twice should trigger in the correct direction") {
+            // returning past legato threshold once again. expected: forward direction
+            cursor.set_values(0.1 + EPSILON);
+            REQUIRE_THAT(runner.step(), m1m::emptyt());
+
+            // complete one cycle forward
+            runner.schedule_parameter_ramp(w.cursor, 0.2, 0.9, 10);
+            REQUIRE_THAT(runner.step_n(10), m1m::emptyt(MatchType::all));
+
+            // next pulse on
+            cursor.set_values(0.0);
+            REQUIRE_THAT(runner.step(), m1m::equalst_on());
+
+            // moving past the legato threshold in the expected direction
+            cursor.set_values(0.1 + EPSILON);
+            REQUIRE_THAT(runner.step(), m1m::equalst_off(pulse_on_id));
+        }
+
+        SECTION("Crossing once should switch direction") {
+            // Continuing in the backwards direction (expected: still backward direction)
+            cursor.set_values(0.0);
+            REQUIRE_THAT(runner.step(), m1m::emptyt());
+
+            // one full cycle: we're both passing the trigger threshold, which should
+            //   - not trigger any pulse, since it's not the expected direction
+            //   - flip the expected _trigger_ direction
+            //   - flip the legato threshold (position + direction). expected: forward direction @ phase=0.9
+            // and the legato threshold in the (now) non-expected direction. flip -> expected: backward direction
+            runner.schedule_parameter_ramp(w.cursor, 0.95, 0.15, 10);
+            r = runner.step_n(10);
+            REQUIRE_THAT(r, m1m::emptyt(MatchType::all));
+
+            cursor.set_values(0.1);
+            REQUIRE_THAT(runner.step(), m1m::emptyt());
+
+            // next pulse on
+            cursor.set_values(0.95);
+            REQUIRE_THAT(runner.step(), m1m::equalst_on());
+
+            // moving past the legato threshold in the expected direction
+            cursor.set_values(0.9 - EPSILON);
+            REQUIRE_THAT(runner.step(), m1m::equalst_off(pulse_on_id));
+        }
+    }
+}
+
+TEST_CASE("PhasePulsator: Cursor jumps (R1.2.5)", "[phase_pulsator]") { }
+
+
+TEST_CASE("PhasePulsator: Legato edge cases (R1.2.6)", "[phase_pulsator]") {
+    PhasePulsatorWrapper w;
+    auto& cursor = w.cursor;
+    auto& legato = w.legato_amount;
+    NodeRunner runner{&w.pulsator_node};
+
+    cursor.set_values(0.0);
+    auto r = runner.step();
+    REQUIRE_THAT(r, m1m::equalst_on());
+    auto pulse_on_id = *r.pulse_on_id();
+
+    SECTION("Stepping past trigger threshold with legato = 1.000") {
+        legato.set_values(1.0);
+
+        SECTION("Forward direction") {
+            runner.schedule_parameter_ramp(cursor, 0.1, 0.99, 10);
+            REQUIRE_THAT(runner.step_n(10), m1m::emptyt(MatchType::all));
+
+            // stepping from 0.99 to 0.01 could, if incorrectly implemented, immediately consume the new pulse_off
+            cursor.set_values(0.01);
+            r = runner.step();
+            REQUIRE_THAT(r, m1m::sizet(2));
+            REQUIRE_THAT(r, m1m::containst_off(pulse_on_id));
+            REQUIRE_THAT(r, m1m::containst_on());
+        }
+
+        SECTION("Backward direction") {
+            cursor.set_values(0.01);
+            REQUIRE_THAT(runner.step(), m1m::emptyt());
+
+            // Switching direction and stepping past legato threshold in the same step
+            cursor.set_values(0.99);
+            REQUIRE_THAT(r, m1m::emptyt()); // TODO: Fails
+        }
+    }
+
+    SECTION("Stepping past trigger threshold with legato = 2.000") {
+        // TODO: Section forward/backward
+    }
+
+    SECTION("Stepping past trigger and legato threshold in same step for legato < 1.0") {
+        // TODO: Section forward/backward
+    }
+
+    SECTION("") {}
 
 }

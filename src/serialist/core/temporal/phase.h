@@ -154,6 +154,29 @@ public:
         return contains(start, end, position, interval_direction, end_inclusive, start_inclusive);
     }
 
+    /** Returns the direction from start to end that crosses through 0.0, or Direction::unchanged if start == end */
+    static Direction crossing_direction(const Phase& start, const Phase& end) {
+        if (start == end) {
+            return Direction::unchanged;
+        }
+
+        if (wraps_around(start, end, Direction::forward)) {
+            return Direction::forward;
+        }
+        return Direction::backward;
+    }
+
+    static Direction inverse_direction(const Direction& direction) {
+        switch (direction) {
+            case Direction::forward:
+                return Direction::backward;
+            case Direction::backward:
+                return Direction::forward;
+            default:
+                return Direction::unchanged;
+        }
+    }
+
 
     static bool wraps_around(const Phase& start
                              , const Phase& end
