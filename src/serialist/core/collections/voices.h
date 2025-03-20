@@ -266,7 +266,7 @@ public:
     // =========================== ACCESSORS ==========================
 
     /**
-    * @return The first value in the the first Voice or std::nulllopt if the first voice is empty
+    * @return The first value in the first Voice or std::nulllopt if the first voice is empty
     */
     std::optional<T> first() const {
         if (m_voices.empty())
@@ -324,7 +324,9 @@ public:
         return Vec<U>(std::move(output));
     }
 
-
+    /**
+     * @return The entire first Voice<T>, or std::nullopt if no first voice exists (which shouldn't ever be the case)
+     */
     template<typename U = T>
     std::optional<Vec<U> > first_vec() const {
         if (m_voices.empty())

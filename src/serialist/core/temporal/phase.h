@@ -44,6 +44,10 @@ public:
         return std::nextafter(1.0 - epsilon, 0.0);
     }
 
+    static double clip(double x, double epsilon = EPSILON) {
+        return utils::clip(x, 0.0, max(epsilon));
+    }
+
 
     // Alias due to the slightly confusing choice of name `abs_delta_phase`
     static double distance(const Phase& start
