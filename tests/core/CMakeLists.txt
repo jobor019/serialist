@@ -30,6 +30,7 @@ add_executable(core_tests EXCLUDE_FROM_ALL
         ${CMAKE_CURRENT_SOURCE_DIR}/temporal/phase_tests.cpp
 
         ${CMAKE_CURRENT_SOURCE_DIR}/utility/math_tests.cpp
+        generatives/phase_map_tests.cpp
 
 )
 

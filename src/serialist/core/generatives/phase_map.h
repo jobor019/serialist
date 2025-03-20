@@ -12,12 +12,16 @@ namespace serialist {
 class PhaseMap {
 public:
     static constexpr double DEFAULT_DURATION = 1.0;
-    static constexpr Voice<double> DEFAULT_DURATIONS{DEFAULT_DURATION};
+    static const inline Voice<double> DEFAULT_DURATIONS{DEFAULT_DURATION};
 
 
-    Phase process(const Phase& cursor) {
+    std::optional<Phase> process(const Phase& cursor) {
         auto it = std::lower_bound(m_cumsum.begin(), m_cumsum.end(), cursor.get());
         auto index = std::distance(m_cumsum.begin(), it);
+
+        if (m_is_pause[index]) {
+            return std::nullopt;
+        }
 
         // Compute relative position within the segment
         double prev_sum = index == 0 ? 0.0 : m_cumsum[index - 1];
@@ -28,16 +32,30 @@ public:
 
 
     void set_durations(const Voice<double>& durations) {
-        assert(!durations.empty());
-        assert(durations.sum() > 0.0);
+        assert(!durations.empty()); // Already filtered and normalized to abs sum 1.0 (normalize_l1)
+
+        auto size = durations.size();
+        auto sum = 0.0;
+        auto cumsum = Voice<double>::allocated(durations.size());
+        auto is_pause = Voice<bool>::allocated(durations.size());
+
+        for (std::size_t i = 0; i < size; ++i) {
+            sum += std::abs(durations[i]);
+            cumsum.append(sum);
+            is_pause.append(durations[i] <= 0.0);
+        }
 
         m_durations = durations;
-        m_cumsum = m_durations.cloned().cumsum();
+
+        m_cumsum = std::move(cumsum);
+        m_is_pause = std::move(is_pause);
     }
 
 private:
     Voice<double> m_durations = DEFAULT_DURATIONS;
+
     Voice<double> m_cumsum = m_durations;
+    Voice<bool> m_is_pause = Voice<bool>::zeros(m_durations.size());
 };
 
 
@@ -98,7 +116,9 @@ public:
 
         auto output = Voices<Facet>::zeros(num_voices);
         for (std::size_t i = 0; i < m_phase_maps.size(); ++i) {
-            output[i].append(static_cast<Facet>(m_phase_maps[i].process(Phase(cursors[i])).get()));
+            if (auto phase = m_phase_maps[i].process(Phase(cursors[i]))) {
+                output[i].append(static_cast<Facet>(phase->get()));
+            } // else: pause, output[i] will be empty_like
         }
 
         m_current_value = std::move(output);
@@ -115,17 +135,10 @@ private:
         if (size_has_changed || m_durations.has_changed()) {
             auto durations = m_durations.process()
                     .first_vec_or<>(PhaseMap::DEFAULT_DURATIONS)
-                    .filter([](double d) { return d > 0.0; });
+                    .filter([](double d) { return !utils::equals(d, 0.0); })
+                    .normalize_l1();
 
-            if (durations.empty() || durations.sum() == 0.0) {
-                durations = PhaseMap::DEFAULT_DURATIONS;
-            } else {
-                durations = durations
-                        .map([](double d) { return std::abs(d); })
-                        .normalize_l1();
-            }
-
-            m_phase_maps.set(&PhaseMap::set_durations, std::move(durations));
+            m_phase_maps.set(&PhaseMap::set_durations, durations);
         }
     }
 
@@ -147,9 +160,9 @@ struct PhaseMapWrapper {
     ParameterHandler parameter_handler;
     Variable<Trigger> trigger{param::properties::trigger, parameter_handler, Trigger::pulse_on()};
     Sequence<Facet, FloatType> cursor{Keys::CURSOR, parameter_handler, Voices<FloatType>::singular(0.0)};
-    Sequence<Facet, FloatType> duration{Keys::DURATIONS
-                                        , parameter_handler
-                                        , Voices<FloatType>::transposed(PhaseMap::DEFAULT_DURATIONS)
+    Sequence<Facet, FloatType> durations{Keys::DURATIONS
+                                         , parameter_handler
+                                         , Voices<FloatType>::transposed(PhaseMap::DEFAULT_DURATIONS)
     };
 
     Sequence<Facet, bool> enabled{param::properties::enabled, parameter_handler, Voices<bool>::singular(true)};
@@ -159,7 +172,7 @@ struct PhaseMapWrapper {
                                 , parameter_handler
                                 , &trigger
                                 , &cursor
-                                , &duration
+                                , &durations
                                 , &enabled
                                 , &num_voices
     };
