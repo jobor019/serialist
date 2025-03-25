@@ -1,4 +1,3 @@
-
 #ifndef SERIALISTLOOPER_BASE_STEREOTYPES_H
 #define SERIALISTLOOPER_BASE_STEREOTYPES_H
 
@@ -12,8 +11,8 @@
 #include "core/temporal/trigger.h"
 #include "collections/multi_voiced.h"
 
-namespace serialist {
 
+namespace serialist {
 class GenerativeCommons {
 public:
     GenerativeCommons() = delete;
@@ -39,12 +38,11 @@ public:
     RootBase(const std::string& id
              , ParameterHandler& parent
              , const std::string& class_name)
-            : m_parameter_handler(Specification(param::types::generative)
-                                          .with_identifier(id)
-                                          .with_static_property(param::properties::template_class, class_name)
-                                  , parent)
-              , m_socket_handler(m_parameter_handler) {
-    }
+        : m_parameter_handler(Specification(param::types::generative)
+                              .with_identifier(id)
+                              .with_static_property(param::properties::template_class, class_name)
+                              , parent)
+        , m_socket_handler(m_parameter_handler) {}
 
 
     std::vector<Generative*> get_connected() override { return m_socket_handler.get_connected(); }
@@ -55,18 +53,15 @@ public:
 
     void disconnect_if(Generative& connected_to) override { m_socket_handler.disconnect_if(connected_to); }
 
-
 protected:
     template<typename OutputType>
     Socket<OutputType>& add_socket(const std::string& id, Node<OutputType>* initial = nullptr) {
         return m_socket_handler.create_socket(id, initial);
     }
 
-
 private:
     ParameterHandler m_parameter_handler;
     SocketHandler m_socket_handler;
-
 };
 
 
@@ -78,11 +73,11 @@ public:
     StaticNode(const std::string& id
                , ParameterHandler& parent
                , const std::string& class_name)
-            : m_parameter_handler(Specification(param::types::generative)
-            .with_identifier(id)
-            .with_static_property(param::properties::template_class, class_name)
-            , parent)
-              , m_socket_handler(m_parameter_handler) {}
+        : m_parameter_handler(Specification(param::types::generative)
+                              .with_identifier(id)
+                              .with_static_property(param::properties::template_class, class_name)
+                              , parent)
+        , m_socket_handler(m_parameter_handler) {}
 
 
     std::vector<Generative*> get_connected() override { return m_socket_handler.get_connected(); }
@@ -93,18 +88,15 @@ public:
 
     void disconnect_if(Generative& connected_to) override { m_socket_handler.disconnect_if(connected_to); }
 
-
 protected:
     template<typename OutputType>
     Socket<OutputType>& add_socket(const std::string& id, Node<OutputType>* initial = nullptr) {
         return m_socket_handler.create_socket(id, initial);
     }
 
-
 private:
     ParameterHandler m_parameter_handler;
     SocketHandler m_socket_handler;
-
 };
 
 
@@ -118,9 +110,9 @@ public:
              , Node<Facet>* enabled
              , Node<Facet>* num_voices
              , const std::string& class_name)
-            : StaticNode<T>(id, parent, class_name)
-              , m_enabled(StaticNode<T>::add_socket(param::properties::enabled, enabled))
-              , m_num_voices(StaticNode<T>::add_socket(param::properties::num_voices, num_voices)) {}
+        : StaticNode<T>(id, parent, class_name)
+        , m_enabled(StaticNode<T>::add_socket(param::properties::enabled, enabled))
+        , m_num_voices(StaticNode<T>::add_socket(param::properties::num_voices, num_voices)) {}
 
 
     void update_time(const TimePoint& t) override { m_time_gate.push_time(t); }
@@ -137,13 +129,14 @@ public:
 
     Socket<Facet>& get_num_voices() { return m_num_voices; }
 
-
 protected:
     std::optional<TimePoint> pop_time() { return m_time_gate.pop_time(); }
+
 
     bool is_enabled() {
         return m_enabled.process().first_or(true);
     }
+
 
     bool is_enabled(const TimePoint& t) {
         return t.get_transport_running() && is_enabled();
@@ -155,13 +148,13 @@ protected:
         return GenerativeCommons::voice_count(m_num_voices, args...);
     }
 
+
     template<typename InputType, typename OutputType>
     static Vec<OutputType> adapted(Voices<InputType>&& values
                                    , std::size_t num_voices
                                    , const OutputType& default_value) {
         return values.adapted_to(num_voices).firsts_or(default_value);
     }
-
 
 private:
     Socket<Facet>& m_enabled;
@@ -176,13 +169,14 @@ private:
 template<typename T>
 class PulsatorBase : public NodeBase<Trigger> {
 public:
-
     PulsatorBase(const std::string& id
                  , ParameterHandler& parent
+                 , Node<Trigger>* flush
                  , Node<Facet>* enabled
                  , Node<Facet>* num_voices
                  , const std::string& class_name)
-            : NodeBase<Trigger>(id, parent, enabled, num_voices, class_name) {
+        : NodeBase(id, parent, enabled, num_voices, class_name)
+        , m_flush(add_socket(param::properties::flush, flush)) {
         static_assert(std::is_base_of_v<Flushable<Trigger>, T>);
     }
 
@@ -192,9 +186,10 @@ public:
         if (!t) // process has already been called this cycle
             return m_current_value;
 
-        bool enabled = NodeBase<Trigger>::is_enabled(*t);
+        bool enabled = is_enabled(*t);
         auto enabled_state = m_enabled_gate.update(enabled);
-        if (auto flushed = handle_enabled_state(enabled_state)) {
+        auto flush_all = Trigger::contains_pulse_on(m_flush.process());
+        if (auto flushed = handle_enabled_state(enabled_state, flush_all)) {
             m_current_value = *flushed;
         }
 
@@ -228,11 +223,12 @@ public:
         return m_current_value;
     }
 
+
 protected:
     virtual std::size_t get_voice_count() = 0;
 
     /** @return new `m_current_value` on significant state change, otherwise std::nullopt */
-    virtual std::optional<Voices<Trigger>> handle_enabled_state(EnabledState state) = 0;
+    virtual std::optional<Voices<Trigger>> handle_enabled_state(EnabledState state, bool explicit_flush) = 0;
 
     virtual void update_parameters(std::size_t num_voices, bool size_has_changed) = 0;
 
@@ -262,11 +258,12 @@ protected:
 private:
     MultiVoiced<T, Trigger> m_pulsators;
 
+    Socket<Trigger>& m_flush;
+
     Voices<Trigger> m_current_value = Voices<Trigger>::empty_like();
     EnabledGate m_enabled_gate;
     TimeEventGate m_time_event_gate;
 };
-
 } // namespace serialist
 
 

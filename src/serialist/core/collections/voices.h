@@ -108,6 +108,10 @@ public:
 
 
     static Voices<T> transposed(const Voice<T>& voice) {
+        if (voice.empty()) {
+            return Voices<T>::empty_like();
+        }
+
         auto output = Vec<Voice<T> >::allocated(voice.size());
         for (const auto& v: voice.vector()) {
             output.append(Voice<T>::singular(v));

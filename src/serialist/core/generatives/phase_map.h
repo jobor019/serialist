@@ -138,6 +138,10 @@ private:
                     .filter([](double d) { return !utils::equals(d, 0.0); })
                     .normalize_l1();
 
+            if (durations.empty()) {
+                durations = PhaseMap::DEFAULT_DURATIONS;
+            }
+
             m_phase_maps.set(&PhaseMap::set_durations, durations);
         }
     }

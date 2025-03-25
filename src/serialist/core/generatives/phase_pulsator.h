@@ -31,6 +31,7 @@ inline Phase::Direction to_phase_direction(ThresholdDirection direction) {
     return Phase::Direction::forward;
 }
 
+
 inline ThresholdDirection from_phase_direction(Phase::Direction direction) {
     if (direction == Phase::Direction::backward) {
         return ThresholdDirection::backward;
@@ -42,30 +43,30 @@ inline ThresholdDirection from_phase_direction(Phase::Direction direction) {
 class LegatoThreshold {
 public:
     LegatoThreshold(std::size_t trigger_id
-        , double legato_value
-        , const Phase& threshold_position
-        , std::size_t num_remaining_passes)
+                    , double legato_value
+                    , const Phase& threshold_position
+                    , std::size_t num_remaining_passes)
         : m_trigger_id(trigger_id)
         , m_legato_value(legato_value)
         , m_threshold_position(threshold_position)
-        , m_num_remaining_passes(num_remaining_passes){}
+        , m_num_remaining_passes(num_remaining_passes) {}
+
 
     /** Return true if the threshold should be released after cursor is updated */
     bool process_cursor_update(const Phase& previous_cursor
-        , const Phase& cursor
-        , ThresholdDirection expected_threshold_direction
-        , std::optional<Phase::Direction> cursor_direction = std::nullopt) {
-
+                               , const Phase& cursor
+                               , ThresholdDirection expected_threshold_direction
+                               , std::optional<Phase::Direction> cursor_direction = std::nullopt) {
         if (!cursor_direction) {
             cursor_direction = Phase::direction(previous_cursor, cursor);
         }
 
         if (Phase::contains(previous_cursor
-                                         , cursor
-                                         , m_threshold_position
-                                         , cursor_direction
-                                         , true
-                                         , false)) {
+                            , cursor
+                            , m_threshold_position
+                            , cursor_direction
+                            , true
+                            , false)) {
             if (to_phase_direction(expected_threshold_direction) == cursor_direction) {
                 // Crossing in expected direction
                 return decrement_passes();
@@ -76,6 +77,7 @@ public:
         }
         return false;
     }
+
 
     /** Return true if the threshold should be released after repositioning */
     bool reposition(double new_legato_value, const Phase& cursor, ThresholdDirection expected_threshold_direction) {
@@ -133,7 +135,8 @@ public:
             //   decremental direction (opposite direction of expected_direction), where we need to alter
             //   has_remaining_passes or release the threshold in the latter scenario
             auto decremental_direction = to_phase_direction(reverse_direction(expected_threshold_direction));
-            if (Phase::contains(m_threshold_position, new_threshold_position, cursor, decremental_direction, true, false)) {
+            if (Phase::contains(m_threshold_position, new_threshold_position, cursor, decremental_direction, true
+                                , false)) {
                 should_be_released = decrement_passes();
             }
         } else if (utils::equals(delta_legato, -2.0)) {
@@ -170,9 +173,7 @@ public:
     std::size_t trigger_id() const { return m_trigger_id; }
     double legato_value() const { return m_legato_value; }
 
-
 private:
-
     bool has_remaining_passes() const { return m_num_remaining_passes > 0; }
     void increment_passes(std::size_t increment_count = 1) { m_num_remaining_passes += increment_count; }
 
@@ -185,6 +186,7 @@ private:
         m_num_remaining_passes -= decrement_count;
         return false;
     }
+
 
     std::size_t m_trigger_id;
     double m_legato_value;
@@ -371,6 +373,7 @@ private:
         return trigger_pulse(cursor, s, p);
     }
 
+
     static Voice<Trigger> discontinuous_jump(const Phase& cursor, State& s) {
         assert(!close_to_threshold(cursor)); // by definition, a jump is not discontinuous if it's close to threshold
 
@@ -409,9 +412,9 @@ private:
             if (!threshold) return;
 
             if (threshold->process_cursor_update(*s.previous_cursor
-                , cursor
-                , *s.expected_direction
-                , explicit_crossing_direction)) {
+                                                 , cursor
+                                                 , *s.expected_direction
+                                                 , explicit_crossing_direction)) {
                 triggers.append(threshold->trigger());
                 threshold = std::nullopt;
             }
@@ -455,7 +458,6 @@ private:
                 if (crossing_direction != *s.expected_direction) {
                     s.previous_legato_threshold->flip(crossing_direction);
                 }
-
             }
             s.current_legato_threshold = std::nullopt;
         }
@@ -492,6 +494,7 @@ private:
             s.current_legato_threshold->flip(new_direction);
         }
     }
+
 
     static bool detect_jump(const Phase& cursor, const State& s) {
         // First value received
@@ -750,15 +753,25 @@ public:
                       , Node<Facet>* durations = nullptr
                       , Node<Facet>* legato = nullptr
                       , Node<Facet>* cursor = nullptr
+                      , Node<Trigger>* flush = nullptr
                       , Node<Facet>* enabled = nullptr
                       , Node<Facet>* num_voices = nullptr)
-        : PulsatorBase(identifier, parent, enabled, num_voices, Keys::CLASS_NAME)
+        : PulsatorBase(identifier, parent, flush, enabled, num_voices, Keys::CLASS_NAME)
         , m_durations(add_socket(Keys::DURATION, durations))
         , m_legato(add_socket(Keys::LEGATO_AMOUNT, legato))
         , m_cursor(add_socket(Keys::CURSOR, cursor)) {}
 
 
     void set_cursor(Node<Facet>* cursor) const { m_cursor = cursor; }
+
+
+    /** (MaxMSP) Extra function for flushing outside the process chain (e.g. when Transport is stopped).
+     *           Note that this should never be required in a GenerationGraph, as the objects will be polled at least
+     *           once when the transport is stopped. This is not thread-safe.
+     */
+    Voices<Trigger> flush() {
+        return pulsators().flush();
+    }
 
 private:
     std::size_t get_voice_count() override {
@@ -768,8 +781,8 @@ private:
     }
 
 
-    std::optional<Voices<Trigger>> handle_enabled_state(EnabledState state) override {
-        if (state == EnabledState::disabled_this_cycle) {
+    std::optional<Voices<Trigger>> handle_enabled_state(EnabledState state, bool explicit_flush) override {
+        if (state == EnabledState::disabled_this_cycle || explicit_flush) {
             return pulsators().flush();
         } else if (state == EnabledState::disabled_previous_cycle) {
             return Voices<Trigger>::empty_like();
@@ -848,26 +861,29 @@ template<typename FloatType = double>
 struct PhasePulsatorWrapper {
     using Keys = PhasePulsatorNode::Keys;
 
-    ParameterHandler parameter_handler;
+    ParameterHandler ph;
 
     Sequence<Facet, FloatType> duration{Keys::DURATION
-                                        , parameter_handler
+                                        , ph
                                         , Voices<FloatType>::transposed(PhasePulsatorParameters::DEFAULT_DURATIONS)
     };
     Sequence<Facet, FloatType> legato_amount{Keys::LEGATO_AMOUNT
-                                             , parameter_handler
+                                             , ph
                                              , Voices<FloatType>::singular(PhasePulsatorParameters::DEFAULT_LEGATO)
     };
-    Sequence<Facet, FloatType> cursor{Keys::CURSOR, parameter_handler, Voices<FloatType>::singular(0.0)};
+    Sequence<Facet, FloatType> cursor{Keys::CURSOR, ph, Voices<FloatType>::singular(0.0)};
 
-    Sequence<Facet, bool> enabled{param::properties::enabled, parameter_handler, Voices<bool>::singular(true)};
-    Variable<Facet, std::size_t> num_voices{param::properties::num_voices, parameter_handler, 0};
+    Sequence<Trigger> flush{param::properties::flush, ph};
+
+    Sequence<Facet, bool> enabled{param::properties::enabled, ph, Voices<bool>::singular(true)};
+    Variable<Facet, std::size_t> num_voices{param::properties::num_voices, ph, 0};
 
     PhasePulsatorNode pulsator_node{Keys::CLASS_NAME
-                                    , parameter_handler
+                                    , ph
                                     , &duration
                                     , &legato_amount
                                     , &cursor
+                                    , &flush
                                     , &enabled
                                     , &num_voices
     };

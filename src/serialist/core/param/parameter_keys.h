@@ -71,6 +71,7 @@ static const inline std::string connected_id = "connected_id";
 static const inline std::string trigger = "trigger";
 static const inline std::string num_voices = "num_voices";
 static const inline std::string enabled = "enabled";
+static const inline std::string flush = "flush";
 static const inline std::string value = "v";
 
 } // namespace serialist::param::properties
