@@ -8,7 +8,7 @@
 
 using namespace serialist;
 
-TEST_CASE("Test Interpolator: Continue (Integral)") {
+TEST_CASE("Test Interpolator: Continue (Integral)", "[interpolator]") {
     Voices<int> corpus{{  0, 2}
                        , {4}
                        , {5}
@@ -77,7 +77,7 @@ TEST_CASE("Test Interpolator: Continue (Integral)") {
 }
 
 
-TEST_CASE("Test Interpolator: Continue (floating)") {
+TEST_CASE("Test Interpolator: Continue (floating)", "[interpolator]") {
     Voices<double> corpus{{  0, 2}
                           , {4}
                           , {5}
@@ -119,7 +119,7 @@ TEST_CASE("Test Interpolator: Continue (floating)") {
 
 // ==============================================================================================
 
-TEST_CASE("Test Interpolator: Modulo (Integral)") {
+TEST_CASE("Test Interpolator: Modulo (Integral)", "[interpolator]") {
     Voices<int> corpus{{  0, 2}
                        , {4}
                        , {5}
@@ -178,7 +178,7 @@ TEST_CASE("Test Interpolator: Modulo (Integral)") {
 
 // ==============================================================================================
 
-TEST_CASE("Test Interpolator: Clip (Integral)") {
+TEST_CASE("Test Interpolator: Clip (Integral)", "[interpolator]") {
     Voices<int> corpus{{  0, 2}
                        , {4}
                        , {5}
@@ -241,7 +241,7 @@ TEST_CASE("Test Interpolator: Clip (Integral)") {
 
 // ==============================================================================================
 
-TEST_CASE("Test Interpolator: Pass (Integral)") {
+TEST_CASE("Test Interpolator: Pass (Integral)", "[interpolator]") {
     Voices<int> corpus{{  0, 2}
                        , {4}
                        , {5}
@@ -317,7 +317,7 @@ void test_variable_size_interpolation(typename InterpolatorType::Strategy strate
 }
 
 
-TEST_CASE("Interpolation using corpora with sizes between 1 and 1000 ") {
+TEST_CASE("Interpolation using corpora with sizes between 1 and 1000 ", "[interpolator]") {
     using Interp = Interpolator<int>;
 
     SECTION("Continue") {
@@ -345,7 +345,7 @@ TEST_CASE("Interpolation using corpora with sizes between 1 and 1000 ") {
 // ==============================================================================================
 
 
-TEST_CASE("InterpolatorWrapper") {
+TEST_CASE("InterpolatorWrapper", "[interpolator]") {
     InterpolatorWrapper<Facet, int, double> interp;
 
     interp.trigger.set_values(Trigger::pulse_on());
@@ -360,7 +360,7 @@ TEST_CASE("InterpolatorWrapper") {
     }
 }
 
-TEST_CASE("InterpolatorAdapter") {
+TEST_CASE("InterpolatorAdapter", "[interpolator]") {
     ParameterHandler handler;
     InterpolationAdapter<Facet> strategy(InterpolationAdapter<Facet>::CLASS_NAME, handler, nullptr, nullptr);
 }

@@ -1,7 +1,6 @@
 #ifndef SERIALISTLOOPER_INTERPOLATOR_H
 #define SERIALISTLOOPER_INTERPOLATOR_H
 
-#include <sstream>
 #include <optional>
 #include "core/collections/voices.h"
 #include "core/algo/facet.h"
@@ -41,22 +40,11 @@ class Interpolator {
 public:
     static constexpr double epsilon = 1e-6;
 
-    struct Continue {
-        T pivot;
-        // TODO: Implement to_string and from_string (utils::is_serializable)
-    };
-
-    struct Modulo {
-        // TODO: Implement to_string and from_string (utils::is_serializable)
-    };
-
-    struct Clip {
-        // TODO: Implement to_string and from_string (utils::is_serializable)
-    };
-
-    struct Pass {
-        // TODO: Implement to_string and from_string (utils::is_serializable)
-    };
+    // TODO: Implement to_string and from_string (utils::is_serializable) for all structs
+    struct Continue { T pivot; };
+    struct Modulo { };
+    struct Clip {};
+    struct Pass { };
 
     using Strategy = std::variant<Continue, Modulo, Clip, Pass>;
 
@@ -165,7 +153,7 @@ public:
           , m_socket_handler(m_parameter_handler)
           , m_strategy(m_socket_handler.create_socket(STRATEGY, strategy))
           , m_pivot(m_socket_handler.create_socket(PIVOT, pivot)) {
-        m_parameter_handler.add_static_property(ParameterTypes::GENERATIVE_CLASS, CLASS_NAME);
+        m_parameter_handler.add_static_property(param::properties::template_class, CLASS_NAME);
     }
 
 
@@ -349,8 +337,8 @@ struct InterpolatorWrapper {
     Sequence<OutputType, StoredType> corpus{InterpolatorKeys::CORPUS, parameter_handler};
     Sequence<Strategy> strategy{InterpolatorKeys::STRATEGY, parameter_handler};
 
-    Sequence<Facet, bool> enabled{ParameterTypes::ENABLED, parameter_handler, true};
-    Variable<Facet, std::size_t> num_voices{ParameterTypes::NUM_VOICES, parameter_handler, 1};
+    Sequence<Facet, bool> enabled{param::properties::enabled, parameter_handler, true};
+    Variable<Facet, std::size_t> num_voices{param::properties::num_voices, parameter_handler, 1};
 
     InterpolatorNode<OutputType> interpolator{
         InterpolatorKeys::CLASS_NAME, parameter_handler, &trigger, &cursor, &corpus, &strategy, &enabled, &num_voices
