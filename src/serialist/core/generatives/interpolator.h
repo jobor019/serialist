@@ -10,8 +10,8 @@
 #include "sequence.h"
 #include "variable.h"
 
-namespace serialist {
 
+namespace serialist {
 // TODO: StringSerializationHandler. Should probably generalize this into a Serializer class with a number of different overloads
 //std::string to_string() const {
 //    std::ostringstream oss;
@@ -41,10 +41,15 @@ public:
     static constexpr double epsilon = 1e-6;
 
     // TODO: Implement to_string and from_string (utils::is_serializable) for all structs
-    struct Continue { T pivot; };
-    struct Modulo { };
+    struct Continue {
+        T pivot;
+    };
+
+    struct Modulo {};
+
     struct Clip {};
-    struct Pass { };
+
+    struct Pass {};
 
     using Strategy = std::variant<Continue, Modulo, Clip, Pass>;
 
@@ -84,7 +89,7 @@ private:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
+    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
     static Voice<T> continuation(double cursor, const Voices<T>& corpus, const T& pivot) {
         auto index = static_cast<std::size_t>(utils::modulo(index_of(cursor, corpus.size())
                                                             , static_cast<long>(corpus.size())));
@@ -149,12 +154,13 @@ public:
                          , ParameterHandler& parent
                          , Node<Facet>* strategy = nullptr
                          , Node<PivotType>* pivot = nullptr)
-        : m_parameter_handler(id, parent)
-          , m_socket_handler(m_parameter_handler)
-          , m_strategy(m_socket_handler.create_socket(STRATEGY, strategy))
-          , m_pivot(m_socket_handler.create_socket(PIVOT, pivot)) {
-        m_parameter_handler.add_static_property(param::properties::template_class, CLASS_NAME);
-    }
+        : m_parameter_handler(Specification(param::types::generative)
+                              .with_identifier(id)
+                              .with_static_property(param::properties::template_class, CLASS_NAME)
+                              , parent)
+        , m_socket_handler(m_parameter_handler)
+        , m_strategy(m_socket_handler.create_socket(STRATEGY, strategy))
+        , m_pivot(m_socket_handler.create_socket(PIVOT, pivot)) {}
 
 
     std::vector<Generative*> get_connected() override {
@@ -267,14 +273,10 @@ public:
                      , Node<Facet>* enabled
                      , Node<Facet>* num_voices)
         : NodeBase<OutputType>(id, parent, enabled, num_voices, InterpolatorKeys::CLASS_NAME)
-          , m_trigger(NodeBase<OutputType>::add_socket(InterpolatorKeys::TRIGGER, trigger))
-          , m_cursor(NodeBase<OutputType>::add_socket(InterpolatorKeys::CURSOR, cursor))
-          , m_corpus(NodeBase<OutputType>::add_socket(InterpolatorKeys::CORPUS, corpus))
-          , m_strategy(NodeBase<OutputType>::add_socket(InterpolatorKeys::STRATEGY, strategy)) {
-    }
-
-
-
+        , m_trigger(NodeBase<OutputType>::add_socket(InterpolatorKeys::TRIGGER, trigger))
+        , m_cursor(NodeBase<OutputType>::add_socket(InterpolatorKeys::CURSOR, cursor))
+        , m_corpus(NodeBase<OutputType>::add_socket(InterpolatorKeys::CORPUS, corpus))
+        , m_strategy(NodeBase<OutputType>::add_socket(InterpolatorKeys::STRATEGY, strategy)) {}
 
 
     Voices<OutputType> process() override {
@@ -307,7 +309,8 @@ public:
         m_current_value.adapted_to(num_voices);
         for (std::size_t i = 0; i < trigger.size(); ++i) {
             if (Trigger::contains_pulse_on(triggers[i]) && cursors[i].has_value()) {
-                m_current_value[i] = Interpolator<OutputType>::process(static_cast<double>(*cursors[i]), corpus, strategies[i]);
+                m_current_value[i] = Interpolator<OutputType>::process(static_cast<double>(*cursors[i]), corpus
+                                                                       , strategies[i]);
             }
         }
 
@@ -341,10 +344,16 @@ struct InterpolatorWrapper {
     Variable<Facet, std::size_t> num_voices{param::properties::num_voices, parameter_handler, 1};
 
     InterpolatorNode<OutputType> interpolator{
-        InterpolatorKeys::CLASS_NAME, parameter_handler, &trigger, &cursor, &corpus, &strategy, &enabled, &num_voices
+        InterpolatorKeys::CLASS_NAME
+        , parameter_handler
+        , &trigger
+        , &cursor
+        , &corpus
+        , &strategy
+        , &enabled
+        , &num_voices
     };
 };
-
 } // namespace serialist
 
 #endif //SERIALISTLOOPER_INTERPOLATOR_H
