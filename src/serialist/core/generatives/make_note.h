@@ -13,22 +13,24 @@
 
 namespace serialist {
 
-class MakeNote {
+class MakeNote : Flushable<Event> {
 public:
     Voice<Event> process(const Voice<Trigger>& triggers
                          , const Voice<NoteNumber>& chord
-                         , const unsigned int velocity
-                         , const unsigned int channel) {
+                         , const std::optional<uint32_t>& velocity
+                         , const Voice<uint32_t>& channel) {
         Voice<Event> events;
 
+        // Note: `triggers` may contain multiple triggers, but they do not correspond to individual notes in the chord
+
         if (auto index = triggers.index([](const Trigger& trigger) {
-            return trigger.is(Trigger::Type::pulse_off);
+            return trigger.is_pulse_off();
         })) {
             events.extend(process_pulse_off(triggers[*index].get_id()));
         }
 
         if (auto index = triggers.index([](const Trigger& trigger) {
-            return trigger.is(Trigger::Type::pulse_on);
+            return trigger.is_pulse_on();
         })) {
             events.extend(process_pulse_on(triggers[*index].get_id(), chord, velocity, channel));
         }
@@ -36,7 +38,7 @@ public:
         return events;
     }
 
-    Voice<Event> flush() {
+    Voice<Event> flush() override {
         return m_held_notes.flush()
                 .as_type<Event>([](const IdentifiedChanneledHeld& note) {
                     return Event(MidiNoteEvent{note.note, 0, note.channel});
@@ -45,14 +47,20 @@ public:
 
 private:
 
-    Voice<Event> process_pulse_on(const std::size_t id
+    Voice<Event> process_pulse_on(const std::size_t trigger_id
                                   , const Voice<NoteNumber>& notes
-                                  , const unsigned int velocity
-                                  , const unsigned int channel) {
-        auto events = Voice<Event>::allocated(notes.size());
-        for (const auto& note: notes) {
-            m_held_notes.bind({id, note, channel});
-            events.append(Event(MidiNoteEvent{note, velocity, channel}));
+                                  , const std::optional<uint32_t>& velocity
+                                  , const Voice<uint32_t>& channels) {
+        if (notes.empty() || !velocity || channels.empty()) {
+            return {};
+        }
+
+        auto events = Voice<Event>::allocated(notes.size() * channels.size());
+        for (const auto& channel: channels) {
+            for (const auto& note: notes) {
+                m_held_notes.bind({trigger_id, note, channel});
+                events.append(Event(MidiNoteEvent{note, *velocity, channel}));
+            }
         }
 
         return events;
@@ -106,13 +114,13 @@ public:
         }
 
         if (!is_enabled() || !m_trigger.is_connected() || !m_note_number.is_connected()) {
-            // TODO: Should flush here or return empty vector!!
+            m_current_value = m_make_notes.flush();
             return m_current_value;
         }
 
         auto trigger = m_trigger.process();
         if (trigger.is_empty_like()) {
-            // TODO: return empty vector!!
+            m_current_value = Voices<Event>::empty_like();
             return m_current_value;
         }
 
@@ -128,8 +136,8 @@ public:
 
         trigger.adapted_to(num_voices);
         auto note_numbers = note_number.adapted_to(num_voices).as_type<NoteNumber>();
-        auto velocities = velocity.adapted_to(num_voices).firsts_or(100u);
-        auto channels = channel.adapted_to(num_voices).firsts_or(0u);
+        auto velocities = velocity.adapted_to(num_voices).firsts<uint32_t>();
+        auto channels = channel.adapted_to(num_voices).as_type<uint32_t>();
 
         auto output = Voices<Event>::zeros(num_voices);
         for (std::size_t i = 0; i < num_voices; ++i) {
@@ -138,6 +146,16 @@ public:
 
         m_current_value = std::move(output);
         return m_current_value;
+    }
+
+
+    /** (MaxMSP) Extra function for flushing outside the process chain (e.g. when Transport is stopped).
+     *           Note that this should never be used in a GenerationGraph, as the objects will be polled at least
+     *           once when the transport is stopped. This is not thread-safe.
+     */
+    Voices<Event> flush() {
+        return m_make_notes.flush();
+
     }
 
 

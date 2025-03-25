@@ -766,7 +766,7 @@ public:
 
 
     /** (MaxMSP) Extra function for flushing outside the process chain (e.g. when Transport is stopped).
-     *           Note that this should never be required in a GenerationGraph, as the objects will be polled at least
+     *           Note that this should never be used in a GenerationGraph, as the objects will be polled at least
      *           once when the transport is stopped. This is not thread-safe.
      */
     Voices<Trigger> flush() {
