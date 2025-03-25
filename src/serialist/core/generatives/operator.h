@@ -269,7 +269,7 @@ public:
                  , Node<Facet>* enabled = nullptr
                  , Node<Facet>* num_voices = nullptr)
             : NodeBase<Facet>(identifier, parent, enabled, num_voices, Keys::CLASS_NAME)
-              , m_trigger(add_socket(ParameterTypes::TRIGGER, trigger))
+              , m_trigger(add_socket(param::properties::trigger, trigger))
               , m_type(add_socket(Keys::TYPE, type))
               , m_lhs(add_socket(Keys::LHS, lhs))
               , m_rhs(add_socket(Keys::RHS, rhs)) {}
@@ -339,14 +339,14 @@ struct OperatorWrapper {
 
     ParameterHandler parameter_handler;
 
-    Sequence<Trigger> trigger{ParameterTypes::TRIGGER, parameter_handler, Trigger::pulse_on()};
+    Sequence<Trigger> trigger{param::properties::trigger, parameter_handler, Trigger::pulse_on()};
     Sequence<Facet, Operator::Type> type{Keys::TYPE, parameter_handler
                                          , Voices<Operator::Type>::singular(Operator::Type::add)};
     Sequence<Facet, FloatType> lhs{Keys::LHS, parameter_handler};
     Sequence<Facet, FloatType> rhs{Keys::RHS, parameter_handler};
 
-    Sequence<Facet, bool> enabled{ParameterTypes::ENABLED, parameter_handler, Voices<bool>::singular(true)};
-    Variable<Facet, std::size_t> num_voices{ParameterTypes::NUM_VOICES, parameter_handler, 0};
+    Sequence<Facet, bool> enabled{param::properties::enabled, parameter_handler, Voices<bool>::singular(true)};
+    Variable<Facet, std::size_t> num_voices{param::properties::num_voices, parameter_handler, 0};
 
     OperatorNode operator_node{Keys::CLASS_NAME
                                , parameter_handler

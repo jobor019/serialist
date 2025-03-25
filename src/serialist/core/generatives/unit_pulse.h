@@ -17,7 +17,7 @@ public:
 
     UnitPulse(const std::string& id, ParameterHandler& parent)
             : m_parameter_handler(id, parent) {
-        m_parameter_handler.add_static_property(ParameterTypes::GENERATIVE_CLASS, CLASS_NAME);
+        m_parameter_handler.add_static_property(param::properties::template_class, CLASS_NAME);
     }
 
 

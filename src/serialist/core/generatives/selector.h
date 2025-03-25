@@ -305,8 +305,8 @@ struct SelectorWrapper {
     Sequence<OutputType, StoredType> material{SelectorKeys::MATERIAL, parameter_handler};
     Sequence<SelectionStrategy> strategy{SelectorKeys::STRATEGY, parameter_handler};
 
-    Sequence<Facet, bool> enabled{ParameterTypes::ENABLED, parameter_handler, true};
-    Variable<Facet, std::size_t> num_voices{ParameterTypes::NUM_VOICES, parameter_handler, 1};
+    Sequence<Facet, bool> enabled{param::properties::enabled, parameter_handler, true};
+    Variable<Facet, std::size_t> num_voices{param::properties::num_voices, parameter_handler, 1};
 
     SelectorNode<OutputType> selector{SelectorKeys::CLASS_NAME, parameter_handler, &trigger, &material
                                       , &strategy, &enabled, &num_voices};

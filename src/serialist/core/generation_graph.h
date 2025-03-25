@@ -132,7 +132,7 @@ public:
 
 
     explicit GenerationGraph(ParameterHandler& root)
-            : m_parameter_handler("", root, ParameterTypes::GENERATIVES_TREE) {}
+            : m_parameter_handler("", root, param::types::generatives_tree) {}
 
 
     void process(const TimePoint& time) {
