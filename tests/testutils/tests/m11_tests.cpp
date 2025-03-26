@@ -124,3 +124,29 @@ TEST_CASE("testutils::m11 change comparison", "[testutils][m11]") {
         REQUIRE_THAT(singular, !m11::decreasingf());
     }
 }
+
+
+TEST_CASE("testutils::m11 midi note event comparisons", "[testutils][m11]") {
+    auto note = RunResult<Event>::dummy(Event::note(60, 100, 1));
+
+    // single voice with two notes
+    auto chord = RunResult<Event>::dummy({Event::note(60, 100, 1), Event::note(60, 100, 1)}, false);
+    assert(chord.voices()->size() == 1); // in case implementation changes
+    assert((*chord.voices())[0].size() == 2);
+
+    REQUIRE_THAT(note, m11::eq_note({60}));
+    REQUIRE_THAT(note, m11::eq_note({std::nullopt, 100}));
+    REQUIRE_THAT(note, m11::eq_note({std::nullopt, std::nullopt, 1}));
+    REQUIRE_THAT(note, m11::eq_note({60, std::nullopt, 1}));
+    REQUIRE_THAT(note, m11::eq_note({60, 100, std::nullopt}));
+    REQUIRE_THAT(note, m11::eq_note({std::nullopt, 100, 1}));
+    REQUIRE_THAT(note, m11::eq_note({60, 100, 1}));
+
+    REQUIRE_THAT(note, !m11::eq_note({61}));
+    REQUIRE_THAT(note, !m11::eq_note({std::nullopt, 99}));
+    REQUIRE_THAT(note, !m11::eq_note({std::nullopt, std::nullopt, 2}));
+
+    // chord (wrong size) should always be false
+    REQUIRE_THAT(chord, !m11::eq_note({60}));
+
+}

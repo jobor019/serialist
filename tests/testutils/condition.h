@@ -1,7 +1,9 @@
 #ifndef TESTUTILS_CONDITION_H
 #define TESTUTILS_CONDITION_H
 
+#include "event.h"
 #include "results.h"
+#include "algo/pitch/notes.h"
 #include "param/string_serialization.h"
 
 using namespace serialist;
@@ -281,6 +283,20 @@ private:
     std::function<bool(const Voice<T>&)> m_f;
 };
 
+template<typename T>
+class VoicesComparison : public GenericOutputComparison<T> {
+public:
+    explicit VoicesComparison(const std::function<bool(const Voices<T>&)>& f) : m_f(f) {}
+
+private:
+    bool matches_internal(const StepResult<T>& current) const final {
+        return m_f(current.voices());
+    }
+
+
+    std::function<bool(const Voice<T>&)> m_f;
+};
+
 
 
 
@@ -433,6 +449,140 @@ private:
 
     Condition m_condition;
 };
+
+
+// ==============================================================================================
+
+
+struct NoteComparator {
+    std::optional<NoteNumber> nn;
+    std::optional<uint32_t> vel;
+    std::optional<uint32_t> ch;
+
+    bool equals(const MidiNoteEvent& event) const {
+        return compare(nn, vel, ch, event);
+    }
+
+    bool equals(const Event& event) const {
+        return event.is<MidiNoteEvent>() && equals(event.as<MidiNoteEvent>());
+    }
+
+    static bool compare(const std::optional<NoteNumber>& nn
+                        , const std::optional<uint32_t>& vel
+                        , const std::optional<uint32_t>& ch
+                        , const MidiNoteEvent& event) {
+        assert(nn || vel || ch);
+
+        if (nn && *nn != event.note_number) return false;
+        if (vel && *vel != event.velocity) return false;
+        if (ch && *ch != event.channel) return false;
+        return true;
+    }
+
+
+    static bool compare(const NoteComparator& c, const MidiNoteEvent& event) {
+        return compare(c.nn, c.vel, c.ch, event);
+    }
+
+
+    /** compare all notes in a single voice (unordered) */
+    static bool matches_chord(const Vec<NoteComparator>& comparators, const Voice<MidiNoteEvent>& voice) {
+        auto matched_input = Vec<bool>::zeros(voice.size());
+        auto matched_comparators = Vec<bool>::zeros(comparators.size());
+
+        if (voice.size() != comparators.size()) return false;
+
+        for (std::size_t i = 0; i < voice.size(); ++i) {
+            for (std::size_t j = 0; j < comparators.size(); ++j) {
+                if (comparators[j].equals(voice[i])) {
+                    matched_input[j] = true;
+                    matched_comparators[i] = true;
+                    break;
+                }
+            }
+        }
+        return matched_input.as_type<int>().sum() == voice.size()
+               && matched_comparators.as_type<int>().sum() == comparators.size();
+    }
+
+
+    static bool matches_chord(const Vec<NoteComparator>& comparators, const Voice<Event>& voice) {
+        return matches_chord(comparators, voice_to_midi_events(voice));
+    }
+
+    /** compare all notes in a monophonic sequence / multiple monophonic voices (ordered) */
+    static bool matches_sequence(const Vec<NoteComparator>& comparators, const Voices<MidiNoteEvent>& voices) {
+        if (voices.size() != comparators.size()) return false;
+
+        if (voices.vec().any([&](const Voice<MidiNoteEvent>& voice) {
+            return voice.size() != 1;
+        })) {
+            return false;
+        }
+
+        for (std::size_t i = 0; i < voices.size(); ++i) {
+            if (voices[i].size() != 1) return false;
+            if (!comparators[i].equals(voices[i][0])) return false;
+
+        }
+
+        return true;
+    }
+
+    static bool matches_sequence(const Vec<NoteComparator>& comparators, const Voices<Event>& voices) {
+        return matches_sequence(comparators, voices_to_midi_events(voices));
+    }
+
+
+    static bool contains(const NoteComparator& comparator, const Voice<MidiNoteEvent>& event) {
+        for (const auto& e : event) {
+            if (comparator.equals(e)) return true;
+        }
+        return false;
+    }
+
+    static bool contains(const NoteComparator& comparator, const Voice<Event>& event) {
+        return contains(comparator, voice_to_midi_events(event));
+    }
+
+    static bool contains_chord(const Vec<NoteComparator>& comparators, const Voice<MidiNoteEvent>& event) {
+        for (const auto& c : comparators) {
+            if (!contains(c, event)) return false;
+        }
+        return true;
+    }
+
+    static bool contains_chord(const Vec<NoteComparator>& comparators, const Voice<Event>& event) {
+        return contains_chord(comparators, voice_to_midi_events(event));
+    }
+
+
+    explicit operator std::string() const {
+        return "{nn=" + (nn ? std::to_string(*nn) : "any")
+               + ", vel=" + (vel ? std::to_string(*vel) : "any")
+               + ", ch=" + (ch ? std::to_string(*ch) : "any")
+               + "}";
+    }
+
+private:
+    static MidiNoteEvent to_midi_event(const Event& event) {
+        assert(event.is<MidiNoteEvent>());
+        return event.as<MidiNoteEvent>();
+    }
+
+    static Voice<MidiNoteEvent> voice_to_midi_events(const Voice<Event>& events) {
+        return events.as_type<MidiNoteEvent>(to_midi_event);
+    }
+
+    static Voices<MidiNoteEvent> voices_to_midi_events(const Voices<Event>& voices) {
+        auto v = Vec<Vec<MidiNoteEvent>>::allocated(voices.size());
+        for (const auto& voice : voices) {
+            v.append(voice_to_midi_events(voice));
+        }
+        return Voices(v);
+    }
+};
+
 }
 
 #endif //TESTUTILS_CONDITION_H

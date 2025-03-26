@@ -5,6 +5,7 @@
 
 #include "condition.h"
 #include "temporal/trigger.h"
+#include "c11.h"
 
 
 namespace serialist::test::c1m {
@@ -25,6 +26,11 @@ inline std::unique_ptr<EmptyComparison<Facet>> emptyf() {
 
 inline std::unique_ptr<EmptyComparison<Trigger>> emptyt() {
     return std::make_unique<EmptyComparison<Trigger>>();
+}
+
+
+inline std::unique_ptr<EmptyComparison<Event>> emptye() {
+    return std::make_unique<EmptyComparison<Event>>();
 }
 
 
@@ -61,9 +67,11 @@ inline std::unique_ptr<VoiceComparison<Trigger>> containst(Trigger::Type type
     });
 }
 
+
 inline std::unique_ptr<VoiceComparison<Trigger>> containst_on(std::optional<std::size_t> id = std::nullopt) {
     return containst(Trigger::Type::pulse_on, id);
 }
+
 
 inline std::unique_ptr<VoiceComparison<Trigger>> containst_off(std::optional<std::size_t> id = std::nullopt) {
     return containst(Trigger::Type::pulse_off, id);
@@ -71,7 +79,7 @@ inline std::unique_ptr<VoiceComparison<Trigger>> containst_off(std::optional<std
 
 
 inline std::unique_ptr<VoiceComparison<Trigger>> equalst(Trigger::Type type
-                                                           , std::optional<std::size_t> id = std::nullopt) {
+                                                         , std::optional<std::size_t> id = std::nullopt) {
     return std::make_unique<VoiceComparison<Trigger>>([=](const Voice<Trigger>& v) {
         if (v.size() != 1)
             return false;
@@ -83,13 +91,16 @@ inline std::unique_ptr<VoiceComparison<Trigger>> equalst(Trigger::Type type
     });
 }
 
+
 inline std::unique_ptr<VoiceComparison<Trigger>> equalst_on(std::optional<std::size_t> id = std::nullopt) {
     return equalst(Trigger::Type::pulse_on, id);
 }
 
+
 inline std::unique_ptr<VoiceComparison<Trigger>> equalst_off(std::optional<std::size_t> id = std::nullopt) {
     return equalst(Trigger::Type::pulse_off, id);
 }
+
 
 inline std::unique_ptr<VoiceComparison<Trigger>> sortedt() {
     return std::make_unique<VoiceComparison<Trigger>>([](const Voice<Trigger>& v) {
@@ -98,8 +109,28 @@ inline std::unique_ptr<VoiceComparison<Trigger>> sortedt() {
 }
 
 
+// ==============================================================================================
+// EVENT COMPARISONS
+// ==============================================================================================
+
+inline std::unique_ptr<VoiceComparison<Event>> equals_chord(const Vec<NoteComparator>& cs) {
+    return std::make_unique<VoiceComparison<Event>>([=](const Voice<Event>& v) {
+        return NoteComparator::matches_chord(cs, v);
+    });
+}
+
+inline std::unique_ptr<VoiceComparison<Event>> contains_note(const NoteComparator& c) {
+    return std::make_unique<VoiceComparison<Event>>([=](const Voice<Event>& v) {
+        return NoteComparator::contains(c, v);
+    });
+}
 
 
+inline std::unique_ptr<VoiceComparison<Event>> contains_chord(const Vec<NoteComparator>& cs) {
+    return std::make_unique<VoiceComparison<Event>>([=](const Voice<Event>& v) {
+        return NoteComparator::contains_chord(cs, v);
+    });
+}
 }
 
 #endif //TESTUTILS_C1M_H

@@ -1,9 +1,17 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+
 #include "core/policies/policies.h"
+#include "node_runner.h"
 #include "core/generatives/make_note.h"
 
+#include "generators.h"
+#include "matchers/m1m.h"
+#include "matchers/m11.h"
+
+
 using namespace serialist;
+using namespace serialist::test;
 
 TEST_CASE("MakeNote ctor", "[make_note]") {
     MakeNote mn;
@@ -34,6 +42,26 @@ TEST_CASE("MakeNote chord", "[make_note]") {
     REQUIRE(note_off.all([](const Event& event) { return event.as<MidiNoteEvent>().channel == 0; }));
 }
 
-TEST_CASE("MakeNoteWrapper ctor") {
+
+TEST_CASE("MakeNoteWrapper ctor", "[make_note]") {
     MakeNoteWrapper mnw;
+}
+
+
+TEST_CASE("MakeNote: valid operation", "[make_note]") {
+    MakeNoteWrapper w;
+
+    NodeRunner runner{&w.make_note_node};
+    auto& nn = w.note_number;
+    auto& vel = w.velocity;
+    auto& ch = w.channel;
+    auto& trigger = w.trigger;
+
+    nn.set_values(60);
+    vel.set_values(100);
+    ch.set_values(0);
+    trigger.set_values(Trigger::pulse_on());
+
+    auto r = runner.step().first();
+    // TODO: Implement Matchers for Events
 }

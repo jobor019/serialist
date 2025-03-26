@@ -1,10 +1,11 @@
-#ifndef MATCHERS_COMMON_H
-#define MATCHERS_COMMON_H
+#ifndef TESTUTILS_MATCHERS_COMMON_H
+#define TESTUTILS_MATCHERS_COMMON_H
 
 #include <core/algo/facet.h>
 #include <core/collections/voices.h>
 
 #include "condition.h"
+#include "event.h"
 #include "results.h"
 
 
@@ -15,16 +16,16 @@ enum class MatchType {
 
 
 template<typename T>
-class ResultMatcher : public Catch::Matchers::MatcherBase<RunResult<T> > {
+class ResultMatcher : public Catch::Matchers::MatcherBase<RunResult<T>> {
 public:
-    ResultMatcher(std::unique_ptr<GenericCondition<T> > condition
+    ResultMatcher(std::unique_ptr<GenericCondition<T>> condition
                   , std::string matcher_description
                   , MatchType match_type = MatchType::last
                   , bool allow_no_comparison = false)
         : m_condition(std::move(condition))
-          , m_matcher_description(std::move(matcher_description))
-          , m_match_type(match_type)
-          , m_allow_no_comparison(allow_no_comparison) {
+        , m_matcher_description(std::move(matcher_description))
+        , m_match_type(match_type)
+        , m_allow_no_comparison(allow_no_comparison) {
         assert(m_condition);
     }
 
@@ -128,7 +129,7 @@ private:
     }
 
 
-    std::unique_ptr<GenericCondition<T> > m_condition;
+    std::unique_ptr<GenericCondition<T>> m_condition;
     std::string m_matcher_description;
     MatchType m_match_type;
     bool m_allow_no_comparison;
@@ -150,12 +151,12 @@ public:
                               , const std::optional<double>& tempo = std::nullopt
                               , double epsilon = EPSILON)
         : m_tick(tick)
-          , m_tempo(tempo)
-          , m_absolute_beat(absolute_beat)
-          , m_relative_beat(relative_beat)
-          , m_bar(bar)
-          , m_meter(meter)
-          , m_epsilon(epsilon) {}
+        , m_tempo(tempo)
+        , m_absolute_beat(absolute_beat)
+        , m_relative_beat(relative_beat)
+        , m_bar(bar)
+        , m_meter(meter)
+        , m_epsilon(epsilon) {}
 
 
     explicit TimePointMatcher(const TimePoint& t, bool match_meter = false, bool match_tempo = false)
@@ -203,6 +204,7 @@ public:
         m_meter = meter;
         return *this;
     }
+
 
     TimePointMatcher& with_epsilon(double epsilon) {
         m_epsilon = epsilon;
@@ -278,6 +280,7 @@ private:
 
     mutable std::string m_description = "";
 };
+
 }
 
-#endif //MATCHERS_COMMON_H
+#endif //TESTUTILS_MATCHERS_COMMON_H

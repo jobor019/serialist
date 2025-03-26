@@ -189,5 +189,17 @@ inline std::unique_ptr<ValueChangeComparison<Facet>> strictly_decreasingf() {
 inline std::unique_ptr<ValueChangeComparison<Facet>> decreasingf() {
     return make_change_comparison<Facet>(std::greater_equal<Facet>());
 }
+
+
+// ==============================================================================================
+// EVENT COMPARISONS
+// ==============================================================================================
+
+inline std::unique_ptr<ValueComparison<Event>> eq_note(const NoteComparator& expected) {
+    return std::make_unique<ValueComparison<Event>>([=](const Event& e) {
+        return expected.equals(e);
+    });
+}
+
 }
 #endif //TESTUTILS_C11_H

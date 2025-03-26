@@ -188,6 +188,16 @@ inline ResultMatcher<Facet> strictly_decreasingf(MatchType match_type = MatchTyp
 inline ResultMatcher<Facet> decreasingf(MatchType match_type = MatchType::all, bool allow_no_comparison = false) {
     return {c11::decreasingf(), "is decreasing", match_type, allow_no_comparison};
 }
+
+
+// ==============================================================================================
+// ResultMatcher<Event>
+// ==============================================================================================
+
+inline ResultMatcher<Event> eq_note(const NoteComparator& expected, MatchType match_type = MatchType::last, bool allow_no_comparison = false) {
+    return {c11::eq_note(expected), "is == " + static_cast<std::string>(expected), match_type, allow_no_comparison};
+}
+
 }
 
 

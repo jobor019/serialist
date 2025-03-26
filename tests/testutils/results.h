@@ -92,8 +92,7 @@ public:
     }
 
 
-    // TODO: Returning const& is risky here since the object could be destroyed before the result is used
-    const Voices<T>& voices() const {
+    Voices<T> voices() const {
         if (is_successful()) {
             return std::get<Voices<T>>(m_value);
         } else {
@@ -304,6 +303,13 @@ public:
     StepResult<T> first() const { return *m_run_output.first(); }
     StepResult<T> last() const { return *m_run_output.last(); }
 
+
+    std::optional<Voices<T>> voices() const {
+        if (is_successful()) {
+            return last().voices();
+        }
+        return std::nullopt;
+    }
 
     std::optional<T> v11() const {
         if (is_successful()) {

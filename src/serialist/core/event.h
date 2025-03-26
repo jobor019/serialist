@@ -10,7 +10,20 @@ struct MidiNoteEvent {
         std::size_t note_number;
         std::size_t velocity;
         std::size_t channel;
-    };
+
+    explicit operator std::string() const {
+        return "MidiNoteEvent("
+            + std::to_string(note_number) + ", "
+            + std::to_string(velocity) + ", "
+            + std::to_string(channel) + ")";
+    }
+
+
+    friend std::ostream& operator<<(std::ostream& os, const MidiNoteEvent& event) {
+        os << static_cast<std::string>(event) << ")";
+        return os;
+    }
+};
 
 class Event {
 public:
@@ -18,6 +31,10 @@ public:
 
     // ReSharper disable once CppNonExplicitConvertingConstructor
     Event(const EventType& e) : m_event(e) {} // NOLINT(*-explicit-constructor)
+
+    static Event note(std::size_t note_number, std::size_t velocity, std::size_t channel) {
+        return Event(MidiNoteEvent{note_number, velocity, channel});
+    }
 
     template<typename T>
     bool is() const noexcept {
@@ -29,6 +46,23 @@ public:
     T as() const {
         return std::get<T>(m_event);
     }
+
+    explicit operator std::string() const {
+        if (is<MidiNoteEvent>()) return static_cast<std::string>(as<MidiNoteEvent>());
+        throw std::runtime_error("Unknown event type");
+    }
+
+
+    friend std::ostream& operator<<(std::ostream& os, const Event& event) {
+        if (event.is<MidiNoteEvent>()) {
+            os << static_cast<std::string>(event.as<MidiNoteEvent>()) << ")";
+        } else {
+            throw std::runtime_error("Unknown event type");
+        }
+        return os;
+    }
+
+
 
 private:
     EventType m_event;
