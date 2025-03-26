@@ -1,4 +1,3 @@
-
 #ifndef SERIALISTLOOPER_MAKE_NOTE_H
 #define SERIALISTLOOPER_MAKE_NOTE_H
 
@@ -11,8 +10,8 @@
 #include "sequence.h"
 #include "variable.h"
 
-namespace serialist {
 
+namespace serialist {
 class MakeNote : Flushable<Event> {
 public:
     Voice<Event> process(const Voice<Trigger>& triggers
@@ -38,6 +37,7 @@ public:
         return events;
     }
 
+
     Voice<Event> flush() override {
         return m_held_notes.flush()
                 .as_type<Event>([](const IdentifiedChanneledHeld& note) {
@@ -46,7 +46,6 @@ public:
     }
 
 private:
-
     Voice<Event> process_pulse_on(const std::size_t trigger_id
                                   , const Voice<NoteNumber>& notes
                                   , const std::optional<uint32_t>& velocity
@@ -56,8 +55,8 @@ private:
         }
 
         auto events = Voice<Event>::allocated(notes.size() * channels.size());
-        for (const auto& channel: channels) {
-            for (const auto& note: notes) {
+        for (const auto& channel : channels) {
+            for (const auto& note : notes) {
                 m_held_notes.bind({trigger_id, note, channel});
                 events.append(Event(MidiNoteEvent{note, *velocity, channel}));
             }
@@ -65,6 +64,7 @@ private:
 
         return events;
     }
+
 
     Voice<Event> process_pulse_off(std::size_t id) {
         return m_held_notes.get_held_mut()
@@ -74,8 +74,8 @@ private:
                 .as_type<Event>([](const IdentifiedChanneledHeld& note) {
                     return Event(MidiNoteEvent{note.note, 0, note.channel});
                 });
-
     }
+
 
     HeldNotesWithIds m_held_notes;
 };
@@ -93,6 +93,7 @@ public:
         static const inline std::string CLASS_NAME = "makenote";
     };
 
+
     MakeNoteNode(const std::string& identifier
                  , ParameterHandler& parent
                  , Node<Trigger>* trigger = nullptr
@@ -101,11 +102,12 @@ public:
                  , Node<Facet>* channel = nullptr
                  , Node<Facet>* enabled = nullptr
                  , Node<Facet>* num_voices = nullptr)
-            : NodeBase(identifier, parent, enabled, num_voices, Keys::CLASS_NAME)
-              , m_trigger(add_socket(param::properties::trigger, trigger))
-              , m_note_number(add_socket(Keys::NOTE_NUMBER, note_number))
-              , m_velocity(add_socket(Keys::VELOCITY, velocity))
-              , m_channel(add_socket(Keys::CHANNEL, channel)) {}
+        : NodeBase(identifier, parent, enabled, num_voices, Keys::CLASS_NAME)
+        , m_trigger(add_socket(param::properties::trigger, trigger))
+        , m_note_number(add_socket(Keys::NOTE_NUMBER, note_number))
+        , m_velocity(add_socket(Keys::VELOCITY, velocity))
+        , m_channel(add_socket(Keys::CHANNEL, channel)) {}
+
 
     Voices<Event> process() override {
         auto t = pop_time();
@@ -113,8 +115,10 @@ public:
             return m_current_value;
         }
 
-        if (!is_enabled() || !m_trigger.is_connected() || !m_note_number.is_connected()) {
-            m_current_value = m_make_notes.flush();
+        bool disabled = is_disabled(*t);
+        auto enabled_state = m_enabled_gate.update(!disabled);
+        if (auto flushed = handle_enabled_state(enabled_state)) {
+            m_current_value = *flushed; // Note: this is empty_like for any disabled time step but the first
             return m_current_value;
         }
 
@@ -151,11 +155,13 @@ public:
 
     /** (MaxMSP) Extra function for flushing outside the process chain (e.g. when Transport is stopped).
      *           Note that this should never be used in a GenerationGraph, as the objects will be polled at least
-     *           once when the transport is stopped. This is not thread-safe.
+     *           once when the transport is stopped.
+     *           We need to implement a Socket<Trigger> flush for the GenerationGraph case
+     *           (see PhasePulsatorNode for reference)
+     *           This is not thread-safe.
      */
     Voices<Event> flush() {
         return m_make_notes.flush();
-
     }
 
 
@@ -176,10 +182,37 @@ public:
     Socket<Facet>& get_channel() { return m_channel; }
 
 private:
+    bool is_disabled(const TimePoint& t) {
+        return !t.get_transport_running()
+               || !is_enabled()
+               || !m_trigger.is_connected()
+               || !m_note_number.is_connected()
+               || !m_velocity.is_connected()
+               || !m_channel.is_connected();
+    }
+
+
+    /**
+     *
+     * @return std::nullopt if the MakeNoteNode is enabled, flushed (which may be empty) if the MakeNoteNode is disabled
+     */
+    std::optional<Voices<Event>> handle_enabled_state(EnabledState state) {
+        if (state == EnabledState::disabled_this_cycle) {
+            return m_make_notes.flush();
+        } else if (state == EnabledState::disabled_previous_cycle || state == EnabledState::disabled) {
+            return Voices<Event>::empty_like();
+        }
+        return std::nullopt;
+    }
+
+
     Socket<Trigger>& m_trigger;
     Socket<Facet>& m_note_number;
     Socket<Facet>& m_velocity;
     Socket<Facet>& m_channel;
+
+    EnabledGate m_enabled_gate;
+    TimeEventGate m_time_event_gate;
 
     MultiVoiced<MakeNote, Event> m_make_notes;
 
@@ -208,11 +241,9 @@ struct MakeNoteWrapper {
                                 , &velocity
                                 , &channel
                                 , &enabled
-                                , &num_voices};
-
+                                , &num_voices
+    };
 };
-
-
 } // namespace serialist
 
 #endif //SERIALISTLOOPER_MAKE_NOTE_H
