@@ -218,27 +218,29 @@ class EmptyComparison : public GenericOutputComparison<T> {
 template<typename T>
 class FixedSizeComparison : public GenericOutputComparison<T> {
 public:
-    explicit FixedSizeComparison(std::size_t voices_size, std::size_t voice_size)
+    explicit FixedSizeComparison(std::optional<std::size_t> voices_size, std::optional<std::size_t> voice_size)
     : m_voices_size(voices_size), m_voice_size(voice_size) {
-        assert(m_voices_size > 0); // This is a user input error: voices cannot be empty
+        assert(!m_voices_size || m_voices_size > 0); // This is a user input error: voices cannot be empty
     }
 
 private:
     bool matches_internal(const StepResult<T>& current) const override {
         const auto& voices = current.voices();
 
-        if (voices.size() != m_voices_size) return false;
+        if (m_voices_size && voices.size() != *m_voices_size) return false;
 
-        for (const auto& voice : voices) {
-            if (voice.size() != m_voice_size) {
-                return false;
+        if (m_voice_size) {
+            for (const auto& voice : voices) {
+                if (voice.size() != *m_voice_size) {
+                    return false;
+                }
             }
         }
         return true;
     }
 
-    std::size_t m_voices_size;
-    std::size_t m_voice_size;
+    std::optional<std::size_t> m_voices_size;
+    std::optional<std::size_t> m_voice_size;
 
 };
 
@@ -294,7 +296,7 @@ private:
     }
 
 
-    std::function<bool(const Voice<T>&)> m_f;
+    std::function<bool(const Voices<T>&)> m_f;
 };
 
 
@@ -459,6 +461,20 @@ struct NoteComparator {
     std::optional<uint32_t> vel;
     std::optional<uint32_t> ch;
 
+    static NoteComparator empty() {
+        return NoteComparator{};
+    }
+
+    static NoteComparator on(std::optional<NoteNumber> nn
+        , std::optional<uint32_t> vel = std::nullopt
+        , std::optional<uint32_t> ch = std::nullopt) {
+        return NoteComparator{nn, vel, ch};
+    }
+
+    static NoteComparator off(std::optional<NoteNumber> nn, std::optional<uint32_t> ch = std::nullopt) {
+        return NoteComparator{nn, 0, ch};
+    }
+
     bool equals(const MidiNoteEvent& event) const {
         return compare(nn, vel, ch, event);
     }
@@ -471,11 +487,15 @@ struct NoteComparator {
                         , const std::optional<uint32_t>& vel
                         , const std::optional<uint32_t>& ch
                         , const MidiNoteEvent& event) {
-        assert(nn || vel || ch);
+        // Note: empty comparison is supported in order to allow checking cases like `matches_sequence({}, {}, {60})`
 
         if (nn && *nn != event.note_number) return false;
-        if (vel && *vel != event.velocity) return false;
+
+        // if velocity is nullopt, we don't care about its velocity, but we require it to be non-zero
+        if ((vel && *vel != event.velocity) || (!vel && event.velocity == 0)) return false;
+
         if (ch && *ch != event.channel) return false;
+
         return true;
     }
 

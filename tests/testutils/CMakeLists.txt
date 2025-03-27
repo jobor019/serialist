@@ -11,6 +11,10 @@ add_library(testutils EXCLUDE_FROM_ALL
         events.h
         conditions/c1m.h
         matchers/m1m.h
+        conditions/c1s.h
+        matchers/m1s.h
+        conditions/cms.h
+        matchers/mms.h
 )
 
 target_include_directories(testutils INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})

@@ -28,16 +28,17 @@ inline ResultMatcher<Event> emptye(MatchType match_type = MatchType::last, bool 
 }
 
 
+/** Match that the output Voices<T> has a single element of size n */
 template<typename T>
 ResultMatcher<T> size(std::size_t n, MatchType match_type = MatchType::last, bool allow_no_comparison = false) {
-    return {c1m::size<T>(n), "has size " + serialize(n), match_type, allow_no_comparison};
+    return {c1m::size<T>(n), "has single vector of size " + serialize(n), match_type, allow_no_comparison};
 }
 
 
 inline ResultMatcher<Trigger> sizet(std::size_t n
                                     , MatchType match_type = MatchType::last
                                     , bool allow_no_comparison = false) {
-    return {c1m::sizet(n), "has size " + serialize(n), match_type, allow_no_comparison};
+    return {c1m::sizet(n), "has single vector of size " + serialize(n), match_type, allow_no_comparison};
 }
 
 
@@ -110,15 +111,15 @@ inline ResultMatcher<Trigger> sortedt(MatchType match_type = MatchType::last, bo
 // ==============================================================================================
 
 inline ResultMatcher<Event> equals_chord(const Vec<NoteComparator>& cs, MatchType match_type = MatchType::last, bool allow_no_comparison = false) {
-    return {c1m::equals_chord(cs), "equals " + cs.as_type<std::string>().to_string(), match_type, allow_no_comparison};
+    return {c1m::equals_chord(cs), "equals chord " + cs.as_type<std::string>().to_string(), match_type, allow_no_comparison};
 }
 
 inline ResultMatcher<Event> contains_note(const NoteComparator& c, MatchType match_type = MatchType::last, bool allow_no_comparison = false) {
-    return {c1m::contains_note(c), "contains " + static_cast<std::string>(c), match_type, allow_no_comparison};
+    return {c1m::contains_note(c), "contains chord " + static_cast<std::string>(c), match_type, allow_no_comparison};
 }
 
 inline ResultMatcher<Event> contains_chord(const Vec<NoteComparator>& cs, MatchType match_type = MatchType::last, bool allow_no_comparison = false) {
-    return {c1m::contains_chord(cs), "contains " + cs.as_type<std::string>().to_string(), match_type, allow_no_comparison};
+    return {c1m::contains_chord(cs), "contains chord " + cs.as_type<std::string>().to_string(), match_type, allow_no_comparison};
 }
 
 
