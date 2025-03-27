@@ -134,8 +134,11 @@ public:
 
         auto num_voices = voice_count(trigger.size(), note_number.size(), velocity.size(), channel.size());
 
+        auto output = Voices<Event>::zeros(num_voices);
+
         if (num_voices != m_make_notes.size()) {
-            m_make_notes.resize(num_voices);
+            // Note: after this, output may not have the same size as num_voices, but the size is at least num_voices
+            output.merge_uneven(m_make_notes.resize(num_voices), true);
         }
 
         trigger.adapted_to(num_voices);
@@ -143,9 +146,8 @@ public:
         auto velocities = velocity.adapted_to(num_voices).firsts<uint32_t>();
         auto channels = channel.adapted_to(num_voices).as_type<uint32_t>();
 
-        auto output = Voices<Event>::zeros(num_voices);
         for (std::size_t i = 0; i < num_voices; ++i) {
-            output[i] = m_make_notes[i].process(trigger[i], note_numbers[i], velocities[i], channels[i]);
+            output[i].extend(m_make_notes[i].process(trigger[i], note_numbers[i], velocities[i], channels[i]));
         }
 
         m_current_value = std::move(output);
@@ -228,9 +230,9 @@ struct MakeNoteWrapper {
     ParameterHandler parameter_handler;
 
     Sequence<Trigger> trigger{param::properties::trigger, parameter_handler, Voices<Trigger>::empty_like()};
-    Sequence<Facet, std::size_t> note_number{Keys::NOTE_NUMBER, parameter_handler, Voices<std::size_t>::singular(60)};
-    Sequence<Facet, std::size_t> velocity{Keys::VELOCITY, parameter_handler, Voices<std::size_t>::singular(100)};
-    Sequence<Facet, std::size_t> channel{Keys::CHANNEL, parameter_handler, Voices<std::size_t>::singular(true)};
+    Sequence<Facet, NoteNumber> note_number{Keys::NOTE_NUMBER, parameter_handler, Voices<NoteNumber>::singular(60)};
+    Sequence<Facet, uint32_t> velocity{Keys::VELOCITY, parameter_handler, Voices<uint32_t>::singular(100)};
+    Sequence<Facet, uint32_t> channel{Keys::CHANNEL, parameter_handler, Voices<uint32_t>::singular(true)};
     Sequence<Facet, bool> enabled{param::properties::enabled, parameter_handler, Voices<bool>::singular(true)};
     Variable<Facet, std::size_t> num_voices{param::properties::num_voices, parameter_handler, 0};
 

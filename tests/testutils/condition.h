@@ -487,7 +487,11 @@ struct NoteComparator {
                         , const std::optional<uint32_t>& vel
                         , const std::optional<uint32_t>& ch
                         , const MidiNoteEvent& event) {
-        // Note: empty comparison is supported in order to allow checking cases like `matches_sequence({}, {}, {60})`
+        // at least one of (nn, vel, ch) must be set when calling compare.
+        //   We do allow comparison with `empty` in `matches_chord` and `matches_sequence`, but these should never
+        //   call `compare` in the first place on those occasions, as that would require an actual `MidiNoteEvent`,
+        //   which cannot be empty.
+        assert(nn || vel || ch);
 
         if (nn && *nn != event.note_number) return false;
 
@@ -507,6 +511,8 @@ struct NoteComparator {
 
     /** compare all notes in a single voice (unordered) */
     static bool matches_chord(const Vec<NoteComparator>& comparators, const Voice<MidiNoteEvent>& voice) {
+        if (voice.empty() && (comparators.empty() || comparators.size() == 1 && comparators[0].is_empty())) return true;
+
         auto matched_input = Vec<bool>::zeros(voice.size());
         auto matched_comparators = Vec<bool>::zeros(comparators.size());
 
@@ -530,20 +536,20 @@ struct NoteComparator {
         return matches_chord(comparators, voice_to_midi_events(voice));
     }
 
-    /** compare all notes in a monophonic sequence / multiple monophonic voices (ordered) */
+    /** compare all notes in a monophonic (or empty) sequence / multiple monophonic voices (ordered) */
     static bool matches_sequence(const Vec<NoteComparator>& comparators, const Voices<MidiNoteEvent>& voices) {
         if (voices.size() != comparators.size()) return false;
 
         if (voices.vec().any([&](const Voice<MidiNoteEvent>& voice) {
-            return voice.size() != 1;
+            return voice.size() > 1; // we consider voices with 0 or 1 elements to be monophonic
         })) {
             return false;
         }
 
         for (std::size_t i = 0; i < voices.size(); ++i) {
-            if (voices[i].size() != 1) return false;
-            if (!comparators[i].equals(voices[i][0])) return false;
-
+            if (comparators[i].is_empty() && voices[i].empty()) continue; // matches empty
+            if (voices[i].size() != 1) return false;                      // not monophonic
+            if (!comparators[i].equals(voices[i][0])) return false;       // non-matching
         }
 
         return true;
@@ -578,6 +584,8 @@ struct NoteComparator {
 
 
     explicit operator std::string() const {
+        if (!nn && !vel && !ch) return "{empty}";
+
         return "{nn=" + (nn ? std::to_string(*nn) : "any")
                + ", vel=" + (vel ? std::to_string(*vel) : "any")
                + ", ch=" + (ch ? std::to_string(*ch) : "any")
@@ -601,6 +609,8 @@ private:
         }
         return Voices(v);
     }
+
+    bool is_empty() const { return nn == std::nullopt && vel == std::nullopt && ch == std::nullopt; }
 };
 
 }
