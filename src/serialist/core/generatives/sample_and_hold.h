@@ -20,16 +20,16 @@ public:
     static constexpr double STATE_CLOSED = 0.0;
 
 
-    std::optional<double> process(std::optional<double> v, bool is_closed) {
+    Voice<double> process(Voice<double>&& v, bool is_closed) {
         if (is_closed) {
             return m_current_value;
         }
-        m_current_value = v;
-        return v;
+        m_current_value = std::move(v);
+        return m_current_value;
     }
 
 private:
-    std::optional<double> m_current_value = std::nullopt;
+    Voice<double> m_current_value;
 };
 
 
@@ -75,7 +75,7 @@ public:
             m_snh.resize(num_voices);
         }
 
-        auto in = input_value.adapted_to(num_voices).firsts<double>();
+        auto in = input_value.adapted_to(num_voices).as_type<double>();
         auto is_closed = hold_state
                 .adapted_to(num_voices)
                 .as_type<bool>([](const Facet& f) {
@@ -85,9 +85,7 @@ public:
 
         auto output = Voices<Facet>::zeros(num_voices);
         for (std::size_t i = 0; i < num_voices; ++i) {
-            if (auto snh_value = m_snh[i].process(in[i], is_closed[i])) {
-                output[i] = Voice<Facet>::singular(Facet{*snh_value});
-            } // otherwise empty Voice
+            output[i] = m_snh[i].process(std::move(in[i]), is_closed[i]).as_type<Facet>();
         }
 
         m_current_value = output;
@@ -115,7 +113,7 @@ struct SampleAndHoldWrapper {
     Sequence<Facet, double> input_value{Keys::INPUT_VALUE, ph, Voices<double>::empty_like()};
     Sequence<Facet, double> hold_state{Keys::HOLD_STATE
                                        , ph
-                                       , Voices<double>::singular(SampleAndHold::DEFAULT_CLOSED_STATE)
+                                       , Voices<double>::singular(SampleAndHold::STATE_OPEN)
     };
 
     Variable<Facet, bool> enabled{param::properties::enabled, ph, true};
