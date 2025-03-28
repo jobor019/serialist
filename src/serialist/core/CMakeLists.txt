@@ -77,6 +77,7 @@ add_library(${CORE_NAME}
         temporal/domain_type.h
         generatives/phase_map.h
         generatives/pulse_filter.h
+        generatives/sample_and_hold.h
 
 
 )

@@ -32,6 +32,7 @@ add_executable(core_tests EXCLUDE_FROM_ALL
         ${CMAKE_CURRENT_SOURCE_DIR}/utility/math_tests.cpp
         generatives/phase_map_tests.cpp
         generatives/pulse_filter_test.cpp
+        generatives/sample_and_hold_tests.cpp
 
 )
 
