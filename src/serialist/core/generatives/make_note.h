@@ -195,7 +195,6 @@ private:
 
 
     /**
-     *
      * @return std::nullopt if the MakeNoteNode is enabled, flushed (which may be empty) if the MakeNoteNode is disabled
      */
     std::optional<Voices<Event>> handle_enabled_state(EnabledState state) {
