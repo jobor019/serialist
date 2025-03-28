@@ -53,6 +53,7 @@ public:
             }
         }
 
+        // Already open
         if (!m_closed && !is_closed) {
             return process_open(std::move(triggers));
         }
@@ -137,7 +138,7 @@ private:
         }
 
         register_pulse_ons(triggers);
-        handle_pulse_offs(triggers, false);
+        handle_pulse_offs(triggers, true);
 
         return merge_without_duplicates(std::move(flushed), std::move(triggers));
     }

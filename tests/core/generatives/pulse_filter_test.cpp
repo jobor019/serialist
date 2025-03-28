@@ -45,20 +45,34 @@ TEST_CASE("PulseFilter: Pause mode", "[pulse_filter]") {
 
     SECTION("immediate") {
         // Initially open: passthrough
-        auto [pulse_on, id] = single_pulse_on();
-        w.trigger.set_values(pulse_on);
-        REQUIRE_THAT(runner.step(), m1m::equalst_on(id));
+        auto [pulse_on1, id1] = single_pulse_on();
+        w.trigger.set_values(pulse_on1);
+        REQUIRE_THAT(runner.step(), m1m::equalst_on(id1));
         w.trigger.set_values(NO_TRIGGER); // need to reset inbound
 
-        // Immediately output pulse_off on first closed step
+        // Queue another trigger
+        auto [pulse_on2, id2] = single_pulse_on();
+        w.trigger.set_values(pulse_on2);
+        REQUIRE_THAT(runner.step(), m1m::equalst_on(id2));
+
+        // Intermediate step: no output
+        w.trigger.set_values(NO_TRIGGER);
+        REQUIRE_THAT(runner.step(), m1m::emptyt());
+
+        // release pulse2
+        w.trigger.set_values(single_pulse_off(id2));
+        REQUIRE_THAT(runner.step(), m1m::equalst_off(id2));
+        w.trigger.set_values(NO_TRIGGER);
+
+        // Immediately output any remaining pulse_offs (id1) on first closed step
         filter_state.set_values(CLOSED);
-        REQUIRE_THAT(runner.step(), m1m::equalst_off(id));
+        REQUIRE_THAT(runner.step(), m1m::equalst_off(id1));
 
         // Ignore any further pulse_ons & pulse_offs until we're back open
-        std::tie(pulse_on, id) = single_pulse_on();
-        w.trigger.set_values(pulse_on);
+        auto [pulse_on3, id3] = single_pulse_on();
+        w.trigger.set_values(pulse_on3);
         REQUIRE_THAT(runner.step(), m1m::emptyt());
-        w.trigger.set_values(single_pulse_off(id));
+        w.trigger.set_values(single_pulse_off(id3));
         REQUIRE_THAT(runner.step(), m1m::emptyt());
         w.trigger.set_values(NO_TRIGGER);
 
