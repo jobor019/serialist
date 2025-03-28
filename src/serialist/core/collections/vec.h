@@ -942,7 +942,7 @@ public:
         return m_vector.size();
     }
 
-    std::optional<const T&> find(std::function<bool(const T&)> f) const {
+    std::optional<std::reference_wrapper<const T>> find(std::function<bool(const T&)> f) const {
         for (const T& element: m_vector) {
             if (f(element)) {
                 return element;
@@ -952,10 +952,10 @@ public:
     }
 
 
-    std::optional<T&> find(std::function<bool(const T&)> f){
+    std::optional<std::reference_wrapper<T>> find(std::function<bool(const T&)> f){
         for (T& element: m_vector) {
             if (f(element)) {
-                return std::optional<T&>{element};
+                return element;
             }
         }
         return std::nullopt;

@@ -202,6 +202,16 @@ public:
         return !(m_type == Type::pulse_off && other.m_type == Type::pulse_on);
     }
 
+
+    bool operator>(const Trigger& other) const {
+        if (m_id != other.m_id) {
+            return m_id > other.m_id;
+        }
+
+        // Same ID: no pulse_off occurs before a pulse_on
+        return !(m_type == Type::pulse_on && other.m_type == Type::pulse_off);
+    }
+
     explicit operator std::string() const {
         return std::string("Trigger(type=")
         + (m_type == Type::pulse_on ? "pulse_on" : "pulse_off")

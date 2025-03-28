@@ -17,6 +17,8 @@ namespace serialist {
 struct PulseIdentifier {
     std::size_t id;
     bool triggered = false;
+
+    bool operator==(const PulseIdentifier& other) const { return id == other.id; }
 };
 
 
@@ -28,17 +30,27 @@ public:
 
     static constexpr auto DEFAULT_MODE = Mode::sustain;
     static constexpr auto DEFAULT_IMMEDIATE_VALUE = true;
+    static constexpr auto DEFAULT_CLOSED_STATE = false;
+    static constexpr double STATE_OPEN = 1.0;
+    static constexpr double STATE_CLOSED = 0.0;
 
 
     Voice<Trigger> process(Voice<Trigger>&& triggers, bool is_closed, Mode mode, bool is_immediate) {
-        // For now, we don't need to handle this case gracefully during runtime
+
         if (mode != m_mode) {
-            return set_mode(mode);
+            // For now, we don't need to handle this case gracefully during runtime
+            m_mode = mode;
+            if (!m_is_first_value) {
+                return flush();
+            }
         }
 
-        // For now, we don't need to handle this case gracefully during runtime
         if (is_immediate != m_immediate) {
-            return set_immediate(is_immediate);
+            // For now, we don't need to handle this case gracefully during runtime
+            m_immediate = is_immediate;
+            if (!m_is_first_value) {
+                return flush();
+            }
         }
 
         if (!m_closed && !is_closed) {
@@ -67,18 +79,6 @@ public:
     }
 
 private:
-    Voice<Trigger> set_mode(Mode mode) {
-        m_mode = mode;
-        return flush();
-    }
-
-
-    Voice<Trigger> set_immediate(bool immediate) {
-        m_immediate = immediate;
-        return flush();
-    }
-
-
     Voice<Trigger> open(Voice<Trigger>&& triggers) {
         Voice<Trigger> flushed;
         if (m_mode == Mode::sustain && m_immediate) {
@@ -171,13 +171,13 @@ private:
 
 
     std::optional<PulseIdentifier> handle_pulse_off(std::size_t id, bool release) {
-        if (auto p = m_pulses.find([id](const PulseIdentifier& p) { return p.id == id; })) {
+        if (auto p = m_pulses.find([id](const PulseIdentifier& pulse) { return pulse.id == id; })) {
             if (release) {
-                m_pulses.release(*p);
-                return *p;
+                m_pulses.release(p->get());
+                return p->get();
             }
-            // otherwise: just flag it as releases
-            p->triggered = true;
+            // otherwise: just flag it as released
+            p->get().triggered = true;
         }
         return std::nullopt;
     }
@@ -208,12 +208,13 @@ private:
         });
     }
 
+    bool m_is_first_value = true; // TODO: Ugly hack to avoid flushing on first value
 
     Held<PulseIdentifier, true> m_pulses;
     Mode m_mode = DEFAULT_MODE;
     bool m_immediate = DEFAULT_IMMEDIATE_VALUE;
 
-    bool m_closed = false;
+    bool m_closed = DEFAULT_CLOSED_STATE;
 };
 
 
@@ -266,7 +267,7 @@ public:
         auto mode = m_mode.process().first_or(PulseFilter::DEFAULT_MODE);
         auto immediate = m_immediate.process().first_or(PulseFilter::DEFAULT_IMMEDIATE_VALUE);
 
-        auto num_voices = voice_count(trigger.size(), filter_state);
+        auto num_voices = voice_count(trigger.size(), filter_state.size());
 
         auto output = Voices<Trigger>::zeros(num_voices);
 
@@ -278,7 +279,9 @@ public:
         trigger.adapted_to(num_voices);
         auto is_closed = filter_state
                 .adapted_to(num_voices)
-                .as_type<bool>([](const Facet& f) { return utils::equals(static_cast<double>(f), 0.0); })
+                .as_type<bool>([](const Facet& f) {
+                    return utils::equals(static_cast<double>(f), PulseFilter::STATE_CLOSED);
+                })
                 .firsts_or(false);
 
         for (std::size_t i = 0; i < num_voices; ++i) {
@@ -347,7 +350,10 @@ struct PulseFilterWrapper {
 
     ParameterHandler ph;
     Sequence<Trigger> trigger{param::properties::trigger, ph, Voices<Trigger>::empty_like()};
-    Sequence<Facet, FloatType> filter_state{Keys::FILTER_STATE, ph, Voices<FloatType>::singular(0.0)};
+    Sequence<Facet, FloatType> filter_state{Keys::FILTER_STATE
+                                            , ph
+                                            , Voices<FloatType>::singular(PulseFilter::STATE_OPEN)
+    };
     Variable<Facet, PulseFilter::Mode> mode{Keys::MODE, ph, PulseFilter::DEFAULT_MODE};
     Variable<Facet, bool> immediate{Keys::IMMEDIATE, ph, PulseFilter::DEFAULT_IMMEDIATE_VALUE};
 

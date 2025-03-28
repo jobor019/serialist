@@ -21,13 +21,13 @@ public:
         if constexpr (AllowDuplicates) {
             m_held.append(v);
             return true;
+        } else {
+            if (!m_held.contains(v)) {
+                m_held.append(v);
+                return true;
+            }
+            return false;
         }
-
-        if (!m_held.contains(v)) {
-            m_held.append(v);
-            return true;
-        }
-        return false;
     }
 
 
@@ -46,13 +46,13 @@ public:
     }
 
 
-    std::optional<T&> find(std::function<bool(const T&)> f) {
-        return m_held.find(std::move(f));
+    std::optional<std::reference_wrapper<T>> find(const std::function<bool(const T&)>& f) {
+        return m_held.find(f);
     }
 
 
-    std::optional<const T&> find(std::function<bool(const T&)> f) const {
-        return m_held.find(std::move(f));
+    std::optional<std::reference_wrapper<const T>> find(const std::function<bool(const T&)>& f) const {
+        return m_held.find(f);
     }
 
 
