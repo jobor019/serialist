@@ -46,6 +46,16 @@ public:
     }
 
 
+    std::optional<T&> find(std::function<bool(const T&)> f) {
+        return m_held.find(std::move(f));
+    }
+
+
+    std::optional<const T&> find(std::function<bool(const T&)> f) const {
+        return m_held.find(std::move(f));
+    }
+
+
     const Vec<T>& get_held() const {
         return m_held;
     }

@@ -445,6 +445,7 @@ public:
      * @param value The value to insert
      * @param ascending If true, assumes vector is sorted in ascending order. If false, assumes descending order.
      */
+    template<typename E = T, typename = std::enable_if_t<utils::is_sortable_v<E> > >
     void insert_sorted(T value, bool ascending = true) {
         static_assert(std::is_invocable_v<std::less<>, const T&, const T&>,
               "T must be comparable with std::less.");
@@ -941,6 +942,25 @@ public:
         return m_vector.size();
     }
 
+    std::optional<const T&> find(std::function<bool(const T&)> f) const {
+        for (const T& element: m_vector) {
+            if (f(element)) {
+                return element;
+            }
+        }
+        return std::nullopt;
+    }
+
+
+    std::optional<T&> find(std::function<bool(const T&)> f){
+        for (T& element: m_vector) {
+            if (f(element)) {
+                return std::optional<T&>{element};
+            }
+        }
+        return std::nullopt;
+    }
+
 
     bool contains(const T& value) const {
         return std::find(m_vector.begin(), m_vector.end(), value) != m_vector.end();
@@ -1189,14 +1209,23 @@ public:
     }
 
 
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E> > >
-    Vec<T>& sort(bool ascending = true) {
+    template<typename E = T, typename = std::enable_if_t<utils::is_sortable_v<E> > >
+    Vec& sort(bool ascending = true) {
         if (ascending)
             std::sort(m_vector.begin(), m_vector.end());
         else
             std::sort(m_vector.begin(), m_vector.end(), std::greater<>());
 
         return *this;
+    }
+
+
+    template<typename E = T, typename = std::enable_if_t<utils::is_sortable_v<E> > >
+    bool is_sorted(bool ascending = true) const {
+        if (ascending)
+            return std::is_sorted(m_vector.begin(), m_vector.end());
+        else
+            return std::is_sorted(m_vector.begin(), m_vector.end(), std::greater<>());
     }
 
 

@@ -9,8 +9,8 @@ namespace serialist {
 
 class TriggerIds {
 public:
-    static inline const std::size_t NO_ID = 0;
-    static inline const std::size_t FIRST_ID = NO_ID + 1;
+    static constexpr std::size_t NO_ID = 0;
+    static constexpr std::size_t FIRST_ID = NO_ID + 1;
 
     static TriggerIds& get_instance() {
         static TriggerIds instance;
@@ -136,43 +136,43 @@ public:
         return contains_pulse_on(triggers) || contains_pulse_off(triggers);
     }
 
-    static bool is_sorted(const Vec<Trigger>& triggers) {
-        // Empty vector or single trigger is always sorted
-        if (triggers.size() <= 1) {
-            return true;
-        }
-
-        // Track the last ID we've seen and which IDs we've seen pulse_on/pulse_off for
-        std::size_t last_id = 0;
-        std::unordered_set<std::size_t> seen_pulse_on;
-        std::unordered_set<std::size_t> seen_pulse_off;
-        
-        for (const auto& trigger : triggers) {
-            const std::size_t id = trigger.get_id();
-            
-            // Skip NO_ID triggers for ID ordering check
-            if (id != TriggerIds::NO_ID) {
-                // Check if IDs are in ascending order
-                if (id < last_id) {
-                    return false;  // Higher ID comes before lower ID
-                }
-                last_id = id;
-                
-                // Check pulse_on/pulse_off ordering
-                if (trigger.is_pulse_on()) {
-                    // If we've already seen a pulse_off with this ID, that's not sorted
-                    if (seen_pulse_off.find(id) != seen_pulse_off.end()) {
-                        return false;  // pulse_off before its corresponding pulse_on
-                    }
-                    seen_pulse_on.insert(id);
-                } else if (trigger.is_pulse_off()) {
-                    seen_pulse_off.insert(id);
-                }
-            }
-        }
-        
-        return true;
-    }
+    // static bool is_sorted(const Vec<Trigger>& triggers) {
+    //     // Empty vector or single trigger is always sorted
+    //     if (triggers.size() <= 1) {
+    //         return true;
+    //     }
+    //
+    //     // Track the last ID we've seen and which IDs we've seen pulse_on/pulse_off for
+    //     std::size_t last_id = 0;
+    //     std::unordered_set<std::size_t> seen_pulse_on;
+    //     std::unordered_set<std::size_t> seen_pulse_off;
+    //
+    //     for (const auto& trigger : triggers) {
+    //         const std::size_t id = trigger.get_id();
+    //
+    //         // Skip NO_ID triggers for ID ordering check
+    //         if (id != TriggerIds::NO_ID) {
+    //             // Check if IDs are in ascending order
+    //             if (id < last_id) {
+    //                 return false;  // Higher ID comes before lower ID
+    //             }
+    //             last_id = id;
+    //
+    //             // Check pulse_on/pulse_off ordering
+    //             if (trigger.is_pulse_on()) {
+    //                 // If we've already seen a pulse_off with this ID, that's not sorted
+    //                 if (seen_pulse_off.find(id) != seen_pulse_off.end()) {
+    //                     return false;  // pulse_off before its corresponding pulse_on
+    //                 }
+    //                 seen_pulse_on.insert(id);
+    //             } else if (trigger.is_pulse_off()) {
+    //                 seen_pulse_off.insert(id);
+    //             }
+    //         }
+    //     }
+    //
+    //     return true;
+    // }
 
     static std::string format(Type type, std::optional<std::size_t> id) {
         std::string t = type == Type::pulse_on ? "pulse_on" : "pulse_off";
@@ -186,6 +186,20 @@ public:
 
     bool operator==(const Type& type) const {
         return is(type);
+    }
+
+    bool operator<(const Trigger& other) const {
+        // Operator < is used for any type of sorting (std::is_sorted, std::sort, etc.)
+        // A vector of triggers is sorted when it fulfills two conditions:
+        //   - IDs are in ascending order
+        //   - For any given ID, a pulse_on (1) trigger must come before its corresponding pulse_off (0) trigger.
+
+        if (m_id != other.m_id) {
+            return m_id < other.m_id;
+        }
+
+        // Same ID: no pulse_off occurs before a pulse_on
+        return !(m_type == Type::pulse_off && other.m_type == Type::pulse_on);
     }
 
     explicit operator std::string() const {

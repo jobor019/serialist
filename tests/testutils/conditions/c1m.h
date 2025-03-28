@@ -104,7 +104,7 @@ inline std::unique_ptr<VoiceComparison<Trigger>> equalst_off(std::optional<std::
 
 inline std::unique_ptr<VoiceComparison<Trigger>> sortedt() {
     return std::make_unique<VoiceComparison<Trigger>>([](const Voice<Trigger>& v) {
-        return Trigger::is_sorted(v);
+        return v.is_sorted();
     });
 }
 
