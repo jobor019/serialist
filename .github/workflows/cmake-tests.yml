@@ -29,4 +29,4 @@ jobs:
       
       - name: Run tests using ctest
         run: |
-          ctest --test-dir cmake-build-debug --output-on-failure --test-regex "(core_tests|testutils_tests)" --parallel $(sysctl -n hw.ncpu)
+          ctest --test-dir cmake-build-debug --output-on-failure --parallel $(sysctl -n hw.ncpu)
