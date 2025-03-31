@@ -6,11 +6,18 @@ jobs:
   build-and-test:
     runs-on: macos-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout repository (with submodules)
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Check installed tools
+        run: |
+          cmake --version
+          ninja --version
       
       - name: Install dependencies
-        run: brew install cmake ninja catch2
+        run: brew install catch2
       
       - name: Configure CMake
         run: |
