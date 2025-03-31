@@ -43,3 +43,5 @@ target_link_libraries(core_tests
         PRIVATE
         Catch2::Catch2WithMain
 )
+
+add_test(NAME core_tests COMMAND core_tests)

@@ -37,3 +37,5 @@ target_link_libraries(testutils_tests
         serialist::core
         Catch2::Catch2WithMain
 )
+
+add_test(NAME testutils_tests COMMAND testutils_tests)

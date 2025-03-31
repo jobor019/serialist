@@ -4,6 +4,8 @@ SET(CMAKE_CXX_STANDARD 17)
 
 project(serialist VERSION 0.0.1)
 
+enable_testing()
+
 
 # Default module dependencies for all JUCE-dependent targets
 set(SERIALIST_MODULE_DEPENDENCIES_JUCE
