@@ -78,10 +78,10 @@ TEST_CASE("Integral DiscreteRange defined by (integral) step_size") {
     auto num_steps = 10000;
 
     for (auto include_end: Vec<bool>{false, true}) {
-        std::cout << "evaluating include_end = " << include_end << std::endl;
+        // std::cout << "evaluating include_end = " << include_end << std::endl;
 
         for (auto step_size: Vec<long>{1, 2, 10, 100, 1000, 10000}) {
-            std::cout << "evaluating step_size = " << step_size << std::endl;
+            // std::cout << "evaluating step_size = " << step_size << std::endl;
             // Note: Only tested up to size of the mantissa of double, will yield incorrect results above this value
             for (std::size_t i = 1; i < std::numeric_limits<double>::digits; ++i) {
 

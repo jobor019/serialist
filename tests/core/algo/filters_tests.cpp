@@ -39,14 +39,14 @@ TEST_CASE("FilterSmoo") {
             y[i] = s.process(ticks[i], square_wave[i]);
         }
 
-        std::cout << "ticks = ";
-        ticks.as_type<double>([](auto t) { return t.get_tick(); }).print();
+        // std::cout << "ticks = ";
+        // ticks.as_type<double>([](auto t) { return t.get_tick(); }).print();
 
-        std::cout << "x = ";
-        square_wave.print();
+        // std::cout << "x = ";
+        // square_wave.print();
 
-        std::cout << "y = ";
-        y.print();
+        // std::cout << "y = ";
+        // y.print();
     }
 
 //    SECTION("With setter") {
