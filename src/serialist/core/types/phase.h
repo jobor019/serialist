@@ -2,7 +2,7 @@
 #define SERIALIST_PHASE_H
 
 #include "utility/math.h"
-#include "algo/facet.h"
+#include "core/types/facet.h"
 
 
 namespace serialist {

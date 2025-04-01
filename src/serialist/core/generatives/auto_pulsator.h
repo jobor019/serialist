@@ -4,10 +4,10 @@
 //
 //#include "core/collections/scheduler.h"
 //#include "core/temporal/pulse.h"
-//#include "core/temporal/trigger.h"
+//#include "core/types/trigger.h"
 //#include "core/generatives/stereotypes/base_stereotypes.h"
 //#include "core/generatives/stereotypes/pulsator_stereotypes.h"
-//#include "core/temporal/time_point.h"
+//#include "core/types/time_point.h"
 //
 //
 //

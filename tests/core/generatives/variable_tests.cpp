@@ -2,7 +2,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "core/policies/policies.h"
 #include "core/generatives/variable.h"
-#include "core/algo/facet.h"
+#include "core/types/facet.h"
 
 using namespace serialist;
 

@@ -3,7 +3,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "core/policies/policies.h"
-#include "core/algo/fraction.h"
+#include "core/types/fraction.h"
 
 using namespace serialist;
 

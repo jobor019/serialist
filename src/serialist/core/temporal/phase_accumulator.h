@@ -7,9 +7,9 @@
 #include <iostream>
 #include <iomanip>
 #include "core/utility/math.h"
-#include "time_point.h"
+#include "core/types/time_point.h"
 #include "core/utility/stateful.h"
-#include "core/temporal/phase.h"
+#include "core/types/phase.h"
 #include "core/temporal/time_point_generators.h"
 #include <map>
 

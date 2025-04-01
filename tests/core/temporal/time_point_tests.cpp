@@ -3,7 +3,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "core/temporal/transport.h"
-#include "core/temporal/time_point.h"
+#include "core/types/time_point.h"
 #include "matchers/matchers_common.h"
 
 using namespace serialist;

@@ -3,7 +3,7 @@
 #include "core/policies/policies.h"
 #include "core/generatives/sequence.h"
 #include "core/algo/pitch/notes.h"
-#include "core/algo/facet.h"
+#include "core/types/facet.h"
 
 
 

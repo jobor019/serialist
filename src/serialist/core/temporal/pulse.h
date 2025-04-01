@@ -3,8 +3,8 @@
 #define SERIALISTLOOPER_PULSE_H
 
 #include <optional>
-#include "core/temporal/trigger.h"
-#include "core/temporal/time_point.h"
+#include "core/types/trigger.h"
+#include "core/types/time_point.h"
 #include "core/collections/vec.h"
 #include "core/collections/held.h"
 #include "core/exceptions.h"

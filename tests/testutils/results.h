@@ -2,12 +2,12 @@
 #define TESTUTILS_RESULTS_H
 
 #include <core/policies/policies.h>
-#include <core/algo/facet.h>
+#include "core/types/facet.h"
 #include <core/generative.h>
 #include <core/collections/vec.h>
 #include <catch2/catch_test_macros.hpp>
 #include "exceptions.h"
-#include "temporal/trigger.h"
+#include "core/types/trigger.h"
 
 
 namespace serialist::test {

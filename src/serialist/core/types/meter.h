@@ -1,10 +1,10 @@
 #ifndef SERIALISTLOOPER_METER_H
 #define SERIALISTLOOPER_METER_H
 
-#include "domain_type.h"
+#include "core/types/domain_type.h"
 #include "exceptions.h"
 #include "core/utility/math.h"
-#include "core/algo/fraction.h"
+#include "core/types/fraction.h"
 
 
 namespace serialist {

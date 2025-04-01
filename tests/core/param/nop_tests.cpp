@@ -4,7 +4,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "core/collections/voices.h"
-#include "core/algo/facet.h"
+#include "core/types/facet.h"
 #include "core/param/parameter_policy.h"
 #include "core/generatives/sequence.h"
 //#include "core/oscillator.h"

@@ -3,8 +3,8 @@
 
 #include "core/event.h"
 #include "core/generative.h"
-#include "core/temporal/trigger.h"
-#include "core/algo/facet.h"
+#include "core/types/trigger.h"
+#include "core/types/facet.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
 #include "sequence.h"
 #include "variable.h"

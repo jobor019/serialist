@@ -2,7 +2,7 @@
 
 #include "core/policies/policies.h"
 #include "node_runner.h"
-#include "algo/facet.h"
+#include "core/types/facet.h"
 #include "conditions/c11.h"
 #include "generatives/sequence.h"
 #include "generatives/variable.h"

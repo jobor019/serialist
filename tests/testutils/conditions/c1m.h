@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "condition.h"
-#include "temporal/trigger.h"
+#include "core/types/trigger.h"
 #include "c11.h"
 
 

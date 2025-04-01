@@ -2,10 +2,10 @@
 #ifndef TESTUTILS_GENERATORS_H
 #define TESTUTILS_GENERATORS_H
 
-#include <algo/facet.h>
+#include "core/types/facet.h"
 
 #include "algo/random.h"
-#include "core/temporal/time_point.h"
+#include "core/types/time_point.h"
 
 
 namespace serialist::test {

@@ -2,9 +2,9 @@
 #ifndef SERIALIST_PHASE_PULSE_H
 #define SERIALIST_PHASE_PULSE_H
 
-#include "trigger.h"
+#include "core/types/trigger.h"
 #include "collections/multi_voiced.h"
-#include "phase.h"
+#include "core/types/phase.h"
 
 namespace serialist {
 

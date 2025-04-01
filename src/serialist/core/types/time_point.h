@@ -1,7 +1,7 @@
 #ifndef SERIALISTLOOPER_TIME_POINT_H
 #define SERIALISTLOOPER_TIME_POINT_H
 
-#include "domain_type.h"
+#include "core/types/domain_type.h"
 #include "meter.h"
 #include "core/exceptions.h"
 

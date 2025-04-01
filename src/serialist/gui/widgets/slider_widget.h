@@ -9,7 +9,7 @@
 #include "core/generatives/variable.h"
 #include "core/collections/range.h"
 #include "core/algo/exponential.h"
-#include "algo/facet.h"
+#include "core/types/facet.h"
 #include "policies/policies.h"
 
 namespace serialist {

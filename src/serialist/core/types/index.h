@@ -1,6 +1,6 @@
 #ifndef SERIALIST_INDEX_H
 #define SERIALIST_INDEX_H
-#include "temporal/phase.h"
+#include "core/types/phase.h"
 
 
 namespace serialist {

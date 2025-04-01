@@ -2,7 +2,7 @@
 #ifndef SERIALISTLOOPER_TIME_POINT_GENERATORS_H
 #define SERIALISTLOOPER_TIME_POINT_GENERATORS_H
 
-#include "time_point.h"
+#include "core/types/time_point.h"
 
 namespace serialist {
 

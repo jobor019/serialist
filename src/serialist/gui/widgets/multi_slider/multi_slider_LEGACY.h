@@ -7,7 +7,7 @@
 #include "core/generatives/sequence.h"
 #include "mouse_state.h"
 #include "keyboard_shortcuts.h"
-#include "core/algo/facet.h"
+#include "core/types/facet.h"
 #include "multi_slider_element.h"
 #include "multi_slider_action_LEGACY.h"
 #include "bases/widget_stereotypes.h"

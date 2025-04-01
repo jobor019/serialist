@@ -9,7 +9,7 @@
 #include "core/exceptions.h"
 #include "core/utility/traits.h"
 #include "core/param/parameter_keys.h"
-#include "core/algo/facet.h"
+#include "core/types/facet.h"
 #include "core/collections/voices.h"
 #include "gui/param/vt_serialization.h"
 #include "deserialization.h"

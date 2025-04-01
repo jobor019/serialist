@@ -1,7 +1,7 @@
 #ifndef SERIALIST_PHASE_PULSATOR_H
 #define SERIALIST_PHASE_PULSATOR_H
 
-#include "core/temporal/trigger.h"
+#include "core/types/trigger.h"
 #include "collections/multi_voiced.h"
 #include "generatives/stereotypes/base_stereotypes.h"
 #include "core/temporal/phase_pulse.h"

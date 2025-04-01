@@ -13,7 +13,7 @@
 //#include "core/algo/random.h"
 //#include "core/algo/partial_note.h"
 //#include "core/generatives/stereotypes/base_stereotypes.h"
-//#include "core/temporal/trigger.h"
+//#include "core/types/trigger.h"
 //
 //class Allocator {
 //public:

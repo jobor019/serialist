@@ -1,7 +1,7 @@
 #ifndef TESTUTILS_MATCHERS_COMMON_H
 #define TESTUTILS_MATCHERS_COMMON_H
 
-#include <core/algo/facet.h>
+#include "core/types/facet.h"
 #include <core/collections/voices.h>
 
 #include "condition.h"

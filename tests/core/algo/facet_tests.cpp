@@ -3,7 +3,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <iostream>
-#include "core/algo/facet.h"
+#include "core/types/facet.h"
 
 using namespace serialist;
 

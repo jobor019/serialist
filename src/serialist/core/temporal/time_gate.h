@@ -4,7 +4,7 @@
 
 #include <optional>
 #include "core/temporal/transport.h"
-#include "core/temporal/time_point.h"
+#include "core/types/time_point.h"
 
 namespace serialist {
 

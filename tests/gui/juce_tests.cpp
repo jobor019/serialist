@@ -6,7 +6,7 @@
 //#include "core/generatives/auto_pulsator.h"
 ////#include "core/generator.h"
 //#include "midi_config.h"
-//#include "core/temporal/time_point.h"
+//#include "core/types/time_point.h"
 ////#include "midi_config.h"
 //
 //class PulsatorWrapper {

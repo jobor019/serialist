@@ -4,7 +4,7 @@
 
 #include <cmath>
 #include <optional>
-#include "time_point.h"
+#include "core/types/time_point.h"
 
 namespace serialist {
 

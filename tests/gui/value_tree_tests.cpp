@@ -2,7 +2,7 @@
 //#include <catch2/catch_test_macros.hpp>
 //#include <catch2/matchers/catch_matchers_floating_point.hpp>
 //#include "core/collections/voices.h"
-//#include "core/algo/facet.h"
+//#include "core/types/facet.h"
 //#include "gui/policies/policies.h"
 //#include "core/generatives/sequence.h"
 ////#include "core/parameter_policy.h"

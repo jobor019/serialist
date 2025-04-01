@@ -6,9 +6,9 @@
 #include "core/param/parameter_keys.h"
 #include "core/temporal/time_gate.h"
 #include "core/collections/voices.h"
-#include "core/algo/facet.h"
-#include "core/temporal/time_point.h"
-#include "core/temporal/trigger.h"
+#include "core/types/facet.h"
+#include "core/types/time_point.h"
+#include "core/types/trigger.h"
 #include "collections/multi_voiced.h"
 
 

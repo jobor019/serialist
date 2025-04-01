@@ -3,10 +3,10 @@
 
 #include <chrono>
 #include <cmath>
-#include "core/algo/fraction.h"
+#include "core/types/fraction.h"
 #include "core/utility/math.h"
-#include "meter.h"
-#include "core/temporal/time_point.h"
+#include "core/types/meter.h"
+#include "core/types/time_point.h"
 
 
 namespace serialist {

@@ -4,9 +4,9 @@
 
 #include "core/utility/math.h"
 #include "core/utility/optionals.h"
-#include "core/algo/facet.h"
+#include "core/types/facet.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
-#include "core/temporal/trigger.h"
+#include "core/types/trigger.h"
 #include "sequence.h"
 #include "variable.h"
 
