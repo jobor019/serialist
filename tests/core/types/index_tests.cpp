@@ -9,7 +9,7 @@ using namespace serialist;
 using namespace serialist::test;
 
 
-TEST_CASE("Index: index_op", "[index]") {
+TEST_CASE("Index: index_op (positive indices)", "[index]") {
     SECTION("Phase 0 and 1") {
         std::size_t size = GENERATE(1, 10, 100, 1000, 1e4, 1e5, 1e6, 1e7);
         CAPTURE(size);
@@ -62,6 +62,25 @@ TEST_CASE("Index: index_op", "[index]") {
             CAPTURE(i, cursor);
             REQUIRE(Index::index_op(cursor, size) == i);
         }
+    }
+
+    SECTION("Negative indices") {
+        std::size_t size = GENERATE(10, 100, 1000, 1e4, 1e5, 1e6);
+    }
+
+}
+
+
+TEST_CASE("Index: index_op (negative indices)", "[index]") {
+    SECTION("Position is floored, not rounded") {
+        std::size_t size = 10;
+        REQUIRE(Index::index_op(-1.0, size) == -10);
+        REQUIRE(Index::index_op(-0.01, size) == -1);
+        REQUIRE(Index::index_op(-0.1 + EPSILON, size) == -1);
+        REQUIRE(Index::index_op(-0.49, size) == -5);
+        REQUIRE(Index::index_op(-0.5 + EPSILON, size) == -5);
+        REQUIRE(Index::index_op(-0.51 + EPSILON, size) == -6);
+        REQUIRE(Index::index_op(-0.99, size) == -10);
     }
 }
 
