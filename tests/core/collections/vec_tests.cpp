@@ -388,9 +388,8 @@ TEST_CASE("Vec last", "[last]") {
     REQUIRE(result1.has_value());
     REQUIRE(result1.value() == 5);
 
-    Vec<int> emptyVec;
-    std::optional<int> result2 = emptyVec.last();
-    REQUIRE(result2.has_value());
+    Vec<int> empty;
+    REQUIRE(!empty.last().has_value());
 
     Vec single_value{1};
     std::optional<int> result3 = single_value.last();

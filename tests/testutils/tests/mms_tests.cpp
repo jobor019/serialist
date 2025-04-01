@@ -13,7 +13,7 @@ using NC = NoteComparator;
 TEST_CASE("testutils::mms midi note event comparisons", "[testutils][mms]") {
     auto c = Voices<Event>{
         {Event::note(60, 100, 1)},
-        {Event::note(62, 100, 1), Event::note(65, 0, 1)},
+        {Event::note(62, 100, 1), Event::note(65, 100, 1)},
         {},
         {Event::note(72, 100, 1)}
     };
@@ -23,8 +23,8 @@ TEST_CASE("testutils::mms midi note event comparisons", "[testutils][mms]") {
     REQUIRE_THAT(r, mms::voice_equals(1, {NC::on(62), NC::on(65)}));
     REQUIRE_THAT(r, mms::voice_equals(2, NC::empty()));
     REQUIRE_THAT(r, mms::voice_equals(3, NC::on(72)));
-
-    // Negative
+    //
+    // // Negative
     REQUIRE_THAT(r, !mms::voice_equals(0, NC::on(62)));
     REQUIRE_THAT(r, !mms::voice_equals(0, NC::empty()));
     REQUIRE_THAT(r, !mms::voice_equals(0, {NC::on(60), NC::on(62)}));

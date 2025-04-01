@@ -511,7 +511,17 @@ struct NoteComparator {
 
     /** compare all notes in a single voice (unordered) */
     static bool matches_chord(const Vec<NoteComparator>& comparators, const Voice<MidiNoteEvent>& voice) {
-        if (voice.empty() && (comparators.empty() || comparators.size() == 1 && comparators[0].is_empty())) return true;
+
+        // Valid: single empty comparator
+        if (comparators.empty() || comparators[0].is_empty()) {
+            return voice.empty();
+        }
+
+        // Invalid: multiple empty comparators or a mix of empty and non-empty
+        //          (a chord cannot "contain empty" while also containing non-empty)
+        if (comparators.any([](const NoteComparator& c) { return c.is_empty(); })) {
+            throw test_error("all comparators must be non-empty");
+        }
 
         auto matched_input = Vec<bool>::zeros(voice.size());
         auto matched_comparators = Vec<bool>::zeros(comparators.size());

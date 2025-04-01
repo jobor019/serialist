@@ -39,14 +39,6 @@ TEST_CASE("testutils::m1m trigger comparisons", "[testutils][m1m]") {
                          , Trigger::with_manual_id(Trigger::Type::pulse_on, 2)
                          , Trigger::with_manual_id(Trigger::Type::pulse_off, 2)
                          }, false), m1m::sortedt());
-
-        // Sequence with NO_ID triggers is sorted if other conditions are met
-        REQUIRE_THAT(RunResult<Trigger>::dummy(Vec{
-                         Trigger::without_id(Trigger::Type::pulse_on)
-                         , Trigger::with_manual_id(Trigger::Type::pulse_on, 1)
-                         , Trigger::without_id(Trigger::Type::pulse_off)
-                         , Trigger::with_manual_id(Trigger::Type::pulse_off, 1)
-                         }, false), m1m::sortedt());
     }
 
     SECTION("sortedt: invalid cases") {

@@ -92,7 +92,7 @@ public:
     }
 
 
-    Voices<T> voices() const {
+    const Voices<T>& voices() const {
         if (is_successful()) {
             return std::get<Voices<T>>(m_value);
         } else {
@@ -135,7 +135,8 @@ public:
     std::optional<std::size_t> trigger_id_of_type(Trigger::Type type) const {
         if (is_successful()) {
             const Trigger* last_trigger_of_type = nullptr;
-            for (const Trigger& trigger : voices()[0]) {
+            auto first_voice = voices()[0];
+            for (const Trigger& trigger : first_voice) {
                 if (trigger.is(type)) {
                     last_trigger_of_type = &trigger;
                 }
