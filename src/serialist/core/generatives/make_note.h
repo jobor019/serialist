@@ -1,7 +1,7 @@
 #ifndef SERIALISTLOOPER_MAKE_NOTE_H
 #define SERIALISTLOOPER_MAKE_NOTE_H
 
-#include "core/event.h"
+#include "core/types/event.h"
 #include "core/generative.h"
 #include "core/algo/pitch/notes.h"
 #include "core/types/trigger.h"

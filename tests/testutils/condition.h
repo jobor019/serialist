@@ -1,7 +1,7 @@
 #ifndef TESTUTILS_CONDITION_H
 #define TESTUTILS_CONDITION_H
 
-#include "event.h"
+#include "core/types/event.h"
 #include "results.h"
 #include "algo/pitch/notes.h"
 #include "param/string_serialization.h"

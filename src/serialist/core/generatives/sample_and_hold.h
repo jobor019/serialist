@@ -1,7 +1,7 @@
 #ifndef SERIALIST_SAMPLE_AND_HOLD_H
 #define SERIALIST_SAMPLE_AND_HOLD_H
 
-#include "core/event.h"
+#include "core/types/event.h"
 #include "core/generative.h"
 #include "core/types/trigger.h"
 #include "core/types/facet.h"

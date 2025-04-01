@@ -1,7 +1,7 @@
 #ifndef SERIALIST_PULSE_FILTER_H
 #define SERIALIST_PULSE_FILTER_H
 
-#include "core/event.h"
+#include "core/types/event.h"
 #include "core/generative.h"
 #include "core/types/trigger.h"
 #include "core/types/facet.h"
