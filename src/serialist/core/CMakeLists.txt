@@ -78,6 +78,7 @@ add_library(${CORE_NAME}
         generatives/phase_map.h
         generatives/pulse_filter.h
         generatives/sample_and_hold.h
+        types/index.h
 
 
 )

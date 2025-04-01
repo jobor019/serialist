@@ -287,6 +287,14 @@ public:
     bool operator==(double other) const { return utils::equals(m_phase, other, m_epsilon); }
     bool operator!=(double other) const { return !operator==(other); }
 
+
+    explicit operator std::string() const { return "Phase(" + std::to_string(m_phase) + ")"; }
+
+    friend std::ostream& operator<<(std::ostream& os, const Phase& phase) {
+        os << static_cast<std::string>(phase) << ")";
+        return os;
+    }
+
 private:
     double m_phase;
     double m_epsilon;

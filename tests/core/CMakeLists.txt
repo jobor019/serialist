@@ -33,6 +33,7 @@ add_executable(core_tests EXCLUDE_FROM_ALL
         generatives/phase_map_tests.cpp
         generatives/pulse_filter_test.cpp
         generatives/sample_and_hold_tests.cpp
+        types/index_tests.cpp
 
 )
 
