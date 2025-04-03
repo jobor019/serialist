@@ -20,9 +20,6 @@ public:
 
 
     static Index from_index_facet(double index) {
-        if (index < 0.0) {
-            return zero();
-        }
         return Index(static_cast<IndexType>(std::round(index)));
     }
 
@@ -30,20 +27,18 @@ public:
     static Index from_index_facet(const Facet& value) { return from_index_facet(value.get()); }
 
 
-    static Index from_phase(const Phase& phase, IndexType map_size) {
+    static Index from_phase(const Phase& phase, std::size_t map_size) {
         return from_phase_like(phase.get(), map_size);
     }
 
 
-    static Index from_phase_like(double phase_like, IndexType map_size) {
+    static Index from_phase_like(double phase_like, std::size_t map_size) {
         return Index(index_op(phase_like, map_size));
     }
 
 
     static IndexType index_op(double position, std::size_t map_size, double epsilon = EPSILON) {
-        if (map_size == 0) {
-            return 0; // technically invalid, but inconvenient to use std::nullopt only for this particular case
-        }
+        assert(map_size > 0);
 
         auto size =  static_cast<double>(map_size);
         auto [q, r] = utils::divmod<double>(position, 1.0);
@@ -51,6 +46,31 @@ public:
         auto q_part = static_cast<IndexType>(std::round(q) * size);
         return q_part + static_cast<IndexType>(std::floor(r * size + epsilon));
     }
+
+    bool operator==(const Index& other) const { return m_value == other.m_value; }
+    bool operator!=(const Index& other) const { return m_value != other.m_value; }
+    bool operator<(const Index& other) const { return m_value < other.m_value; }
+    bool operator>(const Index& other) const { return m_value > other.m_value; }
+    bool operator<=(const Index& other) const { return m_value <= other.m_value; }
+    bool operator>=(const Index& other) const { return m_value >= other.m_value; }
+
+    template<typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+    bool operator==(const T& other) const { return m_value == other; }
+
+    template<typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+    bool operator!=(const T& other) const { return m_value != other; }
+
+    template<typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+    bool operator<(const T& other) const { return m_value < other; }
+
+    template<typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+    bool operator>(const T& other) const { return m_value > other; }
+
+    template<typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+    bool operator<=(const T& other) const { return m_value <= other; }
+
+    template<typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+    bool operator>=(const T& other) const { return m_value >= other; }
 
 
     explicit operator std::string() const { return "Index(" + std::to_string(m_value) + ")"; }
@@ -63,34 +83,52 @@ public:
 
     IndexType get_raw() const { return m_value; }
     IndexType get_cont() const { return get_raw(); }
-    IndexType get_mod(IndexType size) const { return m_value % size; }
-    IndexType get_clip(IndexType size) const { return std::min(m_value, size - 1); }
+    IndexType get_mod(std::size_t size, bool invert = false) const {
+        assert(size > 0);
+        auto mod_result = m_value % static_cast<IndexType>(size);
+
+        return invert ? apply_inversion(mod_result, size) : mod_result;
+    }
+
+    IndexType get_clip(std::size_t size, bool invert = false) const {
+        assert(size > 0);
+
+        auto clip_result = std::min(m_value, static_cast<IndexType>(size - 1));
+        return invert ? apply_inversion(clip_result, size) : clip_result;
+    }
 
     IndexType get_octave(std::size_t size) const { return m_value / static_cast<IndexType>(size); }
 
 
-    std::optional<IndexType> get_pass(IndexType size) const {
+    std::optional<IndexType> get_pass(std::size_t size, bool invert = false) const {
         if (m_value >= 0 && m_value < size)
-            return m_value;
+            return invert ? apply_inversion(m_value, size) : m_value;
         return std::nullopt;
     }
 
 
-    std::optional<IndexType> get(IndexType size, Strategy strategy = Strategy::cont) const {
+    std::optional<IndexType> get(std::size_t size, Strategy strategy = Strategy::cont, bool invert = false) const {
         switch (strategy) {
             case Strategy::cont:
                 return get_cont();
             case Strategy::mod:
-                return get_mod(size);
+                return get_mod(size, invert);
             case Strategy::clip:
-                return get_clip(size);
+                return get_clip(size, invert);
             case Strategy::pass:
-                return get_pass(size);
+                return get_pass(size, invert);
         }
         throw std::runtime_error("Unknown strategy");
     }
 
+
+
 private:
+    static IndexType apply_inversion(IndexType applied_value, std::size_t size) {
+        return static_cast<IndexType>(size) - 1 - applied_value;
+    }
+
+
     IndexType m_value;
 
 };

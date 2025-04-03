@@ -83,20 +83,20 @@ TEST_CASE("Random::scramble", "[scramble]") {
 
     SECTION("scrambling an empty vector should result in an empty vector") {
         Vec<int> empty_vector;
-        Vec<int> scrambled = random.scramble(empty_vector);
+        Vec<int> scrambled = random.scrambled(empty_vector);
         REQUIRE(scrambled.empty());
     }
 
     SECTION("scrambling a vector of size 1 should result in the same vector") {
         Vec single_value_vector = {42};
-        Vec<int> scrambled = random.scramble(single_value_vector);
+        Vec<int> scrambled = random.scrambled(single_value_vector);
         REQUIRE(scrambled.size() == 1);
         REQUIRE(scrambled[0] == 42);
     }
 
     SECTION("scrambling a vector should produce a different order") {
         Vec original_vector = {1, 2, 3, 4, 5};
-        Vec<int> scrambled = random.scramble(original_vector);
+        Vec<int> scrambled = random.scrambled(original_vector);
 
         REQUIRE(scrambled.size() == original_vector.size());
 
