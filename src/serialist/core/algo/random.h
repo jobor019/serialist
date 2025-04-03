@@ -83,7 +83,7 @@ public:
                 result.extend(scrambled);
             }
             if (num_remaining > 0) {
-                result.append(scrambled.slice(0, num_remaining));
+                result.extend(scrambled.slice(0, num_remaining));
             }
 
             // Scramble the entire output to ensure that the order of the elements is full random rather than urn-like

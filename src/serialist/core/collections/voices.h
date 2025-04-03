@@ -388,6 +388,63 @@ public:
     }
 
 
+    /**
+     * Transposes the voices structure, creating a new Voices object where rows become columns and columns become rows.
+     * If a value doesn't exist in the original structure (because a voice is shorter than the maximum length),
+     * a std::nullopt is used in the transposed result.
+     *
+     * Example:
+     * Original:
+     * {
+     *   [1, 2, 3]
+     *   [],
+     *   [4, 5]
+     *   [6]
+     * }
+     *
+     * Transposed:
+     * {
+     *   [1, nullopt, 4, 6]
+     *   [2, nullopt, 5, nullopt]
+     *   [3, nullopt, nullopt, nullopt]
+     * }
+     *
+     * @return A transposed Voices<std::optional<T>> object
+     */
+    Voices<std::optional<T>> transpose() const {
+        if (is_empty_like()) {
+            return Voices<std::optional<T>>::empty_like();
+        }
+
+        std::size_t max_voice_length = 0;
+        for (const auto& voice : m_voices.vector()) {
+            max_voice_length = std::max(max_voice_length, voice.size());
+        }
+
+        if (max_voice_length == 0) {
+            return Voices<std::optional<T>>::empty_like();
+        }
+
+        auto transposed_voices = Vec<Voice<std::optional<T>>>::allocated(max_voice_length);
+
+        for (std::size_t i = 0; i < max_voice_length; ++i) {
+            auto voice = Voice<std::optional<T>>::allocated(m_voices.size());
+
+            for (std::size_t j = 0; j < m_voices.size(); ++j) {
+                if (j < m_voices.size() && i < m_voices[j].size()) {
+                    voice.append(m_voices[j][i]);
+                } else {
+                    voice.append(std::nullopt);
+                }
+            }
+
+            transposed_voices.append(std::move(voice));
+        }
+
+        return Voices<std::optional<T>>(std::move(transposed_voices));
+    }
+
+
     template<typename E = T, typename = std::enable_if_t<utils::is_printable_v<E> > >
     std::string to_string(std::optional<std::size_t> double_precision = std::nullopt) const {
         if (is_empty_like()) {

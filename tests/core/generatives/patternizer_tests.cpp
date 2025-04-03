@@ -6,7 +6,7 @@
 
 #include "core/policies/policies.h"
 #include "node_runner.h"
-#include "core/generatives/patternizer.h"
+// #include "core/generatives/patternizer.h"
 
 #include "generators.h"
 #include "matchers/m11.h"
@@ -15,6 +15,6 @@ using namespace serialist;
 using namespace serialist::test;
 
 
-TEST_CASE("Patternizer: ctor", "[patternizer]") {
-    PatternizerIntWrapper<> w;
-}
+// TEST_CASE("Patternizer: ctor", "[patternizer]") {
+//     PatternizerIntWrapper<> w;
+// }

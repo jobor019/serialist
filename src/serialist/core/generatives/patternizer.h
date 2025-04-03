@@ -231,7 +231,7 @@ struct PatternizerWrapper {
 
     ParameterHandler ph;
 
-    Sequence<Trigger> trigger{Keys::TRIGGER, ph};
+    Sequence<Trigger> trigger{param::properties::trigger, ph};
     Sequence<Facet, StoredType> chord{Keys::CHORD, ph};
     Sequence<Facet, FloatType> cursor{Keys::CURSOR, ph};
     Sequence<Facet, Mode> mode{Keys::MODE, ph, Voices<Mode>::singular(PatternizerT::DEFAULT_MODE)};

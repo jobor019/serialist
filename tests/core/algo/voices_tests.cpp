@@ -384,6 +384,44 @@ TEST_CASE("Partition for Voices") {
 }
 
 
+TEST_CASE("Voices::transpose") {
+    // Create a Voices object with the example structure
+    auto voice1 = Voice<int>{1, 2, 3};
+    auto voice2 = Voice<int>{};
+    auto voice3 = Voice<int>{4, 5};
+    auto voice4 = Voice<int>{6};
+
+    Voices<int> voices({voice1, voice2, voice3, voice4});
+
+    // Transpose the voices
+    auto transposed = voices.transpose();
+
+    // Check the structure of the transposed voices
+    REQUIRE(transposed.size() == 3); // Max length of original voices
+
+    // Check first transposed voice [1, nullopt, 4, 6]
+    REQUIRE(transposed[0].size() == 4);
+    REQUIRE(transposed[0][0].value() == 1);
+    REQUIRE_FALSE(transposed[0][1].has_value());
+    REQUIRE(transposed[0][2].value() == 4);
+    REQUIRE(transposed[0][3].value() == 6);
+
+    // Check second transposed voice [2, nullopt, 5, nullopt]
+    REQUIRE(transposed[1].size() == 4);
+    REQUIRE(transposed[1][0].value() == 2);
+    REQUIRE_FALSE(transposed[1][1].has_value());
+    REQUIRE(transposed[1][2].value() == 5);
+    REQUIRE_FALSE(transposed[1][3].has_value());
+
+    // Check third transposed voice [3, nullopt, nullopt, nullopt]
+    REQUIRE(transposed[2].size() == 4);
+    REQUIRE(transposed[2][0].value() == 3);
+    REQUIRE_FALSE(transposed[2][1].has_value());
+    REQUIRE_FALSE(transposed[2][2].has_value());
+    REQUIRE_FALSE(transposed[2][3].has_value());
+}
+
+
 TEST_CASE("Has changed performance", "[performance]") {
     Random random(0);
 
