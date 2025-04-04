@@ -46,23 +46,23 @@ TEST_CASE("PulseFilter: Pause mode", "[pulse_filter]") {
     SECTION("immediate") {
         // Initially open: passthrough
         auto [pulse_on1, id1] = single_pulse_on();
-        w.trigger.set_values(pulse_on1);
+        trigger.set_values(pulse_on1);
         REQUIRE_THAT(runner.step(), m1m::equalst_on(id1));
-        w.trigger.set_values(NO_TRIGGER); // need to reset inbound
+        trigger.set_values(NO_TRIGGER); // need to reset inbound
 
         // Queue another trigger
         auto [pulse_on2, id2] = single_pulse_on();
-        w.trigger.set_values(pulse_on2);
+        trigger.set_values(pulse_on2);
         REQUIRE_THAT(runner.step(), m1m::equalst_on(id2));
 
         // Intermediate step: no output
-        w.trigger.set_values(NO_TRIGGER);
+        trigger.set_values(NO_TRIGGER);
         REQUIRE_THAT(runner.step(), m1m::emptyt());
 
         // release pulse2
-        w.trigger.set_values(single_pulse_off(id2));
+        trigger.set_values(single_pulse_off(id2));
         REQUIRE_THAT(runner.step(), m1m::equalst_off(id2));
-        w.trigger.set_values(NO_TRIGGER);
+        trigger.set_values(NO_TRIGGER);
 
         // Immediately output any remaining pulse_offs (id1) on first closed step
         filter_state.set_values(CLOSED);
@@ -70,14 +70,70 @@ TEST_CASE("PulseFilter: Pause mode", "[pulse_filter]") {
 
         // Ignore any further pulse_ons & pulse_offs until we're back open
         auto [pulse_on3, id3] = single_pulse_on();
-        w.trigger.set_values(pulse_on3);
+        trigger.set_values(pulse_on3);
         REQUIRE_THAT(runner.step(), m1m::emptyt());
-        w.trigger.set_values(single_pulse_off(id3));
+        trigger.set_values(single_pulse_off(id3));
         REQUIRE_THAT(runner.step(), m1m::emptyt());
-        w.trigger.set_values(NO_TRIGGER);
+        trigger.set_values(NO_TRIGGER);
 
         // On open: no lingering pulses
         filter_state.set_values(OPEN);
         REQUIRE_THAT(runner.step(), m1m::emptyt());
+    }
+}
+
+
+TEST_CASE("PulseFilter: Sustain mode", "[pulse_filter]") {
+    PulseFilterWrapper<> w;
+    auto& trigger = w.trigger;
+    auto& filter_state = w.filter_state;
+
+    w.mode.set_value(PulseFilter::Mode::sustain);
+
+    auto runner = NodeRunner{&w.pulse_filter_node};
+
+    filter_state.set_values(OPEN);
+
+    SECTION("immediate") {
+        // Initially open: passthrough
+        auto [pulse_on1, id1] = single_pulse_on();
+        trigger.set_values(pulse_on1);
+        REQUIRE_THAT(runner.step(), m1m::equalst_on(id1));
+        trigger.set_values(NO_TRIGGER); // need to reset inbound
+
+        // Queue another trigger
+        auto [pulse_on2, id2] = single_pulse_on();
+        trigger.set_values(pulse_on2);
+        REQUIRE_THAT(runner.step(), m1m::equalst_on(id2));
+
+        // Intermediate step: no output
+        trigger.set_values(NO_TRIGGER);
+        REQUIRE_THAT(runner.step(), m1m::emptyt());
+
+        // release pulse2
+        trigger.set_values(single_pulse_off(id2));
+        REQUIRE_THAT(runner.step(), m1m::equalst_off(id2));
+        trigger.set_values(NO_TRIGGER);
+
+        // Close filter: no particular action
+        filter_state.set_values(CLOSED);
+        REQUIRE_THAT(runner.step(), m1m::emptyt());
+
+        // Queue pulse_off for id1: sustain until opened again
+        trigger.set_values(single_pulse_off(id1));
+        REQUIRE_THAT(runner.step(), m1m::emptyt());
+        trigger.set_values(NO_TRIGGER);
+
+        // Ignore any further pulse_ons & pulse_offs until we're back open
+        auto [pulse_on3, id3] = single_pulse_on();
+        trigger.set_values(pulse_on3);
+        REQUIRE_THAT(runner.step(), m1m::emptyt());
+        trigger.set_values(single_pulse_off(id3));
+        REQUIRE_THAT(runner.step(), m1m::emptyt());
+        trigger.set_values(NO_TRIGGER);
+
+        // On open: output lingering pulse_offs
+        filter_state.set_values(OPEN);
+        REQUIRE_THAT(runner.step(), m1m::equalst_off(id1));
     }
 }

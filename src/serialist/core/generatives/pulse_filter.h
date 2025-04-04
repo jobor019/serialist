@@ -59,12 +59,14 @@ public:
         }
 
         // Closed in this cycle
+        // ReSharper disable once CppDFAConstantConditions
         if (!m_closed && is_closed) {
             m_closed = is_closed;
             return close(std::move(triggers));
         }
 
         // Opened in this cycle
+        // ReSharper disable once CppDFAConstantConditions
         if (m_closed && !is_closed) {
             m_closed = is_closed;
             return open(std::move(triggers));
@@ -185,7 +187,7 @@ private:
 
 
     Voice<Trigger> flush_triggered() {
-        return ids_to_pulse_offs(m_pulses.flush([](const PulseIdentifier& p) { return p.triggered; }));
+        return ids_to_pulse_offs(m_pulses.flush([](const PulseIdentifier& p) { return !p.triggered; }));
     }
 
 

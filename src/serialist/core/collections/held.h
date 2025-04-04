@@ -41,6 +41,7 @@ public:
     }
 
 
+    /** Flushed all elements for which `f` returns false */
     Voice<T> flush(std::function<bool(const T&)> f) override {
         return m_held.filter_drain(f);
     }
