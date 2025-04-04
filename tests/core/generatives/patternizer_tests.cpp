@@ -26,8 +26,8 @@ TEST_CASE("Patternizer: basic operation (temp)", "[patternizer]") {
     w.chord.set_values(Voices<int>::singular({10, 11, 12, 13}));
 
     w.mode.set_values(Mode::from_bottom);
-    w.cursor.set_values(Voices<double>::singular({0, 2}));
-    w.cursor_is_index.set_value(true);
+    w.pattern.set_values(Voices<double>::singular({0, 2}));
+    w.pattern_uses_index.set_value(true);
 
     w.trigger.set_values(Trigger::pulse_on());
 

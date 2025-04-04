@@ -30,7 +30,7 @@ public:
 
     static constexpr Mode DEFAULT_MODE = Mode::from_bottom;
     static constexpr auto DEFAULT_STRATEGY = Index::Strategy::mod;
-    static constexpr bool DEFAULT_CURSOR_IS_INDEX = true;
+    static constexpr bool DEFAULT_PATTERN_USES_INDEX = true;
 
 
     Voice<T> process(const Voice<T>& v
@@ -124,10 +124,10 @@ class PatternizerNode : public NodeBase<T> {
 public:
     struct Keys {
         static const inline std::string CHORD = "chord";
-        static const inline std::string CURSOR = "cursor";
+        static const inline std::string PATTERN = "pattern";
         static const inline std::string MODE = "mode";
         static const inline std::string STRATEGY = "strategy";
-        static const inline std::string CURSOR_IS_INDEX = "cursor_is_index";
+        static const inline std::string PATTERN_USES_INDEX = "pattern_uses_index";
         static const inline std::string OCTAVE = "octave";
 
         static const inline std::string CLASS_NAME = "patternizer";
@@ -138,20 +138,20 @@ public:
                     , ParameterHandler& parent
                     , Node<Trigger>* trigger = nullptr
                     , Node<T>* chord = nullptr
-                    , Node<Facet>* cursor = nullptr
+                    , Node<Facet>* pattern = nullptr
                     , Node<Facet>* mode = nullptr
                     , Node<Facet>* strategy = nullptr
-                    , Node<Facet>* cursor_is_index = nullptr
+                    , Node<Facet>* pattern_uses_index = nullptr
                     , Node<T>* octave = nullptr
                     , Node<Facet>* enabled = nullptr
                     , Node<Facet>* num_voices = nullptr)
         : NodeBase<T>(id, parent, enabled, num_voices, Keys::CLASS_NAME)
         , m_trigger(NodeBase<T>::add_socket(param::properties::trigger, trigger))
         , m_chord(NodeBase<T>::add_socket(Keys::CHORD, chord))
-        , m_cursor(NodeBase<T>::add_socket(Keys::CURSOR, cursor))
+        , m_pattern(NodeBase<T>::add_socket(Keys::PATTERN, pattern))
         , m_mode(NodeBase<T>::add_socket(Keys::MODE, mode))
         , m_strategy(NodeBase<T>::add_socket(Keys::STRATEGY, strategy))
-        , m_cursor_is_index(NodeBase<T>::add_socket(Keys::CURSOR_IS_INDEX, cursor_is_index))
+        , m_pattern_uses_index(NodeBase<T>::add_socket(Keys::PATTERN_USES_INDEX, pattern_uses_index))
         , m_octave(NodeBase<T>::add_socket(Keys::OCTAVE, octave)) {}
 
 
@@ -160,7 +160,7 @@ public:
             return m_current_value;
         }
 
-        if (!NodeBase<T>::is_enabled() || !m_trigger.is_connected() || !m_chord.is_connected() || !m_cursor.
+        if (!NodeBase<T>::is_enabled() || !m_trigger.is_connected() || !m_chord.is_connected() || !m_pattern.
             is_connected()) {
             m_current_value = Voices<T>::empty_like();
             return m_current_value;
@@ -170,28 +170,26 @@ public:
         if (trigger.is_empty_like()) { return m_current_value; }
 
         auto chord = m_chord.process();
-        auto cursor = m_cursor.process();
+        auto pattern = m_pattern.process();
         auto mode = m_mode.process();
         auto strategy = m_strategy.process();
-        auto cursor_is_index = m_cursor_is_index.process();
+        auto pattern_uses_index = m_pattern_uses_index.process();
         auto octave = m_octave.process();
 
-        auto num_voices = NodeBase<T>::voice_count(trigger.size(), chord.size(), cursor.size(), mode.size(), octave.size());
+        auto num_voices = NodeBase<T>::voice_count(trigger.size(), chord.size(), pattern.size(), mode.size(), octave.size());
 
         if (num_voices != m_patternizers.size())
             m_patternizers.resize(num_voices);
 
         auto triggers = trigger.adapted_to(num_voices);
         auto chords = chord.adapted_to(num_voices);
-
-        // Note: Patternizer supports (expects) multiple cursors. We should not use firsts() here.
-        auto cursors = cursor.adapted_to(num_voices);
+        auto patterns = pattern.adapted_to(num_voices);
 
         auto modes = mode.adapted_to(num_voices).firsts_or(Patternizer<T>::DEFAULT_MODE);
         auto octaves = octave.adapted_to(num_voices).firsts();
 
         auto current_strategy = mode.first_or(Patternizer<T>::DEFAULT_STRATEGY);
-        bool is_index = cursor_is_index.first_or(Patternizer<T>::DEFAULT_CURSOR_IS_INDEX);
+        bool is_index = pattern_uses_index.first_or(Patternizer<T>::DEFAULT_PATTERN_USES_INDEX);
 
         m_current_value.adapted_to(num_voices);
         for (size_t i = 0; i < num_voices; ++i) {
@@ -199,7 +197,7 @@ public:
                 if (is_index) {
                     m_current_value[i] = m_patternizers[i].process(
                         chords[i]
-                        , cursors[i].template as_type<Index>([](const Facet& f) { return Index::from_index_facet(f); })
+                        , patterns[i].template as_type<Index>([](const Facet& f) { return Index::from_index_facet(f); })
                         , modes[i]
                         , octaves[i]
                         , current_strategy
@@ -207,7 +205,7 @@ public:
                 } else {
                     m_current_value[i] = m_patternizers[i].process(
                         chords[i]
-                        , cursors[i].template as_type<double>()
+                        , patterns[i].template as_type<double>()
                         , modes[i]
                         , octaves[i]
                         , current_strategy
@@ -222,11 +220,11 @@ public:
 private:
     Socket<Trigger>& m_trigger;
     Socket<T>& m_chord;
-    Socket<Facet>& m_cursor;
+    Socket<Facet>& m_pattern;
 
     Socket<Facet>& m_mode;
     Socket<Facet>& m_strategy;
-    Socket<Facet>& m_cursor_is_index;
+    Socket<Facet>& m_pattern_uses_index;
     Socket<T>& m_octave;
 
     MultiVoiced<Patternizer<T>, T> m_patternizers;
@@ -247,10 +245,10 @@ struct PatternizerWrapper {
 
     Sequence<Trigger> trigger{param::properties::trigger, ph};
     Sequence<OutputType, StoredType> chord{Keys::CHORD, ph};
-    Sequence<Facet, FloatType> cursor{Keys::CURSOR, ph};
+    Sequence<Facet, FloatType> pattern{Keys::PATTERN, ph};
     Sequence<Facet, Mode> mode{Keys::MODE, ph, Voices<Mode>::singular(PatternizerT::DEFAULT_MODE)};
     Variable<Facet, Index::Strategy> strategy{Keys::STRATEGY, ph, PatternizerT::DEFAULT_STRATEGY};
-    Variable<Facet, bool> cursor_is_index{Keys::CURSOR_IS_INDEX, ph, PatternizerT::DEFAULT_CURSOR_IS_INDEX};
+    Variable<Facet, bool> pattern_uses_index{Keys::PATTERN_USES_INDEX, ph, PatternizerT::DEFAULT_PATTERN_USES_INDEX};
     Sequence<OutputType, StoredType> octave{Keys::OCTAVE, ph};
 
     Sequence<Facet, bool> enabled{param::properties::enabled, ph, Voices<bool>::singular(true)};
@@ -260,10 +258,10 @@ struct PatternizerWrapper {
                                                  , ph
                                                  , &trigger
                                                  , &chord
-                                                 , &cursor
+                                                 , &pattern
                                                  , &mode
                                                  , &strategy
-                                                 , &cursor_is_index
+                                                 , &pattern_uses_index
                                                  , &octave
                                                  , &enabled
                                                  , &num_voices
