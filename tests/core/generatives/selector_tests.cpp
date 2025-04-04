@@ -1,7 +1,7 @@
 #include <iostream>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include "core/generatives/selector.h"
+#include "core/generatives/LEGACY_selector.h"
 #include "core/types/time_point.h"
 
 using namespace serialist;

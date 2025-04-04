@@ -42,7 +42,7 @@ add_library(${CORE_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/pulse_filter.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/random_pulsator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/sample_and_hold.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/selector.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/LEGACY_selector.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/sequence.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/transform.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/unit_pulse.h
