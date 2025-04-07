@@ -10,7 +10,7 @@
 //#include "core/algo/pitch/notes.h"
 //#include "core/algo/classifiers.h"
 //#include "core/algo/histogram.h"
-//#include "core/algo/random.h"
+//#include "core/algo/random/random.h"
 //#include "core/algo/partial_note.h"
 //#include "core/generatives/stereotypes/base_stereotypes.h"
 //#include "core/types/trigger.h"

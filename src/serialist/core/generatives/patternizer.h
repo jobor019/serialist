@@ -3,7 +3,7 @@
 
 #include "sequence.h"
 #include "variable.h"
-#include "algo/random.h"
+#include "core/algo/random/random.h"
 #include "policies/parameter_policy.h"
 #include "policies/socket_policy.h"
 #include "stereotypes/base_stereotypes.h"

@@ -2,7 +2,6 @@ SET(CORE_NAME core)
 
 add_library(${CORE_NAME}
         INTERFACE # TODO: Temporary - shouldn't be a header-only library in the end
-        ${CMAKE_CURRENT_SOURCE_DIR}/temporal/equal_duration_sampling.h
         ${CMAKE_CURRENT_SOURCE_DIR}/temporal/filters.h
         ${CMAKE_CURRENT_SOURCE_DIR}/temporal/phase_accumulator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/temporal/phase_pulse.h
@@ -13,11 +12,13 @@ add_library(${CORE_NAME}
 
         ${CMAKE_CURRENT_SOURCE_DIR}/algo/pitch/notes.h
 
+        ${CMAKE_CURRENT_SOURCE_DIR}/algo/random/equal_duration_sampling.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/algo/random/random.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/algo/random/weighted_random.h
+
         ${CMAKE_CURRENT_SOURCE_DIR}/algo/classifiers.h
         ${CMAKE_CURRENT_SOURCE_DIR}/algo/exponential.h
         ${CMAKE_CURRENT_SOURCE_DIR}/algo/histogram.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/algo/random.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/algo/weighted_random.h
 
         ${CMAKE_CURRENT_SOURCE_DIR}/collections/circular_buffer.h
         ${CMAKE_CURRENT_SOURCE_DIR}/collections/held.h

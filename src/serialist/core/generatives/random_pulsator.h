@@ -10,7 +10,7 @@
 //#include "core/param/socket_handler.h"
 //#include "core/param/parameter_keys.h"
 //#include "core/generatives/stereotypes/base_stereotypes.h"
-//#include "core/temporal/equal_duration_sampling.h"
+//#include "core/algo/random/equal_duration_sampling.h"
 //#include "core/temporal/jump_gate.h"
 //#include "core/algo/voice/multi_voiced.h"
 //#include "sequence.h"

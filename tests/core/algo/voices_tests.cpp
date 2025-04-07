@@ -3,7 +3,7 @@
 
 #include "core/collections/voices.h"
 #include "core/types/facet.h"
-#include "core/algo/random.h"
+#include "core/algo/random/random.h"
 
 using namespace serialist;
 

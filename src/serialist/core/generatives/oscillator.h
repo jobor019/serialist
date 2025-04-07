@@ -2,7 +2,7 @@
 #ifndef SERIALISTLOOPER_OSCILLATOR_H
 #define SERIALISTLOOPER_OSCILLATOR_H
 
-#include "core/algo/random.h"
+#include "core/algo/random/random.h"
 #include "core/temporal/filters.h"
 #include "core/temporal/phase_accumulator.h"
 #include "core/types/facet.h"

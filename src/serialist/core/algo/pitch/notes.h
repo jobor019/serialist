@@ -6,7 +6,7 @@
 #include "core/collections/vec.h"
 #include "core/collections/voices.h"
 #include "core/collections/held.h"
-#include "core/algo/random.h"
+#include "core/algo/random/random.h"
 #include "core/utility/math.h"
 
 namespace serialist {

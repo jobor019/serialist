@@ -4,7 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "core/algo/random.h"
+#include "core/algo/random/random.h"
 #include "core/collections/vec.h"
 
 using namespace serialist;

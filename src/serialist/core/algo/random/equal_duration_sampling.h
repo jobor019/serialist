@@ -3,7 +3,7 @@
 #define SERIALISTLOOPER_EQUAL_DURATION_SAMPLING_H
 
 #include <cassert>
-#include "core/algo/random.h"
+#include "core/algo/random/random.h"
 
 namespace serialist {
 

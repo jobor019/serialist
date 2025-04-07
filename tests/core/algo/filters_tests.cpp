@@ -5,7 +5,7 @@
 #include <iostream>
 #include "core/temporal/filters.h"
 #include "core/collections/vec.h"
-#include "core/algo/random.h"
+#include "core/algo/random/random.h"
 #include "core/utility/math.h"
 
 using namespace serialist;

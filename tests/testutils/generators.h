@@ -4,7 +4,7 @@
 
 #include "core/types/facet.h"
 
-#include "algo/random.h"
+#include "core/algo/random/random.h"
 #include "core/types/time_point.h"
 
 

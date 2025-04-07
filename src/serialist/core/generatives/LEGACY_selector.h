@@ -9,7 +9,7 @@
 #include "core/policies/policies.h"
 #include "core/generative.h"
 #include "core/temporal/transport.h"
-#include "core/algo/random.h"
+#include "core/algo/random/random.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/collections/multi_voiced.h"
 #include "core/types/trigger.h"

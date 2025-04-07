@@ -1,7 +1,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include "core/temporal/equal_duration_sampling.h"
+#include "core/algo/random/equal_duration_sampling.h"
 #include "core/algo/histogram.h"
 
 using namespace serialist;
