@@ -21,6 +21,9 @@ public:
         recompute_coefficients();
     }
 
+    double next(double uniform_rand) const {
+        return inverse_cdf(uniform_rand);
+    }
 
     double next() {
         return inverse_cdf(m_random.next());

@@ -39,6 +39,14 @@ public:
     }
 
 
+    std::size_t choice(std::size_t max_index) {
+        if (max_index == 0) {
+            throw std::invalid_argument("Cannot choose from empty values");
+        }
+
+        return static_cast<std::size_t>(std::floor(m_distribution(m_rng) * static_cast<double>(max_index)));
+    }
+
     /**
      * Choose a single unweighted random element from `values`.
      *
@@ -50,7 +58,7 @@ public:
             throw std::invalid_argument("Cannot choose from empty values");
         }
 
-        return values[static_cast<std::size_t>(std::floor(m_distribution(m_rng) * static_cast<double>(values.size())))];
+        return values[choice(values.size())];
     }
 
 
@@ -114,6 +122,13 @@ public:
         Vec<T> scrambled = values;
         std::shuffle(scrambled.begin(), scrambled.end(), m_rng);
         return scrambled;
+    }
+
+
+    template<typename T>
+    Vec<T> scrambled(Vec<T>&& values) {
+        std::shuffle(values.begin(), values.end(), m_rng);
+        return values;
     }
 
 

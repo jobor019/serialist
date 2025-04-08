@@ -263,6 +263,8 @@ private:
         m_oscillators.set(&Oscillator::set_waveform
                           , NodeBase<Facet>::adapted(m_waveform.process(), num_voices, Waveform::DEFAULT_TYPE));
 
+        // TODO: This has_changed is completely redundant: we've already called process() in get_voice_count,
+        //       so has_changed is always false here
         if (resized || m_period.has_changed() || m_period_type.has_changed()) {
             auto period = m_period.process().adapted_to(num_voices).firsts_or(PaParameters::DEFAULT_PERIOD);
             auto period_type = m_period_type.process().first_or(PaParameters::DEFAULT_PERIOD_TYPE);

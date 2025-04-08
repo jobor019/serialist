@@ -35,6 +35,7 @@ add_executable(core_tests EXCLUDE_FROM_ALL
         generatives/sample_and_hold_tests.cpp
         types/index_tests.cpp
         generatives/patternizer_tests.cpp
+        generatives/random_node_tests.cpp
 
 )
 

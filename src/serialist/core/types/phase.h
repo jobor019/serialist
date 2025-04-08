@@ -27,7 +27,7 @@ public:
     static Phase zero(double epsilon = EPSILON) { return Phase(0.0, epsilon); }
 
     /** returns the largest valid value in the range [0, 1) given an epsilon */
-    static Phase one(double epsilon = EPSILON) { return Phase(std::nextafter(1.0 - epsilon, 0.0), epsilon); }
+    static Phase one(double epsilon = EPSILON) { return Phase(max(epsilon), epsilon); }
 
 
     static double phase_mod(double x, double epsilon = EPSILON) {
@@ -41,7 +41,11 @@ public:
 
 
     static double max(double epsilon = EPSILON) {
-        return std::nextafter(1.0 - epsilon, 0.0);
+        return std::nextafter(wrap_point(epsilon), 0.0);
+    }
+
+    static double wrap_point(double epsilon = EPSILON) {
+        return 1.0 - epsilon;
     }
 
     static double clip(double x, double epsilon = EPSILON) {
