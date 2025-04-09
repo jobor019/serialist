@@ -20,6 +20,11 @@ TEST_CASE("Index: index_op (positive indices)", "[index]") {
         REQUIRE(Index::index_op(Phase::one().get(), size) == size - 1);
     }
 
+    SECTION("Container size 0 yields 0") {
+        double position = GENERATE(-10.0, -1.0, -0.5, 0.0, 0.5, 1.0, 5.0, 1.0);
+        REQUIRE(Index::index_op(position, 0) == 0);
+    }
+
     SECTION("Position is floored, not rounded") {
         std::size_t size = 10;
         REQUIRE(Index::index_op(0.0, size) == 0);
