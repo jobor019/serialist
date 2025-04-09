@@ -61,7 +61,6 @@ public:
     }
 
 
-    [[maybe_unused]]
     double pdf(double x) const {
         if (x < m_lower_bound || x > m_upper_bound)
             return 0.0;
@@ -70,7 +69,6 @@ public:
     }
 
 
-    [[maybe_unused]]
     double inverse_cdf(double u) const {
         if (u < 0.0 || u >= 1.0) {
             throw std::invalid_argument("Value must be in (0, 1)");
@@ -79,6 +77,9 @@ public:
         return 1 / m_log_q * std::log(u * m_k_inv + 0.5);
     }
 
+
+    double get_lower_bound() const { return m_lower_bound; }
+    double get_upper_bound() const { return m_upper_bound; }
 
 private:
 

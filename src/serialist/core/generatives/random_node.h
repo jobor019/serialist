@@ -28,18 +28,23 @@ public:
         , sequential   // return every element once (over several time steps) before allowing repeats
     };
 
+    static constexpr std::size_t NO_QUANTIZATION = 0;
+
     static constexpr auto DEFAULT_MODE = Mode::uniform;
     static constexpr auto DEFAULT_REPETITIONS = AvoidRepetitions::off;
     static constexpr std::size_t DEFAULT_CHORD_SIZE = 1;
-    static constexpr auto DEFAULT_USE_QUANTIZATION = false;
-    static constexpr std::size_t DEFAULT_NUM_QUANTIZATION_STEPS = 4;
-    static constexpr auto DEFAULT_MAX_BROWNIAN_STEP = 0.25;
+    static constexpr std::size_t DEFAULT_QUANTIZATION = NO_QUANTIZATION;
+    static constexpr auto DEFAULT_BROWNIAN_STEP = 0.05;
+    static constexpr auto DEFAULT_EXP_LOWER_BOUND = 0.01;
+
+    static constexpr auto BROWNIAN_START_VALUE = 0.0;
+    static constexpr auto EXP_LB_LIMIT = 1e-6;
 
 
     explicit RandomHandler(std::optional<int> seed = std::nullopt, double epsilon = Phase::EPSILON)
         : m_max(Phase::wrap_point(epsilon))
         , m_random(seed)
-        , m_exp(0, m_max, seed) {}
+        , m_exp(DEFAULT_EXP_LOWER_BOUND, m_max, seed) {}
 
 
     Voice<double> process(std::size_t chord_size) {
@@ -63,11 +68,16 @@ public:
     void set_mode(Mode mode) { m_mode = mode; }
     void set_repetition_strategy(AvoidRepetitions strategy) { m_repetition_strategy = strategy; }
     void set_max_brownian_step(double step) { m_max_brownian_step = std::max(0.0, step); }
+    void set_quantization_steps(std::size_t steps) { m_quantization_steps = steps; }
 
+    void set_exp_lower_bound(double lower_bound) {
+        auto clipped = utils::clip(lower_bound, EXP_LB_LIMIT, m_max);
 
-    void set_quantization_steps(std::optional<std::size_t> steps) {
-        assert(!steps || *steps > 0);
-        m_quantization_steps = steps;
+        if (utils::equals(m_exp_lower_bound, clipped))
+            return;
+
+        m_exp_lower_bound = clipped;
+        m_exp.set_lower_bound(m_exp_lower_bound);
     }
 
 
@@ -103,8 +113,8 @@ private:
 
 
     void reset_choices() {
-        if (*m_quantization_steps) {
-            m_current_choices = all_choices(m_quantization_steps->value());
+        if (use_quantization()) {
+            m_current_choices = all_choices(*m_quantization_steps);
         } else {
             m_current_choices.clear();
         }
@@ -117,14 +127,17 @@ private:
 
 
     void resize_previous_values(std::size_t new_size) {
+        if (m_previous_values.empty()) {
+            m_previous_values.append(BROWNIAN_START_VALUE);
+        }
         m_previous_values.resize_fold(new_size);
     }
 
 
     Voice<double> uniform(std::size_t chord_size) {
-        if (*m_quantization_steps && *m_quantization_steps > 1) {
+        if (use_quantization() && *m_quantization_steps > 1) {
             if (*m_repetition_strategy != AvoidRepetitions::off && chord_size >= *m_quantization_steps) {
-                return m_random.scrambled(all_choices(m_quantization_steps->value()));
+                return m_random.scrambled(all_choices(*m_quantization_steps));
             }
 
             if (*m_repetition_strategy == AvoidRepetitions::chordal) {
@@ -164,7 +177,7 @@ private:
 
         auto r = Voice<double>::allocated(chord_size);
         for (std::size_t i = 0; i < chord_size; ++i) {
-            r.append(next_choice());
+            r.append(next_weighted_choice());
         }
         return r;
     }
@@ -184,7 +197,7 @@ private:
         }
 
         std::optional<std::pair<std::size_t, double>> discrete_step;
-        if (*m_quantization_steps) {
+        if (use_quantization()) {
             discrete_step = brownian_discrete_step();
         } else {
             discrete_step = std::nullopt;
@@ -206,8 +219,8 @@ private:
 
 
     double next_choice() {
-        if (*m_repetition_strategy == AvoidRepetitions::off && *m_quantization_steps) {
-            auto q = m_quantization_steps->value();
+        if (*m_repetition_strategy == AvoidRepetitions::off && use_quantization()) {
+            auto q = *m_quantization_steps;
             return scale_to_max(m_random.choice(q), q);
         }
 
@@ -282,9 +295,9 @@ private:
 
 
     std::pair<std::size_t, double> brownian_discrete_step() const {
-        assert(*m_quantization_steps);
+        assert(*m_quantization_steps > 0);
 
-        double step_size = m_max / static_cast<double>(m_quantization_steps->value());
+        double step_size = m_max / static_cast<double>(*m_quantization_steps);
         if (m_max_brownian_step < step_size) {
             return {1u, step_size};
         }
@@ -293,6 +306,9 @@ private:
         auto num_steps = static_cast<std::size_t>(std::round(max_step / step_size));
         return {num_steps, max_step};
     }
+
+
+    bool use_quantization() const { return *m_quantization_steps > 0; }
 
 
     double quantize(double v, double step_size, bool round = false) const {
@@ -313,9 +329,10 @@ private:
 
 
     WithChangeFlag<AvoidRepetitions> m_repetition_strategy{DEFAULT_REPETITIONS}; // does not apply to Mode::brownian
-    WithChangeFlag<std::optional<std::size_t>> m_quantization_steps{std::nullopt}; // does not apply to Mode::weighted
+    WithChangeFlag<std::size_t> m_quantization_steps{DEFAULT_QUANTIZATION}; // does not apply to Mode::weighted
 
-    double m_max_brownian_step = DEFAULT_MAX_BROWNIAN_STEP; // only applies to Mode::brownian
+    double m_max_brownian_step = DEFAULT_BROWNIAN_STEP; // only applies to Mode::brownian
+    double m_exp_lower_bound = DEFAULT_EXP_LOWER_BOUND;
     Vec<double> m_weights; // only applies to Mode::weighted
 
 
@@ -335,9 +352,9 @@ public:
         static const inline std::string MODE = "mode";
         static const inline std::string REPETITION_STRATEGY = "repetition_strategy";
         static const inline std::string CHORD_SIZE = "chord_size";
-        static const inline std::string QUANTIZE = "quantize";
-        static const inline std::string NUM_QUANTIZATION_STEPS = "num_quantization_steps";
+        static const inline std::string QUANTIZATION = "quantization";
         static const inline std::string MAX_BROWNIAN_STEP = "max_brownian_step";
+        static const inline std::string EXP_LOWER_BOUND = "exp_lower_bound";
         static const inline std::string WEIGHTS = "weights";
 
         static const inline std::string CLASS_NAME = "random";
@@ -350,9 +367,9 @@ public:
                , Node<Facet>* mode = nullptr
                , Node<Facet>* repetition_strategy = nullptr
                , Node<Facet>* chord_size = nullptr
-               , Node<Facet>* quantize = nullptr
                , Node<Facet>* num_quantization_steps = nullptr
                , Node<Facet>* max_brownian_step = nullptr
+               , Node<Facet>* exp_lower_bound = nullptr
                , Node<Facet>* weights = nullptr
                , Node<Facet>* enabled = nullptr
                , Node<Facet>* num_voices = nullptr
@@ -362,9 +379,9 @@ public:
         , m_mode(add_socket(Keys::MODE, mode))
         , m_repetition_strategy(add_socket(Keys::REPETITION_STRATEGY, repetition_strategy))
         , m_chord_size(add_socket(Keys::CHORD_SIZE, chord_size))
-        , m_quantize(add_socket(Keys::QUANTIZE, quantize))
-        , m_num_quantization_steps(add_socket(Keys::NUM_QUANTIZATION_STEPS, num_quantization_steps))
+        , m_num_quantization_steps(add_socket(Keys::QUANTIZATION, num_quantization_steps))
         , m_max_brownian_step(add_socket(Keys::MAX_BROWNIAN_STEP, max_brownian_step))
+        , m_exp_lower_bound(add_socket(Keys::EXP_LOWER_BOUND, exp_lower_bound))
         , m_weights(add_socket(Keys::WEIGHTS, weights)) {}
 
 
@@ -417,15 +434,16 @@ private:
     void update_parameters(std::size_t num_voices, bool resized) {
         auto mode = m_mode.process().first_or(RandomHandler::DEFAULT_MODE);
         auto reps = m_repetition_strategy.process().first_or(RandomHandler::DEFAULT_REPETITIONS);
-        auto quantize = m_quantize.process().first_or(RandomHandler::DEFAULT_USE_QUANTIZATION);
-        auto steps = m_num_quantization_steps.process(num_voices).firsts<std::size_t>();
-        auto brownian_step = m_max_brownian_step.process().first_or(RandomHandler::DEFAULT_MAX_BROWNIAN_STEP);
+        auto steps = m_num_quantization_steps.process(num_voices).firsts_or(RandomHandler::DEFAULT_QUANTIZATION);
+        auto brownian_step = m_max_brownian_step.process().first_or(RandomHandler::DEFAULT_BROWNIAN_STEP);
+        auto exp_lb = m_exp_lower_bound.process().first_or(RandomHandler::DEFAULT_EXP_LOWER_BOUND);
         auto weights = m_weights.process(num_voices).as_type<double>();
 
         m_random_handlers.set(&RandomHandler::set_mode, mode);
         m_random_handlers.set(&RandomHandler::set_repetition_strategy, reps);
-        m_random_handlers.set(&RandomHandler::set_quantization_steps, quantization_steps(quantize, steps));
+        m_random_handlers.set(&RandomHandler::set_quantization_steps, std::move(steps));
         m_random_handlers.set(&RandomHandler::set_max_brownian_step, brownian_step);
+        m_random_handlers.set(&RandomHandler::set_exp_lower_bound, exp_lb);
 
         for (std::size_t i = 0; i < num_voices; ++i) {
             m_random_handlers[i].set_weights(weights[i]);
@@ -433,29 +451,13 @@ private:
     }
 
 
-    static Voice<std::optional<std::size_t>> quantization_steps(bool quantize
-                                                                , Voice<std::optional<std::size_t>> num_steps) {
-        return num_steps.map([&quantize](const std::optional<std::size_t>& s) {
-            return quantization_steps(quantize, s);
-        });
-    }
-
-
-    static std::optional<std::size_t> quantization_steps(bool quantize, std::optional<std::size_t> num_steps) {
-        if (!quantize) {
-            return std::nullopt;
-        }
-        return num_steps;
-    }
-
-
     Socket<Trigger>& m_trigger;
     Socket<Facet>& m_mode;
     Socket<Facet>& m_repetition_strategy;
     Socket<Facet>& m_chord_size;
-    Socket<Facet>& m_quantize;
     Socket<Facet>& m_num_quantization_steps;
     Socket<Facet>& m_max_brownian_step;
+    Socket<Facet>& m_exp_lower_bound;
     Socket<Facet>& m_weights;
 
     MultiVoiced<RandomHandler, double> m_random_handlers;
@@ -488,13 +490,15 @@ struct RandomWrapper {
         , Voices<std::size_t>::singular(RandomHandler::DEFAULT_CHORD_SIZE)
     };
 
-    Variable<Facet, bool> quantize{Keys::QUANTIZE, ph, RandomHandler::DEFAULT_USE_QUANTIZATION};
-    Sequence<Facet, std::size_t> num_quantization_steps{Keys::NUM_QUANTIZATION_STEPS
-                                                        , ph
-                                                        , Voices<std::size_t>::singular(
-                                                            RandomHandler::DEFAULT_NUM_QUANTIZATION_STEPS)
+    Sequence<Facet, std::size_t> num_quantization_steps{
+        Keys::QUANTIZATION
+        , ph
+        , Voices<std::size_t>::singular(
+            RandomHandler::DEFAULT_QUANTIZATION)
     };
-    Variable<Facet, double> max_brownian_step{Keys::MAX_BROWNIAN_STEP, ph, RandomHandler::DEFAULT_MAX_BROWNIAN_STEP};
+    Variable<Facet, double> max_brownian_step{Keys::MAX_BROWNIAN_STEP, ph, RandomHandler::DEFAULT_BROWNIAN_STEP};
+
+    Variable<Facet, double> exp_lower_bound{Keys::EXP_LOWER_BOUND, ph, RandomHandler::DEFAULT_EXP_LOWER_BOUND};
 
     Sequence<Facet, FloatType> weights{Keys::WEIGHTS, ph};
 
@@ -507,9 +511,9 @@ struct RandomWrapper {
                       , &mode
                       , &repetition_strategy
                       , &chord_size
-                      , &quantize
                       , &num_quantization_steps
                       , &max_brownian_step
+                      , &exp_lower_bound
                       , &weights
                       , &enabled
                       , &num_voices
