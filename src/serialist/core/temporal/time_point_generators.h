@@ -3,6 +3,8 @@
 #define SERIALISTLOOPER_TIME_POINT_GENERATORS_H
 
 #include "core/types/time_point.h"
+#include "policies/epsilon.h"
+
 
 namespace serialist {
 
@@ -14,8 +16,6 @@ public:
 
 class TransportLocked {
 public:
-    static constexpr double EPSILON = 1e-8;
-
     TransportLocked() = delete;
 
     static DomainTimePoint next(const TimePoint& current_time

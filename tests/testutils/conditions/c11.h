@@ -1,6 +1,10 @@
 #ifndef TESTUTILS_C11_H
 #define TESTUTILS_C11_H
+
+#include <core/policies/epsilon.h>
+
 #include "condition.h"
+
 
 
 namespace serialist::test::c11 {

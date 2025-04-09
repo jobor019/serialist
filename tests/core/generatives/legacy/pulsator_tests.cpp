@@ -1,11 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "core/policies/policies.h"
-#include "core/generatives/pulsator.h"
+#include "core/generatives/LEGACY_pulsator.h"
 
 using namespace serialist;
-
-constexpr inline double EPSILON = 1e-6;
 
 TEST_CASE("Pulsator ctors") {
     Pulsator p;

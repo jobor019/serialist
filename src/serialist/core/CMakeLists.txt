@@ -1,7 +1,7 @@
 SET(CORE_NAME core)
 
 add_library(${CORE_NAME}
-        INTERFACE # TODO: Temporary - shouldn't be a header-only library in the end
+        INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/temporal/filters.h
         ${CMAKE_CURRENT_SOURCE_DIR}/temporal/phase_accumulator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/temporal/phase_pulse.h
@@ -31,34 +31,30 @@ add_library(${CORE_NAME}
 
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/stereotypes/base_stereotypes.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/allocator.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/auto_pulsator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/interpolator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/make_note.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/operator.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/osc_sender.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/oscillator.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/patternizer.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/phase_map.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/phase_pulsator.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/pulsator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/pulse_filter.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/random_pulsator.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/random_node.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/sample_and_hold.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/LEGACY_selector.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/sequence.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/transform.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/unit_pulse.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/variable.h
 
+        ${CMAKE_CURRENT_SOURCE_DIR}/param/deserialization.h
         ${CMAKE_CURRENT_SOURCE_DIR}/param/nop_parameter.h
         ${CMAKE_CURRENT_SOURCE_DIR}/param/socket_base.h
         ${CMAKE_CURRENT_SOURCE_DIR}/param/socket_handler.h
         ${CMAKE_CURRENT_SOURCE_DIR}/param/string_serialization.h
 
-        ${CMAKE_CURRENT_SOURCE_DIR}/param/deserialization.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/policies/epsilon.h
         ${CMAKE_CURRENT_SOURCE_DIR}/policies/parameter_policy.h
         ${CMAKE_CURRENT_SOURCE_DIR}/policies/policies.h
         ${CMAKE_CURRENT_SOURCE_DIR}/policies/socket_policy.h
-
 
         ${CMAKE_CURRENT_SOURCE_DIR}/types/domain_type.h
         ${CMAKE_CURRENT_SOURCE_DIR}/types/event.h
@@ -82,11 +78,7 @@ add_library(${CORE_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/exceptions.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generation_graph.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generative.h
-        generatives/patternizer.h
-        generatives/random_node.h
-
         # BELOW: Automatically added - move to correct location above and append ${CMAKE_CURRENT_SOURCE_DIR}
-
 
 )
 

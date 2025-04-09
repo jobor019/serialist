@@ -18,24 +18,22 @@ add_executable(core_tests EXCLUDE_FROM_ALL
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/make_note_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/operator_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/oscillator_tests.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/pulsator_tests.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/random_pulsator_tests.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/selector_tests.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/patternizer_tests.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/phase_map_tests.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/phase_pulsator_tests.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/pulse_filter_test.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/random_node_tests.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/sample_and_hold_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/sequence_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/variable_tests.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/phase_pulsator_tests.cpp
 
         ${CMAKE_CURRENT_SOURCE_DIR}/temporal/time_point_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/temporal/phase_accumulator_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/temporal/phase_tests.cpp
 
+        ${CMAKE_CURRENT_SOURCE_DIR}/types/index_tests.cpp
+
         ${CMAKE_CURRENT_SOURCE_DIR}/utility/math_tests.cpp
-        generatives/phase_map_tests.cpp
-        generatives/pulse_filter_test.cpp
-        generatives/sample_and_hold_tests.cpp
-        types/index_tests.cpp
-        generatives/patternizer_tests.cpp
-        generatives/random_node_tests.cpp
 
 )
 

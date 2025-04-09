@@ -41,7 +41,7 @@ public:
     static constexpr auto EXP_LB_LIMIT = 1e-6;
 
 
-    explicit RandomHandler(std::optional<int> seed = std::nullopt, double epsilon = Phase::EPSILON)
+    explicit RandomHandler(std::optional<int> seed = std::nullopt, double epsilon = EPSILON)
         : m_max(Phase::wrap_point(epsilon))
         , m_random(seed)
         , m_exp(DEFAULT_EXP_LOWER_BOUND, m_max, seed) {}

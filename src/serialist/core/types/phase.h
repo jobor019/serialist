@@ -3,6 +3,7 @@
 
 #include "utility/math.h"
 #include "core/types/facet.h"
+#include "policies/epsilon.h"
 
 
 namespace serialist {
@@ -12,9 +13,6 @@ public:
     enum class Direction {
         forward, backward, unchanged
     };
-
-
-    static constexpr double EPSILON = 1e-8;
 
 
     explicit Phase(double phase = 0.0, double epsilon = EPSILON)

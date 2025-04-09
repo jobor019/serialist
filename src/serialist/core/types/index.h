@@ -10,8 +10,6 @@ class Index {
 public:
     using IndexType = int64_t;
 
-    static constexpr double EPSILON = 1e-8;
-
     enum class Strategy { cont, mod, clip, pass };
 
     explicit Index(IndexType value = 0) : m_value(value) {}
