@@ -135,6 +135,7 @@ private:
 
 
     Voice<double> uniform(std::size_t chord_size) {
+        // discrete
         if (use_quantization() && *m_quantization_steps > 1) {
             if (*m_repetition_strategy != AvoidRepetitions::off && chord_size >= *m_quantization_steps) {
                 return m_random.scrambled(all_choices(*m_quantization_steps));
@@ -151,12 +152,8 @@ private:
             return r;
         }
 
-        // Mode::continuous
-        auto r = Voice<double>::allocated(chord_size);
-        for (std::size_t i = 0; i < chord_size; ++i) {
-            r.append(uniform_random());
-        }
-        return r;
+        // continuous
+        return uniform_continuous_random(chord_size);
     }
 
 
@@ -184,9 +181,13 @@ private:
 
 
     Voice<double> exponential(std::size_t chord_size) {
-        auto uniform_rnd = uniform(chord_size);
+        auto uniform_rnd = uniform_continuous_random(chord_size);
         return uniform_rnd.map([this](double u) {
-            return m_exp.next(u);
+            auto e = m_exp.next(u);
+            if (use_quantization()) {
+                return quantize(e, 1.0 / static_cast<double>(*m_quantization_steps), true);
+            }
+            return e;
         });
     }
 
@@ -208,6 +209,15 @@ private:
         auto r = Voice<double>::allocated(chord_size);
         for (std::size_t i = 0; i < chord_size; ++i) {
             r.append(next_brownian(m_previous_values[i], discrete_step, allow_repetitions));
+        }
+        return r;
+    }
+
+
+    Voice<double> uniform_continuous_random(std::size_t chord_size) {
+        auto r = Voice<double>::allocated(chord_size);
+        for (std::size_t i = 0; i < chord_size; ++i) {
+            r.append(uniform_random());
         }
         return r;
     }
@@ -310,6 +320,13 @@ private:
 
     bool use_quantization() const { return *m_quantization_steps > 0; }
 
+    Voice<double> quantize(const Voice<double>& v, double step_size, bool round = false) const {
+        auto quantized = Voice<double>::allocated(v.size());
+        for (const auto& x: v) {
+            quantized.append(quantize(x, step_size, round));
+        }
+        return quantized;
+    }
 
     double quantize(double v, double step_size, bool round = false) const {
         if (round)
@@ -328,7 +345,7 @@ private:
     WithChangeFlag<Mode> m_mode{DEFAULT_MODE};
 
 
-    WithChangeFlag<AvoidRepetitions> m_repetition_strategy{DEFAULT_REPETITIONS}; // does not apply to Mode::brownian
+    WithChangeFlag<AvoidRepetitions> m_repetition_strategy{DEFAULT_REPETITIONS}; // does not apply to Mode::brownian or Mode::exponential
     WithChangeFlag<std::size_t> m_quantization_steps{DEFAULT_QUANTIZATION}; // does not apply to Mode::weighted
 
     double m_max_brownian_step = DEFAULT_BROWNIAN_STEP; // only applies to Mode::brownian
