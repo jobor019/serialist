@@ -70,6 +70,8 @@ private:
 
 
     static double tri(double phase, double duty, double curve) {
+        curve = utils::clip(curve, {0.0});
+
         if (duty < 1e-8) {                  // duty = 0 => negative phase only (avoid div0)
             return std::pow(1 - phase, curve);
         } else if (phase <= duty) {             // positive phase
@@ -179,7 +181,7 @@ struct WaveformWrapper {
 
     ParameterHandler ph;
 
-    Sequence<Trigger> trigger{param::properties::trigger, ph, Voices<Trigger>::empty_like()};
+    Sequence<Trigger> trigger{param::properties::trigger, ph, Trigger::pulse_on()};
     Sequence<Facet, Waveform::Mode> mode{Keys::MODE, ph, Voices<Waveform::Mode>::singular(Waveform::DEFAULT_MODE)};
     Sequence<Facet, FloatType> duty{Keys::DUTY, ph, Voices<FloatType>::singular(Waveform::DEFAULT_DUTY)};
     Sequence<Facet, FloatType> curve{Keys::CURVE, ph, Voices<FloatType>::singular(Waveform::DEFAULT_CURVE)};
