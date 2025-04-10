@@ -10,8 +10,8 @@
 
 using namespace serialist;
 
-TEST_CASE("FilterSmoo") {
-    FilterSmoo s;
+TEST_CASE("Filter: LowPass", "[filter]") {
+    LowPass s;
     Random rnd(0);
 
     std::size_t num_values = 1000;
@@ -65,8 +65,4 @@ TEST_CASE("FilterSmoo") {
 //        y.print();
 //    }
 
-}
-
-TEST_CASE("FilterSmoo stateless") {
-    FilterSmoo s;
 }

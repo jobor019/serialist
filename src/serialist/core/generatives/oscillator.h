@@ -143,7 +143,7 @@ public:
 private:
     PhaseAccumulator m_pa;
     Waveform m_waveform;
-    FilterSmoo m_lpf;
+    LowPass m_lpf;
 };
 
 
@@ -294,8 +294,8 @@ private:
                           , NodeBase<Facet>::adapted(m_curve.process(), num_voices, Waveform::DEFAULT_CURVE));
 
         if (resized || m_tau.has_changed() || m_tau_type.has_changed()) {
-            auto tau = m_tau.process().adapted_to(num_voices).firsts_or(FilterSmoo::DEFAULT_TAU);
-            auto tau_type = m_tau_type.process().first_or(FilterSmoo::DEFAULT_TAU_TYPE);
+            auto tau = m_tau.process().adapted_to(num_voices).firsts_or(LowPass::DEFAULT_TAU);
+            auto tau_type = m_tau_type.process().first_or(LowPass::DEFAULT_TAU_TYPE);
 
             for (std::size_t i = 0; i < num_voices; ++i) {
                 m_oscillators[i].set_tau(DomainDuration{tau[i], tau_type});
@@ -356,8 +356,8 @@ struct OscillatorWrapper {
     Sequence<Facet, FloatType> duty{Keys::DUTY, ph, Voices<FloatType>::singular(Waveform::DEFAULT_DUTY)};
     Sequence<Facet, FloatType> curve{Keys::CURVE, ph, Voices<FloatType>::singular(Waveform::DEFAULT_CURVE)};
 
-    Sequence<Facet, FloatType> tau{Keys::TAU, ph, Voices<FloatType>::singular(FilterSmoo::DEFAULT_TAU)};
-    Variable<Facet, DomainType> tau_type{Keys::TAU_TYPE, ph, FilterSmoo::DEFAULT_TAU_TYPE};
+    Sequence<Facet, FloatType> tau{Keys::TAU, ph, Voices<FloatType>::singular(LowPass::DEFAULT_TAU)};
+    Variable<Facet, DomainType> tau_type{Keys::TAU_TYPE, ph, LowPass::DEFAULT_TAU_TYPE};
 
     Sequence<Trigger> reset_trigger{Keys::RESET, ph};
 

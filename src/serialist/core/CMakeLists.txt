@@ -79,6 +79,7 @@ add_library(${CORE_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/exceptions.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generation_graph.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generative.h
+        generatives/lowpass.h
         # BELOW: Automatically added - move to correct location above and append ${CMAKE_CURRENT_SOURCE_DIR}
 
 )

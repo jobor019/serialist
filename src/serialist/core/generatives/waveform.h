@@ -2,14 +2,14 @@
 #define SERIALIST_WAVEFORM_H
 
 #include "core/algo/random/random.h"
-#include "core/temporal/filters.h"
-#include "core/temporal/phase_accumulator.h"
 #include "core/types/facet.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/types/trigger.h"
 #include "core/collections/multi_voiced.h"
 #include "sequence.h"
 #include "variable.h"
+#include "policies/epsilon.h"
+#include "types/phase.h"
 
 
 namespace serialist {
@@ -123,7 +123,7 @@ public:
 
 
     Voices<Facet> process() override {
-        if (auto t = pop_time(); !t) {
+        if (!pop_time()) {
             return m_current_value;
         }
 

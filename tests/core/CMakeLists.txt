@@ -35,6 +35,7 @@ add_executable(core_tests EXCLUDE_FROM_ALL
 
         ${CMAKE_CURRENT_SOURCE_DIR}/utility/math_tests.cpp
         generatives/waveform_tests.cpp
+        generatives/lowpass_tests.cpp
 
 )
 
