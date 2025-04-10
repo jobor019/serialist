@@ -428,14 +428,13 @@ public:
 
         trigger.adapted_to(num_voices);
 
-        auto output = Voices<Facet>::zeros(num_voices);
+        m_current_value.adapted_to(num_voices);
         for (std::size_t i = 0; i < num_voices; ++i) {
             if (Trigger::contains_pulse_on(trigger[i])) {
-                output[i].extend(m_random_handlers[i].process(chord_sizes[i]).as_type<Facet>());
+                m_current_value[i] = m_random_handlers[i].process(chord_sizes[i]).as_type<Facet>();
             }
         }
 
-        m_current_value = std::move(output);
         return m_current_value;
     }
 
@@ -513,9 +512,9 @@ struct RandomWrapper {
         , Voices<std::size_t>::singular(
             RandomHandler::DEFAULT_QUANTIZATION)
     };
-    Variable<Facet, double> max_brownian_step{Keys::MAX_BROWNIAN_STEP, ph, RandomHandler::DEFAULT_BROWNIAN_STEP};
+    Variable<Facet, FloatType> max_brownian_step{Keys::MAX_BROWNIAN_STEP, ph, RandomHandler::DEFAULT_BROWNIAN_STEP};
 
-    Variable<Facet, double> exp_lower_bound{Keys::EXP_LOWER_BOUND, ph, RandomHandler::DEFAULT_EXP_LOWER_BOUND};
+    Variable<Facet, FloatType> exp_lower_bound{Keys::EXP_LOWER_BOUND, ph, RandomHandler::DEFAULT_EXP_LOWER_BOUND};
 
     Sequence<Facet, FloatType> weights{Keys::WEIGHTS, ph};
 

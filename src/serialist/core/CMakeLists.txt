@@ -44,6 +44,7 @@ add_library(${CORE_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/sequence.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/unit_pulse.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/variable.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/waveform.h
 
         ${CMAKE_CURRENT_SOURCE_DIR}/param/deserialization.h
         ${CMAKE_CURRENT_SOURCE_DIR}/param/nop_parameter.h

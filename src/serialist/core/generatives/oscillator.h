@@ -16,7 +16,7 @@ namespace serialist {
 
 class Waveform {
 public:
-    enum class Type {
+    enum class Mode {
         phasor
         , sin
         , square
@@ -27,45 +27,45 @@ public:
 
     static constexpr double DEFAULT_DUTY = 0.5;
     static constexpr double DEFAULT_CURVE = 1.0;
-    static const inline Type DEFAULT_TYPE = Type::phasor;
+    static const inline Mode DEFAULT_MODE = Mode::phasor;
 
 
     explicit Waveform(std::optional<int> seed = std::nullopt) : m_random(seed) {}
 
     double process(double x) {
         switch (m_type) {
-            case Type::phasor:
+            case Mode::phasor:
                 return x;
-            case Type::sin:
+            case Mode::sin:
                 return sin(x);
-            case Type::square:
+            case Mode::square:
                 return square(x, m_duty);
-            case Type::tri:
+            case Mode::tri:
                 return tri(x, m_duty, m_curve);
-            case Type::white_noise:
+            case Mode::white_noise:
                 return white_noise();
-            case Type::random_walk:
+            case Mode::random_walk:
                 return random_walk();
         }
     }
 
-    static double sin(double x) {
-        return 0.5 * -std::cos(2 * M_PI * x) + 0.5;
+    static double sin(double phase) {
+        return 0.5 * -std::cos(2 * M_PI * phase) + 0.5;
     }
 
 
-    static double square(double x, double duty) {
-        return static_cast<double>(x >= duty);
+    static double square(double phase, double duty) {
+        return static_cast<double>(phase >= duty);
     }
 
 
-    static double tri(double x, double duty, double curve) {
+    static double tri(double phase, double duty, double curve) {
         if (duty < 1e-8) {                  // duty = 0 => negative phase only (avoid div0)
-            return std::pow(1 - x, curve);
-        } else if (x <= duty) {             // positive phase
-            return std::pow(x / duty, curve);
+            return std::pow(1 - phase, curve);
+        } else if (phase <= duty) {             // positive phase
+            return std::pow(phase / duty, curve);
         } else {                            // negative phase
-            return std::pow(1 - (x - duty) / (1 - duty), curve);
+            return std::pow(1 - (phase - duty) / (1 - duty), curve);
         }
     }
 
@@ -88,7 +88,7 @@ public:
 //        return current_;
     }
 
-    void set_type(Type type) { m_type = type; }
+    void set_type(Mode type) { m_type = type; }
 
     void set_duty(double duty) { m_duty = duty; }
 
@@ -97,7 +97,7 @@ public:
 private:
     Random m_random;
 
-    Type m_type = DEFAULT_TYPE;
+    Mode m_type = DEFAULT_MODE;
     double m_duty = DEFAULT_DUTY;
     double m_curve = DEFAULT_CURVE;
 
@@ -121,7 +121,7 @@ public:
         m_lpf.reset();
     }
 
-    void set_waveform(Waveform::Type type) { m_waveform.set_type(type); }
+    void set_waveform(Waveform::Mode type) { m_waveform.set_type(type); }
 
     void set_pa_mode(PaMode mode) {
         m_pa.set_mode(mode);
@@ -261,7 +261,7 @@ private:
                           , NodeBase<Facet>::adapted(m_mode.process(), num_voices, PhaseAccumulator::DEFAULT_MODE));
 
         m_oscillators.set(&Oscillator::set_waveform
-                          , NodeBase<Facet>::adapted(m_waveform.process(), num_voices, Waveform::DEFAULT_TYPE));
+                          , NodeBase<Facet>::adapted(m_waveform.process(), num_voices, Waveform::DEFAULT_MODE));
 
         // TODO: This has_changed is completely redundant: we've already called process() in get_voice_count,
         //       so has_changed is always false here
@@ -343,7 +343,7 @@ struct OscillatorWrapper {
     Sequence<Trigger> trigger{Keys::TRIGGER, ph, Trigger::pulse_on()};
 
     Variable<Facet, PaMode> mode{Keys::MODE, ph, PhaseAccumulator::DEFAULT_MODE};
-    Variable<Facet, Waveform::Type> waveform{Keys::WAVEFORM, ph, Waveform::DEFAULT_TYPE};
+    Variable<Facet, Waveform::Mode> waveform{Keys::WAVEFORM, ph, Waveform::DEFAULT_MODE};
 
     Sequence<Facet, FloatType> period{Keys::PERIOD, ph, Voices<FloatType>::singular(PaParameters::DEFAULT_PERIOD)};
     Variable<Facet, DomainType> period_type{Keys::PERIOD_TYPE, ph, PaParameters::DEFAULT_PERIOD_TYPE};
