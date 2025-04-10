@@ -17,7 +17,10 @@ public:
     static Index zero() { return Index{0}; }
 
 
+
     static Index from_index_facet(double index) {
+        // When we know that the incoming facet is supposed to be an index, it means that the value should be
+        // integral modulo rounding errors. Hence, a simple round() is enough
         return Index(static_cast<IndexType>(std::round(index)));
     }
 
@@ -48,8 +51,33 @@ public:
 
         // note that we're using 1.0, not Phase::max here. Phase::max is implemented for this exact reason,
         // to ensure that index_op(Phase::max, size) always maps to size - 1
-        return static_cast<IndexType>(std::floor(position * static_cast<double>(map_size) + epsilon));
+
+        constexpr auto neg_infinity = -std::numeric_limits<double>::infinity();
+
+        auto nudged_position = std::nextafter(position + epsilon, neg_infinity);
+
+        auto index_raw = std::floor(nudged_position * static_cast<double>(map_size));
+
+        // std::cout << std::fixed << std::setprecision(16)
+        //     << "position: " << position << "\n"
+        //     << "map_size: " << map_size << "\n"
+        //     << "epsilon: " << epsilon << "\n"
+        //     << "nudged: " << nudged_position
+        // << "index raw: " << index_raw
+        // << "\n";
+        // return static_cast<IndexType>(std::nextafter(index_raw, neg_infinity));
+        return static_cast<IndexType>(index_raw);
     }
+
+
+    static double phase_op(IndexType index, std::size_t map_size) {
+        return static_cast<double>(index) / static_cast<double>(map_size);
+    }
+
+    static double quantize(double position, std::size_t map_size, double epsilon = EPSILON) {
+        return phase_op(index_op(position, map_size, epsilon), map_size);
+    }
+
 
     bool operator==(const Index& other) const { return m_value == other.m_value; }
     bool operator!=(const Index& other) const { return m_value != other.m_value; }

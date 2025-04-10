@@ -29,6 +29,10 @@ public:
 
 
     static double phase_mod(double x, double epsilon = EPSILON) {
+        // avoid rounding errors from modulo on unit range, typically from x = phase_max
+        if (x >= 0.0 && x <= max(epsilon)) {
+            return x;
+        }
         return utils::modulo(x, 1.0, epsilon);
     }
 
@@ -39,11 +43,11 @@ public:
 
 
     static double max(double epsilon = EPSILON) {
-        return std::nextafter(wrap_point(epsilon), 0.0);
+        return 1.0 - epsilon;
     }
 
     static double wrap_point(double epsilon = EPSILON) {
-        return 1.0 - epsilon;
+        return std::nextafter(max(epsilon), 1.0);
     }
 
     static double clip(double x, double epsilon = EPSILON) {

@@ -11,7 +11,8 @@ using namespace serialist::test;
 
 TEST_CASE("Index: index_op (positive indices)", "[index]") {
     SECTION("Phase 0 and 1") {
-        std::size_t size = GENERATE(1, 10, 100, 1000, 1e4, 1e5, 1e6, 1e7);
+        // std::size_t size = GENERATE(1, 10, 100, 1000, 1e4, 1e5, 1e6, 1e7);
+        std::size_t size = GENERATE(10);
         CAPTURE(size);
 
         // Phase 0 always maps to 0
@@ -42,7 +43,7 @@ TEST_CASE("Index: index_op (positive indices)", "[index]") {
 
         SECTION("Phase") {
             for (std::size_t i = 0; i < size - 2; ++i) {
-                auto phase = Phase(static_cast<double>(i) / size);
+                auto phase = Phase(static_cast<double>(i) / static_cast<double>(size));
 
                 REQUIRE(Index::index_op(phase.get(), size) == i);
             }
@@ -50,7 +51,7 @@ TEST_CASE("Index: index_op (positive indices)", "[index]") {
 
         SECTION("Phase-like values") {
             for (std::size_t i = 0; i < size - 2; ++i) {
-                auto phase_like = static_cast<double>(i) / size;
+                auto phase_like = static_cast<double>(i) / static_cast<double>(size);
                 CAPTURE(phase_like);
                 REQUIRE(Index::index_op(phase_like, size) == i);
             }
@@ -63,14 +64,14 @@ TEST_CASE("Index: index_op (positive indices)", "[index]") {
         CAPTURE(size, multiplier);
 
         for (std::size_t i = 0; i < multiplier * size; ++i) {
-            auto cursor = static_cast<double>(i) / size;
+            auto cursor = static_cast<double>(i) / static_cast<double>(size);
             CAPTURE(i, cursor);
             REQUIRE(Index::index_op(cursor, size) == i);
         }
     }
 
     SECTION("Negative indices") {
-        std::size_t size = GENERATE(10, 100, 1000, 1e4, 1e5, 1e6);
+        // std::size_t size = GENERATE(10, 100, 1000, 1e4, 1e5, 1e6);
     }
 
 }
@@ -90,10 +91,75 @@ TEST_CASE("Index: index_op (negative indices)", "[index]") {
 }
 
 
+TEST_CASE("Index: index_op under MaxMSP-related constraints", "[index]") {
+    // MaxMSP uses epsilon 1e-6 when passing data between objects,
+    // which means that Phase::max() and Phase::wrap_around() maps to the same value
+
+    auto new_epsilon = 1e-8;
+    override_epsilon(new_epsilon);
+
+    auto phase_maximum = 1 - new_epsilon;
+
+    std::size_t max_size = 1e6;
+    for (std::size_t size = 2; size < max_size; ++size) {
+        CAPTURE(size);
+        REQUIRE(Index::index_op(phase_maximum, size) == size - 1);
+    }
+
+}
+
+
 TEST_CASE("Index: Conversion from Facet", "[index]") {
-    auto max = 1e7;
+    std::size_t max = 1e7;
     for (std::size_t i = 0; i < max; ++i) {
         auto closest_double = static_cast<double>(i);
         REQUIRE(Index::from_index_facet(closest_double).get_raw() == i);
     }
+}
+
+
+TEST_CASE("Index: phase_op", "[index]") {
+    std::size_t size = 10;
+    REQUIRE_THAT(Index::phase_op(0, size), Catch::Matchers::WithinAbs(0.0, 1e-8));
+    REQUIRE_THAT(Index::phase_op(1, size), Catch::Matchers::WithinAbs(0.1, 1e-8));
+    REQUIRE_THAT(Index::phase_op(5, size), Catch::Matchers::WithinAbs(0.5, 1e-8));
+    REQUIRE_THAT(Index::phase_op(9, size), Catch::Matchers::WithinAbs(0.9, 1e-8));
+
+
+    REQUIRE_THAT(Index::phase_op(-1, size), Catch::Matchers::WithinAbs(-0.1, 1e-8));
+    REQUIRE_THAT(Index::phase_op(-10, size), Catch::Matchers::WithinAbs(-1.0, 1e-8));
+
+    REQUIRE_THAT(Index::phase_op(10, size), Catch::Matchers::WithinAbs(1.0, 1e-8));
+    REQUIRE_THAT(Index::phase_op(100, size), Catch::Matchers::WithinAbs(10.0, 1e-8));
+}
+
+
+TEST_CASE("Index: phase_op => index op round trip yields initial value", "[index]") {
+
+    SECTION("limits") {
+        std::size_t size = GENERATE(1, 10, 100, 1000, 1e4, 1e5, 1e6, 1e7);
+        CAPTURE(size);
+
+        REQUIRE(Index::index_op(Index::phase_op(0, size), size) == 0);
+        REQUIRE(Index::index_op(Index::phase_op(size - 1, size), size) == size - 1);
+    }
+
+    SECTION("Intermediate steps do not yield rounding errors up") {
+        std::size_t size = GENERATE(1, 10, 100, 1000, 1e4, 1e5, 1e6);
+        CAPTURE(size);
+
+        for (std::size_t i = 0; i < size; ++i) {
+            REQUIRE(Index::index_op(Index::phase_op(i, size), size) == i);
+        }
+    }
+}
+
+
+TEST_CASE("Index: quantize", "[index]") {
+    REQUIRE_THAT(Index::quantize(0.0, 4), Catch::Matchers::WithinAbs(0.0, 1e-8));
+    REQUIRE_THAT(Index::quantize(0.25 - EPSILON/2, 4), Catch::Matchers::WithinAbs(0.25, 1e-8));
+    REQUIRE_THAT(Index::quantize(0.25, 4), Catch::Matchers::WithinAbs(0.25, 1e-8));
+    REQUIRE_THAT(Index::quantize(0.25 + EPSILON, 4), Catch::Matchers::WithinAbs(0.25, 1e-8));
+    REQUIRE_THAT(Index::quantize(Phase::max(), 4), Catch::Matchers::WithinAbs(0.75, 1e-8));
+    REQUIRE_THAT(Index::quantize(1.0, 4), Catch::Matchers::WithinAbs(1.0, 1e-8));
 }

@@ -15,6 +15,7 @@ TEST_CASE("Phase: zero", "[phase]") {
 TEST_CASE("Phase: one", "[phase]") {
     // Ensuring that Phase::one doesn't wrap around to 0.0 nor goes above 1.0
     auto epsilon = GENERATE(1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-16);
+    CAPTURE(epsilon);
     REQUIRE(Phase::one(epsilon).get() > 0.9);
     REQUIRE(Phase::one(epsilon).get() < 1.0);
 }

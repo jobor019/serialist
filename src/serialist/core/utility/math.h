@@ -25,6 +25,9 @@ T modulo(T n, T d) {
     if constexpr (std::is_integral_v<T>) {
         return ((n % d) + d) % d;
     } else {
+        if (n >= 0.0 && n < d) {
+            return n; // avoid rounding errors on unit range values
+        }
         return std::fmod(std::fmod(n, d) + d, d);
     }
 }

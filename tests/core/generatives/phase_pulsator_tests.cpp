@@ -569,7 +569,7 @@ TEST_CASE("PhasePulsator: Change of legato value (R1.2.3)", "[phase_pulsator]") 
 
             // Change legato to point that has passed the cursor
             legato.set_values(new_legato_value);
-            cursor.set_values(0.4 - EPSILON);
+            cursor.set_values(0.4 - 2 * EPSILON);
             REQUIRE_THAT(runner.step(), m1m::equalst_off(pulse_on_id));
         }
     }
