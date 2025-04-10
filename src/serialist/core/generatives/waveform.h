@@ -70,7 +70,11 @@ private:
 
 
     static double tri(double phase, double duty, double curve) {
-        curve = utils::clip(curve, {0.0});
+        duty = utils::clip(duty, 0.0, 1.0);
+
+        if (curve <= 0.0) {
+            return 0.0;
+        }
 
         if (duty < 1e-8) {                  // duty = 0 => negative phase only (avoid div0)
             return std::pow(1 - phase, curve);
