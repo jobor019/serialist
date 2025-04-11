@@ -11,40 +11,28 @@
 
 
 namespace serialist {
-// ==============================================================================================
 
-// TODO: REMOVE OR USE
-// // Note: namespace to avoid overly verbose templated types like Socket<template Patternizer::Mode>
-// namespace patternizer {
-//
-// }
 
 template<typename T>
 class Patternizer {
 public:
-    explicit Patternizer(std::optional<unsigned int> seed = std::nullopt) : m_rnd(seed) {}
+    using Mode = Index::Strategy;
 
-    enum class Mode {
-        from_bottom, from_top, random, /* TODO: probabilistic */
-    };
-
-    static constexpr Mode DEFAULT_MODE = Mode::from_bottom;
-    static constexpr auto DEFAULT_STRATEGY = Index::Strategy::mod;
+    static constexpr auto DEFAULT_MODE = Mode::mod;
     static constexpr bool DEFAULT_PATTERN_USES_INDEX = true;
+    static constexpr bool DEFAULT_INVERTED = false;
+
 
 
     Voice<T> process(const Voice<T>& v
                      , const Voice<Index>& indices
                      , Mode mode
                      , std::optional<T> octave
-                     , Index::Strategy strategy) {
+                     , bool invert) {
         if (v.empty())
             return v;
 
-        if (mode == Mode::random) {
-            return random(v, indices.first());
-        }
-        return select(v, indices, octave, strategy, mode == Mode::from_top);
+        return select(v, indices, mode, octave, invert);
     }
 
 
@@ -52,26 +40,26 @@ public:
                      , const Voice<double>& phase_like
                      , Mode mode
                      , std::optional<T> octave
-                     , Index::Strategy strategy) {
+                     , bool invert) {
         return process(v
                        , phase_like.as_type<Index>([&v](double p) { return Index::from_phase_like(p, v.size()); })
                        , mode
                        , octave
-                       , strategy
+                       , invert
         );
     }
 
 private:
     Voice<T> select(const Voice<T>& v
                     , const Voice<Index>& indices
+                    , Mode mode
                     , std::optional<T> octave
-                    , Index::Strategy strategy
                     , bool invert) {
         assert(!v.empty());
 
         auto result = Voice<T>::allocated(indices.size());
         for (const Index& i : indices) {
-            if (auto selected = select_single(v, i, octave, strategy, invert)) {
+            if (auto selected = select_single(v, i, mode, octave, invert)) {
                 result.append(*selected);
             }
         }
@@ -80,20 +68,12 @@ private:
     }
 
 
-    Voice<T> random(const Voice<T>& v, std::optional<Index> count) {
-        if (!count || v.empty() || *count == 0)
-            return {};
-
-        return m_rnd.choices(v, count->get_raw(), true);
-    }
-
-
     std::optional<T> select_single(const Voice<T>& v
-                           , const Index& index
-                           , std::optional<T> octave
-                           , Index::Strategy strategy
-                           , bool invert) {
-        if (strategy == Index::Strategy::cont && octave) {
+                                   , const Index& index
+                                   , Mode mode
+                                   , std::optional<T> octave
+                                   , bool invert) {
+        if (mode == Mode::cont && octave) {
             if constexpr (std::is_arithmetic_v<T>) {
                 auto num_octaves = index.get_octave(v.size());
                 auto i = index.get_mod(v.size(), invert);
@@ -105,15 +85,12 @@ private:
             }
         }
 
-        if (auto i = index.get(v.size(), strategy, invert)) {
+        if (auto i = index.get(v.size(), mode, invert)) {
             return v[*i];
         }
         return std::nullopt;
 
     }
-
-
-    Random m_rnd;
 };
 
 
@@ -126,7 +103,7 @@ public:
         static const inline std::string CHORD = "chord";
         static const inline std::string PATTERN = "pattern";
         static const inline std::string MODE = "mode";
-        static const inline std::string STRATEGY = "strategy";
+        static const inline std::string INVERSE_SELECTION = "inverse";
         static const inline std::string PATTERN_USES_INDEX = "pattern_uses_index";
         static const inline std::string OCTAVE = "octave";
 
@@ -140,7 +117,7 @@ public:
                     , Node<T>* chord = nullptr
                     , Node<Facet>* pattern = nullptr
                     , Node<Facet>* mode = nullptr
-                    , Node<Facet>* strategy = nullptr
+                    , Node<Facet>* inverse_selection = nullptr
                     , Node<Facet>* pattern_uses_index = nullptr
                     , Node<T>* octave = nullptr
                     , Node<Facet>* enabled = nullptr
@@ -150,7 +127,7 @@ public:
         , m_chord(NodeBase<T>::add_socket(Keys::CHORD, chord))
         , m_pattern(NodeBase<T>::add_socket(Keys::PATTERN, pattern))
         , m_mode(NodeBase<T>::add_socket(Keys::MODE, mode))
-        , m_strategy(NodeBase<T>::add_socket(Keys::STRATEGY, strategy))
+        , m_inverse_selection(NodeBase<T>::add_socket(Keys::INVERSE_SELECTION, inverse_selection))
         , m_pattern_uses_index(NodeBase<T>::add_socket(Keys::PATTERN_USES_INDEX, pattern_uses_index))
         , m_octave(NodeBase<T>::add_socket(Keys::OCTAVE, octave)) {}
 
@@ -172,11 +149,12 @@ public:
         auto chord = m_chord.process();
         auto pattern = m_pattern.process();
         auto mode = m_mode.process();
-        auto strategy = m_strategy.process();
+        auto invert = m_inverse_selection.process();
         auto pattern_uses_index = m_pattern_uses_index.process();
         auto octave = m_octave.process();
 
-        auto num_voices = NodeBase<T>::voice_count(trigger.size(), chord.size(), pattern.size(), mode.size(), octave.size());
+        auto num_voices = NodeBase<T>::voice_count(trigger.size(), chord.size(), pattern.size(), mode.size()
+                                                   , octave.size());
 
         if (num_voices != m_patternizers.size())
             m_patternizers.resize(num_voices);
@@ -188,7 +166,7 @@ public:
         auto modes = mode.adapted_to(num_voices).firsts_or(Patternizer<T>::DEFAULT_MODE);
         auto octaves = octave.adapted_to(num_voices).firsts();
 
-        auto current_strategy = mode.first_or(Patternizer<T>::DEFAULT_STRATEGY);
+        auto current_strategy = invert.first_or(Patternizer<T>::DEFAULT_INVERTED);
         bool is_index = pattern_uses_index.first_or(Patternizer<T>::DEFAULT_PATTERN_USES_INDEX);
 
         m_current_value.adapted_to(num_voices);
@@ -223,7 +201,7 @@ private:
     Socket<Facet>& m_pattern;
 
     Socket<Facet>& m_mode;
-    Socket<Facet>& m_strategy;
+    Socket<Facet>& m_inverse_selection; // true: select from top/reverse, false: select from bottom/forward
     Socket<Facet>& m_pattern_uses_index;
     Socket<T>& m_octave;
 
@@ -247,7 +225,7 @@ struct PatternizerWrapper {
     Sequence<OutputType, StoredType> chord{Keys::CHORD, ph};
     Sequence<Facet, FloatType> pattern{Keys::PATTERN, ph};
     Sequence<Facet, Mode> mode{Keys::MODE, ph, Voices<Mode>::singular(PatternizerT::DEFAULT_MODE)};
-    Variable<Facet, Index::Strategy> strategy{Keys::STRATEGY, ph, PatternizerT::DEFAULT_STRATEGY};
+    Variable<Facet, bool> inverse_selection{Keys::INVERSE_SELECTION, ph, PatternizerT::DEFAULT_INVERTED};
     Variable<Facet, bool> pattern_uses_index{Keys::PATTERN_USES_INDEX, ph, PatternizerT::DEFAULT_PATTERN_USES_INDEX};
     Sequence<OutputType, StoredType> octave{Keys::OCTAVE, ph};
 
@@ -260,13 +238,14 @@ struct PatternizerWrapper {
                                                  , &chord
                                                  , &pattern
                                                  , &mode
-                                                 , &strategy
+                                                 , &inverse_selection
                                                  , &pattern_uses_index
                                                  , &octave
                                                  , &enabled
                                                  , &num_voices
     };
 };
+
 
 template<typename FloatType = double>
 using PatternizerDoubleWrapper = PatternizerWrapper<Facet, double, FloatType>;
@@ -276,6 +255,7 @@ using PatternizerIntWrapper = PatternizerWrapper<Facet, int, FloatType>;
 
 template<typename FloatType = double>
 using PatternizerStringWrapper = PatternizerWrapper<std::string, std::string, FloatType>;
+
 }
 
 #endif //SERIALIST_PATTERNIZER_H
