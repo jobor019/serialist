@@ -1,7 +1,6 @@
 #ifndef SERIALIST_RANDOM_NODE_H
 #define SERIALIST_RANDOM_NODE_H
 
-#include "core/types/event.h"
 #include "core/generative.h"
 #include "core/types/trigger.h"
 #include "core/types/facet.h"
@@ -9,15 +8,18 @@
 #include "sequence.h"
 #include "variable.h"
 #include "algo/random/equal_duration_sampling.h"
+#include "types/index.h"
 #include "types/phase.h"
 #include "utility/stateful.h"
 
 
 namespace serialist {
-// ==============================================================================================
 
 class RandomHandler {
 public:
+    using IndexType = Index::IndexType;
+
+
     enum class Mode { uniform, weighted, exponential, brownian };
 
 
@@ -67,8 +69,9 @@ public:
 
     void set_mode(Mode mode) { m_mode = mode; }
     void set_repetition_strategy(AvoidRepetitions strategy) { m_repetition_strategy = strategy; }
-    void set_max_brownian_step(double step) { m_max_brownian_step = std::max(0.0, step); }
+    void set_max_brownian_step(double step) { m_max_brownian_step = utils::clip(step, 0.0, 1.0); }
     void set_quantization_steps(std::size_t steps) { m_quantization_steps = steps; }
+
 
     void set_exp_lower_bound(double lower_bound) {
         auto clipped = utils::clip(lower_bound, EXP_LB_LIMIT, m_max);
@@ -84,6 +87,11 @@ public:
     void set_weights(const Vec<double>& weights) {
         m_weights = weights;
         reset_weights();
+    }
+
+
+    void set_seed(uint32_t seed) {
+        m_random = Random(seed);
     }
 
 private:
@@ -104,12 +112,12 @@ private:
     }
 
 
-    double scale_to_max(double x) const { return x * m_max; }
+    // double scale_to_max(double x) const { return x * m_max; }
 
 
-    double scale_to_max(std::size_t index, std::size_t num_steps) const {
-        return static_cast<double>(index) / static_cast<double>(num_steps) * m_max;
-    }
+    // double scale_to_max(std::size_t index, std::size_t num_steps) const {
+    //     return static_cast<double>(index) / static_cast<double>(num_steps) * m_max;
+    // }
 
 
     void reset_choices() {
@@ -185,7 +193,7 @@ private:
         return uniform_rnd.map([this](double u) {
             auto e = m_exp.next(u);
             if (use_quantization()) {
-                return quantize(e, 1.0 / static_cast<double>(*m_quantization_steps), true);
+                return Index::quantize(e, *m_quantization_steps);
             }
             return e;
         });
@@ -197,18 +205,22 @@ private:
             resize_previous_values(chord_size);
         }
 
-        std::optional<std::pair<std::size_t, double>> discrete_step;
         if (use_quantization()) {
-            discrete_step = brownian_discrete_step();
-        } else {
-            discrete_step = std::nullopt;
-        }
+            auto discrete_step = brownian_discrete_max_steps();
 
-        auto allow_repetitions = *m_repetition_strategy != AvoidRepetitions::off;
+            // note: allow_repetitions only applies in the discrete case
+            auto allow_repetitions = *m_repetition_strategy != AvoidRepetitions::off;
+
+            auto r = Voice<double>::allocated(chord_size);
+            for (std::size_t i = 0; i < chord_size; ++i) {
+                r.append(next_discrete_brownian(m_previous_values[i], discrete_step, allow_repetitions));
+            }
+            return r;
+        }
 
         auto r = Voice<double>::allocated(chord_size);
         for (std::size_t i = 0; i < chord_size; ++i) {
-            r.append(next_brownian(m_previous_values[i], discrete_step, allow_repetitions));
+            r.append(next_continuous_brownian(m_previous_values[i]));
         }
         return r;
     }
@@ -231,7 +243,7 @@ private:
     double next_choice() {
         if (*m_repetition_strategy == AvoidRepetitions::off && use_quantization()) {
             auto q = *m_quantization_steps;
-            return scale_to_max(m_random.choice(q), q);
+            return Index::phase_op(static_cast<IndexType>(m_random.choice(q)), q);
         }
 
 
@@ -249,7 +261,7 @@ private:
         assert(m_weights.size() > 1);
 
         if (*m_repetition_strategy == AvoidRepetitions::off) {
-            return scale_to_max(m_random.weighted_choice(m_current_weights), m_current_weights.size());
+            return index_to_phase(m_random.weighted_choice(m_current_weights), m_current_weights.size());
         }
 
         if (m_weights.empty()) {
@@ -262,36 +274,59 @@ private:
 
         auto i = m_random.weighted_choice(m_current_weights);
         m_current_weights.pop_index(i);
-        return scale_to_max(i, m_current_weights.size());
+        return index_to_phase(i, m_current_weights.size());
     }
 
 
-    double next_brownian(double previous_value
-                         , const std::optional<std::pair<std::size_t, double>>& discrete_step
-                         , bool allow_repetitions) {
-        double new_value;
-
-        if (discrete_step) {
-            auto [max_num_steps, step_size] = *discrete_step;
-            // quantization may have changed since the previous value
-            previous_value = quantize(previous_value, step_size, true);
-
-            if (allow_repetitions) {
-                auto num_steps = static_cast<double>(m_random.choice(max_num_steps) + 1);
-                auto is_negative = m_random.next() < 0.5;
-                auto delta = num_steps * step_size * (is_negative ? -1.0 : 1.0);
-
-                new_value = previous_value + delta;
-            } else {
-                auto num_steps = m_random.choice(2 * max_num_steps + 1);
-                auto delta = (static_cast<double>(num_steps) - static_cast<double>(max_num_steps)) * step_size;
-                new_value = previous_value + delta;
-            }
-        } else {
-            // continuous: note that we ignore allow_repetitions here
-            double delta = m_random.next(-m_max_brownian_step, m_max_brownian_step);
-            new_value = previous_value + delta;
+    double next_discrete_brownian(double previous_value, IndexType max_steps, bool allow_repetitions) {
+        if (*m_quantization_steps <= 1) {
+            return 0.0;
         }
+
+        IndexType new_index;
+
+        // note that quantization may have changed since the previous value
+        auto previous_index = Index::index_op(previous_value, *m_quantization_steps);
+
+        if (!allow_repetitions) {
+            auto n_steps = m_random.choice(static_cast<std::size_t>(max_steps)) + 1;
+            auto sign = static_cast<IndexType>(m_random.next() < 0.5 ? -1 : 1);
+            new_index = previous_index + static_cast<IndexType>(n_steps) * sign;
+
+        } else {
+            auto rand_step = m_random.choice(2 * static_cast<std::size_t>(max_steps) + 1);
+            auto num_steps = static_cast<IndexType>(rand_step) - max_steps;
+            new_index = previous_index + num_steps;
+        }
+
+
+        auto ub = static_cast<IndexType>(*m_quantization_steps - 1);
+
+        // Handle reflection at boundaries
+        if (new_index < 0) {
+            new_index = -new_index;
+        } else if (new_index >= *m_quantization_steps) {
+            new_index = 2 * ub - new_index;
+        }
+
+        // value is the same due to reflection
+        if (!allow_repetitions && new_index == previous_index) {
+            if (new_index == 0) {
+                new_index = 1;
+            } else if (new_index == ub) {
+                new_index = ub - 1;
+            } else {
+                new_index += static_cast<IndexType>(m_random.next() < 0.5 ? -1 : 1);
+            }
+        }
+
+        return Index::phase_op(new_index, *m_quantization_steps);
+    }
+
+
+    double next_continuous_brownian(double previous_value) {
+        double delta = m_random.next(-m_max_brownian_step, m_max_brownian_step);
+        double new_value = previous_value + delta;
 
         // Handle reflection at boundaries
         if (new_value < 0.0) {
@@ -304,35 +339,22 @@ private:
     }
 
 
-    std::pair<std::size_t, double> brownian_discrete_step() const {
+    IndexType brownian_discrete_max_steps() const {
         assert(*m_quantization_steps > 0);
 
         double step_size = m_max / static_cast<double>(*m_quantization_steps);
         if (m_max_brownian_step < step_size) {
-            return {1u, step_size};
+            return 1;
         }
-
-        auto max_step = quantize(m_max_brownian_step, step_size, false);
-        auto num_steps = static_cast<std::size_t>(std::round(max_step / step_size));
-        return {num_steps, max_step};
+        return Index::index_op(m_max_brownian_step, *m_quantization_steps);
     }
 
 
     bool use_quantization() const { return *m_quantization_steps > 0; }
 
-    Voice<double> quantize(const Voice<double>& v, double step_size, bool round = false) const {
-        auto quantized = Voice<double>::allocated(v.size());
-        for (const auto& x: v) {
-            quantized.append(quantize(x, step_size, round));
-        }
-        return quantized;
-    }
 
-    double quantize(double v, double step_size, bool round = false) const {
-        if (round)
-            return std::round(v / step_size) * step_size * m_max;
-
-        return std::floor(v / step_size) * step_size;
+    static double index_to_phase(std::size_t index, std::size_t map_size) {
+        return Index::phase_op(static_cast<IndexType>(index), map_size);
     }
 
 
@@ -345,7 +367,8 @@ private:
     WithChangeFlag<Mode> m_mode{DEFAULT_MODE};
 
 
-    WithChangeFlag<AvoidRepetitions> m_repetition_strategy{DEFAULT_REPETITIONS}; // does not apply to Mode::brownian or Mode::exponential
+    WithChangeFlag<AvoidRepetitions> m_repetition_strategy
+            {DEFAULT_REPETITIONS}; // does not apply to Mode::brownian or Mode::exponential
     WithChangeFlag<std::size_t> m_quantization_steps{DEFAULT_QUANTIZATION}; // does not apply to Mode::weighted
 
     double m_max_brownian_step = DEFAULT_BROWNIAN_STEP; // only applies to Mode::brownian
@@ -436,6 +459,13 @@ public:
         }
 
         return m_current_value;
+    }
+
+
+    void set_seed(std::size_t seed) {
+        for (auto& handler : m_random_handlers) {
+            handler.set_seed(seed);
+        }
     }
 
 private:
