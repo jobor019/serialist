@@ -10,8 +10,11 @@
 using namespace serialist;
 using namespace serialist::test;
 
-
+/**
+ * Chordal matchers for Voices<T> of size (1 x M), i.e. voices.size() == 1 and voices[0].size() == M
+ */
 namespace serialist::test::m1m {
+
 template<typename T>
 ResultMatcher<T> empty(MatchType match_type = MatchType::last, bool allow_no_comparison = false) {
     return {c1m::empty<T>(), "is empty", match_type, allow_no_comparison};

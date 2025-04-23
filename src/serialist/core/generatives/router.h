@@ -411,7 +411,7 @@ struct RouterWrapper {
         static_assert(std::is_same_v<U, FloatType> || std::is_same_v<U, Trigger>);
         assert(index < inputs.size());
 
-        // inputs[index]->
+        inputs[index]->set_values(value);
     }
 
 

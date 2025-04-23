@@ -12,6 +12,8 @@ public:
 
     enum class Strategy { cont, mod, clip, pass };
 
+    enum class Type { phase, index };
+
     explicit Index(IndexType value = 0) : m_value(value) {}
 
     static Index zero() { return Index{0}; }
@@ -38,6 +40,38 @@ public:
     }
 
 
+    static Index from(double v, Type t, std::size_t map_size) {
+        if (t == Type::phase)
+            return from_phase_like(v, map_size);
+
+        return from_index_facet(v);
+    }
+
+
+    static Index from(const Facet& v, Type t, std::size_t map_size) {
+        return from(v.get(), t, map_size);
+    }
+
+
+    static Vec<Index> from(const Vec<double>& v, Type t, std::size_t map_size) {
+        return v.as_type<Index>([t, map_size](double d) { return from(d, t, map_size); });
+    }
+
+    static Vec<Index> from(const Vec<Facet>& v, Type t, std::size_t map_size) {
+        return v.as_type<Index>([t, map_size](const Facet& f) { return from(f, t, map_size); });
+    }
+
+    static Voices<Index> from(const Voices<double>& v, Type t, std::size_t map_size) {
+        return v.as_type<Index>([t, map_size](double d) { return from(d, t, map_size); });
+    }
+
+    static Voices<Index> from(const Voices<Facet>& v, Type t, std::size_t map_size) {
+        return v.as_type<Index>([t, map_size](const Facet& f) { return from(f, t, map_size); });
+    }
+
+
+
+
     static IndexType index_op(double position, std::size_t map_size, double epsilon = EPSILON) {
         if (map_size == 0) {
             return 0;
@@ -55,17 +89,8 @@ public:
         constexpr auto neg_infinity = -std::numeric_limits<double>::infinity();
 
         auto nudged_position = std::nextafter(position + epsilon, neg_infinity);
-
         auto index_raw = std::floor(nudged_position * static_cast<double>(map_size));
 
-        // std::cout << std::fixed << std::setprecision(16)
-        //     << "position: " << position << "\n"
-        //     << "map_size: " << map_size << "\n"
-        //     << "epsilon: " << epsilon << "\n"
-        //     << "nudged: " << nudged_position
-        // << "index raw: " << index_raw
-        // << "\n";
-        // return static_cast<IndexType>(std::nextafter(index_raw, neg_infinity));
         return static_cast<IndexType>(index_raw);
     }
 
@@ -74,8 +99,23 @@ public:
         return static_cast<double>(index) / static_cast<double>(map_size);
     }
 
+
     static double quantize(double position, std::size_t map_size, double epsilon = EPSILON) {
         return phase_op(index_op(position, map_size, epsilon), map_size);
+    }
+
+
+    template<typename T>
+    static T apply_octave(const Index& index, const Vec<T>& v, const T& octave, bool invert = false) {
+        if constexpr (std::is_arithmetic_v<T>) {
+            auto num_octaves = index.get_octave(v.size());
+            auto i = index.get_mod(v.size(), invert);
+
+            return v[i] + *octave * num_octaves;
+        } else {
+            // Non-arithmetic types do not support octaves
+            return v[index.get_mod(v.size(), invert)];
+        }
     }
 
 

@@ -12,6 +12,9 @@
 using namespace serialist;
 using namespace serialist::test;
 
+/**
+ * Sequential matchers for Voices<T> of size (S x 1), i.e. voices.size() == S and voices[s].size() == 1 for all s in S
+ */
 namespace serialist::test::m1s {
 
 /** Match that the output Voices<T> has n monophonic voices*/
@@ -24,6 +27,19 @@ ResultMatcher<T> size(std::size_t n, MatchType match_type = MatchType::last, boo
 /** Match that the output Voices<T> has n monophonic voices*/
 inline ResultMatcher<Event> sizee(std::size_t n, MatchType match_type = MatchType::last, bool allow_no_comparison = false) {
     return {c1s::size<Event>(n), "has " + serialize(n) + " monophonic voices", match_type, allow_no_comparison};
+}
+
+
+// ==============================================================================================
+
+template<typename T>
+ResultMatcher<T> eq(const Vec<T>& expected, MatchType match_type = MatchType::last, bool allow_no_comparison = false) {
+    return {c1s::eq(expected), "is == " + expected.template as_type<std::string>().to_string(), match_type, allow_no_comparison};
+}
+
+template<typename T, typename... Args>
+ResultMatcher<Facet> eqf(const Vec<T>& expected, Args&&... args) {
+    return eq(expected.template as_type<Facet>(), std::forward<Args>(args)...);
 }
 
 

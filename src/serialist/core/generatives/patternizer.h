@@ -19,7 +19,7 @@ public:
     using Mode = Index::Strategy;
 
     static constexpr auto DEFAULT_MODE = Mode::mod;
-    static constexpr bool DEFAULT_PATTERN_USES_INDEX = true;
+    static constexpr bool DEFAULT_PATTERN_USES_INDEX = false;
     static constexpr bool DEFAULT_INVERTED = false;
 
 
@@ -74,15 +74,7 @@ private:
                                    , std::optional<T> octave
                                    , bool invert) {
         if (mode == Mode::cont && octave) {
-            if constexpr (std::is_arithmetic_v<T>) {
-                auto num_octaves = index.get_octave(v.size());
-                auto i = index.get_mod(v.size(), invert);
-
-                return v[i] + *octave * num_octaves;
-            } else {
-                // Non-arithmetic types do not support octaves
-                return v[index.get_mod(v.size(), invert)];
-            }
+            return Index::apply_octave(index, v, *octave);
         }
 
         if (auto i = index.get(v.size(), mode, invert)) {
@@ -180,6 +172,7 @@ public:
                         , octaves[i]
                         , current_strategy
                     );
+
                 } else {
                     m_current_value[i] = m_patternizers[i].process(
                         chords[i]
@@ -225,7 +218,7 @@ struct PatternizerWrapper {
     Sequence<OutputType, StoredType> chord{Keys::CHORD, ph};
     Sequence<Facet, FloatType> pattern{Keys::PATTERN, ph};
     Sequence<Facet, Mode> mode{Keys::MODE, ph, Voices<Mode>::singular(PatternizerT::DEFAULT_MODE)};
-    Variable<Facet, bool> inverse_selection{Keys::INVERSE_SELECTION, ph, PatternizerT::DEFAULT_INVERTED};
+    Variable<Facet, bool> inverse{Keys::INVERSE_SELECTION, ph, PatternizerT::DEFAULT_INVERTED};
     Variable<Facet, bool> pattern_uses_index{Keys::PATTERN_USES_INDEX, ph, PatternizerT::DEFAULT_PATTERN_USES_INDEX};
     Sequence<OutputType, StoredType> octave{Keys::OCTAVE, ph};
 
@@ -238,7 +231,7 @@ struct PatternizerWrapper {
                                                  , &chord
                                                  , &pattern
                                                  , &mode
-                                                 , &inverse_selection
+                                                 , &inverse
                                                  , &pattern_uses_index
                                                  , &octave
                                                  , &enabled

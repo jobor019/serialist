@@ -62,6 +62,15 @@ public:
     virtual Voices<T> process() = 0;
 };
 
+
+// ==============================================================================================
+
+template<typename T>
+class MultiNode : public Generative {
+public:
+    virtual Vec<Voices<T>> process() = 0;
+};
+
 } // namespace serialist
 
 #endif //SERIALIST_LOOPER_GENERATIVE_H

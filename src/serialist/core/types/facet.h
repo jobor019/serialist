@@ -83,6 +83,10 @@ public:
         return m_value;
     }
 
+    explicit operator std::string() const {
+        return std::to_string(m_value);
+    }
+
 
     bool operator==(const Facet& other) const {
         return utils::equals(m_value, other.m_value, ENUM_EPSILON);

@@ -333,7 +333,7 @@ private:
 
 // ==============================================================================================
 
-template<typename FloatType = float>
+template<typename FloatType = double>
 struct OperatorWrapper {
     using Keys = OperatorNode::Keys;
 

@@ -48,6 +48,7 @@ add_library(${CORE_NAME}
 
         ${CMAKE_CURRENT_SOURCE_DIR}/param/deserialization.h
         ${CMAKE_CURRENT_SOURCE_DIR}/param/nop_parameter.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/param/nop_socket.h
         ${CMAKE_CURRENT_SOURCE_DIR}/param/socket_base.h
         ${CMAKE_CURRENT_SOURCE_DIR}/param/socket_handler.h
         ${CMAKE_CURRENT_SOURCE_DIR}/param/string_serialization.h
@@ -80,6 +81,7 @@ add_library(${CORE_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/generation_graph.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generative.h
         generatives/lowpass.h
+        generatives/router.h
         # BELOW: Automatically added - move to correct location above and append ${CMAKE_CURRENT_SOURCE_DIR}
 
 )
