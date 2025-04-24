@@ -185,3 +185,25 @@ TEST_CASE("Router: merge", "[router]") {
     REQUIRE(multi_r.size() == 1);
     REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec{111.0, 222.0, 444.0}));
 }
+
+
+TEST_CASE("Router: split", "[router]") {
+    RouterFacetWrapper w(1, 3);
+    w.mode.set_value(router::Mode::split);
+    w.uses_index.set_value(true);
+
+    w.set_input(0, Voices<double>::transposed(Voice<double>{111, 222, 333, 444, 555}));
+
+    auto& router = w.router_node;
+    auto& map = w.routing_map;
+
+    set_map(map, {2, 2, 0}); // 2 to first outlet, 2 to 2nd, 0 to 3rd
+
+    router.update_time(TimePoint{});
+    auto multi_r = router.process();
+
+    REQUIRE(multi_r.size() == 3);
+    REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec{111.0, 222.0}));
+    REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m1s::eqf(Vec{333.0, 444.0}));
+    REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::emptyf());
+}

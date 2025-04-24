@@ -167,6 +167,9 @@ private:
     }
 
 
+    /**
+     * Note: if phase (is_index=false): corresponds to relative voice count [0, 1) of that particular inlet
+     */
     MultiVoices merge(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
         assert(input.size() == m_num_inlets);
 
@@ -190,8 +193,42 @@ private:
     }
 
 
+    /**
+     * Note: if phase (is_index=false): corresponds to fraction of total voice count from inlet.
+     */
     MultiVoices split(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
-        throw std::runtime_error("mode: split not implemented");
+        assert(input.size() == m_num_inlets);
+
+        auto& voices = input[0];
+
+        auto type = is_index ? Index::Type::index : Index::Type::phase;
+        auto size = std::min(m_num_outlets, spec.size());
+
+        auto voice_counts_per_inlet = spec.firsts<>().as_type<std::size_t>([size, type](const std::optional<Facet>& f) {
+            if (f) {
+                return static_cast<std::size_t>(Index::from(*f, type, size).get_clip(size));
+            }
+            return static_cast<std::size_t>(0);
+        });
+
+        std::size_t total_voice_count = voices.size();
+
+        auto output = MultiVoices::repeated(m_num_outlets, Voices<T>::empty_like());
+
+        std::size_t current_index = 0;
+
+        for (std::size_t i = 0; i < size; ++i) {
+            if (current_index < total_voice_count && voice_counts_per_inlet[i] > 0) {
+                auto start = current_index;
+                auto end = std::min(total_voice_count, start + voice_counts_per_inlet[i]);
+                output[i] = Voices<T>{voices.vec().slice(start, end)};
+
+                current_index = end;
+            }
+            // otherwise: out of voices to split, output will be empty
+        }
+
+        return output;
     }
 
 
