@@ -207,3 +207,35 @@ TEST_CASE("Router: split", "[router]") {
     REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m1s::eqf(Vec{333.0, 444.0}));
     REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::emptyf());
 }
+
+TEST_CASE("Router: mix", "[router]") {
+    RouterFacetWrapper w(3, 1);
+    w.mode.set_value(router::Mode::mix);
+    w.uses_index.set_value(true);
+
+    w.set_input(0, Voices<double>::transposed(Voice<double>{111, 222, 333}));
+    w.set_input(1, Voices<double>::transposed(Voice<double>{444, 555}));
+    w.set_input(2, Voices<double>::singular(666));
+
+    auto& router = w.router_node;
+    auto& map = w.routing_map;
+
+    auto mix_spec = Voices<double> {
+        {
+            Voice<double>{0, 0}, // first element in first inlet
+            Voice<double>{0, 1}, // second element in first inlet
+            Voice<double>{1, 0}, // first element in second inlet
+            Voice<double>{0, 0}, // first/first again
+            Voice<double>{0, 2}  // third element in first inlet
+        }
+    };
+
+    map.set_values(mix_spec);
+
+
+    router.update_time(TimePoint{});
+    auto multi_r = router.process();
+
+    REQUIRE(multi_r.size() == 1);
+    REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec{111.0, 222.0, 444.0, 111.0, 333.0}));
+}

@@ -35,6 +35,7 @@ public:
     using MultiVoices = Vec<Voices<T>>;
     using IndexSpec = Vec<std::optional<Index>>;
     using CountSpec = Vec<Index>;
+    using MixSpecElement = std::optional<std::pair<std::size_t, std::size_t>>;
 
     enum class MapType {};
 
@@ -58,6 +59,8 @@ public:
                         , const Voices<Facet>& spec
                         , router::Mode mode
                         , bool is_index) {
+        assert(input.size() == m_num_inlets);
+
         if (spec.is_empty_like()) {
             return default_empty();
         }
@@ -146,8 +149,6 @@ private:
 
 
     MultiVoices through_multi(MultiVoices&& input, const Voices<Facet>& boolean_mask, bool is_index) {
-        assert(input.size() == m_num_inlets);
-
         auto mask_size = std::min(input.size(), m_num_outlets);
 
         auto mask = parse_through_spec(boolean_mask, mask_size);
@@ -171,8 +172,6 @@ private:
      * Note: if phase (is_index=false): corresponds to relative voice count [0, 1) of that particular inlet
      */
     MultiVoices merge(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
-        assert(input.size() == m_num_inlets);
-
         auto type = is_index ? Index::Type::index : Index::Type::phase;
         auto size = std::min(m_num_inlets, spec.size());
         auto firsts = spec.firsts<>();
@@ -197,8 +196,6 @@ private:
      * Note: if phase (is_index=false): corresponds to fraction of total voice count from inlet.
      */
     MultiVoices split(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
-        assert(input.size() == m_num_inlets);
-
         auto& voices = input[0];
 
         auto type = is_index ? Index::Type::index : Index::Type::phase;
@@ -233,7 +230,16 @@ private:
 
 
     MultiVoices mix(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
-        throw std::runtime_error("mode: mix not implemented");
+        auto type = is_index ? Index::Type::index : Index::Type::phase;
+
+        auto size = spec.size();
+        auto mixed = Vec<Voice<T>>::allocated(size);
+
+        for (const auto& element : spec) {
+            mixed.append(get_mix_element(element, input, type));
+        }
+
+        return MultiVoices::singular(Voices<T>{std::move(mixed)});
     }
 
 
@@ -285,6 +291,32 @@ public:
         }
 
         return mask;
+    }
+
+    static Voice<T> get_mix_element(const Voice<Facet>& element_spec, const MultiVoices& input, Index::Type t) {
+        // We expect each element to be a tuple (inlet_index, voice_index)
+        if (element_spec.size() < 2) {
+            return {}; // Invalid spec, parsed as empty voice
+        }
+
+        auto num_inlets = input.size();
+        auto inlet_index = Index::from(element_spec[0], t, num_inlets).get_pass(num_inlets);
+
+        if (!inlet_index) {
+            return {}; // inlet index out of bounds
+        }
+
+        auto i = static_cast<std::size_t>(*inlet_index);
+
+        auto num_voices = input[i].size();
+        auto voice_index = Index::from(element_spec[1], t, num_voices).get_pass(num_voices);
+
+        if (!voice_index) {
+            return {}; // voice index out of bounds
+        }
+
+        auto j = static_cast<std::size_t>(*voice_index);
+        return input[i][j];
     }
 
 
