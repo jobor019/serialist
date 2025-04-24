@@ -163,3 +163,25 @@ TEST_CASE("Router: through (multi)", "[router]") {
         REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::emptyf());
     }
 }
+
+
+TEST_CASE("Router: merge", "[router]") {
+    RouterFacetWrapper w(3, 1);
+    w.mode.set_value(router::Mode::merge);
+    w.uses_index.set_value(true);
+
+    w.set_input(0, Voices<double>::transposed(Voice<double>{111, 222, 333}));
+    w.set_input(1, Voices<double>::transposed(Voice<double>{444, 555}));
+    w.set_input(2, Voices<double>::singular(666));
+
+    auto& router = w.router_node;
+    auto& map = w.routing_map;
+
+    set_map(map, {2, 1, 0}); // 2 from first voice, 1 from 2nd, 0 from 3rd
+
+    router.update_time(TimePoint{});
+    auto multi_r = router.process();
+
+    REQUIRE(multi_r.size() == 1);
+    REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec{111.0, 222.0, 444.0}));
+}

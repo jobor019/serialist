@@ -16,7 +16,7 @@
 
 namespace serialist {
 
-// Namespace to avoid templating all arguments
+// Namespace rather than member of Router to avoid templating all usages
 namespace router {
 
 enum class Mode { route, through, merge, split, mix, distribute };
@@ -33,7 +33,8 @@ template<typename T>
 class Router {
 public:
     using MultiVoices = Vec<Voices<T>>;
-    using OutletSpec = Vec<std::optional<Index>>;
+    using IndexSpec = Vec<std::optional<Index>>;
+    using CountSpec = Vec<Index>;
 
     enum class MapType {};
 
@@ -166,8 +167,26 @@ private:
     }
 
 
-    MultiVoices mix(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
-        throw std::runtime_error("mode: mix not implemented");
+    MultiVoices merge(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
+        assert(input.size() == m_num_inlets);
+
+        auto type = is_index ? Index::Type::index : Index::Type::phase;
+        auto size = std::min(m_num_inlets, spec.size());
+        auto firsts = spec.firsts<>();
+
+        Vec<Voice<T>> merged;
+
+        for (std::size_t i = 0; i < size; ++i) {
+            if (firsts[i]) {
+                auto voice_count = input[i].size();
+                auto num_selected = Index::from(*firsts[i], type, voice_count).get_clip(voice_count);
+
+                merged.extend(input[i].vec().slice(0, num_selected));
+            }
+            // otherwise: empty spec is equivalent to 0 entries from given index
+        }
+
+        return MultiVoices::singular(Voices<T>{std::move(merged)});
     }
 
 
@@ -176,18 +195,36 @@ private:
     }
 
 
-    MultiVoices distribute(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
-        throw std::runtime_error("mode: distribute not implemented");
+    MultiVoices mix(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
+        throw std::runtime_error("mode: mix not implemented");
     }
 
 
-    MultiVoices merge(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
-        throw std::runtime_error("mode: merge not implemented");
+    MultiVoices distribute(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
+        throw std::runtime_error("mode: distribute not implemented");
     }
 
 public:
     MultiVoices default_empty() const {
         return MultiVoices::repeated(m_num_outlets, Voices<T>::empty_like());
+    }
+
+
+    static IndexSpec parse_route_spec(const Voices<Facet>& spec, std::size_t num_indices, bool is_index) {
+        auto firsts = spec.firsts<>();
+
+        auto type = is_index ? Index::Type::index : Index::Type::phase;
+
+        auto indices = IndexSpec::allocated(firsts.size());
+        for (auto& f : firsts) {
+            if (f) {
+                indices.append(Index::from(*f, type, num_indices));
+            } else {
+                indices.append(std::nullopt);
+            }
+        }
+
+        return indices;
     }
 
 
@@ -214,24 +251,6 @@ public:
     }
 
 
-    static OutletSpec parse_route_spec(const Voices<Facet>& spec, std::size_t num_indices, bool is_indices) {
-        auto firsts = spec.firsts<>();
-
-        auto type = is_indices ? Index::Type::index : Index::Type::phase;
-
-        auto indices = OutletSpec::allocated(firsts.size());
-        for (auto& f : firsts) {
-            if (f) {
-                indices.append(Index::from(*f, type, num_indices));
-            } else {
-                indices.append(std::nullopt);
-            }
-        }
-
-        return indices;
-    }
-
-
     std::size_t num_inlets() const { return m_num_inlets; }
     std::size_t num_outlets() const { return m_num_outlets; }
 
@@ -240,7 +259,7 @@ private:
     const std::size_t m_num_outlets;
 
 
-    OutletSpec m_previous_outlet_spec;
+    IndexSpec m_previous_outlet_spec;
 
     // HeldPulses<> m_held_pulses;
 };
@@ -304,7 +323,7 @@ template<typename T>
 class RouterNode : public MultiNode<T> {
 public:
     using MultiVoices = typename Router<T>::MultiVoices;
-    using OutletSpec = typename Router<T>::OutletSpec;
+    using OutletSpec = typename Router<T>::IndexSpec;
 
     static constexpr bool is_trigger = std::is_same_v<T, Trigger>;
 
