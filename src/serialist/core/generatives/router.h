@@ -18,12 +18,12 @@ namespace serialist {
 
 // Namespace to avoid templating all arguments
 namespace router {
-enum class Mode { route, through, mix, split };
+
+enum class Mode { route, through, merge, split, mix, distribute };
 
 struct Defaults {
     static constexpr auto MODE = Mode::route;
     static constexpr auto USE_INDEX = true;
-    static constexpr auto BROADCAST = false;
 };
 
 }
@@ -34,6 +34,8 @@ class Router {
 public:
     using MultiVoices = Vec<Voices<T>>;
     using OutletSpec = Vec<std::optional<Index>>;
+
+    enum class MapType {};
 
     // template<typename U = T, bool Enabled = false>
     // struct HeldPulses {};
@@ -51,64 +53,64 @@ public:
     }
 
 
-    MultiVoices process(MultiVoices&& input, const Voices<Facet>& spec, router::Mode mode, bool is_index) {
+    MultiVoices process(MultiVoices&& input
+                        , const Voices<Facet>& spec
+                        , router::Mode mode
+                        , bool is_index) {
         if (spec.is_empty_like()) {
             return default_empty();
         }
 
-        // Single only supports modes route and through, hence a separate implementation
+        // Single only supports modes route and through, hence the separate implementation
         if (m_num_inlets == 1 && m_num_outlets == 1) {
-            return process_single(std::move(input), spec, mode, is_index);
+            if (mode == router::Mode::through) {
+                return through_single(std::move(input), spec, is_index);
+            } else {
+                // All other modes: default to `route` in the single inlet single outlet scenario
+                return route_single(std::move(input), spec, is_index);
+            }
         }
 
-        if (mode == router::Mode::through) {
-            return multi_through(std::move(input), spec, mode, is_index);
-        } else if (mode == router::Mode::mix) {
-            return mix(std::move(input), spec, mode, is_index);
-        } else if (mode == router::Mode::split) {
-            return split(std::move(input), spec, mode, is_index);
+        switch (mode) {
+            case router::Mode::through: return through_multi(std::move(input), spec, is_index);
+            case router::Mode::merge: return merge(std::move(input), spec, is_index);
+            case router::Mode::split: return split(std::move(input), spec, is_index);
+            case router::Mode::mix: return mix(std::move(input), spec, is_index);
+            case router::Mode::distribute: return distribute(std::move(input), spec, is_index);
+            default: return route_multi(std::move(input), spec, is_index);
         }
-
-        return multi_route(std::move(input), spec, mode, is_index);
     }
 
 private:
-    MultiVoices process_single(MultiVoices&& input, const Voices<Facet>& spec, router::Mode mode, bool is_index) {
-        if (mode == router::Mode::through) {
-            throw std::runtime_error("mode: through not implemented");
+    MultiVoices route_single(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
+        auto voices = input[0];
+        auto input_size = voices.size();
+        auto output_size = spec.size();
 
-        } else {
-            // All other modes: default to `route`. `mix` and `split` are not relevant for within-voices routing
+        // map spec to indices corresponding to elements in input voices
+        auto indices = parse_route_spec(spec, input_size, is_index);
 
-            auto voices = input[0];
-            auto input_size = voices.size();
-            auto output_size = spec.size();
-
-            // map spec to indices corresponding to elements in input voices
-            auto indices = to_outlet_spec(spec, input_size, is_index);
-
-            auto output = Vec<Voice<T>>::allocated(output_size);
-            for (const auto& i : indices) {
-                if (!i) {
-                    output.append(Voice<T>{});
+        auto output = Vec<Voice<T>>::allocated(output_size);
+        for (const auto& i : indices) {
+            if (!i) {
+                output.append(Voice<T>{});
+            } else {
+                if (auto clipped_index = i->get_pass(input_size)) {
+                    output.append(voices[static_cast<std::size_t>(*clipped_index)]);
                 } else {
-                    if (auto clipped_index = i->get_pass(input_size)) {
-                        output.append(voices[static_cast<std::size_t>(*clipped_index)]);
-                    } else {
-                        output.append(Voice<T>{});
-                    }
+                    output.append(Voice<T>{});
                 }
             }
-            return {Voices<T>{output}};
         }
+        return {Voices<T>{output}};
     }
 
 
-    MultiVoices multi_route(MultiVoices&& input, const Voices<Facet>& spec, router::Mode mode, bool is_index) {
+    MultiVoices route_multi(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
         auto input_size = input.size();
         auto output_size = spec.size();
 
-        auto indices = to_outlet_spec(spec, input_size, is_index);
+        auto indices = parse_route_spec(spec, input_size, is_index);
 
         auto output = MultiVoices::allocated(output_size);
         for (const auto& i : indices) {
@@ -127,18 +129,33 @@ private:
     }
 
 
-    MultiVoices multi_through(MultiVoices&& input, const Voices<Facet>& spec, router::Mode mode, bool is_index) {
+    MultiVoices through_single(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
         throw std::runtime_error("mode: through not implemented");
     }
 
 
-    MultiVoices mix(MultiVoices&& input, const Voices<Facet>& spec, router::Mode mode, bool is_index) {
+    MultiVoices through_multi(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
+        throw std::runtime_error("mode: through not implemented");
+    }
+
+
+    MultiVoices mix(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
         throw std::runtime_error("mode: mix not implemented");
     }
 
 
-    MultiVoices split(MultiVoices&& input, const Voices<Facet>& spec, router::Mode mode, bool is_index) {
+    MultiVoices split(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
         throw std::runtime_error("mode: split not implemented");
+    }
+
+
+    MultiVoices distribute(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
+        throw std::runtime_error("mode: distribute not implemented");
+    }
+
+
+    MultiVoices merge(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
+        throw std::runtime_error("mode: merge not implemented");
     }
 
 public:
@@ -147,15 +164,26 @@ public:
     }
 
 
-    // TODO: Isn't it a bit inconvenient to have different signatures like this? It'll be inconsistent
-    //       with our `flush` implementation, which we can't really expect to have anything but MultiVoices output.
-    // std::optional<MultiVoices> flush();
+    /**
+     *
+     * @return indices of enabled outlets / voice(s) to pass through. Will not contain `std::nullopt`
+     */
+    static OutletSpec parse_through_spec(const Voices<Facet>& enabled) {
+        OutletSpec indices;
+
+        // Expect incoming facet to be a list of booleans of the same size as number of inlets / voices
+        auto firsts = enabled.firsts();
+        for (std::size_t i = 0; i < firsts.size(); ++i) {
+            if (firsts[i] && static_cast<bool>(*firsts[i])) {
+                indices.append(Index(static_cast<Index::IndexType>(i)));
+            }
+        }
+
+        return indices;
+    }
 
 
-    static OutletSpec to_outlet_spec(const Vec<bool>& enabled_mask);
-
-
-    static OutletSpec to_outlet_spec(const Voices<Facet>& spec, std::size_t num_indices, bool is_indices) {
+    static OutletSpec parse_route_spec(const Voices<Facet>& spec, std::size_t num_indices, bool is_indices) {
         auto firsts = spec.firsts<>();
 
         auto type = is_indices ? Index::Type::index : Index::Type::phase;
@@ -194,16 +222,6 @@ private:
 template<typename T>
 class MultiSocket {
 public:
-    // explicit MultiSocket(std::size_t num_voices) : m_sockets(num_voices) {
-    //     assert(num_voices > 0);
-    // }
-
-
-    // explicit MultiSocket(Vec<std::unique_ptr<Socket<T>>> sockets) : m_sockets(std::move(sockets)) {
-    //     assert(!m_sockets.empty());
-    // }
-
-
     MultiSocket(Vec<Node<T>*> nodes, SocketHandler& socket_handler, const std::string& base_name)
         : m_sockets{create_sockets(std::move(nodes), socket_handler, base_name)} {
         assert(!m_sockets.empty());
@@ -265,7 +283,6 @@ public:
         static const inline std::string ROUTING_MAP = "routing_map";
         static const inline std::string MODE = "mode";
         static const inline std::string USES_INDEX = "uses_index";
-        // static const inline std::string BROADCAST = "broadcast";
 
         static const inline std::string CLASS_NAME = "router";
     };
@@ -278,9 +295,7 @@ public:
                , Node<Facet>* routing_map = nullptr
                , Node<Facet>* mode = nullptr
                , Node<Facet>* uses_index = nullptr
-               // , Node<Facet>* broadcast = nullptr
                , Node<Facet>* enabled = nullptr
-               // , Node<Facet>* num_voices = nullptr
     )
         : m_parameter_handler(Specification(param::types::generative)
                               .with_identifier(id)
@@ -292,10 +307,7 @@ public:
         , m_routing_map(m_socket_handler.create_socket<Facet>(Keys::ROUTING_MAP, routing_map))
         , m_mode(m_socket_handler.create_socket<Facet>(Keys::MODE, mode))
         , m_uses_index(m_socket_handler.create_socket<Facet>(Keys::USES_INDEX, uses_index))
-        // , m_broadcast(m_socket_handler.create_socket<Facet>(Keys::BROADCAST, broadcast))
-        , m_enabled(m_socket_handler.create_socket<Facet>(param::properties::enabled, enabled))
-    // , m_num_voices(m_socket_handler.create_socket<Facet>(param::properties::num_voices, num_voices))
-    {}
+        , m_enabled(m_socket_handler.create_socket<Facet>(param::properties::enabled, enabled)) {}
 
 
     void update_time(const TimePoint& t) override { m_time_gate.push_time(t); }
@@ -359,8 +371,6 @@ private:
 
     Socket<Facet>& m_mode;          // Variable
     Socket<Facet>& m_uses_index;    // Variable
-    // Socket<Facet>& m_broadcast;     // Variable
-    // Socket<Facet>& m_num_voices;    // Sequence
 
     Socket<Facet>& m_enabled;
 
