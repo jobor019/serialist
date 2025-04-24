@@ -26,7 +26,7 @@ void set_map(Sequence<Facet, double>& map_node, std::initializer_list<double> va
 }
 
 
-TEST_CASE("Router: route single", "[router]") {
+TEST_CASE("Router: route (single)", "[router]") {
     RouterFacetWrapper w(1, 1);
     w.mode.set_value(router::Mode::route);
     w.uses_index.set_value(true);
@@ -58,7 +58,7 @@ TEST_CASE("Router: route single", "[router]") {
 }
 
 
-TEST_CASE("Router: route multi", "[router]") {
+TEST_CASE("Router: route (multi)", "[router]") {
     RouterFacetWrapper w(3, 2);
     w.mode.set_value(router::Mode::route);
     w.uses_index.set_value(true);
@@ -83,6 +83,71 @@ TEST_CASE("Router: route multi", "[router]") {
 
     SECTION("Subset") {
         set_map(map, {0.0, 1.0});
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 2);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m11::eqf(111.0));
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m11::eqf(222.0));
+    }
+}
+
+
+TEST_CASE("Router: through (single)", "[router]") {
+    RouterFacetWrapper w(1, 1);
+    w.mode.set_value(router::Mode::through);
+
+    w.set_input(0, Voices<double>::transposed(Voice<double>{111, 222, 333}));
+
+    auto& router = w.router_node;
+    auto& map = w.routing_map;
+
+    SECTION("Unit map") {
+        set_map(map, {1, 1, 1}); // boolean mask
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 1);
+        auto r = RunResult<Facet>::dummy(multi_r[0]);
+        REQUIRE_THAT(r, m1s::eqf(Vec{111.0, 222.0, 333.0}));
+    }
+
+    SECTION("Subset") {
+        set_map(map, {1, 1, 0});
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 1);
+        auto r = RunResult<Facet>::dummy(multi_r[0]);
+        REQUIRE_THAT(r, m1s::eqf(Vec{111.0, 222.0}));
+    }
+}
+
+
+TEST_CASE("Router: through (multi)", "[router]") {
+    RouterFacetWrapper w(3, 3);
+    w.mode.set_value(router::Mode::through);
+
+    w.set_input(0, Voices<double>::singular(111));
+    w.set_input(1, Voices<double>::singular(222));
+    w.set_input(2, Voices<double>::singular(333));
+
+    auto& router = w.router_node;
+    auto& map = w.routing_map;
+
+    SECTION("Unit map") {
+        set_map(map, {1, 1, 1});
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m11::eqf(111.0));
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m11::eqf(222.0));
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::eqf(333.0));
+    }
+
+    SECTION("Subset") {
+        set_map(map, {1, 1, 0});
         router.update_time(TimePoint{});
         auto multi_r = router.process();
 

@@ -129,13 +129,40 @@ private:
     }
 
 
-    MultiVoices through_single(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
-        throw std::runtime_error("mode: through not implemented");
+    MultiVoices through_single(MultiVoices&& input, const Voices<Facet>& boolean_mask, bool is_index) {
+        auto& voices = input[0];
+
+        auto mask = parse_through_spec(boolean_mask, voices.size());
+        assert(mask.size() == voices.size());
+
+        for (std::size_t i = 0; i < mask.size(); ++i) {
+            if (!mask[i]) {
+                voices[i].clear();
+            }
+        }
+        return std::move(input);
     }
 
 
-    MultiVoices through_multi(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
-        throw std::runtime_error("mode: through not implemented");
+    MultiVoices through_multi(MultiVoices&& input, const Voices<Facet>& boolean_mask, bool is_index) {
+        assert(input.size() == m_num_inlets);
+
+        auto mask_size = std::min(input.size(), m_num_outlets);
+
+        auto mask = parse_through_spec(boolean_mask, mask_size);
+        assert(mask.size() <= mask_size);
+
+        // if num_outlets is greater than mask_size (i.e. num_outlets > num_inlets),
+        // we'll just output empty Voices on the remaining outlets
+        auto output = MultiVoices::repeated(m_num_outlets, Voices<T>::empty_like());
+
+        for (std::size_t i = 0; i < mask.size(); ++i) {
+            if (mask[i]) {
+                output[i] = input[i];
+            }
+        }
+
+        return output;
     }
 
 
@@ -166,20 +193,24 @@ public:
 
     /**
      *
-     * @return indices of enabled outlets / voice(s) to pass through. Will not contain `std::nullopt`
+     * @return A boolean mask of the same size as the number of inputs,
+     *         or max(inputs, outputs), if the latter is provided
      */
-    static OutletSpec parse_through_spec(const Voices<Facet>& enabled) {
-        OutletSpec indices;
+    static Vec<bool> parse_through_spec(const Voices<Facet>& enabled, std::size_t target_mask_size) {
+
+        // Default entries to false in case `enabled` is smaller than `target_mask_size`
+        auto mask = Vec<bool>::zeros(target_mask_size);
 
         // Expect incoming facet to be a list of booleans of the same size as number of inlets / voices
         auto firsts = enabled.firsts();
-        for (std::size_t i = 0; i < firsts.size(); ++i) {
+
+        for (std::size_t i = 0; i < std::min(target_mask_size, firsts.size()); ++i) {
             if (firsts[i] && static_cast<bool>(*firsts[i])) {
-                indices.append(Index(static_cast<Index::IndexType>(i)));
+                mask[i] = true;
             }
         }
 
-        return indices;
+        return mask;
     }
 
 
