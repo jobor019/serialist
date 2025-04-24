@@ -244,7 +244,16 @@ private:
 
 
     MultiVoices distribute(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
-        throw std::runtime_error("mode: distribute not implemented");
+        auto& voices = input[0];
+        auto type = is_index ? Index::Type::index : Index::Type::phase;
+
+        auto output = MultiVoices::repeated(m_num_outlets, Voices<T>::empty_like());
+
+        for (std::size_t i = 0; i < spec.size(); ++i) {
+            output[i] = get_distribute_element(spec[i], voices, type);
+        }
+
+        return output;
     }
 
 public:
@@ -317,6 +326,28 @@ public:
 
         auto j = static_cast<std::size_t>(*voice_index);
         return input[i][j];
+    }
+
+    static Voices<T> get_distribute_element(const Voice<Facet>& element_spec, const Voices<T>& input, Index::Type t) {
+        // We expect each element to be a list of zero or more elements corresponding to indices in `input`
+
+        if (element_spec.empty()) {
+            return Voices<T>::empty_like();
+        }
+
+        auto num_voices = input.size();
+
+        auto outlet_voices = Vec<Voice<T>>::allocated(element_spec.size());
+
+        for (const auto& e : element_spec) {
+            if (auto voice_index = Index::from(e, t, num_voices).get_pass(num_voices)) {
+                outlet_voices.append(input[static_cast<std::size_t>(*voice_index)]);
+            } else {
+                outlet_voices.append(Voice<T>{}); // voice index out of bounds
+            }
+        }
+
+        return Voices<T>{outlet_voices};
     }
 
 
