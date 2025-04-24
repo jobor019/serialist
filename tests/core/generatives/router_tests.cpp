@@ -118,8 +118,14 @@ TEST_CASE("Router: through (single)", "[router]") {
         auto multi_r = router.process();
 
         REQUIRE(multi_r.size() == 1);
-        auto r = RunResult<Facet>::dummy(multi_r[0]);
-        REQUIRE_THAT(r, m1s::eqf(Vec{111.0, 222.0}));
+        auto r = multi_r[0];
+        REQUIRE(r.size() == 3);
+        REQUIRE(r[0].size() == 1);
+        REQUIRE_THAT(r[0][0], Catch::Matchers::WithinAbs(111.0, 1e-8));
+        REQUIRE(r[1].size() == 1);
+        REQUIRE_THAT(r[1][0], Catch::Matchers::WithinAbs(222.0, 1e-8));
+
+        REQUIRE(r[2].empty());
     }
 }
 
@@ -151,8 +157,9 @@ TEST_CASE("Router: through (multi)", "[router]") {
         router.update_time(TimePoint{});
         auto multi_r = router.process();
 
-        REQUIRE(multi_r.size() == 2);
+        REQUIRE(multi_r.size() == 3);
         REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m11::eqf(111.0));
         REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m11::eqf(222.0));
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::emptyf());
     }
 }

@@ -4,17 +4,17 @@ add_library(testutils EXCLUDE_FROM_ALL
         ${CMAKE_CURRENT_SOURCE_DIR}/results.h
         ${CMAKE_CURRENT_SOURCE_DIR}/matchers/m11.h
         ${CMAKE_CURRENT_SOURCE_DIR}/matchers/matchers_common.h
-        generators.h
-        exceptions.h
-        condition.h
-        conditions/c11.h
-        events.h
-        conditions/c1m.h
-        matchers/m1m.h
-        conditions/c1s.h
-        matchers/m1s.h
-        conditions/cms.h
-        matchers/mms.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/generators.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/exceptions.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/condition.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/conditions/c11.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/events.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/conditions/c1m.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/matchers/m1m.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/conditions/c1s.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/matchers/m1s.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/conditions/cms.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/matchers/mms.h
 )
 
 target_include_directories(testutils INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
