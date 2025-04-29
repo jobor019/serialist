@@ -2,51 +2,515 @@
 #define SERIALIST_ROUTER_H
 
 #include "core/param/socket_handler.h"
+#include "core/param/multi_socket.h"
 #include "core/generative.h"
 #include "core/types/trigger.h"
 #include "core/types/facet.h"
 #include "core/temporal/time_gate.h"
-#include "core/collections/multi_voiced.h"
 #include "sequence.h"
 #include "variable.h"
 #include "types/index.h"
 
-#include "types/phase.h"
-
 
 namespace serialist {
 
-// Namespace rather than member of Router to avoid templating all usages
-namespace router {
+template<typename T>
+using MultiVoices = Vec<Voices<T>>;
 
-enum class Mode { route, through, merge, split, mix, distribute };
+enum class RouterMode { route, through, merge, split, mix, distribute };
 
-struct Defaults {
-    static constexpr auto MODE = Mode::route;
+struct RouterDefaults {
+    static constexpr auto MODE = RouterMode::route;
     static constexpr auto USE_INDEX = true;
 };
 
-}
+enum class FlushType { none, flush, conditional };
 
+enum class FlushMode { always, any_pulse, pulse_off };
+
+
+// ==============================================================================================
+
+// used by RouterModes `route` and `through`
+class Route {
+public:
+    using MappingType = Vec<std::optional<std::size_t>>;
+
+
+    explicit Route(MappingType mapping, bool is_through)
+        : m_mapping(std::move(mapping))
+        , m_is_through(is_through) {}
+
+    /**
+     * @param indices 1d list of indices, where each position corresponds to a given outlet (multi) or voice (single)
+     * @param target_size
+     * @param index_type
+     */
+    static Route parse_route(const Voices<Facet>& indices, std::size_t target_size, Index::Type index_type) {
+        assert(indices.size() >= target_size); // responsibility of caller
+        auto firsts = indices.firsts<>();
+
+        auto mapping = MappingType::allocated(target_size);
+        for (auto& f : firsts) {
+            if (f) {
+                mapping.append(Index::from(*f, index_type, target_size).get_clip(firsts.size()));
+            } else {
+                mapping.append(std::nullopt);
+            }
+        }
+
+        return Route{mapping, false};
+    }
+
+
+    /**
+     * @param enabled 1d boolean mask of the same size as number of inlets,
+     *                where each position corresponds to a given outlet (multi) or voice (single)
+     * @param target_size
+     */
+    static Route parse_through(const Voices<Facet>& enabled, std::size_t target_size) {
+        assert(enabled.size() >= target_size); // responsibility of caller
+        auto firsts = enabled.firsts();
+
+        auto mapping = MappingType::allocated(target_size);
+        for (std::size_t i = 0; i < target_size; ++i) {
+            if (firsts[i] && static_cast<bool>(*firsts[i])) {
+                mapping.append(i);
+            } else {
+                mapping.append(std::nullopt);
+            }
+        }
+
+        return Route{mapping, true};
+    }
+
+
+    template<typename T>
+    Voices<T> apply_single(Voices<T>&& input) const {
+        if (m_mapping.empty()) {
+            return Voices<T>::empty_like();
+        }
+
+        // This should be handled at parse time.
+        // We need the spec to correspond to actual output in later stages (PulseRouter)
+        assert(input.size() >= m_mapping.size());
+
+        auto output = Vec<Voice<T>>::allocated(m_mapping.size());
+        for (const auto& i : m_mapping) {
+            if (i) {
+                output.append(input[*i]);
+            } else {
+                output.append(Voice<T>{});
+            }
+        }
+        return {Voices<T>{output}};
+    }
+
+    template<typename T>
+    MultiVoices<T> apply_multi(MultiVoices<T>&& input) const {
+        if (m_mapping.empty()) {
+            return {Voices<T>::empty_like()};
+        }
+
+        // This should be handled at parse time.
+        // We need the spec to correspond to actual output in later stages (PulseRouter)
+        assert(input.size() >= m_mapping.size());
+
+        auto output = MultiVoices<T>::allocated(m_mapping.size());
+        for (const auto& i : m_mapping) {
+            if (i) {
+                output.append(input[*i]);
+            } else {
+                output.append(Voices<T>::empty_like());
+            }
+        }
+        return output;
+    }
+
+
+    bool equals(const Route& other) const {
+        return m_is_through == other.m_is_through && m_mapping == other.m_mapping;
+    }
+
+
+    const MappingType& mapping() const { return m_mapping; }
+
+private:
+    MappingType m_mapping;
+    bool m_is_through; // Stored to be track changes between modes route and through
+};
+
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class Merge {
+public:
+    explicit Merge(Vec<std::size_t> mapping) : m_mapping(std::move(mapping)) {}
+
+
+    static Merge parse(const Voices<Facet>& counts
+                             , std::size_t num_active_inlets
+                             , const Vec<std::size_t>& voice_counts_per_inlet
+                             , Index::Type index_type) {
+        assert(counts.size() >= num_active_inlets);
+        assert(voice_counts_per_inlet.size() >= num_active_inlets);
+
+        auto output_count = Vec<std::size_t>::zeros(num_active_inlets);
+        for (std::size_t i = 0; i < num_active_inlets; ++i) {
+            if (auto count = counts[i].first()) {
+                auto num_voices = voice_counts_per_inlet[i];
+                output_count[i] = Index::from(*count, index_type, num_voices).get_clip(num_voices);
+            }
+            // otherwise 0
+        }
+
+        return Merge{output_count};
+    }
+
+
+    template<typename T>
+    MultiVoices<T> apply(MultiVoices<T>&& input) {
+        assert(input.size() >= m_mapping.size());
+
+        auto merged = Vec<Voice<T>>::allocated(m_mapping.sum());
+
+        for (std::size_t i = 0; i < m_mapping.size(); ++i) {
+            if (m_mapping[i] > 0) {
+                merged.extend(input[i].vec().slice(0, m_mapping[i]));
+            }
+        }
+
+        if (merged.empty()) {
+            return MultiVoices<T>::singular(Voices<T>::empty_like());
+        }
+
+        return MultiVoices<T>::singular(Voices<T>{std::move(merged)});
+
+    }
+
+
+    bool equals(const Merge& other) const {
+        return m_mapping == other.m_mapping;
+    }
+
+
+    const Vec<std::size_t>& mapping() const { return m_mapping; }
+
+private:
+    Vec<std::size_t> m_mapping;
+};
+
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class Split {
+public:
+    explicit Split(Vec<std::size_t> mapping) : m_mapping(std::move(mapping)) {}
+
+
+    static Split parse(const Voices<Facet>& counts
+                       , std::size_t num_active_outlets
+                       , std::size_t num_voices_total
+                       , Index::Type index_type) {
+        assert(counts.size() >= num_active_outlets);
+
+        auto output_count = Vec<std::size_t>::zeros(num_active_outlets);
+
+        std::size_t current_count = 0;
+
+        for (std::size_t i = 0; i < num_active_outlets; ++i) {
+            if (auto first = counts[i].first()) {
+                auto count = static_cast<std::size_t>(
+                    Index::from(*first, index_type, num_voices_total).get_clip(num_voices_total)
+                );
+
+                if (current_count + count >= num_voices_total) {
+                    output_count[i] = num_voices_total - current_count;
+                    break; // remaining outlets will be 0
+                }
+                output_count[i] = count;
+                current_count += count;
+            }
+        }
+
+        return Split{output_count};
+    }
+
+
+    template<typename T>
+    MultiVoices<T> apply(Voices<T>&& input) {
+        auto split = MultiVoices<T>::repeated(m_mapping.size(), Voices<T>::empty_like());
+
+        std::size_t start = 0;
+
+        for (std::size_t i = 0; i < m_mapping.size(); ++i) {
+            if (m_mapping[i] > 0) {
+                auto end = start + m_mapping[i];
+                split[i] = Voices<T>{input.vec().slice(start, end)};
+
+                start = end;
+            }
+        }
+
+        return split;
+    }
+
+
+    bool equals(const Split& other) const {
+        return m_mapping == other.m_mapping;
+    }
+
+
+    const Vec<std::size_t>& mapping() const { return m_mapping; }
+
+private:
+    Vec<std::size_t> m_mapping;
+};
+
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+class Mix {
+public:
+    using InletIndex = std::size_t;
+    using VoiceIndex = std::size_t;
+
+    using ElementType = std::optional<std::pair<InletIndex, VoiceIndex>>;
+    using MappingType = Vec<ElementType>;
+
+    explicit Mix(MappingType mapping) : m_mapping(std::move(mapping)) {}
+
+
+    // Note: while it may seem redundant to first parse the spec, then apply it, the spec itself is required
+    //       for the PulseRouter to determine which voices should be flushed
+    template<typename T>
+    static Mix parse(const Voices<Facet>& inlet_and_voice_idx, const MultiVoices<T>& input, Index::Type index_type) {
+        auto mapping = MappingType::allocated(inlet_and_voice_idx.size());
+
+        for (const auto& iv : inlet_and_voice_idx) {
+            mapping.append(parse_element(iv, input, index_type));
+        }
+
+        return Mix{mapping};
+    }
+
+
+    template<typename T>
+    MultiVoices<T> apply(MultiVoices<T>&& input) {
+        if (m_mapping.empty()) {
+            return {Voices<T>::empty_like()};
+        }
+
+        auto mixed = Vec<Voice<T>>::allocated(m_mapping.size());
+
+        for (const auto& elem : m_mapping) {
+            if (elem) {
+                mixed.append(input[elem->first][elem->second]);
+            } else {
+                mixed.append(Voice<T>{});
+            }
+        }
+
+        return MultiVoices<T>::singular(Voices<T>{std::move(mixed)});
+    }
+
+
+    bool equals(const Mix& other) const {
+        return m_mapping == other.m_mapping;
+    }
+
+
+    const MappingType& mapping() const { return m_mapping; }
+
+private:
+    template<typename T>
+    static ElementType parse_element(const Voice<Facet>& index_and_element
+                                     , const MultiVoices<T>& input
+                                     , Index::Type index_type) {
+        // We expect each element to be a tuple (inlet_index, voice_index)
+        if (index_and_element.size() < 2) {
+            return std::nullopt;
+        }
+
+        auto num_inlets = input.size();
+        auto inlet_index = Index::from(index_and_element[0], index_type, num_inlets).get_pass(num_inlets);
+
+        if (!inlet_index) {
+            return std::nullopt; // inlet index out of bounds
+        }
+
+        auto i = static_cast<std::size_t>(*inlet_index);
+
+        auto num_voices = input[i].size();
+        auto voice_index = Index::from(index_and_element[1], index_type, num_voices).get_pass(num_voices);
+
+        if (!voice_index) {
+            return std::nullopt; // voice index out of bounds
+        }
+
+        auto j = static_cast<std::size_t>(*voice_index);
+        return std::pair{i, j};
+    }
+
+
+    MappingType m_mapping;
+};
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+class Distribute {
+public:
+    using ElementType = Vec<std::optional<std::size_t>>; // position in vec corresponds to voice index in inlet,
+                                                         // value to index in input voice
+    using MappingType = Vec<ElementType>;                // position in vec corresponds to outlet index
+
+    explicit Distribute(MappingType mapping) : m_mapping(std::move(mapping)) {}
+
+
+    template<typename T>
+    static Distribute parse(const Voices<Facet>& list_of_indices, const Voices<T>& input, Index::Type t) {
+        auto mapping = MappingType::allocated(list_of_indices.size());
+
+        for (const auto& is : list_of_indices) {
+            mapping.append(parse_element(is, input, t));
+        }
+
+        return Distribute{mapping};
+    }
+
+
+    template<typename T>
+    MultiVoices<T> apply(Voices<T>&& input) {
+        auto distributed = Vec<Vec<Voice<T>>>::repeated(m_mapping.size(), Vec<Voice<T>>{});
+
+        for (std::size_t inlet_index = 0; inlet_index < m_mapping.size(); ++inlet_index) {
+            for (const auto& voice_index : m_mapping[inlet_index]) {
+                if (voice_index) {
+                    distributed[inlet_index].append(input[*voice_index]);
+                } else {
+                    distributed[inlet_index].append(Voice<T>{});
+                }
+            }
+        }
+
+        return MultiVoices<T>{
+            distributed.template as_type<Voices<T>>([](const Vec<Voice<T>>& v) -> Voices<T> {
+                if (v.empty()) {
+                    return Voices<T>::empty_like();
+                }
+                return Voices<T>{v};
+            })
+        };
+    }
+
+
+    bool equals(const Distribute& other) const {
+        return m_mapping == other.m_mapping;
+    }
+
+
+    const MappingType& mapping() const { return m_mapping; }
+
+
+private:
+    template<typename T>
+        static ElementType parse_element(const Voice<Facet>& element_spec, const Voices<T>& input, Index::Type t) {
+        // We expect each element to be a list of zero or more elements corresponding to indices in `input`
+        if (element_spec.empty()) {
+            return {};
+        }
+
+        auto num_voices = input.size();
+
+        auto indices = ElementType::allocated(element_spec.size());
+
+        for (const auto& e : element_spec) {
+            if (auto voice_index = Index::from(e, t, num_voices).get_pass(num_voices)) {
+                indices.append(static_cast<std::size_t>(*voice_index));
+            } else {
+                indices.append(std::nullopt); // voice index out of bounds
+            }
+        }
+
+        return indices;
+    }
+
+
+    MappingType m_mapping;
+};
+
+
+// ==============================================================================================
+
+class RouterMapping {
+public:
+    // Note: it's critical that all mapping adhere to the actual size of the input,
+    //       as we're using these to determine whether we need to flush certain voices / inlets in PulseRouter.
+    //       This is why all mappings first compute their spec and then apply it,
+    //       rather than doing both in the same step.
+
+    using MappingType = std::variant<Route, Merge, Split, Mix, Distribute>;
+
+    explicit RouterMapping(MappingType mapping) : m_mapping(std::move(mapping)) {}
+
+
+    static RouterMapping empty(RouterMode router_mode) {
+        switch (router_mode) {
+            case RouterMode::route:
+                return RouterMapping{Route{{}, false}};
+            case RouterMode::through:
+                return RouterMapping{Route{{}, true}};
+            case RouterMode::merge:
+                return RouterMapping{Merge{{}}};
+            case RouterMode::split:
+                return RouterMapping{Split{{}}};
+            case RouterMode::mix:
+                return RouterMapping{Mix{{}}};
+            case RouterMode::distribute:
+                return RouterMapping{Distribute{{}}};
+            default:
+                throw std::invalid_argument("invalid router mode encountered in RouterMapping");
+        }
+    }
+
+
+    template<typename T>
+    bool is() const noexcept {
+        return std::holds_alternative<T>(m_mapping);
+    }
+
+
+    template<typename T>
+    T as() const {
+        return std::get<T>(m_mapping);
+    }
+
+
+    bool matches(const RouterMapping& other) const {
+        return std::visit([](const auto& a, const auto& b) -> bool {
+            using A = std::decay_t<decltype(a)>;
+            using B = std::decay_t<decltype(b)>;
+            if constexpr (std::is_same_v<A, B>) {
+                return a.equals(b);
+            } else {
+                return false;
+            }
+        }, m_mapping, other.m_mapping);
+    }
+
+private:
+    MappingType m_mapping;
+};
+
+
+// ==============================================================================================
 
 template<typename T>
 class Router {
 public:
-    using MultiVoices = Vec<Voices<T>>;
-    using IndexSpec = Vec<std::optional<Index>>;
-    using CountSpec = Vec<Index>;
-    using MixSpecElement = std::optional<std::pair<std::size_t, std::size_t>>;
-
-    enum class MapType {};
-
-    // template<typename U = T, bool Enabled = false>
-    // struct HeldPulses {};
-    //
-    // template<typename U = T, std::is_same_v<U, Trigger>>
-    // struct HeldPulses {
-    //     Vec<MultiVoiceHeld<PulseIdentifier>> held_pulses;
-    // };
-
     Router(std::size_t num_inlets, std::size_t num_outlets)
         : m_num_inlets(num_inlets)
         , m_num_outlets(num_outlets) {
@@ -55,299 +519,142 @@ public:
     }
 
 
-    MultiVoices process(MultiVoices&& input
-                        , const Voices<Facet>& spec
-                        , router::Mode mode
-                        , bool is_index) {
+    std::pair<MultiVoices<T>, RouterMapping> process(MultiVoices<T>&& input
+                                                     , const Voices<Facet>& mapping
+                                                     , RouterMode mode
+                                                     , Index::Type index_type) {
         assert(input.size() == m_num_inlets);
 
-        if (spec.is_empty_like()) {
-            return default_empty();
+        if (mapping.is_empty_like()) {
+            return default_empty(mode);
         }
 
         // Single only supports modes route and through, hence the separate implementation
         if (m_num_inlets == 1 && m_num_outlets == 1) {
-            if (mode == router::Mode::through) {
-                return through_single(std::move(input), spec, is_index);
-            } else {
-                // All other modes: default to `route` in the single inlet single outlet scenario
-                return route_single(std::move(input), spec, is_index);
+            if (mode == RouterMode::through) {
+                return through_single(std::move(input), mapping);
             }
+
+            // All other modes: default to `route` in the single inlet single outlet scenario
+            return route_single(std::move(input), mapping, index_type);
         }
 
         switch (mode) {
-            case router::Mode::through: return through_multi(std::move(input), spec, is_index);
-            case router::Mode::merge: return merge(std::move(input), spec, is_index);
-            case router::Mode::split: return split(std::move(input), spec, is_index);
-            case router::Mode::mix: return mix(std::move(input), spec, is_index);
-            case router::Mode::distribute: return distribute(std::move(input), spec, is_index);
-            default: return route_multi(std::move(input), spec, is_index);
+            case RouterMode::through: return through_multi(std::move(input), mapping);
+            case RouterMode::merge: return merge(std::move(input), mapping, index_type);
+            case RouterMode::split: return split(std::move(input), mapping, index_type);
+            case RouterMode::mix: return mix(std::move(input), mapping, index_type);
+            case RouterMode::distribute: return distribute(std::move(input), mapping, index_type);
+            default: return route_multi(std::move(input), mapping, index_type);
         }
     }
 
 private:
-    MultiVoices route_single(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
-        auto voices = input[0];
-        auto input_size = voices.size();
-        auto output_size = spec.size();
-
-        // map spec to indices corresponding to elements in input voices
-        auto indices = parse_route_spec(spec, input_size, is_index);
-
-        auto output = Vec<Voice<T>>::allocated(output_size);
-        for (const auto& i : indices) {
-            if (!i) {
-                output.append(Voice<T>{});
-            } else {
-                if (auto clipped_index = i->get_pass(input_size)) {
-                    output.append(voices[static_cast<std::size_t>(*clipped_index)]);
-                } else {
-                    output.append(Voice<T>{});
-                }
-            }
-        }
-        return {Voices<T>{output}};
-    }
-
-
-    MultiVoices route_multi(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
-        auto input_size = input.size();
-        auto output_size = spec.size();
-
-        auto indices = parse_route_spec(spec, input_size, is_index);
-
-        auto output = MultiVoices::allocated(output_size);
-        for (const auto& i : indices) {
-            if (!i) {
-                output.append(Voices<T>::empty_like());
-            } else {
-                if (auto clipped_index = i->get_pass(input_size)) {
-                    output.append(input[static_cast<std::size_t>(*clipped_index)]);
-                } else {
-                    output.append(Voices<T>::empty_like());
-                }
-            }
-        }
-        return output;
-
-    }
-
-
-    MultiVoices through_single(MultiVoices&& input, const Voices<Facet>& boolean_mask, bool is_index) {
+    std::pair<MultiVoices<T>, RouterMapping> route_single(MultiVoices<T>&& input
+                                                          , const Voices<Facet>& indices
+                                                          , Index::Type index_type) {
         auto& voices = input[0];
+        auto num_active_voices = std::min(voices.size(), indices.size());
 
-        auto mask = parse_through_spec(boolean_mask, voices.size());
-        assert(mask.size() == voices.size());
+        auto route_mapping = Route::parse_route(indices, num_active_voices, index_type);
+        auto output = route_mapping.apply_single(std::move(voices));
 
-        for (std::size_t i = 0; i < mask.size(); ++i) {
-            if (!mask[i]) {
-                voices[i].clear();
-            }
-        }
-        return std::move(input);
+        return {{output}, RouterMapping{route_mapping}};
     }
 
 
-    MultiVoices through_multi(MultiVoices&& input, const Voices<Facet>& boolean_mask, bool is_index) {
-        auto mask_size = std::min(input.size(), m_num_outlets);
+    std::pair<MultiVoices<T>, RouterMapping> route_multi(MultiVoices<T>&& input
+                                                         , const Voices<Facet>& indices
+                                                         , Index::Type index_type) {
 
-        auto mask = parse_through_spec(boolean_mask, mask_size);
-        assert(mask.size() <= mask_size);
+        auto num_active_outlets = std::min({input.size(), indices.size(), m_num_outlets});
 
-        // if num_outlets is greater than mask_size (i.e. num_outlets > num_inlets),
-        // we'll just output empty Voices on the remaining outlets
-        auto output = MultiVoices::repeated(m_num_outlets, Voices<T>::empty_like());
+        auto route_mapping = Route::parse_route(indices, num_active_outlets, index_type);
+        auto output = route_mapping.apply_multi(std::move(input));
 
-        for (std::size_t i = 0; i < mask.size(); ++i) {
-            if (mask[i]) {
-                output[i] = input[i];
-            }
-        }
+        return {output, RouterMapping{route_mapping}};
+    }
 
-        return output;
+
+    std::pair<MultiVoices<T>, RouterMapping> through_single(MultiVoices<T>&& input, const Voices<Facet>& boolean_mask) {
+        auto& voices = input[0];
+        auto num_active_voices = std::min(voices.size(), boolean_mask.size());
+
+        auto route_mapping = Route::parse_through(boolean_mask, num_active_voices);
+        auto output = route_mapping.apply_single(std::move(voices));
+
+        return {{output}, RouterMapping{route_mapping}};
+    }
+
+
+    std::pair<MultiVoices<T>, RouterMapping> through_multi(MultiVoices<T>&& input, const Voices<Facet>& boolean_mask) {
+        auto num_active_outlets = std::min({input.size(), boolean_mask.size(), m_num_outlets});
+
+        auto route_mapping = Route::parse_through(boolean_mask, num_active_outlets);
+        auto output = route_mapping.apply_multi(std::move(input));
+
+        return {output, RouterMapping{route_mapping}};
     }
 
 
     /**
-     * Note: if phase (is_index=false): corresponds to relative voice count [0, 1) of that particular inlet
+     * Note: if phase (is_index=false): value corresponds to relative voice count [0, 1) of that particular inlet
      */
-    MultiVoices merge(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
-        auto type = is_index ? Index::Type::index : Index::Type::phase;
-        auto size = std::min(m_num_inlets, spec.size());
-        auto firsts = spec.firsts<>();
+    std::pair<MultiVoices<T>, RouterMapping> merge(MultiVoices<T>&& input
+                                                   , const Voices<Facet>& counts
+                                                   , Index::Type index_type) {
+        auto num_active_inlets = std::min(input.size(), counts.size());
+        auto voice_count_per_inlet = voice_counts(input);
 
-        Vec<Voice<T>> merged;
+        auto mapping = Merge::parse(counts, num_active_inlets, voice_count_per_inlet, index_type);
+        auto output = mapping.apply(std::move(input));
 
-        for (std::size_t i = 0; i < size; ++i) {
-            if (firsts[i]) {
-                auto voice_count = input[i].size();
-                auto num_selected = Index::from(*firsts[i], type, voice_count).get_clip(voice_count);
-
-                merged.extend(input[i].vec().slice(0, num_selected));
-            }
-            // otherwise: empty spec is equivalent to 0 entries from given index
-        }
-
-        return MultiVoices::singular(Voices<T>{std::move(merged)});
+        return {output, RouterMapping{mapping}};
     }
 
 
     /**
      * Note: if phase (is_index=false): corresponds to fraction of total voice count from inlet.
      */
-    MultiVoices split(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
+    std::pair<MultiVoices<T>, RouterMapping> split(MultiVoices<T>&& input
+                                                   , const Voices<Facet>& counts
+                                                   , Index::Type index_type) {
         auto& voices = input[0];
+        auto num_active_outlets = std::min(m_num_outlets, counts.size());
 
-        auto type = is_index ? Index::Type::index : Index::Type::phase;
-        auto size = std::min(m_num_outlets, spec.size());
+        auto mapping = Split::parse(counts, num_active_outlets, voices.size(), index_type);
+        auto output = mapping.apply(std::move(voices));
 
-        auto voice_counts_per_inlet = spec.firsts<>().as_type<std::size_t>([size, type](const std::optional<Facet>& f) {
-            if (f) {
-                return static_cast<std::size_t>(Index::from(*f, type, size).get_clip(size));
-            }
-            return static_cast<std::size_t>(0);
-        });
-
-        std::size_t total_voice_count = voices.size();
-
-        auto output = MultiVoices::repeated(m_num_outlets, Voices<T>::empty_like());
-
-        std::size_t current_index = 0;
-
-        for (std::size_t i = 0; i < size; ++i) {
-            if (current_index < total_voice_count && voice_counts_per_inlet[i] > 0) {
-                auto start = current_index;
-                auto end = std::min(total_voice_count, start + voice_counts_per_inlet[i]);
-                output[i] = Voices<T>{voices.vec().slice(start, end)};
-
-                current_index = end;
-            }
-            // otherwise: out of voices to split, output will be empty
-        }
-
-        return output;
+        return {output, RouterMapping{mapping}};
     }
 
 
-    MultiVoices mix(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
-        auto type = is_index ? Index::Type::index : Index::Type::phase;
+    std::pair<MultiVoices<T>, RouterMapping> mix(MultiVoices<T>&& input
+                                                 , const Voices<Facet>& spec
+                                                 , Index::Type index_type) {
+        auto mapping = Mix::parse(spec, input, index_type);
+        auto output = mapping.apply(std::move(input));
 
-        auto size = spec.size();
-        auto mixed = Vec<Voice<T>>::allocated(size);
-
-        for (const auto& element : spec) {
-            mixed.append(get_mix_element(element, input, type));
-        }
-
-        return MultiVoices::singular(Voices<T>{std::move(mixed)});
+        return {output, RouterMapping{mapping}};
     }
 
 
-    MultiVoices distribute(MultiVoices&& input, const Voices<Facet>& spec, bool is_index) {
+    std::pair<MultiVoices<T>, RouterMapping> distribute(MultiVoices<T>&& input
+                                                        , const Voices<Facet>& spec
+                                                        , Index::Type index_type) {
         auto& voices = input[0];
-        auto type = is_index ? Index::Type::index : Index::Type::phase;
+        auto mapping = Distribute::parse(spec, voices, index_type);
+        auto output = mapping.apply(std::move(voices));
 
-        auto output = MultiVoices::repeated(m_num_outlets, Voices<T>::empty_like());
-
-        for (std::size_t i = 0; i < spec.size(); ++i) {
-            output[i] = get_distribute_element(spec[i], voices, type);
-        }
-
-        return output;
+        return {output, RouterMapping{mapping}};
     }
 
 public:
-    MultiVoices default_empty() const {
-        return MultiVoices::repeated(m_num_outlets, Voices<T>::empty_like());
-    }
-
-
-    static IndexSpec parse_route_spec(const Voices<Facet>& spec, std::size_t num_indices, bool is_index) {
-        auto firsts = spec.firsts<>();
-
-        auto type = is_index ? Index::Type::index : Index::Type::phase;
-
-        auto indices = IndexSpec::allocated(firsts.size());
-        for (auto& f : firsts) {
-            if (f) {
-                indices.append(Index::from(*f, type, num_indices));
-            } else {
-                indices.append(std::nullopt);
-            }
-        }
-
-        return indices;
-    }
-
-
-    /**
-     *
-     * @return A boolean mask of the same size as the number of inputs,
-     *         or max(inputs, outputs), if the latter is provided
-     */
-    static Vec<bool> parse_through_spec(const Voices<Facet>& enabled, std::size_t target_mask_size) {
-
-        // Default entries to false in case `enabled` is smaller than `target_mask_size`
-        auto mask = Vec<bool>::zeros(target_mask_size);
-
-        // Expect incoming facet to be a list of booleans of the same size as number of inlets / voices
-        auto firsts = enabled.firsts();
-
-        for (std::size_t i = 0; i < std::min(target_mask_size, firsts.size()); ++i) {
-            if (firsts[i] && static_cast<bool>(*firsts[i])) {
-                mask[i] = true;
-            }
-        }
-
-        return mask;
-    }
-
-    static Voice<T> get_mix_element(const Voice<Facet>& element_spec, const MultiVoices& input, Index::Type t) {
-        // We expect each element to be a tuple (inlet_index, voice_index)
-        if (element_spec.size() < 2) {
-            return {}; // Invalid spec, parsed as empty voice
-        }
-
-        auto num_inlets = input.size();
-        auto inlet_index = Index::from(element_spec[0], t, num_inlets).get_pass(num_inlets);
-
-        if (!inlet_index) {
-            return {}; // inlet index out of bounds
-        }
-
-        auto i = static_cast<std::size_t>(*inlet_index);
-
-        auto num_voices = input[i].size();
-        auto voice_index = Index::from(element_spec[1], t, num_voices).get_pass(num_voices);
-
-        if (!voice_index) {
-            return {}; // voice index out of bounds
-        }
-
-        auto j = static_cast<std::size_t>(*voice_index);
-        return input[i][j];
-    }
-
-    static Voices<T> get_distribute_element(const Voice<Facet>& element_spec, const Voices<T>& input, Index::Type t) {
-        // We expect each element to be a list of zero or more elements corresponding to indices in `input`
-
-        if (element_spec.empty()) {
-            return Voices<T>::empty_like();
-        }
-
-        auto num_voices = input.size();
-
-        auto outlet_voices = Vec<Voice<T>>::allocated(element_spec.size());
-
-        for (const auto& e : element_spec) {
-            if (auto voice_index = Index::from(e, t, num_voices).get_pass(num_voices)) {
-                outlet_voices.append(input[static_cast<std::size_t>(*voice_index)]);
-            } else {
-                outlet_voices.append(Voice<T>{}); // voice index out of bounds
-            }
-        }
-
-        return Voices<T>{outlet_voices};
+    std::pair<MultiVoices<T>, RouterMapping> default_empty(RouterMode mode) const {
+        return {
+            MultiVoices<T>::repeated(m_num_outlets, Voices<T>::empty_like())
+            , RouterMapping::empty(mode)
+        };
     }
 
 
@@ -355,65 +662,101 @@ public:
     std::size_t num_outlets() const { return m_num_outlets; }
 
 private:
+    static Vec<std::size_t> voice_counts(const MultiVoices<T>& m) {
+        return m.template as_type<std::size_t>([](const Voices<T>& v) {
+            return v.size();
+        });
+    }
+
+
     const std::size_t m_num_inlets;
     const std::size_t m_num_outlets;
+};
 
 
-    IndexSpec m_previous_outlet_spec;
+// ==============================================================================================
 
-    // HeldPulses<> m_held_pulses;
+template<typename T>
+class RouterBase {
+public:
+    RouterBase() = default;
+    virtual ~RouterBase() = default;
+    RouterBase(const RouterBase&) = default;
+    RouterBase& operator=(const RouterBase&) = default;
+    RouterBase(RouterBase&&) noexcept = default;
+    RouterBase& operator=(RouterBase&&) noexcept = default;
+
+    virtual MultiVoices<T> process(MultiVoices<T>&& input
+                                   , const Voices<Facet>& spec
+                                   , RouterMode mode
+                                   , Index::Type index_type) = 0;
+
+    virtual std::optional<MultiVoices<T>> flush() = 0;
+
+    virtual MultiVoices<T> default_empty() const { return MultiVoices<T>{}; }
+
+    virtual std::size_t num_inlets() const = 0;
+    virtual std::size_t num_outlets() const = 0;
 };
 
 
 // ==============================================================================================
 
 
-// Note: If this ever is used in another class, it should be moved to socket_base.h
-template<typename T>
-class MultiSocket {
+class FacetRouter : public RouterBase<Facet> {
 public:
-    MultiSocket(Vec<Node<T>*> nodes, SocketHandler& socket_handler, const std::string& base_name)
-        : m_sockets{create_sockets(std::move(nodes), socket_handler, base_name)} {
-        assert(!m_sockets.empty());
+    FacetRouter(std::size_t num_inlets, std::size_t num_outlets): m_router(num_inlets, num_outlets) {}
+
+
+    MultiVoices<Facet> process(MultiVoices<Facet>&& input
+                               , const Voices<Facet>& spec
+                               , RouterMode mode
+                               , Index::Type index_type) override {
+        // For Facet input, we simply discard the Mapping as we have no state to handle on flush
+        return m_router.process(std::move(input), spec, mode, index_type).first;
     }
 
 
-    static Vec<std::reference_wrapper<Socket<T>>> create_sockets(Vec<Node<T>*> nodes
-                                                                 , SocketHandler& socket_handler
-                                                                 , const std::string& base_name) {
-        auto sockets = Vec<std::reference_wrapper<Socket<T>>>::allocated(nodes.size());
-        for (std::size_t i = 0; i < nodes.size(); ++i) {
-            sockets.append(std::ref(socket_handler.create_socket(base_name + std::to_string(i), nodes[i])));
-        }
-
-        return sockets;
+    std::optional<MultiVoices<Facet>> flush() override {
+        // flushing is not a relevant operation for Facet values in general
+        return std::nullopt;
     }
 
 
-    Vec<Voices<T>> process() {
-        auto result = Vec<Voices<T>>::allocated(m_sockets.size());
-        for (const auto& socket : m_sockets) {
-            result.append(socket.get().process());
-        }
-        return result;
-    }
-
-
-    bool any_is_connected() const {
-        for (const auto& socket : m_sockets) {
-            if (socket.get().is_connected()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-
-    std::size_t size() const { return m_sockets.size(); }
+    std::size_t num_inlets() const override { return m_router.num_inlets(); }
+    std::size_t num_outlets() const override { return m_router.num_outlets(); }
 
 private:
-    Vec<std::reference_wrapper<Socket<T>>> m_sockets;
+    Router<Facet> m_router;
 
+};
+
+
+// ==============================================================================================
+
+
+class PulseRouter : public RouterBase<Trigger> {
+public:
+    PulseRouter(std::size_t num_inlets, std::size_t num_outlets): m_router(num_inlets, num_outlets) {}
+
+
+    MultiVoices<Trigger> process(MultiVoices<Trigger>&& input
+                                 , const Voices<Facet>& spec
+                                 , RouterMode mode
+                                 , Index::Type index_type) override {
+        throw std::runtime_error("not implemented"); // TODO
+    }
+
+
+    std::optional<MultiVoices<Trigger>> flush() override {
+        throw std::runtime_error("not implemented"); // TODO
+    }
+
+    std::size_t num_inlets() const override { return m_router.num_inlets(); }
+    std::size_t num_outlets() const override { return m_router.num_outlets(); }
+
+private:
+    Router<Trigger> m_router;
 };
 
 
@@ -422,10 +765,7 @@ private:
 template<typename T>
 class RouterNode : public MultiNode<T> {
 public:
-    using MultiVoices = typename Router<T>::MultiVoices;
-    using OutletSpec = typename Router<T>::IndexSpec;
-
-    static constexpr bool is_trigger = std::is_same_v<T, Trigger>;
+    static constexpr bool IS_TRIGGER = std::is_same_v<T, Trigger>;
 
 
     struct Keys {
@@ -445,19 +785,23 @@ public:
                , Node<Facet>* routing_map = nullptr
                , Node<Facet>* mode = nullptr
                , Node<Facet>* uses_index = nullptr
-               , Node<Facet>* enabled = nullptr
-    )
+               , Node<Facet>* enabled = nullptr)
         : m_parameter_handler(Specification(param::types::generative)
                               .with_identifier(id)
                               .with_static_property(param::properties::template_class, Keys::CLASS_NAME)
                               , parent)
         , m_socket_handler(m_parameter_handler)
-        , m_router(inputs.size(), num_outlets)
         , m_inputs(std::move(inputs), m_socket_handler, Keys::INPUT)
         , m_routing_map(m_socket_handler.create_socket<Facet>(Keys::ROUTING_MAP, routing_map))
         , m_mode(m_socket_handler.create_socket<Facet>(Keys::MODE, mode))
         , m_uses_index(m_socket_handler.create_socket<Facet>(Keys::USES_INDEX, uses_index))
-        , m_enabled(m_socket_handler.create_socket<Facet>(param::properties::enabled, enabled)) {}
+        , m_enabled(m_socket_handler.create_socket<Facet>(param::properties::enabled, enabled)) {
+        if constexpr (IS_TRIGGER) {
+            m_router = std::make_unique<PulseRouter>(m_inputs.size(), num_outlets);
+        } else {
+            m_router = std::make_unique<FacetRouter>(m_inputs.size(), num_outlets);
+        }
+    }
 
 
     void update_time(const TimePoint& t) override { m_time_gate.push_time(t); }
@@ -473,15 +817,16 @@ public:
             return m_current_value;
         }
 
-        auto mode = m_mode.process().first_or(router::Defaults::MODE);
-        auto uses_index = m_uses_index.process().first_or(router::Defaults::USE_INDEX);
+        auto mode = m_mode.process().first_or(RouterDefaults::MODE);
+        auto uses_index = m_uses_index.process().first_or(RouterDefaults::USE_INDEX);
+        auto index_type = uses_index ? Index::Type::index : Index::Type::phase;
 
         auto input = m_inputs.process();
         auto routing_map = m_routing_map.process();
 
-        assert(input.size() == m_router.num_inlets());
+        assert(input.size() == m_router->num_inlets());
 
-        m_current_value = m_router.process(std::move(input), routing_map, mode, uses_index);
+        m_current_value = m_router->process(std::move(input), routing_map, mode, index_type);
         return m_current_value;
     }
 
@@ -491,13 +836,13 @@ public:
     void disconnect_if(Generative& connected_to) override { m_socket_handler.disconnect_if(connected_to); }
 
 private:
-    std::optional<MultiVoices> process_enabled_state() {
-        if constexpr (is_trigger) {
+    std::optional<MultiVoices<T>> process_enabled_state() {
+        if constexpr (IS_TRIGGER) {
             // TODO: Use EnabledGate to handle this correctly
             throw std::runtime_error("RouterNode::process_enabled_state: not implemented");
         } else {
             if (!is_enabled()) {
-                return m_router.default_empty();
+                return m_router->default_empty();
             }
             return std::nullopt;
         }
@@ -512,7 +857,7 @@ private:
     ParameterHandler m_parameter_handler;
     SocketHandler m_socket_handler;
 
-    Router<T> m_router;
+    std::unique_ptr<RouterBase<T>> m_router;
 
     TimeGate m_time_gate;
 
@@ -524,7 +869,7 @@ private:
 
     Socket<Facet>& m_enabled;
 
-    MultiVoices m_current_value;
+    MultiVoices<T> m_current_value;
 };
 
 
@@ -533,7 +878,6 @@ private:
 template<typename T, typename FloatType = double>
 struct RouterWrapper {
     using Keys = typename RouterNode<T>::Keys;
-    using Defaults = router::Defaults;
 
     using SequenceType = std::conditional_t<
         std::is_same_v<T, Facet>,
@@ -579,8 +923,8 @@ struct RouterWrapper {
 
     Vec<std::unique_ptr<SequenceType>> inputs;
     Sequence<Facet, FloatType> routing_map{Keys::ROUTING_MAP, ph};
-    Variable<Facet, router::Mode> mode{Keys::MODE, ph, Defaults::MODE};
-    Variable<Facet, bool> uses_index{Keys::USES_INDEX, ph, Defaults::USE_INDEX};
+    Variable<Facet, RouterMode> mode{Keys::MODE, ph, RouterDefaults::MODE};
+    Variable<Facet, bool> uses_index{Keys::USES_INDEX, ph, RouterDefaults::USE_INDEX};
 
     Variable<Facet, bool> enabled{param::properties::enabled, ph, true};
 

@@ -28,7 +28,7 @@ void set_map(Sequence<Facet, double>& map_node, std::initializer_list<double> va
 
 TEST_CASE("Router: route (single)", "[router]") {
     RouterFacetWrapper w(1, 1);
-    w.mode.set_value(router::Mode::route);
+    w.mode.set_value(RouterMode::route);
     w.uses_index.set_value(true);
 
     w.set_input(0, Voices<double>::transposed(Voice<double>{111, 222, 333}));
@@ -60,7 +60,7 @@ TEST_CASE("Router: route (single)", "[router]") {
 
 TEST_CASE("Router: route (multi)", "[router]") {
     RouterFacetWrapper w(3, 2);
-    w.mode.set_value(router::Mode::route);
+    w.mode.set_value(RouterMode::route);
     w.uses_index.set_value(true);
 
     w.set_input(0, Voices<double>::singular(111));
@@ -95,7 +95,7 @@ TEST_CASE("Router: route (multi)", "[router]") {
 
 TEST_CASE("Router: through (single)", "[router]") {
     RouterFacetWrapper w(1, 1);
-    w.mode.set_value(router::Mode::through);
+    w.mode.set_value(RouterMode::through);
 
     w.set_input(0, Voices<double>::transposed(Voice<double>{111, 222, 333}));
 
@@ -132,7 +132,7 @@ TEST_CASE("Router: through (single)", "[router]") {
 
 TEST_CASE("Router: through (multi)", "[router]") {
     RouterFacetWrapper w(3, 3);
-    w.mode.set_value(router::Mode::through);
+    w.mode.set_value(RouterMode::through);
 
     w.set_input(0, Voices<double>::singular(111));
     w.set_input(1, Voices<double>::singular(222));
@@ -167,7 +167,7 @@ TEST_CASE("Router: through (multi)", "[router]") {
 
 TEST_CASE("Router: merge", "[router]") {
     RouterFacetWrapper w(3, 1);
-    w.mode.set_value(router::Mode::merge);
+    w.mode.set_value(RouterMode::merge);
     w.uses_index.set_value(true);
 
     w.set_input(0, Voices<double>::transposed(Voice<double>{111, 222, 333}));
@@ -189,7 +189,7 @@ TEST_CASE("Router: merge", "[router]") {
 
 TEST_CASE("Router: split", "[router]") {
     RouterFacetWrapper w(1, 3);
-    w.mode.set_value(router::Mode::split);
+    w.mode.set_value(RouterMode::split);
     w.uses_index.set_value(true);
 
     w.set_input(0, Voices<double>::transposed(Voice<double>{111, 222, 333, 444, 555}));
@@ -210,7 +210,7 @@ TEST_CASE("Router: split", "[router]") {
 
 TEST_CASE("Router: mix", "[router]") {
     RouterFacetWrapper w(3, 1);
-    w.mode.set_value(router::Mode::mix);
+    w.mode.set_value(RouterMode::mix);
     w.uses_index.set_value(true);
 
     w.set_input(0, Voices<double>::transposed(Voice<double>{111, 222, 333}));
@@ -241,7 +241,7 @@ TEST_CASE("Router: mix", "[router]") {
 
 TEST_CASE("Router: distribute", "[router]") {
     RouterFacetWrapper w(1, 3);
-    w.mode.set_value(router::Mode::distribute);
+    w.mode.set_value(RouterMode::distribute);
     w.uses_index.set_value(true);
 
     w.set_input(0, Voices<double>::transposed(Voice<double>{111, 222, 333, 444, 555}));
