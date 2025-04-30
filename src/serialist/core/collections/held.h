@@ -12,7 +12,7 @@ template<typename T, bool AllowDuplicates = false>
 class Held : public Flushable<T> {
 public:
     explicit Held()  {
-        static_assert(std::is_same<decltype(std::declval<T>() == std::declval<T>()), bool>::value
+        static_assert(std::is_same_v<decltype(std::declval<T>() == std::declval<T>()), bool>
                       , "T must implement the == operator");
     }
 

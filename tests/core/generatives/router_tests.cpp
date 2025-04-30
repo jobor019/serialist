@@ -265,3 +265,10 @@ TEST_CASE("Router: distribute", "[router]") {
     REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m1s::eqf(Vec{111.0, 333.0, 333.0}));
     REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::emptyf());
 }
+
+
+// ==============================================================================================
+
+TEST_CASE("Router: route pulse (single)", "[router]") {
+    RouterPulseWrapper w(1, 1);
+}

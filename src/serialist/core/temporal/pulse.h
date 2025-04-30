@@ -11,6 +11,16 @@
 
 namespace serialist {
 
+struct PulseIdentifier {
+    std::size_t id;
+    bool triggered = false;
+
+    bool operator==(const PulseIdentifier& other) const { return id == other.id; }
+};
+
+
+// ==============================================================================================
+
 class Pulse {
 public:
     Pulse(std::size_t id, const DomainTimePoint& trigger_time
@@ -231,6 +241,58 @@ public:
 private:
     Vec<Pulse> m_pulses;
 //    DomainType m_type;
+};
+
+
+// ==============================================================================================
+
+/**
+ * @brief Tracks held pulses for multiple outlets, i.e. Vec<Voices<Trigger>>
+ */
+class MultiOutletHeldPulses {
+public:
+    using OutletHeld = MultiVoiceHeld<PulseIdentifier>;
+
+    explicit MultiOutletHeldPulses(std::size_t num_outlets) : m_held(create_container(num_outlets)) {}
+
+
+    void append_pulse_ons(Vec<Voices<Trigger>>& output) {
+        throw std::runtime_error("Not implemented");
+    }
+
+
+    void flush_into(Vec<Voices<Trigger>>& output) {
+        throw std::runtime_error("Not implemented");
+    }
+    void flush_into(Vec<Voices<Trigger>>& output, std::size_t outlet_index) {
+        throw std::runtime_error("Not implemented");
+    }
+    void flush_into(Vec<Voices<Trigger>>& output, std::size_t outlet_index, std::size_t voice_index) {
+        throw std::runtime_error("Not implemented");
+    }
+
+    void flush_or_flag_as_triggered(Vec<Voices<Trigger>>& output) {
+        throw std::runtime_error("Not implemented");
+    }
+    void flush_or_flag_as_triggered(Vec<Voices<Trigger>>& output, std::size_t outlet_index) {
+        throw std::runtime_error("Not implemented");
+    }
+    void flush_or_flag_as_triggered(Vec<Voices<Trigger>>& output, std::size_t outlet_index, std::size_t voice_index) {
+        throw std::runtime_error("Not implemented");
+    }
+
+    Vec<Voices<Trigger>> flush() {
+        throw std::runtime_error("Not implemented");
+    }
+
+
+private:
+    static Vec<OutletHeld> create_container(std::size_t num_outlets) {
+        return Vec<OutletHeld>::repeated(num_outlets, OutletHeld{1});
+    }
+
+
+    Vec<OutletHeld> m_held;
 };
 
 

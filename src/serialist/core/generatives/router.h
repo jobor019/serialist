@@ -9,6 +9,7 @@
 #include "core/temporal/time_gate.h"
 #include "sequence.h"
 #include "variable.h"
+#include "temporal/pulse.h"
 #include "types/index.h"
 
 
@@ -19,14 +20,104 @@ using MultiVoices = Vec<Voices<T>>;
 
 enum class RouterMode { route, through, merge, split, mix, distribute };
 
+enum class FlushMode { always , any_pulse /* , pulse_off TODO: Implement */ };
+
 struct RouterDefaults {
     static constexpr auto MODE = RouterMode::route;
     static constexpr auto USE_INDEX = true;
+    static constexpr auto FLUSH_MODE = FlushMode::always;
 };
 
-enum class FlushType { none, flush, conditional };
 
-enum class FlushMode { always, any_pulse, pulse_off };
+// ==============================================================================================
+
+
+/**
+ * @brief class to indicate changes in RouterMapping between two consecutive Router::process() calls
+ */
+struct MappingChange {
+
+    enum class Type {
+        no_change       // change from closed to open that never will require any flushing (e.g. voice was added, voice was routed on a previously inactive outlet
+        , closed        // change from open to closed that always will require flushing (e.g. voice was removed, outlet was routed off)
+        , index_change  // change from open to open that might require flushing (e.g. voice was moved to a different outlet)
+    };
+
+    using SimpleChange = Vec<Type>;
+    using NestedChange = Vec<Vec<Type>>;
+
+
+
+    MappingChange() = delete;
+
+    template<typename T>
+    static SimpleChange compare_diff(const Vec<std::optional<T>>& from
+                                  , const Vec<std::optional<T>>& to) {
+        static_assert(utils::is_equality_comparable_v<T>);
+
+        auto map_size = std::max(from.size(), to.size());
+        auto diff = Vec<Type>::repeated(map_size, Type::no_change);
+
+        // Note: we're using `from_map.size()` here, not `map_size`. In general, if sizes
+        //       - to > from: a voice has been added. No need to do any flushing on add
+        //       - from < to: a voice has been removed. We may need to flush here
+        for (std::size_t i = 0; i < from.size() ; ++i) {
+            if (i >= to.size() || !to[i] && from[i]) {
+                // mapping was removed or changed from non-empty (open) to empty (closed)
+                diff[i] = Type::closed;
+            } else if (to[i] && from[i] && *to[i] != *from[i]) {
+                // mapping changed from non-empty (open) to non-empty (open) with a different index
+                diff[i] = Type::index_change;
+            }
+            // all other cases (voice was added, no change, etc.): no_change
+        }
+        return diff;
+    }
+
+
+    template<typename T>
+    static SimpleChange compare_diff(const Vec<T>& from
+                                  , const Vec<T>& to) {
+        static_assert(utils::is_equality_comparable_v<T>);
+
+        auto map_size = std::max(from.size(), to.size());
+        auto changed_voices = Vec<Type>::repeated(map_size, Type::no_change);
+
+        // Note: from_voices.size(), see comment in other compare_diff overload
+        for (std::size_t i = 0; i < from.size(); ++i) {
+            if (i >= to.size()) {
+                changed_voices[i] = Type::closed;
+            }
+            if (from[i] != to[i]) {
+                changed_voices[i] = Type::index_change;
+            }
+        }
+        return changed_voices;
+    }
+
+
+    template<typename T>
+    static NestedChange compare_nested_diff(const Vec<Vec<T>>& from, const Vec<Vec<T>>& to) {
+        static_assert(utils::is_equality_comparable_v<T>);
+
+        // the number of inlets should never change at runtime
+        assert(from.size() == to.size());
+        auto num_inlets = from.size();
+
+        auto changed_voices = Vec<Vec<Type>>::allocated(num_inlets);
+
+        for (std::size_t outlet_index = 0; outlet_index < num_inlets; ++outlet_index) {
+            auto& from_voices = from[outlet_index];
+            auto& to_voices = to[outlet_index];
+
+            changed_voices.append(compare_diff(from_voices, to_voices));
+        }
+
+        return changed_voices;
+    }
+
+
+};
 
 
 // ==============================================================================================
@@ -37,16 +128,21 @@ public:
     using MappingType = Vec<std::optional<std::size_t>>;
 
 
-    explicit Route(MappingType mapping, bool is_through)
+    explicit Route(MappingType mapping, bool is_through, bool is_voice_mapping)
         : m_mapping(std::move(mapping))
-        , m_is_through(is_through) {}
+        , m_is_through(is_through)
+        , m_is_voice_mapping(is_voice_mapping) {}
 
     /**
      * @param indices 1d list of indices, where each position corresponds to a given outlet (multi) or voice (single)
      * @param target_size
      * @param index_type
+     * @param voice_mapping
      */
-    static Route parse_route(const Voices<Facet>& indices, std::size_t target_size, Index::Type index_type) {
+    static Route parse_route(const Voices<Facet>& indices
+                             , std::size_t target_size
+                             , Index::Type index_type
+                             , bool voice_mapping) {
         assert(indices.size() >= target_size); // responsibility of caller
         auto firsts = indices.firsts<>();
 
@@ -59,7 +155,7 @@ public:
             }
         }
 
-        return Route{mapping, false};
+        return Route{mapping, false, voice_mapping};
     }
 
 
@@ -67,8 +163,9 @@ public:
      * @param enabled 1d boolean mask of the same size as number of inlets,
      *                where each position corresponds to a given outlet (multi) or voice (single)
      * @param target_size
+     * @param voice_mapping
      */
-    static Route parse_through(const Voices<Facet>& enabled, std::size_t target_size) {
+    static Route parse_through(const Voices<Facet>& enabled, std::size_t target_size, bool voice_mapping) {
         assert(enabled.size() >= target_size); // responsibility of caller
         auto firsts = enabled.firsts();
 
@@ -81,10 +178,27 @@ public:
             }
         }
 
-        return Route{mapping, true};
+        return Route{mapping, true, voice_mapping};
     }
 
 
+    static Vec<MappingChange::Type> changed(const Route& from, const Route& to) {
+        const auto& from_map = from.mapping();
+        const auto& to_map = to.mapping();
+        auto map_size = std::max(from_map.size(), to_map.size());
+
+        // When changing mode between the two internal modes `route` and `through`, we flag all voices for flushing
+        if (to.m_is_through != from.m_is_through) {
+            return Vec<MappingChange::Type>::repeated(map_size, MappingChange::Type::closed);
+        }
+
+        return MappingChange::compare_diff(from_map, to_map);
+    }
+
+
+    /**
+     * @brief apply to 1-1 mapping (i.e. mapping defines individual voices in 1 inlet 1 outlet)
+     */
     template<typename T>
     Voices<T> apply_single(Voices<T>&& input) const {
         if (m_mapping.empty()) {
@@ -106,6 +220,10 @@ public:
         return {Voices<T>{output}};
     }
 
+
+    /**
+     * @brief apply to 1-1 mapping (i.e. mapping defines inlet and outlets)
+     */
     template<typename T>
     MultiVoices<T> apply_multi(MultiVoices<T>&& input) const {
         if (m_mapping.empty()) {
@@ -133,11 +251,17 @@ public:
     }
 
 
+    bool is_voice_mapping() const {
+        return m_is_voice_mapping;
+    }
+
+
     const MappingType& mapping() const { return m_mapping; }
 
 private:
     MappingType m_mapping;
     bool m_is_through; // Stored to be track changes between modes route and through
+    bool m_is_voice_mapping; // True if mapping between individual voices, false if mapping between inlets
 };
 
 
@@ -168,6 +292,17 @@ public:
     }
 
 
+    static Vec<MappingChange::Type> changed(const Merge& from, const Merge& to) {
+        // Comparing two merge mappings is significantly faster than inverting both and comparing the inverse mappings
+        if (from.mapping() == to.mapping()) {
+            return {};
+        }
+
+        // When converted to index maps, we can use the normal compare_diff to compare the two
+        return MappingChange::compare_diff(from.inverse(), to.inverse());
+    }
+
+
     template<typename T>
     MultiVoices<T> apply(MultiVoices<T>&& input) {
         assert(input.size() >= m_mapping.size());
@@ -191,6 +326,27 @@ public:
 
     bool equals(const Merge& other) const {
         return m_mapping == other.m_mapping;
+    }
+
+
+    /**
+     * @return the list of inlets each voice corresponds to,
+     *         e.g. if we have mapping (count) [3 2 1], the inverse would be [0 0 0 1 1 2] (inlets)
+     */
+    Vec<std::size_t> inverse() const {
+        auto inversed = Vec<std::size_t>::allocated(m_mapping.sum());
+
+        for (std::size_t i = 0; i < m_mapping.size(); ++i) {
+            for (std::size_t j = 0; j < m_mapping[i]; ++j) {
+                inversed.append(i);
+            }
+        }
+        return inversed;
+    }
+
+    // ReSharper disable once CppMemberFunctionMayBeStatic
+    bool is_voice_mapping() const {
+        return true; // indices in `changed` comparisons always corresponds to individual voices, not inlets
     }
 
 
@@ -237,6 +393,17 @@ public:
     }
 
 
+    static Vec<Vec<MappingChange::Type>> changed(const Split& from, const Split& to) {
+        // Comparing two split mappings is significantly faster than inverting both and comparing the inverse mappings
+        if (from.mapping() == to.mapping()) {
+            return {};
+        }
+
+        // an inverse mapping is exactly the same as a Distribute mapping, without any optionals
+        return MappingChange::compare_nested_diff(from.inverse(), to.inverse());
+    }
+
+
     template<typename T>
     MultiVoices<T> apply(Voices<T>&& input) {
         auto split = MultiVoices<T>::repeated(m_mapping.size(), Voices<T>::empty_like());
@@ -258,6 +425,26 @@ public:
 
     bool equals(const Split& other) const {
         return m_mapping == other.m_mapping;
+    }
+
+    Vec<Vec<std::size_t>> inverse() const {
+        auto num_outlets = m_mapping.size();
+        auto inversed = Vec<Vec<std::size_t>>::allocated(num_outlets);
+
+        std::size_t voice_index = 0;
+        for (std::size_t outlet_index = 0; outlet_index < num_outlets; ++outlet_index) {
+            auto count = m_mapping[outlet_index];
+            inversed.append(Vec<std::size_t>::range(voice_index, voice_index + count));
+            voice_index += count;
+        }
+
+        return inversed;
+    }
+
+
+    // ReSharper disable once CppMemberFunctionMayBeStatic
+    bool is_voice_mapping() const {
+        return false; // irrelevant for split
     }
 
 
@@ -296,6 +483,11 @@ public:
     }
 
 
+    static Vec<MappingChange::Type> changed(const Mix& from, const Mix& to) {
+        return MappingChange::compare_diff(from.mapping(), to.mapping());
+    }
+
+
     template<typename T>
     MultiVoices<T> apply(MultiVoices<T>&& input) {
         if (m_mapping.empty()) {
@@ -318,6 +510,12 @@ public:
 
     bool equals(const Mix& other) const {
         return m_mapping == other.m_mapping;
+    }
+
+
+    // ReSharper disable once CppMemberFunctionMayBeStatic
+    bool is_voice_mapping() const {
+        return true; // indices in `changed` comparisons always corresponds to individual voices, not inlets
     }
 
 
@@ -381,6 +579,10 @@ public:
         return Distribute{mapping};
     }
 
+    static Vec<Vec<MappingChange::Type>> changed(const Distribute& from, const Distribute& to) {
+        return MappingChange::compare_nested_diff(from.mapping(), to.mapping());
+    }
+
 
     template<typename T>
     MultiVoices<T> apply(Voices<T>&& input) {
@@ -409,6 +611,12 @@ public:
 
     bool equals(const Distribute& other) const {
         return m_mapping == other.m_mapping;
+    }
+
+
+    // ReSharper disable once CppMemberFunctionMayBeStatic
+    bool is_voice_mapping() const {
+        return false; // irrelevant
     }
 
 
@@ -460,9 +668,9 @@ public:
     static RouterMapping empty(RouterMode router_mode) {
         switch (router_mode) {
             case RouterMode::route:
-                return RouterMapping{Route{{}, false}};
+                return RouterMapping{Route{{}, false, false}};
             case RouterMode::through:
-                return RouterMapping{Route{{}, true}};
+                return RouterMapping{Route{{}, true, false}};
             case RouterMode::merge:
                 return RouterMapping{Merge{{}}};
             case RouterMode::split:
@@ -488,6 +696,14 @@ public:
         return std::get<T>(m_mapping);
     }
 
+    // bool is_same_as(const RouterMapping& other) const {
+    //     return std::visit([](const auto& a, const auto& b) -> bool {
+    //         using A = std::decay_t<decltype(a)>;
+    //         using B = std::decay_t<decltype(b)>;
+    //         return std::is_same_v<A, B>;
+    //     }, m_mapping, other.m_mapping);
+    // }
+
 
     bool matches(const RouterMapping& other) const {
         return std::visit([](const auto& a, const auto& b) -> bool {
@@ -501,7 +717,124 @@ public:
         }, m_mapping, other.m_mapping);
     }
 
+
+    void handle_trigger_flushing(MultiVoices<Trigger>& output_triggers
+                                 , std::optional<RouterMapping>& previous_mapping
+                                 , MultiOutletHeldPulses& held
+                                 , FlushMode flush_mode) const {
+        // First input, no need to compare anything
+        if (!previous_mapping) {
+            return;
+        }
+
+        auto& m = previous_mapping->m_mapping;
+
+        std::visit([this, &output_triggers, &m, &held, &flush_mode](const auto& mapping) {
+            using T = std::decay_t<decltype(mapping)>;
+
+            if (auto* other = std::get_if<T>(&m)) {
+                auto changes = T::changed(*other, mapping);
+                bool is_voice_mapping = mapping.is_voice_mapping();
+
+                if constexpr (std::is_same_v<decltype(changes), MappingChange::SimpleChange>) {
+                    apply_simple_flush(output_triggers, held, changes, flush_mode, is_voice_mapping);
+                } else if constexpr (std::is_same_v <decltype(changes), MappingChange::NestedChange>) {
+                    apply_nested_flush(output_triggers, held, changes, flush_mode, is_voice_mapping);
+                } else {
+                    throw std::runtime_error("Invalid change type encountered");
+                }
+            } else {
+                // mapping type changed between consecutive calls
+                held.flush_into(output_triggers);
+            }
+
+        }, m_mapping);
+    }
+
 private:
+    template <typename T>
+    auto changed(const T& from, const T& to) {
+        // Declared outside dependent context of `handle_trigger_flushing` to avoid compiler warnings
+        return T::changed(from, to);
+    }
+
+
+    /**
+     * @brief modes route, through, merge and mix
+     */
+    static void apply_simple_flush(MultiVoices<Trigger>& output_triggers
+                                   , MultiOutletHeldPulses& held
+                                   , const MappingChange::SimpleChange& changes
+                                   , FlushMode flush_mode
+                                   , bool is_voice_mapping) {
+        if (changes.empty()) {
+            return;
+        }
+
+        // mapping refers to voices indices in a single outlet
+        if (is_voice_mapping) {
+            assert(output_triggers.size() == 1);
+            flush_voices_in_outlet(output_triggers, held, changes, flush_mode, 0);
+
+        // mapping refers to outlet indices
+        } else {
+            assert(output_triggers.size() == changes.size());
+
+            for (std::size_t outlet_index = 0; outlet_index < changes.size(); ++outlet_index) {
+                if (changes[outlet_index] == MappingChange::Type::index_change) {
+                    if (flush_mode == FlushMode::always) {
+                        held.flush_into(output_triggers, outlet_index);
+                    } else {
+                        held.flush_or_flag_as_triggered(output_triggers, outlet_index);
+                    }
+
+                } else if (changes[outlet_index] == MappingChange::Type::closed) {
+                    held.flush_into(output_triggers, outlet_index);
+                }
+                // else: no flush needed
+            }
+        }
+    }
+
+
+    static void apply_nested_flush(MultiVoices<Trigger>& output_triggers
+                            , MultiOutletHeldPulses& held
+                            , const MappingChange::NestedChange& changes
+                            , FlushMode flush_mode
+                            , bool is_voice_mapping) {
+        if (changes.empty()) {
+            return;
+        }
+
+        for (std::size_t outlet_index = 0; outlet_index < changes.size(); ++outlet_index) {
+            flush_voices_in_outlet(output_triggers, held, changes[outlet_index], flush_mode, outlet_index);
+        }
+    }
+
+
+    static void flush_voices_in_outlet(MultiVoices<Trigger>& output_triggers
+                                       , MultiOutletHeldPulses& held
+                                       , const MappingChange::SimpleChange& changes
+                                       , FlushMode flush_mode
+                                       , std::size_t outlet_index) {
+        for (std::size_t voice_index = 0; voice_index < changes.size(); ++voice_index) {
+            if (changes[voice_index] == MappingChange::Type::index_change) {
+                if (flush_mode == FlushMode::always) {
+                    held.flush_into(output_triggers, outlet_index, voice_index);
+                } else {
+                    held.flush_or_flag_as_triggered(output_triggers, outlet_index, voice_index);
+                }
+
+            } else if (changes[voice_index] == MappingChange::Type::closed) {
+                held.flush_into(output_triggers, outlet_index, voice_index);
+
+            }
+            // else: no flush needed
+        }
+    }
+
+
+
     MappingType m_mapping;
 };
 
@@ -556,7 +889,7 @@ private:
         auto& voices = input[0];
         auto num_active_voices = std::min(voices.size(), indices.size());
 
-        auto route_mapping = Route::parse_route(indices, num_active_voices, index_type);
+        auto route_mapping = Route::parse_route(indices, num_active_voices, index_type, true);
         auto output = route_mapping.apply_single(std::move(voices));
 
         return {{output}, RouterMapping{route_mapping}};
@@ -569,7 +902,7 @@ private:
 
         auto num_active_outlets = std::min({input.size(), indices.size(), m_num_outlets});
 
-        auto route_mapping = Route::parse_route(indices, num_active_outlets, index_type);
+        auto route_mapping = Route::parse_route(indices, num_active_outlets, index_type, false);
         auto output = route_mapping.apply_multi(std::move(input));
 
         return {output, RouterMapping{route_mapping}};
@@ -580,7 +913,7 @@ private:
         auto& voices = input[0];
         auto num_active_voices = std::min(voices.size(), boolean_mask.size());
 
-        auto route_mapping = Route::parse_through(boolean_mask, num_active_voices);
+        auto route_mapping = Route::parse_through(boolean_mask, num_active_voices, true);
         auto output = route_mapping.apply_single(std::move(voices));
 
         return {{output}, RouterMapping{route_mapping}};
@@ -590,7 +923,7 @@ private:
     std::pair<MultiVoices<T>, RouterMapping> through_multi(MultiVoices<T>&& input, const Voices<Facet>& boolean_mask) {
         auto num_active_outlets = std::min({input.size(), boolean_mask.size(), m_num_outlets});
 
-        auto route_mapping = Route::parse_through(boolean_mask, num_active_outlets);
+        auto route_mapping = Route::parse_through(boolean_mask, num_active_outlets, false);
         auto output = route_mapping.apply_multi(std::move(input));
 
         return {output, RouterMapping{route_mapping}};
@@ -689,7 +1022,8 @@ public:
     virtual MultiVoices<T> process(MultiVoices<T>&& input
                                    , const Voices<Facet>& spec
                                    , RouterMode mode
-                                   , Index::Type index_type) = 0;
+                                   , Index::Type index_type
+                                   , FlushMode flush_mode) = 0;
 
     virtual std::optional<MultiVoices<T>> flush() = 0;
 
@@ -711,14 +1045,15 @@ public:
     MultiVoices<Facet> process(MultiVoices<Facet>&& input
                                , const Voices<Facet>& spec
                                , RouterMode mode
-                               , Index::Type index_type) override {
+                               , Index::Type index_type
+                               , FlushMode) override {
         // For Facet input, we simply discard the Mapping as we have no state to handle on flush
         return m_router.process(std::move(input), spec, mode, index_type).first;
     }
 
 
     std::optional<MultiVoices<Facet>> flush() override {
-        // flushing is not a relevant operation for Facet values in general
+        // flushing is not a relevant operation for Facet values
         return std::nullopt;
     }
 
@@ -727,6 +1062,7 @@ public:
     std::size_t num_outlets() const override { return m_router.num_outlets(); }
 
 private:
+
     Router<Facet> m_router;
 
 };
@@ -737,26 +1073,43 @@ private:
 
 class PulseRouter : public RouterBase<Trigger> {
 public:
-    PulseRouter(std::size_t num_inlets, std::size_t num_outlets): m_router(num_inlets, num_outlets) {}
+
+    PulseRouter(std::size_t num_inlets, std::size_t num_outlets)
+    : m_router(num_inlets, num_outlets)
+    , m_held(num_outlets) {}
 
 
     MultiVoices<Trigger> process(MultiVoices<Trigger>&& input
                                  , const Voices<Facet>& spec
                                  , RouterMode mode
-                                 , Index::Type index_type) override {
-        throw std::runtime_error("not implemented"); // TODO
+                                 , Index::Type index_type
+                                 , FlushMode flush_mode) override {
+        auto [output, mapping] = m_router.process(std::move(input), spec, mode, index_type);
+
+        mapping.handle_trigger_flushing(output, m_previous_mapping, m_held, flush_mode);
+
+        m_held.append_pulse_ons(output);
+
+        m_previous_mapping = std::move(mapping);
+
+        return output;
     }
 
 
     std::optional<MultiVoices<Trigger>> flush() override {
-        throw std::runtime_error("not implemented"); // TODO
+        return m_held.flush();
     }
 
     std::size_t num_inlets() const override { return m_router.num_inlets(); }
     std::size_t num_outlets() const override { return m_router.num_outlets(); }
 
 private:
+
+
     Router<Trigger> m_router;
+    MultiOutletHeldPulses m_held; // fixed size, always same as num outlets
+
+    std::optional<RouterMapping> m_previous_mapping = std::nullopt;
 };
 
 
@@ -773,6 +1126,7 @@ public:
         static const inline std::string ROUTING_MAP = "routing_map";
         static const inline std::string MODE = "mode";
         static const inline std::string USES_INDEX = "uses_index";
+        static const inline std::string FLUSH_MODE = "flush_mode";
 
         static const inline std::string CLASS_NAME = "router";
     };
@@ -785,6 +1139,7 @@ public:
                , Node<Facet>* routing_map = nullptr
                , Node<Facet>* mode = nullptr
                , Node<Facet>* uses_index = nullptr
+               , Node<Facet>* flush_mode = nullptr
                , Node<Facet>* enabled = nullptr)
         : m_parameter_handler(Specification(param::types::generative)
                               .with_identifier(id)
@@ -795,6 +1150,7 @@ public:
         , m_routing_map(m_socket_handler.create_socket<Facet>(Keys::ROUTING_MAP, routing_map))
         , m_mode(m_socket_handler.create_socket<Facet>(Keys::MODE, mode))
         , m_uses_index(m_socket_handler.create_socket<Facet>(Keys::USES_INDEX, uses_index))
+        , m_flush_mode(m_socket_handler.create_socket<Facet>(Keys::FLUSH_MODE, flush_mode))
         , m_enabled(m_socket_handler.create_socket<Facet>(param::properties::enabled, enabled)) {
         if constexpr (IS_TRIGGER) {
             m_router = std::make_unique<PulseRouter>(m_inputs.size(), num_outlets);
@@ -819,6 +1175,8 @@ public:
 
         auto mode = m_mode.process().first_or(RouterDefaults::MODE);
         auto uses_index = m_uses_index.process().first_or(RouterDefaults::USE_INDEX);
+        auto flush_mode = m_flush_mode.process().first_or(RouterDefaults::FLUSH_MODE);
+
         auto index_type = uses_index ? Index::Type::index : Index::Type::phase;
 
         auto input = m_inputs.process();
@@ -826,7 +1184,7 @@ public:
 
         assert(input.size() == m_router->num_inlets());
 
-        m_current_value = m_router->process(std::move(input), routing_map, mode, index_type);
+        m_current_value = m_router->process(std::move(input), routing_map, mode, index_type, flush_mode);
         return m_current_value;
     }
 
@@ -866,6 +1224,7 @@ private:
 
     Socket<Facet>& m_mode;          // Variable
     Socket<Facet>& m_uses_index;    // Variable
+    Socket<Facet>& m_flush_mode;    // Variable
 
     Socket<Facet>& m_enabled;
 
@@ -925,6 +1284,7 @@ struct RouterWrapper {
     Sequence<Facet, FloatType> routing_map{Keys::ROUTING_MAP, ph};
     Variable<Facet, RouterMode> mode{Keys::MODE, ph, RouterDefaults::MODE};
     Variable<Facet, bool> uses_index{Keys::USES_INDEX, ph, RouterDefaults::USE_INDEX};
+    Variable<Facet, FlushMode> flush_mode{Keys::FLUSH_MODE, ph, RouterDefaults::FLUSH_MODE};
 
     Variable<Facet, bool> enabled{param::properties::enabled, ph, true};
 
@@ -943,7 +1303,7 @@ private:
 
 
 using RouterFacetWrapper = RouterWrapper<Facet>;
-using RouterTriggerWrapper = RouterWrapper<Trigger>;
+using RouterPulseWrapper = RouterWrapper<Trigger>;
 
 }
 

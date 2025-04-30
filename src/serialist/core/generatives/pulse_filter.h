@@ -1,9 +1,9 @@
 #ifndef SERIALIST_PULSE_FILTER_H
 #define SERIALIST_PULSE_FILTER_H
 
-#include "core/types/event.h"
 #include "core/generative.h"
 #include "core/types/trigger.h"
+#include "core/temporal/pulse.h"
 #include "core/types/facet.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
 #include "sequence.h"
@@ -11,18 +11,6 @@
 
 
 namespace serialist {
-// ==============================================================================================
-
-
-struct PulseIdentifier {
-    std::size_t id;
-    bool triggered = false;
-
-    bool operator==(const PulseIdentifier& other) const { return id == other.id; }
-};
-
-
-// ==============================================================================================
 
 class PulseFilter : public Flushable<Trigger> {
 public:
