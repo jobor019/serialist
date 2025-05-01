@@ -1300,19 +1300,35 @@ public:
 private:
     std::optional<MultiVoices<T>> process_enabled_state() {
         if constexpr (IS_TRIGGER) {
-            // TODO: Use EnabledGate to handle this correctly
-            throw std::runtime_error("RouterNode::process_enabled_state: not implemented");
+            if (auto state = m_enabled_gate.update(is_enabled()); state == EnabledState::disabled_this_cycle) {
+                return m_router->flush();
+
+            } else if (state == EnabledState::disabled_previous_cycle || state == EnabledState::disabled) {
+                return m_router->default_empty();
+            }
+
         } else {
             if (!is_enabled()) {
                 return m_router->default_empty();
             }
-            return std::nullopt;
         }
+
+        return std::nullopt;
     }
 
 
     bool is_enabled() {
         return m_enabled.process().first_or(true) && m_inputs.any_is_connected() && m_routing_map.is_connected();
+    }
+
+
+    std::optional<MultiVoices<T>>handle_enabled_state(EnabledState state) {
+        if (state == EnabledState::disabled_this_cycle) {
+            return m_router->flush();
+        } else if (state == EnabledState::disabled_previous_cycle || state == EnabledState::disabled) {
+            return Voices<Trigger>::empty_like();
+        }
+        return std::nullopt;
     }
 
 
@@ -1322,6 +1338,7 @@ private:
     std::unique_ptr<RouterBase<T>> m_router;
 
     TimeGate m_time_gate;
+    EnabledGate m_enabled_gate;
 
     MultiSocket<T> m_inputs;         // Note: this is not registered in the SocketHandler!
     Socket<Facet>& m_routing_map;    // Sequence
@@ -1358,6 +1375,7 @@ struct RouterWrapper {
                       , &routing_map
                       , &mode
                       , &uses_index
+                      , &flush_mode
                       , &enabled) {
         static_assert(std::is_same_v<T, Trigger> || std::is_same_v<T, Facet>);
     }

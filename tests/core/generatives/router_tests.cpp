@@ -257,7 +257,7 @@ TEST_CASE("Router: distribute", "[router]") {
 
     map.set_values(distribute_spec);
 
-    router.update_time(TimePoidnt{});
+    router.update_time(TimePoint{});
     auto multi_r = router.process();
 
     REQUIRE(multi_r.size() == 3);
@@ -275,7 +275,7 @@ TEST_CASE("Router: route pulse (single)", "[router]") {
     w.mode.set_value(RouterMode::route);
     w.uses_index.set_value(true);
 
-    w.set_input(0, Voices<Trigger>::transposed(Voice<Trigger>{Trigger::pulse_on(), Trigger::pulse_on(), Trigger::pulse_on()}));
+    w.set_input(0, Voices<Trigger>{{Trigger::pulse_on()}, {}, {Trigger::pulse_on()}});;
 
     auto& router = w.router_node;
     auto& map = w.routing_map;
@@ -287,6 +287,98 @@ TEST_CASE("Router: route pulse (single)", "[router]") {
 
         REQUIRE(multi_r.size() == 1);
         auto r = RunResult<Trigger>::dummy(multi_r[0]);
-        // REQUIRE_THAT(r, m1s::eqf(Vec{111.0, 222.0, 333.0}));
+
+        REQUIRE_THAT(r, mms::sizet(3));
+        REQUIRE_THAT(r, mms::equalst_on(0));
+        REQUIRE_THAT(r, mms::emptyt(1));
+        REQUIRE_THAT(r, mms::equalst_on(2));
+
+        w.set_input(0, Voices<Trigger>{{}, {Trigger::pulse_on()}, {}});;
+
+        router.update_time(TimePoint{});
+        multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 1);
+        r = RunResult<Trigger>::dummy(multi_r[0]);
+
+        REQUIRE_THAT(r, mms::sizet(3));
+        REQUIRE_THAT(r, mms::emptyt(0));
+        REQUIRE_THAT(r, mms::equalst_on(1));
+        REQUIRE_THAT(r, mms::emptyt(2));
     }
+
+
+    SECTION("Subset") {
+        set_map(map, {1.0, 0.0});
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 1);
+        auto r = RunResult<Trigger>::dummy(multi_r[0]);
+
+        REQUIRE_THAT(r, mms::sizet(2));
+        REQUIRE_THAT(r, mms::emptyt(0));
+        REQUIRE_THAT(r, mms::equalst_on(1));
+
+        w.set_input(0, Voices<Trigger>{{}, {Trigger::pulse_on()}, {}});
+
+        router.update_time(TimePoint{});
+        multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 1);
+        r = RunResult<Trigger>::dummy(multi_r[0]);
+
+        REQUIRE_THAT(r, mms::sizet(2));
+        REQUIRE_THAT(r, mms::equalst_on(0));
+        REQUIRE_THAT(r, mms::emptyt(1));
+    }
+
+    SECTION("Flush") {
+        set_map(map, {0.0, 1.0, 2.0});
+        router.update_time(TimePoint{});
+        router.process(); // ignoring output, assuming same as in SECTION("Unit Map")
+
+        w.enabled.set_value(false);
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 1);
+        auto r = RunResult<Trigger>::dummy(multi_r[0]);
+
+        REQUIRE_THAT(r, mms::sizet(3));
+        REQUIRE_THAT(r, mms::equalst_off(0));
+        REQUIRE_THAT(r, mms::emptyt(1));
+        REQUIRE_THAT(r, mms::equalst_off(2));
+    }
+
+    SECTION("Change routing") {
+        set_map(map, {0.0, 1.0, 2.0});
+        router.update_time(TimePoint{});
+        // State (per voice): [ON OFF ON]
+        auto multi_r = router.process(); // ignoring output, assuming same as in SECTION("Unit Map")
+
+        auto voice0_id = multi_r[0][0][0].get_id();
+
+
+        set_map(map, {1.0, 0.0, 2.0});
+        // State (per voice): [ON(a) OFF ON] + [ON(b) - -]. We expect ON(a) to be flushed, then new state [ON(b) OFF OFF]
+        w.set_input(0, Voices<Trigger>{{}, {Trigger::pulse_on()}, {}});
+        router.update_time(TimePoint{});
+        multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 1);
+        auto r = RunResult<Trigger>::dummy(multi_r[0]);
+
+        REQUIRE_THAT(r, mms::sizet(3));
+        REQUIRE_THAT(r, mms::equalst_off({0, 0}, voice0_id)); // OFF(a)
+        REQUIRE_THAT(r, mms::equalst_on({0, 1})); // ON(b)
+        REQUIRE_THAT(r, mms::emptyt(1));
+        REQUIRE_THAT(r, mms::emptyt(2));
+    }
+
+    SECTION("Change number of input voices") {
+
+    }
+
+
 }

@@ -312,8 +312,15 @@ public:
 
 
     Vec<Voices<Trigger>> flush() {
-        throw std::runtime_error("not implemented");
+        auto flushed = Vec<Voices<Trigger>>::allocated(num_outlets());
+
+        for (std::size_t outlet_index = 0; outlet_index < num_outlets(); ++outlet_index) {
+            flushed.append(flush_outlet(outlet_index));
+        }
+
+        return flushed;
     }
+
 
 
     Voices<Trigger> flush_outlet(std::size_t outlet_index
@@ -365,7 +372,6 @@ public:
     void flag_as_triggered(std::size_t outlet_index, std::size_t voice_index, bool allow_out_of_bounds = false) {
         assert(outlet_index < num_outlets());
 
-        // m_held[outlet_index].get_internal_object().get_objects()[voice_index].get_held_mut()
         auto& outlet = m_held[outlet_index];
         if (outlet.size() >= voice_index) {
             if (allow_out_of_bounds) {
@@ -448,7 +454,8 @@ private:
                     , bool triggered_only = false
                     , long index = 0) {
         auto flushed = m_held[outlet_index].flush(voice_index, [triggered_only](const PulseIdentifier& p) {
-            return !triggered_only || p.triggered;
+            bool should_flush = !triggered_only || p.triggered;
+            return !should_flush; // once again: confusingly flushes the elements for which the condition returns false
         });
 
         insert_unique(output, std::move(flushed), index);
