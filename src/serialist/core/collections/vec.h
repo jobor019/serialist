@@ -473,6 +473,16 @@ public:
     }
 
 
+    Vec<T>& insert(long index, Vec<T>&& values) {
+        auto signed_index = sign_index(index);
+
+        signed_index = std::min(signed_index, static_cast<std::size_t>(m_vector.size()));
+
+        m_vector.insert(m_vector.begin() + static_cast<long>(signed_index), values.begin(), values.end());
+        return *this;
+    }
+
+
     // TODO: Insert with padding. Will require quite some work to work with non-copy constructible objects,
     //  e.g. Vec<std::unique_ptr<std::string>
     //    Vec<T>& insert(long index, T value, std::optional<T> pad_value = std::nullopt) {

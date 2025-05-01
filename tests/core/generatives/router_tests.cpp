@@ -257,7 +257,7 @@ TEST_CASE("Router: distribute", "[router]") {
 
     map.set_values(distribute_spec);
 
-    router.update_time(TimePoint{});
+    router.update_time(TimePoidnt{});
     auto multi_r = router.process();
 
     REQUIRE(multi_r.size() == 3);
@@ -271,4 +271,22 @@ TEST_CASE("Router: distribute", "[router]") {
 
 TEST_CASE("Router: route pulse (single)", "[router]") {
     RouterPulseWrapper w(1, 1);
+
+    w.mode.set_value(RouterMode::route);
+    w.uses_index.set_value(true);
+
+    w.set_input(0, Voices<Trigger>::transposed(Voice<Trigger>{Trigger::pulse_on(), Trigger::pulse_on(), Trigger::pulse_on()}));
+
+    auto& router = w.router_node;
+    auto& map = w.routing_map;
+
+    SECTION("Unit map") {
+        set_map(map, {0.0, 1.0, 2.0});
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 1);
+        auto r = RunResult<Trigger>::dummy(multi_r[0]);
+        // REQUIRE_THAT(r, m1s::eqf(Vec{111.0, 222.0, 333.0}));
+    }
 }

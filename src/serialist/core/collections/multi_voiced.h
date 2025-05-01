@@ -74,6 +74,12 @@ public:
     }
 
 
+    template<typename E = DataType, typename = std::enable_if_t<std::is_base_of_v<Flushable<E>, ObjectType>>>
+    Voice<DataType> flush(std::size_t voice_index, std::function<bool(const DataType&)> f) {
+        return m_objects[voice_index].flush(f);
+    }
+
+
     template<typename E = DataType>
     std::enable_if_t<std::is_base_of_v<Flushable<E>, ObjectType>, Voices<DataType>>
     resize(std::size_t new_size) {

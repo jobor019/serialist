@@ -89,13 +89,17 @@ public:
     }
 
 
-    Voices<T> get_held() const {
-        auto held = Voices<T>::zeros(m_voiced_held.size());
-        for (std::size_t i = 0; i < m_voiced_held.size(); ++i) {
-            held[i] = m_voiced_held.get_objects()[i].get_held();
-        }
-        return held;
-    }
+    // Voices<T> get_held() const {
+    //     auto held = Voices<T>::zeros(m_voiced_held.size());
+    //     for (std::size_t i = 0; i < m_voiced_held.size(); ++i) {
+    //         held[i] = m_voiced_held.get_objects()[i].get_held();
+    //     }
+    //     return held;
+    // }
+    //
+    // Voice<T> get_held(std::size_t voice_index) {
+    //     return m_voiced_held.get_objects()[voice_index].get_held();
+    // }
 
 
     Voices<T> flush() {
@@ -113,6 +117,11 @@ public:
     }
 
 
+    Vec<T> flush(std::size_t voice_index, std::function<bool(const T&)> f) {
+        return m_voiced_held.flush(voice_index, f);
+    }
+
+
     Voices<T> resize(std::size_t num_voices) {
         return m_voiced_held.resize(num_voices);
     }
@@ -121,6 +130,17 @@ public:
     std::size_t size() const {
         return m_voiced_held.size();
     }
+
+    const Vec<T>& get_vec(std::size_t voice_index) const {
+        return m_voiced_held.get_objects()[voice_index].get_held();
+    }
+
+    Vec<T>& get_vec_mut(std::size_t voice_index) {
+        return m_voiced_held.get_objects()[voice_index].get_held_mut();
+    }
+
+    const MultiVoiced<Held<T>, T>& get_internal_object() const { return m_voiced_held; }
+    MultiVoiced<Held<T>, T>& get_internal_object() { return m_voiced_held; }
 
 
 private:

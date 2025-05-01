@@ -38,10 +38,19 @@ struct RouterDefaults {
 struct MappingChange {
 
     enum class Type {
-        no_change       // change from closed to open that never will require any flushing (e.g. voice was added, voice was routed on a previously inactive outlet
-        , closed        // change from open to closed that always will require flushing (e.g. voice was removed, outlet was routed off)
-        , index_change  // change from open to open that might require flushing (e.g. voice was moved to a different outlet)
+        // change from closed to open that never will require any dangling-related flushing,
+        // e.g. voice was added, voice was routed on a previously inactive outlet, voice was removed. The latter
+        // does require flushing, but will be always be handled in the MultiOutletHeldPulses::process step, which is
+        // the only step that allows resizing
+        no_change
+
+        // change from open to closed that always will require flushing (e.g. outlet was routed off).
+        , closed
+
+        // change from open to open that might require flushing (e.g. voice was moved to a different outlet)
+        , index_change
     };
+
 
     using SimpleChange = Vec<Type>;
     using NestedChange = Vec<Vec<Type>>;
@@ -55,14 +64,19 @@ struct MappingChange {
                                   , const Vec<std::optional<T>>& to) {
         static_assert(utils::is_equality_comparable_v<T>);
 
-        auto map_size = std::max(from.size(), to.size());
-        auto diff = Vec<Type>::repeated(map_size, Type::no_change);
+        if (from == to) {
+            return {};
+        }
 
-        // Note: we're using `from_map.size()` here, not `map_size`. In general, if sizes
+        // Our output diff should always correspond to the size of `to`, even in the cases where `from` is bigger
+        auto diff = Vec<Type>::repeated(to.size(), Type::no_change);
+
+        // Note: we're using `std::min` here, as
         //       - to > from: a voice has been added. No need to do any flushing on add
-        //       - from < to: a voice has been removed. We may need to flush here
-        for (std::size_t i = 0; i < from.size() ; ++i) {
-            if (i >= to.size() || !to[i] && from[i]) {
+        //       - from < to: a voice has been removed. The dangling voice must be flushed, but we will ignore
+        //                     it in this step as it will always be flushed in MultiOutletHeldPulses::process
+        for (std::size_t i = 0; i < std::min(from.size(), to.size()) ; ++i) {
+            if (!to[i] && from[i]) {
                 // mapping was removed or changed from non-empty (open) to empty (closed)
                 diff[i] = Type::closed;
             } else if (to[i] && from[i] && *to[i] != *from[i]) {
@@ -76,21 +90,21 @@ struct MappingChange {
 
 
     template<typename T>
-    static SimpleChange compare_diff(const Vec<T>& from
-                                  , const Vec<T>& to) {
+    static SimpleChange compare_diff(const Vec<T>& from , const Vec<T>& to) {
         static_assert(utils::is_equality_comparable_v<T>);
 
-        auto map_size = std::max(from.size(), to.size());
-        auto changed_voices = Vec<Type>::repeated(map_size, Type::no_change);
+        if (from == to) {
+            return {};
+        }
 
-        // Note: from_voices.size(), see comment in other compare_diff overload
-        for (std::size_t i = 0; i < from.size(); ++i) {
-            if (i >= to.size()) {
-                changed_voices[i] = Type::closed;
-            }
+        auto changed_voices = Vec<Type>::repeated(to.size(), Type::no_change);
+
+        // Note: std::min, see comment in other compare_diff overload
+        for (std::size_t i = 0; i < std::min(from.size(), to.size()); ++i) {
             if (from[i] != to[i]) {
                 changed_voices[i] = Type::index_change;
             }
+            // otherwise: voice added or removed (no_change in both scenarios), or same index (no_change, obviously)
         }
         return changed_voices;
     }
@@ -99,9 +113,8 @@ struct MappingChange {
     template<typename T>
     static NestedChange compare_nested_diff(const Vec<Vec<T>>& from, const Vec<Vec<T>>& to) {
         static_assert(utils::is_equality_comparable_v<T>);
+        assert(from.size() == to.size()); // the number of inlets should never change at runtime
 
-        // the number of inlets should never change at runtime
-        assert(from.size() == to.size());
         auto num_inlets = from.size();
 
         auto changed_voices = Vec<Vec<Type>>::allocated(num_inlets);
@@ -185,14 +198,19 @@ public:
     static Vec<MappingChange::Type> changed(const Route& from, const Route& to) {
         const auto& from_map = from.mapping();
         const auto& to_map = to.mapping();
-        auto map_size = std::max(from_map.size(), to_map.size());
 
         // When changing mode between the two internal modes `route` and `through`, we flag all voices for flushing
+        // If the mapping also shrinks, this is fine as this will be flushed by MultiOutletHeldPulses
         if (to.m_is_through != from.m_is_through) {
-            return Vec<MappingChange::Type>::repeated(map_size, MappingChange::Type::closed);
+            return Vec<MappingChange::Type>::repeated(to_map.size(), MappingChange::Type::closed);
         }
 
         return MappingChange::compare_diff(from_map, to_map);
+    }
+
+
+    Vec<MappingChange::Type> get_changes(const Route& new_value) const {
+        return changed(*this, new_value);
     }
 
 
@@ -303,6 +321,11 @@ public:
     }
 
 
+    Vec<MappingChange::Type> get_changes(const Merge& new_value) const {
+        return changed(*this, new_value);
+    }
+
+
     template<typename T>
     MultiVoices<T> apply(MultiVoices<T>&& input) {
         assert(input.size() >= m_mapping.size());
@@ -404,6 +427,11 @@ public:
     }
 
 
+    Vec<Vec<MappingChange::Type>> get_changes(const Split& new_value) const {
+        return changed(*this, new_value);
+    }
+
+
     template<typename T>
     MultiVoices<T> apply(Voices<T>&& input) {
         auto split = MultiVoices<T>::repeated(m_mapping.size(), Voices<T>::empty_like());
@@ -485,6 +513,11 @@ public:
 
     static Vec<MappingChange::Type> changed(const Mix& from, const Mix& to) {
         return MappingChange::compare_diff(from.mapping(), to.mapping());
+    }
+
+
+    Vec<MappingChange::Type> get_changes(const Mix& new_value) const {
+        return changed(*this, new_value);
     }
 
 
@@ -581,6 +614,10 @@ public:
 
     static Vec<Vec<MappingChange::Type>> changed(const Distribute& from, const Distribute& to) {
         return MappingChange::compare_nested_diff(from.mapping(), to.mapping());
+    }
+
+    Vec<Vec<MappingChange::Type>> get_changes(const Distribute& new_value) const {
+        return changed(*this, new_value);
     }
 
 
@@ -718,35 +755,48 @@ public:
     }
 
 
-    void handle_trigger_flushing(MultiVoices<Trigger>& output_triggers
-                                 , std::optional<RouterMapping>& previous_mapping
-                                 , MultiOutletHeldPulses& held
-                                 , FlushMode flush_mode) const {
+    MultiVoices<Trigger> flush_dangling_triggers(const MultiVoices<Trigger>& output_triggers
+                                                  , std::optional<RouterMapping>& previous_mapping
+                                                  , MultiOutletHeldPulses& held
+                                                  , FlushMode flush_mode) const {
         // First input, no need to compare anything
         if (!previous_mapping) {
-            return;
+            return {};
         }
 
         auto& m = previous_mapping->m_mapping;
 
-        std::visit([this, &output_triggers, &m, &held, &flush_mode](const auto& mapping) {
+        return std::visit([this, &output_triggers, &m, &held, &flush_mode](const auto& mapping) {
             using T = std::decay_t<decltype(mapping)>;
 
             if (auto* other = std::get_if<T>(&m)) {
-                auto changes = T::changed(*other, mapping);
+                auto changes = other->get_changes(mapping);
+
+                if (changes.empty()) {
+                    return MultiVoices<Trigger>{};
+                }
+
                 bool is_voice_mapping = mapping.is_voice_mapping();
 
                 if constexpr (std::is_same_v<decltype(changes), MappingChange::SimpleChange>) {
-                    apply_simple_flush(output_triggers, held, changes, flush_mode, is_voice_mapping);
-                } else if constexpr (std::is_same_v <decltype(changes), MappingChange::NestedChange>) {
-                    apply_nested_flush(output_triggers, held, changes, flush_mode, is_voice_mapping);
+                    return flush_dangling_simple(changes, held, output_triggers, flush_mode, is_voice_mapping);
+                } else if constexpr (std::is_same_v<decltype(changes), MappingChange::NestedChange>) {
+                    return flush_dangling_nested(changes, held, output_triggers, flush_mode);
                 } else {
                     throw std::runtime_error("Invalid change type encountered");
                 }
-            } else {
-                // mapping type changed between consecutive calls
-                held.flush_into(output_triggers);
             }
+
+            // otherwise: mapping type changed between consecutive calls: flush all voices up to output size
+            //            Note: we do not allow resizing here. We ignore any voice beyond the size of our map,
+            //            as these will be flushed at a later stage.
+            auto num_outlets = output_triggers.size();
+            auto flushed = MultiVoices<Trigger>::allocated(num_outlets);
+            for (std::size_t i = 0; i < num_outlets; ++i) {
+                auto target_voice_count = output_triggers[i].size();
+                flushed.append(held.flush_outlet(i, target_voice_count));
+            }
+            return flushed;
 
         }, m_mapping);
     }
@@ -762,75 +812,106 @@ private:
     /**
      * @brief modes route, through, merge and mix
      */
-    static void apply_simple_flush(MultiVoices<Trigger>& output_triggers
-                                   , MultiOutletHeldPulses& held
-                                   , const MappingChange::SimpleChange& changes
-                                   , FlushMode flush_mode
-                                   , bool is_voice_mapping) {
+    static MultiVoices<Trigger> flush_dangling_simple(const MappingChange::SimpleChange& changes
+                                                      , MultiOutletHeldPulses& held
+                                                      , const MultiVoices<Trigger>& output_triggers
+                                                      , FlushMode flush_mode
+                                                      , bool is_voice_mapping) {
         if (changes.empty()) {
-            return;
+            return {};
         }
 
-        // mapping refers to voices indices in a single outlet
+        // mapping refers to voices indices in the first outlet
         if (is_voice_mapping) {
             assert(output_triggers.size() == 1);
-            flush_voices_in_outlet(output_triggers, held, changes, flush_mode, 0);
-
-        // mapping refers to outlet indices
-        } else {
-            assert(output_triggers.size() == changes.size());
-
-            for (std::size_t outlet_index = 0; outlet_index < changes.size(); ++outlet_index) {
-                if (changes[outlet_index] == MappingChange::Type::index_change) {
-                    if (flush_mode == FlushMode::always) {
-                        held.flush_into(output_triggers, outlet_index);
-                    } else {
-                        held.flush_or_flag_as_triggered(output_triggers, outlet_index);
-                    }
-
-                } else if (changes[outlet_index] == MappingChange::Type::closed) {
-                    held.flush_into(output_triggers, outlet_index);
-                }
-                // else: no flush needed
-            }
+            return {flush_dangling_voices(0, changes, held, output_triggers, flush_mode)};
         }
+
+        // otherwise: mapping refers to entire outlets
+        assert(output_triggers.size() == changes.size());
+        return flush_dangling_outlets(changes, held, output_triggers, flush_mode);
     }
 
 
-    static void apply_nested_flush(MultiVoices<Trigger>& output_triggers
-                            , MultiOutletHeldPulses& held
-                            , const MappingChange::NestedChange& changes
-                            , FlushMode flush_mode
-                            , bool is_voice_mapping) {
+    static MultiVoices<Trigger> flush_dangling_nested(const MappingChange::NestedChange& changes
+                                                      , MultiOutletHeldPulses& held
+                                                      , const MultiVoices<Trigger>& output_triggers
+                                                      , FlushMode flush_mode) {
         if (changes.empty()) {
-            return;
+            return {};
         }
 
-        for (std::size_t outlet_index = 0; outlet_index < changes.size(); ++outlet_index) {
-            flush_voices_in_outlet(output_triggers, held, changes[outlet_index], flush_mode, outlet_index);
+        auto num_outlets = changes.size();
+        auto flushed = MultiVoices<Trigger>::allocated(num_outlets);
+
+        for (std::size_t outlet_index = 0; outlet_index < num_outlets; ++outlet_index) {
+            flushed.append(flush_dangling_voices(outlet_index
+                                                 , changes[outlet_index]
+                                                 , held
+                                                 , output_triggers
+                                                 , flush_mode));
         }
+
+        return flushed;
     }
 
+    /**
+     * @brief flush dangling for when the indices in `changes` correspond to entire outlets
+     */
+    static MultiVoices<Trigger> flush_dangling_outlets(const MappingChange::SimpleChange& changes
+                                                       , MultiOutletHeldPulses& held
+                                                       , const MultiVoices<Trigger>& output_triggers
+                                                       , FlushMode flush_mode) {
+        auto num_outlets = changes.size();
+        auto flushed = MultiVoices<Trigger>::repeated(num_outlets, Voices<Trigger>::empty_like());
 
-    static void flush_voices_in_outlet(MultiVoices<Trigger>& output_triggers
-                                       , MultiOutletHeldPulses& held
-                                       , const MappingChange::SimpleChange& changes
-                                       , FlushMode flush_mode
-                                       , std::size_t outlet_index) {
-        for (std::size_t voice_index = 0; voice_index < changes.size(); ++voice_index) {
-            if (changes[voice_index] == MappingChange::Type::index_change) {
-                if (flush_mode == FlushMode::always) {
-                    held.flush_into(output_triggers, outlet_index, voice_index);
+        for (std::size_t outlet_index = 0; outlet_index < num_outlets; ++outlet_index) {
+            auto target_voice_count = output_triggers[outlet_index].size();
+
+            if (changes[outlet_index] == MappingChange::Type::index_change) {
+
+                if (flush_mode == FlushMode::always || !output_triggers.empty()) {
+                    flushed[outlet_index] = held.flush_outlet(outlet_index, target_voice_count);
                 } else {
-                    held.flush_or_flag_as_triggered(output_triggers, outlet_index, voice_index);
+                    held.flag_as_triggered(outlet_index);
                 }
 
-            } else if (changes[voice_index] == MappingChange::Type::closed) {
-                held.flush_into(output_triggers, outlet_index, voice_index);
-
+            } else if (changes[outlet_index] == MappingChange::Type::closed) {
+                flushed[outlet_index] = held.flush_outlet(outlet_index, target_voice_count);
             }
             // else: no flush needed
         }
+
+        return flushed;
+    }
+
+
+    /**
+     * @brief flush dangling for when the indices in `changes` correspond to individual voices on a specific inlet
+     */
+    static Voices<Trigger> flush_dangling_voices(std::size_t outlet_index
+                                                 , const MappingChange::SimpleChange& changes
+                                                 , MultiOutletHeldPulses& held
+                                                 , const MultiVoices<Trigger>& output_triggers
+                                                 , FlushMode flush_mode) {
+        auto num_voices = changes.size();
+        auto flushed = Vec<Vec<Trigger>>::repeated(num_voices, Vec<Trigger>{});
+
+        for (std::size_t voice_index = 0; voice_index < num_voices; ++voice_index) {
+            if (changes[voice_index] == MappingChange::Type::index_change) {
+                if (flush_mode == FlushMode::always) {
+                    flushed[voice_index] = held.flush_voice(outlet_index, voice_index, true);
+                } else {
+                    held.flag_as_triggered(outlet_index, voice_index, true);
+                }
+
+            } else if (changes[voice_index] == MappingChange::Type::closed) {
+                flushed[voice_index] = held.flush_voice(outlet_index, voice_index, true);
+            }
+            // else: no flush needed
+        }
+
+        return Voices<Trigger>{flushed};
     }
 
 
@@ -1084,11 +1165,36 @@ public:
                                  , RouterMode mode
                                  , Index::Type index_type
                                  , FlushMode flush_mode) override {
+        // The procedure here is as follows:
+        //
+        // - (a) we process the current routing, generating `output` containing routed pulse_ons and pulse_offs
+        //
+        // - (b) if the mapping has changed (by `spec` changing or by changes in voice count on any inlet), we
+        //       flush or flag (depending on FlushMode) any dangling voices in `m_held`.
+        //       Note that the output from this step will always have the same size as `output`, meaning that,
+        //       any dangling voices resulting from changes in size (shrink) will not be handled in this step,
+        //       but rather in MultiOutletHeldPulses::process.
+        //       Also note that the flushed pulses will be inserted at the _start_ of each corresponding voice in
+        //       `output`.
+        //
+        // - (c) we pass `output` into MultiOutletHeldPulses::process, which will do four things:
+        //       1. resize the internal `MultiVoiceHeld` container of every Voices object to the corresponding size
+        //          in `output`, flushing dangling voices if the size is shrunk.
+        //       2. bind any new pulse_on that exists in output
+        //       3. release any pulse_off that exists in output (without appending to `output`, obviously)
+        //       4. if a voice is non-empty and any of its pulses are flagged as triggered, append them at the _start_
+        //          of the corresponding voice in `output`
+        //
+        // - (d) we append our flushed dangling pulse offs at the _start_ of `output`
+        //
+
         auto [output, mapping] = m_router.process(std::move(input), spec, mode, index_type);
 
-        mapping.handle_trigger_flushing(output, m_previous_mapping, m_held, flush_mode);
+        auto flushed = mapping.flush_dangling_triggers(output, m_previous_mapping, m_held, flush_mode);
 
-        m_held.append_pulse_ons(output);
+        m_held.process(output);
+
+        MultiOutletHeldPulses::merge_into(output, std::move(flushed));
 
         m_previous_mapping = std::move(mapping);
 
@@ -1104,8 +1210,6 @@ public:
     std::size_t num_outlets() const override { return m_router.num_outlets(); }
 
 private:
-
-
     Router<Trigger> m_router;
     MultiOutletHeldPulses m_held; // fixed size, always same as num outlets
 
