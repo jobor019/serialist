@@ -247,7 +247,14 @@ TEST_CASE("Router: merge", "[router]") {
     auto& map = w.routing_map;
 
     SECTION("Unit map") {
+        set_map(map, {3, 2, 1}); // all voices from all inlets
 
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 1);
+        auto r = RunResult<Facet>::dummy(multi_r[0]);
+        REQUIRE_THAT(r, m1s::eqf(Vec{111.0, 222.0, 333.0, 444.0, 555.0, 666.0}));
     }
 
     SECTION("Subset from each") {
@@ -260,20 +267,56 @@ TEST_CASE("Router: merge", "[router]") {
         REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec{111.0, 222.0, 444.0}));
     }
 
-    SECTION("Single value from one") {
+    SECTION("Single value from one voice is handled correctly") {
+        set_map(map, {0, 0, 1});
+
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 1);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec{666.0}));
+    }
+
+    SECTION("Empty map yields empty output") {
+        set_map(map, {});
+
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 1);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m11::emptyf());
+    }
+
+    SECTION("Map counts outside voice range are ignored") {
+        set_map(map, {4, 2, 1});
+
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 1);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec{111.0, 222.0, 333.0, 444.0, 555.0, 666.0}));
+    }
+
+    SECTION("More counts than inlets are valid but ignored") {
+        set_map(map, {3, 0, 0, 4});
+
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 1);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec{111.0, 222.0, 333.0}));
 
     }
 
-    SECTION("Empty map") {
 
-    }
+    SECTION("Fewer counts than inlets are treated as zeros") {
+        set_map(map, {3});
 
-    SECTION("Map counts outside voice range") {
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
 
-    }
-
-    SECTION("More counts than inlets") {
-
+        REQUIRE(multi_r.size() == 1);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec{111.0, 222.0, 333.0}));
     }
 }
 

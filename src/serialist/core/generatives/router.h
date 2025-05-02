@@ -301,7 +301,12 @@ public:
         for (std::size_t i = 0; i < num_active_inlets; ++i) {
             if (auto count = counts[i].first()) {
                 auto num_voices = voice_counts_per_inlet[i];
-                output_count[i] = Index::from(*count, index_type, num_voices).get_clip(num_voices);
+
+                // incoming value isn't really an index but a count. An index is in range [0, num_voices - 1],
+                // while a count is in range [0, num_voices].
+                // For this reason, we need to use num_voices + 1 as the bound for the index conversion
+                auto index_bound = num_voices + 1;
+                output_count[i] = Index::from(*count, index_type, index_bound).get_clip(index_bound);
             }
             // otherwise 0
         }
