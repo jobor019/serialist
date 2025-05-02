@@ -160,9 +160,9 @@ public:
         auto firsts = indices.firsts<>();
 
         auto mapping = MappingType::allocated(target_size);
-        for (auto& f : firsts) {
-            if (f) {
-                mapping.append(Index::from(*f, index_type, target_size).get_clip(firsts.size()));
+        for (std::size_t i = 0; i < target_size; ++i) {
+            if (firsts[i]) {
+                mapping.append(Index::from(*firsts[i], index_type, target_size).get_clip(firsts.size()));
             } else {
                 mapping.append(std::nullopt);
             }
@@ -269,6 +269,9 @@ public:
     }
 
 
+    bool is_empty() const { return m_mapping.empty(); }
+
+
     bool is_voice_mapping() const {
         return m_is_voice_mapping;
     }
@@ -366,6 +369,8 @@ public:
         }
         return inversed;
     }
+
+    bool is_empty() const { return m_mapping.empty(); }
 
     // ReSharper disable once CppMemberFunctionMayBeStatic
     bool is_voice_mapping() const {
@@ -470,6 +475,8 @@ public:
     }
 
 
+    bool is_empty() const { return m_mapping.empty(); }
+
     // ReSharper disable once CppMemberFunctionMayBeStatic
     bool is_voice_mapping() const {
         return false; // irrelevant for split
@@ -545,6 +552,7 @@ public:
         return m_mapping == other.m_mapping;
     }
 
+    bool is_empty() const { return m_mapping.empty(); }
 
     // ReSharper disable once CppMemberFunctionMayBeStatic
     bool is_voice_mapping() const {
@@ -650,6 +658,8 @@ public:
         return m_mapping == other.m_mapping;
     }
 
+    bool is_empty() const { return m_mapping.empty(); }
+
 
     // ReSharper disable once CppMemberFunctionMayBeStatic
     bool is_voice_mapping() const {
@@ -733,13 +743,11 @@ public:
         return std::get<T>(m_mapping);
     }
 
-    // bool is_same_as(const RouterMapping& other) const {
-    //     return std::visit([](const auto& a, const auto& b) -> bool {
-    //         using A = std::decay_t<decltype(a)>;
-    //         using B = std::decay_t<decltype(b)>;
-    //         return std::is_same_v<A, B>;
-    //     }, m_mapping, other.m_mapping);
-    // }
+    bool is_empty() const {
+        return std::visit([](const auto& mapping) {
+            return mapping.is_empty();
+        }, m_mapping);
+    }
 
 
     bool matches(const RouterMapping& other) const {
@@ -963,6 +971,24 @@ public:
         }
     }
 
+
+    /**
+     * @brief append empty voices to any non-routed outlet, to ensure that every outlet always has a value
+     */
+    MultiVoices<T> adjust_size(MultiVoices<T>&& output) const {
+        assert(output.size() <= m_num_outlets);
+
+        if (output.size() == m_num_outlets)
+            return output;
+
+        for (std::size_t outlet_index = output.size(); outlet_index < m_num_outlets; ++outlet_index) {
+            output.append(Voices<T>::empty_like());
+        }
+
+        return output;
+
+    }
+
 private:
     std::pair<MultiVoices<T>, RouterMapping> route_single(MultiVoices<T>&& input
                                                           , const Voices<Facet>& indices
@@ -1129,7 +1155,9 @@ public:
                                , Index::Type index_type
                                , FlushMode) override {
         // For Facet input, we simply discard the Mapping as we have no state to handle on flush
-        return m_router.process(std::move(input), spec, mode, index_type).first;
+        auto output = m_router.process(std::move(input), spec, mode, index_type).first;
+
+        return m_router.adjust_size(std::move(output));
     }
 
 
@@ -1190,6 +1218,16 @@ public:
 
         auto [output, mapping] = m_router.process(std::move(input), spec, mode, index_type);
 
+        // Since MultioutletHeldPulses cannot distinguish between a single voice with no output (Voices::empty_like)
+        // and a completely empty output resulting from an empty mapping (Voices::empty_like too),
+        // we need to handle this case separately by flushing all outlets
+        if (mapping.is_empty()) {
+            // If the mapping is empty, no output should've passed through
+            assert(output.size() == 1 && output[0].is_empty_like());
+            m_previous_mapping = std::move(mapping);
+            return m_held.flush();
+        }
+
         auto flushed = mapping.flush_dangling_triggers(output, m_previous_mapping, m_held, flush_mode);
 
         m_held.process(output);
@@ -1198,7 +1236,7 @@ public:
 
         m_previous_mapping = std::move(mapping);
 
-        return output;
+        return m_router.adjust_size(std::move(output));
     }
 
 

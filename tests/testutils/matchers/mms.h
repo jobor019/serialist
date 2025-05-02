@@ -47,10 +47,26 @@ ResultMatcher<T> size(std::size_t n, MatchType match_type = MatchType::last, boo
     return {cms::size<T>(n), "has " + serialize(n) + " voices", match_type, allow_no_comparison};
 }
 
+template<typename T>
+ResultMatcher<T> size(std::size_t voice_index
+                      , std::size_t n
+                      , MatchType match_type = MatchType::last
+                      , bool allow_no_comparison = false) {
+    return {cms::size<T>(n), "has voice " + serialize(voice_index) + " with " + serialize(n) + " entries", match_type, allow_no_comparison};
+}
+
+
 inline ResultMatcher<Trigger> sizet(std::size_t n
                                     , MatchType match_type = MatchType::last
                                     , bool allow_no_comparison = false) {
-    return {cms::size<Trigger>(n), "has " + serialize(n) + " voices", match_type, allow_no_comparison};
+    return size<Trigger>(n, match_type, allow_no_comparison);
+}
+
+inline ResultMatcher<Trigger> sizet(std::size_t voice_index
+                                    , std::size_t n
+                                    , MatchType match_type = MatchType::last
+                                    , bool allow_no_comparison = false) {
+    return size<Trigger>(voice_index, n, match_type, allow_no_comparison);
 }
 
 /** Match that the output Voices<T> has n voices*/
@@ -78,7 +94,7 @@ inline ResultMatcher<Trigger> containst(Trigger::Type type
 }
 
 
-inline ResultMatcher<Trigger> constainst_off(std::size_t voice_index
+inline ResultMatcher<Trigger> containst_off(std::size_t voice_index
                                              , std::optional<std::size_t> id = std::nullopt
                                              , MatchType match_type = MatchType::last
                                              , bool allow_no_comparison = false) {
@@ -99,7 +115,7 @@ inline ResultMatcher<Trigger> equalst(Trigger::Type type
                                       , std::optional<std::size_t> id = std::nullopt
                                       , MatchType match_type = MatchType::last
                                       , bool allow_no_comparison = false) {
-    return {cms::equalst(type, voice_index, id), "= " + Trigger::format(type, id), match_type, allow_no_comparison};
+    return {cms::equalst(type, voice_index, id), "@voice=" + serialize(voice_index) + " = " + Trigger::format(type, id), match_type, allow_no_comparison};
 }
 
 
@@ -108,8 +124,11 @@ inline ResultMatcher<Trigger> equalst(Trigger::Type type
                                       , std::optional<std::size_t> id = std::nullopt
                                       , MatchType match_type = MatchType::last
                                       , bool allow_no_comparison = false) {
+    std::string description = "@voice=" + serialize(voice_and_entry_index.first)
+                              + ", entry=" + serialize(voice_and_entry_index.second)
+                              + " = " + Trigger::format(type, id);
     return {cms::equalst(type, std::move(voice_and_entry_index), id)
-            , "= " + Trigger::format(type, id)
+            , description
             , match_type
             , allow_no_comparison
     };

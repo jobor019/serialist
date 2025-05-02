@@ -373,7 +373,7 @@ public:
         assert(outlet_index < num_outlets());
 
         auto& outlet = m_held[outlet_index];
-        if (outlet.size() >= voice_index) {
+        if (voice_index >= outlet.size()) {
             if (allow_out_of_bounds) {
                 return;
             }

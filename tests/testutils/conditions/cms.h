@@ -18,9 +18,27 @@ std::unique_ptr<VoicesComparison<T>> empty(std::size_t voice_index) {
 }
 
 
+/**
+ * @brief size of entire Voices<T> object
+ */
 template<typename T>
 std::unique_ptr<FixedSizeComparison<T>> size(std::size_t voices_size) {
     return std::make_unique<FixedSizeComparison<T>>(voices_size, std::nullopt);
+}
+
+
+/**
+ * @brief size of a single Voice<T> at a specific index
+ */
+template<typename T>
+std::unique_ptr<VoicesComparison<T>> size(std::size_t voice_index, std::size_t size) {
+    return std::make_unique<VoicesComparison<T>>([=](const Voices<T>& v) {
+        if (voice_index >= v.size()) {
+            return false;
+        }
+
+        return v[voice_index].size() == size;
+    });
 }
 
 inline std::unique_ptr<FixedSizeComparison<Event>> sizee(std::size_t n) { return size<Event>(n); }
