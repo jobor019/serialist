@@ -406,8 +406,11 @@ public:
 
         for (std::size_t i = 0; i < num_active_outlets; ++i) {
             if (auto first = counts[i].first()) {
+                // Index bound: See comment in merge::parse
+                auto index_bound = num_voices_total + 1;
+
                 auto count = static_cast<std::size_t>(
-                    Index::from(*first, index_type, num_voices_total).get_clip(num_voices_total)
+                    Index::from(*first, index_type, index_bound).get_clip(index_bound)
                 );
 
                 if (current_count + count >= num_voices_total) {

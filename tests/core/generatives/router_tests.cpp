@@ -308,7 +308,6 @@ TEST_CASE("Router: merge", "[router]") {
 
     }
 
-
     SECTION("Fewer counts than inlets are treated as zeros") {
         set_map(map, {3});
 
@@ -331,15 +330,101 @@ TEST_CASE("Router: split", "[router]") {
     auto& router = w.router_node;
     auto& map = w.routing_map;
 
-    set_map(map, {2, 2, 0}); // 2 to first outlet, 2 to 2nd, 0 to 3rd
+    SECTION("All values represented") {
+        set_map(map, {2, 2, 1});
 
-    router.update_time(TimePoint{});
-    auto multi_r = router.process();
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
 
-    REQUIRE(multi_r.size() == 3);
-    REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec{111.0, 222.0}));
-    REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m1s::eqf(Vec{333.0, 444.0}));
-    REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::emptyf());
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec{111.0, 222.0}));
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m1s::eqf(Vec{333.0, 444.0}));
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m1s::eqf(Vec{555.0}));
+    }
+
+    SECTION("Subset") {
+        set_map(map, {2, 2, 0}); // 2 to first outlet, 2 to 2nd, 0 to 3rd
+
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec{111.0, 222.0}));
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m1s::eqf(Vec{333.0, 444.0}));
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::emptyf());
+    }
+
+    SECTION("All values in single outlet") {
+        set_map(map, {0, 0, 5});
+
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m11::emptyf());
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m11::emptyf());
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m1s::eqf(Vec{111.0, 222.0, 333.0, 444.0, 555.0}));
+    }
+
+    SECTION("Single value from one voice is handled correctly") {
+        set_map(map, {0, 0, 1});
+
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m11::emptyf());
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m11::emptyf());
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::eqf(111));
+    }
+
+    SECTION("Empty map yields empty output") {
+        set_map(map, {});
+
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m11::emptyf());
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m11::emptyf());
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::emptyf());
+    }
+
+    SECTION("Map counts outside voice range are ignored") {
+        set_map(map, {4, 5, 5}); // actual: 4 1 0
+
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec{111.0, 222.0, 333.0, 444.0}));
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m11::eqf(555));
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::emptyf());
+    }
+
+    SECTION("More counts than inlets are valid but ignored") {
+        set_map(map, {1, 1, 1, 1}); // actual: 1 1 1
+
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec{111.0}));
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m1s::eqf(Vec{222.0}));
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m1s::eqf(Vec{333.0}));
+    }
+
+    SECTION("Fewer counts than inlets are valid but ignored") {
+        set_map(map, {2}); // actual: 2 0 0
+
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec{111.0, 222.0}));
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m11::emptyf());
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::emptyf());
+    }
 }
 
 TEST_CASE("Router: mix", "[router]") {
