@@ -28,6 +28,13 @@ ResultMatcher<T> empty(std::size_t voice_index
 }
 
 
+inline ResultMatcher<Facet> emptyf(std::size_t voice_index
+                                   , MatchType match_type = MatchType::last
+                                   , bool allow_no_comparison = false) {
+    return empty<Facet>(voice_index, match_type, allow_no_comparison);
+}
+
+
 inline ResultMatcher<Trigger> emptyt(std::size_t voice_index
                                      , MatchType match_type = MatchType::last
                                      , bool allow_no_comparison = false) {
@@ -55,6 +62,12 @@ ResultMatcher<T> size(std::size_t voice_index
     return {cms::size<T>(n), "has voice " + serialize(voice_index) + " with " + serialize(n) + " entries", match_type, allow_no_comparison};
 }
 
+inline ResultMatcher<Facet> sizef(std::size_t n
+                                  , MatchType match_type = MatchType::last
+                                  , bool allow_no_comparison = false) {
+    return size<Facet>(n, match_type, allow_no_comparison);
+}
+
 
 inline ResultMatcher<Trigger> sizet(std::size_t n
                                     , MatchType match_type = MatchType::last
@@ -76,6 +89,32 @@ inline ResultMatcher<Event> sizee(std::size_t n
     return {cms::size<Event>(n), "has " + serialize(n) + " voices", match_type, allow_no_comparison};
 }
 
+// ==============================================================================================
+// FACET MATCHERS
+// ==============================================================================================
+
+template<typename T>
+ResultMatcher<Facet> eqf(std::size_t voice_index
+                         , const Vec<T>& expected
+                         , MatchType match_type = MatchType::last
+                         , bool allow_no_comparison = false) {
+    return {cms::eqf(voice_index, expected)
+            , "@voice=" + serialize(voice_index) + "is == " + expected.template as_type<std::string>([](const T& t) {
+                return serialize(t);
+            }).to_string()
+            , match_type
+            , allow_no_comparison
+    };
+}
+
+template<typename T>
+ResultMatcher<Facet> eqf(std::size_t voice_index
+                         , const T& expected
+                         , MatchType match_type = MatchType::last
+                         , bool allow_no_comparison = false) {
+    return eqf(voice_index, Vec<T>::singular(expected), match_type, allow_no_comparison);
+
+}
 
 // ==============================================================================================
 // TRIGGER MATCHERS
@@ -87,7 +126,7 @@ inline ResultMatcher<Trigger> containst(Trigger::Type type
                                         , MatchType match_type = MatchType::last
                                         , bool allow_no_comparison = false) {
     return {cms::containst(type, voice_index, id)
-            , "contains " + Trigger::format(type, id)
+            , "@voice=" + serialize(voice_index) + " contains " + Trigger::format(type, id)
             , match_type
             , allow_no_comparison
     };
@@ -115,7 +154,11 @@ inline ResultMatcher<Trigger> equalst(Trigger::Type type
                                       , std::optional<std::size_t> id = std::nullopt
                                       , MatchType match_type = MatchType::last
                                       , bool allow_no_comparison = false) {
-    return {cms::equalst(type, voice_index, id), "@voice=" + serialize(voice_index) + " = " + Trigger::format(type, id), match_type, allow_no_comparison};
+    return {cms::equalst(type, voice_index, id)
+            , "@voice=" + serialize(voice_index) + " = " + Trigger::format(type, id)
+            , match_type
+            , allow_no_comparison
+    };
 }
 
 

@@ -45,6 +45,20 @@ inline std::unique_ptr<FixedSizeComparison<Event>> sizee(std::size_t n) { return
 
 
 // ==============================================================================================
+// FACET COMPARISONS
+// ==============================================================================================
+
+template<typename T>
+std::unique_ptr<VoicesComparison<Facet>> eqf(std::size_t voice_index, const Vec<T>& expected) {
+    return std::make_unique<VoicesComparison<Facet>>([=](const Voices<Facet>& v) {
+        if (voice_index >= v.size()) {
+            return false;
+        }
+        return v[voice_index] == expected.template as_type<Facet>();
+    });
+}
+
+// ==============================================================================================
 // TRIGGER COMPARISONS
 // ==============================================================================================
 

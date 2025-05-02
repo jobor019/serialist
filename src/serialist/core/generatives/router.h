@@ -148,21 +148,22 @@ public:
 
     /**
      * @param indices 1d list of indices, where each position corresponds to a given outlet (multi) or voice (single)
-     * @param target_size
+     * @param num_inputs
      * @param index_type
      * @param voice_mapping
      */
     static Route parse_route(const Voices<Facet>& indices
-                             , std::size_t target_size
+                             , std::size_t num_inputs
                              , Index::Type index_type
                              , bool voice_mapping) {
-        assert(indices.size() >= target_size); // responsibility of caller
+        // outputs will always have the same shape as indices, but some may be empty
+        auto num_outputs = indices.size();
         auto firsts = indices.firsts<>();
 
-        auto mapping = MappingType::allocated(target_size);
-        for (std::size_t i = 0; i < target_size; ++i) {
+        auto mapping = MappingType::allocated(num_outputs);
+        for (std::size_t i = 0; i < num_outputs; ++i) {
             if (firsts[i]) {
-                mapping.append(Index::from(*firsts[i], index_type, target_size).get_clip(firsts.size()));
+                mapping.append(Index::from(*firsts[i], index_type, num_inputs).get_pass(num_inputs));
             } else {
                 mapping.append(std::nullopt);
             }
@@ -222,10 +223,6 @@ public:
         if (m_mapping.empty()) {
             return Voices<T>::empty_like();
         }
-
-        // This should be handled at parse time.
-        // We need the spec to correspond to actual output in later stages (PulseRouter)
-        assert(input.size() >= m_mapping.size());
 
         auto output = Vec<Voice<T>>::allocated(m_mapping.size());
         for (const auto& i : m_mapping) {
@@ -994,9 +991,9 @@ private:
                                                           , const Voices<Facet>& indices
                                                           , Index::Type index_type) {
         auto& voices = input[0];
-        auto num_active_voices = std::min(voices.size(), indices.size());
+        auto num_incoming_voices = voices.size();
 
-        auto route_mapping = Route::parse_route(indices, num_active_voices, index_type, true);
+        auto route_mapping = Route::parse_route(indices, num_incoming_voices, index_type, true);
         auto output = route_mapping.apply_single(std::move(voices));
 
         return {{output}, RouterMapping{route_mapping}};
@@ -1006,10 +1003,9 @@ private:
     std::pair<MultiVoices<T>, RouterMapping> route_multi(MultiVoices<T>&& input
                                                          , const Voices<Facet>& indices
                                                          , Index::Type index_type) {
+        auto num_inlets = input.size();
 
-        auto num_active_outlets = std::min({input.size(), indices.size(), m_num_outlets});
-
-        auto route_mapping = Route::parse_route(indices, num_active_outlets, index_type, false);
+        auto route_mapping = Route::parse_route(indices, num_inlets, index_type, false);
         auto output = route_mapping.apply_multi(std::move(input));
 
         return {output, RouterMapping{route_mapping}};
@@ -1393,6 +1389,32 @@ private:
 
 // ==============================================================================================
 
+class WrapperUtils {
+public:
+    WrapperUtils() = delete;
+
+    template<typename SequenceType>
+    static Vec<std::unique_ptr<SequenceType>> create_inputs(std::size_t num_inlets, ParameterHandler& ph) {
+        auto v = Vec<std::unique_ptr<SequenceType>>::allocated(num_inlets);
+        for (std::size_t i = 0; i < num_inlets; ++i) {
+            v.append(std::make_unique<SequenceType>(RouterNode<Facet>::Keys::INPUT + std::to_string(i), ph));
+        }
+
+        return v;
+    }
+
+
+    template<typename NodeType, typename SequenceType>
+    static Vec<Node<NodeType>*> cast_inputs(const Vec<std::unique_ptr<SequenceType>>& uptrs) {
+        auto raw_ptrs = Vec<Node<NodeType>*>::allocated(uptrs.size());
+        for (const auto& uptr : uptrs) {
+            raw_ptrs.append(uptr.get());
+        }
+        return raw_ptrs;
+    }
+};
+
+
 template<typename T, typename FloatType = double>
 struct RouterWrapper {
     using Keys = typename RouterNode<T>::Keys;
@@ -1405,11 +1427,11 @@ struct RouterWrapper {
 
 
     RouterWrapper(std::size_t num_inlets, std::size_t num_outlets)
-        : inputs(create_inputs(num_inlets, ph))
+        : inputs(WrapperUtils::create_inputs<SequenceType>(num_inlets, ph))
         , router_node(Keys::CLASS_NAME
                       , ph
                       , num_outlets
-                      , cast_inputs(inputs)
+                      , WrapperUtils::cast_inputs<T, SequenceType>(inputs)
                       , &routing_map
                       , &mode
                       , &uses_index
@@ -1417,17 +1439,6 @@ struct RouterWrapper {
                       , &enabled) {
         static_assert(std::is_same_v<T, Trigger> || std::is_same_v<T, Facet>);
     }
-
-
-    static Vec<std::unique_ptr<SequenceType>> create_inputs(std::size_t num_inlets, ParameterHandler& ph) {
-        auto v = Vec<std::unique_ptr<SequenceType>>::allocated(num_inlets);
-        for (std::size_t i = 0; i < num_inlets; ++i) {
-            v.append(std::make_unique<SequenceType>(Keys::INPUT + std::to_string(i), ph));
-        }
-
-        return v;
-    }
-
 
     template<typename U = FloatType>
     void set_input(std::size_t index, const Voices<U>& value) {
@@ -1449,16 +1460,6 @@ struct RouterWrapper {
     Variable<Facet, bool> enabled{param::properties::enabled, ph, true};
 
     RouterNode<T> router_node;
-
-private:
-    static Vec<Node<T>*> cast_inputs(const Vec<std::unique_ptr<SequenceType>>& uptrs) {
-        auto raw_ptrs = Vec<Node<T>*>::allocated(uptrs.size());
-        for (const auto& uptr : uptrs) {
-            raw_ptrs.append(uptr.get());
-        }
-        return raw_ptrs;
-    }
-
 };
 
 
