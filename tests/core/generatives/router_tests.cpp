@@ -439,22 +439,43 @@ TEST_CASE("Router: mix", "[router]") {
     auto& router = w.router_node;
     auto& map = w.routing_map;
 
-    auto mix_spec = Voices<double> {{
+    SECTION("Unit map") {
+        auto unit_spec = Voices<double> { {
+                Voice<double>{0, 0},
+                Voice<double>{0, 1},
+                Voice<double>{0, 2},
+                Voice<double>{1, 0},
+                Voice<double>{1, 1},
+                Voice<double>{2, 0}
+        }};
+
+        map.set_values(unit_spec);
+
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 1);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec{111.0, 222.0, 333.0, 444.0, 555.0, 666.0}));
+    }
+
+    SECTION("Subset") {
+        auto mix_spec = Voices<double> {{
             Voice<double>{0, 0}, // first element in first inlet
             Voice<double>{0, 1}, // second element in first inlet
             Voice<double>{1, 0}, // first element in second inlet
             Voice<double>{0, 0}, // first/first again
             Voice<double>{0, 2}  // third element in first inlet
-    }};
+        }};
 
-    map.set_values(mix_spec);
+        map.set_values(mix_spec);
 
 
-    router.update_time(TimePoint{});
-    auto multi_r = router.process();
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
 
-    REQUIRE(multi_r.size() == 1);
-    REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec{111.0, 222.0, 444.0, 111.0, 333.0}));
+        REQUIRE(multi_r.size() == 1);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec{111.0, 222.0, 444.0, 111.0, 333.0}));
+    }
 }
 
 
@@ -468,21 +489,41 @@ TEST_CASE("Router: distribute", "[router]") {
     auto& router = w.router_node;
     auto& map = w.routing_map;
 
-    auto distribute_spec = Voices<double> { {
-        Voice<double>{0, 1, 3}, // first outlet
-        Voice<double>{0, 2, 2}, // second outlet
-        Voice<double>{}         // third outlet
-    }};
+    SECTION("All values in single outlet") {
+        auto all_value_spec = Voices<double> { {
+            Voice<double>{},               // no values in first outlet
+            Voice<double>{4, 3, 2, 1, 0}   // all values (reordered) in second outlet
+                                           // (implicit: no values in third outlet)
+        }};
 
-    map.set_values(distribute_spec);
+        map.set_values(all_value_spec);
 
-    router.update_time(TimePoint{});
-    auto multi_r = router.process();
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
 
-    REQUIRE(multi_r.size() == 3);
-    REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec{111.0, 222.0, 444.0}));
-    REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m1s::eqf(Vec{111.0, 333.0, 333.0}));
-    REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::emptyf());
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m11::emptyf());
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m1s::eqf(Vec{555, 444, 333, 222, 111}));
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::emptyf());
+    }
+
+    SECTION("Subset") {
+        auto distribute_spec = Voices<double> { {
+            Voice<double>{0, 1, 3}, // first outlet: indices 0, 1 and 3
+            Voice<double>{0, 2, 2}, // second outlet: indices 0 (duplicate), 2 and 2 (dup)
+            Voice<double>{}         // third outlet: empty
+        }};
+
+        map.set_values(distribute_spec);
+
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec{111.0, 222.0, 444.0}));
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m1s::eqf(Vec{111.0, 333.0, 333.0}));
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::emptyf());
+    }
 }
 
 
