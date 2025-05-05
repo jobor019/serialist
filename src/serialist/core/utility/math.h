@@ -11,14 +11,11 @@
 namespace serialist::utils {
 
 /**
- * @brief Computes the remainder of a division between two doubles, allowing negative nominators.
- *
- * This function computes the remainder of the division of a double value `n` by another double value `d`,
- * ensuring that the result is always positive.
+ * @brief Computes the modulo of two values, allowing negative nominators, ensuring that the result always is positive
  *
  * @param n The dividend.
  * @param d The divisor.
- * @return The remainder of the division `n` by `d`, always positive.
+ * @return The modulo of `n` by `d`, always positive.
  */
 template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
 T modulo(T n, T d) {
@@ -53,6 +50,24 @@ std::pair<T, T> divmod(T n, T d, T epsilon) {
     T remainder = modulo(n, d, epsilon);
     T quotient = (n - remainder) / d;
     return std::make_pair(quotient, remainder);
+}
+
+
+// ==============================================================================================
+
+/**
+ * @brief Computes integral floor division, rather than truncation division. Useful for negative numbers, e.g.
+ *        floor_division(3, 5)  =  0    (same as 3/5)
+ *        floor_division(-3, 5) = -1    (where -3/5 = 0)
+ *
+ */
+template<typename T, typename = std::enable_if_t<std::is_integral_v<T> && std::is_signed_v<T>>>
+T floor_division(T n, T d) {
+    T q = n / d;
+    // Note: n ^ d for signed types evaluates to whether n and d have different signs
+    if ((n ^ d) < 0 && n % d != 0)
+        --q;
+    return q;
 }
 
 

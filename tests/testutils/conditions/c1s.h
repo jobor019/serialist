@@ -46,8 +46,8 @@ std::unique_ptr<VoicesComparison<T>> eq(const Vec<T>& expected) {
 
 
 template<typename T>
-std::unique_ptr<VoicesComparison<Facet>> eqf(const Vec<Facet>& expected) {
-    return eq<Facet>(expected.as_type<Facet>());
+std::unique_ptr<VoicesComparison<Facet>> eqf(const Vec<T>& expected) {
+    return eq<Facet>(expected.template as_type<Facet>());
 }
 
 // ==============================================================================================

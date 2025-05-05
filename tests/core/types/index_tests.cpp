@@ -163,3 +163,18 @@ TEST_CASE("Index: quantize", "[index]") {
     REQUIRE_THAT(Index::quantize(Phase::max(), 4), Catch::Matchers::WithinAbs(0.75, 1e-8));
     REQUIRE_THAT(Index::quantize(1.0, 4), Catch::Matchers::WithinAbs(1.0, 1e-8));
 }
+
+
+TEST_CASE("Index: apply_octave", "[index]") {
+    Voice<int> v{0, 10, 20, 30, 40};
+    int octave = 50;
+    REQUIRE(Index::apply_octave(Index{0}, v, octave) == 0);
+    REQUIRE(Index::apply_octave(Index{5}, v, octave) == 50);
+    REQUIRE(Index::apply_octave(Index{6}, v, octave) == 60);
+    REQUIRE(Index::apply_octave(Index{10}, v, octave) == 100);
+
+    REQUIRE(Index::apply_octave(Index{-1}, v, octave) == -10);
+    REQUIRE(Index::apply_octave(Index{-4}, v, octave) == -40);
+    REQUIRE(Index::apply_octave(Index{-5}, v, octave) == -50);
+    REQUIRE(Index::apply_octave(Index{-10}, v, octave) == -100);
+}

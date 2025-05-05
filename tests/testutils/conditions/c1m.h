@@ -49,11 +49,28 @@ inline std::unique_ptr<FixedSizeComparison<Trigger>> sizet(std::size_t n) {
 }
 
 
+inline std::unique_ptr<FixedSizeComparison<Facet>> sizef(std::size_t n) {
+    return std::make_unique<FixedSizeComparison<Facet>>(1, n);
+}
+
+
 // ==============================================================================================
 
 template<typename T>
 std::unique_ptr<VoiceComparison<T>> custom_comparison(const std::function<bool(const Voice<T>&)>& f) {
     return std::make_unique<VoiceComparison<T>>(f);
+}
+
+
+// ==============================================================================================
+// FACET COMPARISONS
+// ==============================================================================================
+
+template<typename T>
+std::unique_ptr<VoiceComparison<Facet>> eqf(const Vec<T>& expected) {
+    return std::make_unique<VoiceComparison<Facet>>([=](const Voice<Facet>& v) {
+        return v == expected.template as_type<Facet>();
+    });
 }
 
 

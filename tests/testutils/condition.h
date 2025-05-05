@@ -447,7 +447,6 @@ private:
 
 // ==============================================================================================
 
-
 struct NoteComparator {
     std::optional<NoteNumber> nn;
     std::optional<uint32_t> vel;

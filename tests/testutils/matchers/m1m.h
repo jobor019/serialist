@@ -15,6 +15,11 @@ using namespace serialist::test;
  */
 namespace serialist::test::m1m {
 
+// ==============================================================================================
+// SIZE MATCHERS
+// ==============================================================================================
+
+
 template<typename T>
 ResultMatcher<T> empty(MatchType match_type = MatchType::last, bool allow_no_comparison = false) {
     return {c1m::empty<T>(), "is empty", match_type, allow_no_comparison};
@@ -43,6 +48,31 @@ inline ResultMatcher<Trigger> sizet(std::size_t n
                                     , bool allow_no_comparison = false) {
     return {c1m::sizet(n), "has single vector of size " + serialize(n), match_type, allow_no_comparison};
 }
+
+
+inline ResultMatcher<Facet> sizef(std::size_t n
+                                  , MatchType match_type = MatchType::last
+                                  , bool allow_no_comparison = false) {
+    return {c1m::sizef(n), "has single vector of size " + serialize(n), match_type, allow_no_comparison};
+}
+
+
+// ==============================================================================================
+// FACET MATCHERS
+// ==============================================================================================
+
+template<typename T>
+ResultMatcher<Facet> eqf(const Vec<T>& expected, MatchType match_type = MatchType::last, bool allow_no_comparison = false) {
+    return {c1m::eqf(expected)
+        , std::string{"is == "} + expected.template as_type<std::string>([](const T& t) {
+            return serialize(t);
+        }).to_string(), match_type, allow_no_comparison};
+}
+
+// ==============================================================================================
+// TRIGGER MATCHERS
+// ==============================================================================================
+
 
 
 inline ResultMatcher<Trigger> containst(Trigger::Type type

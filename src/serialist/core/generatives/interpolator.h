@@ -1,291 +1,98 @@
-#ifndef SERIALISTLOOPER_INTERPOLATOR_H
-#define SERIALISTLOOPER_INTERPOLATOR_H
+#ifndef SERIALIST_INTERPOLATOR_H
+#define SERIALIST_INTERPOLATOR_H
 
 #include <optional>
 #include "core/collections/voices.h"
 #include "core/types/facet.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/types/trigger.h"
-#include "core/utility/math.h"
 #include "sequence.h"
 #include "variable.h"
+#include "types/index.h"
 
 
 namespace serialist {
-// TODO: StringSerializationHandler. Should probably generalize this into a Serializer class with a number of different overloads
-//std::string to_string() const {
-//    std::ostringstream oss;
-//    oss << static_cast<int>(m_type) << SEPARATOR << m_pivot;
-//    return oss.str();
-//}
-//
-//
-//static SelectionStrategy from_string(const std::string& s) {
-//    std::istringstream iss(s);
-//
-//    int type;
-//    float pivot;
-//    char dump;
-//
-//    iss >> type >> dump >> pivot;
-//
-//    return SelectionStrategy(static_cast<Mode>(type), pivot);
-//}
+
+template<typename T>
+class Interpolator {
+public:
+    using Mode = Index::Strategy;
+    using IndexType = Index::IndexType;
+
+    static constexpr auto DEFAULT_MODE = Mode::mod;
+    static constexpr double DEFAULT_OCTAVE = 12.0; // TODO: This will obviously not work for non-numeric types T
+    static constexpr bool DEFAULT_USES_INDEX = false;
+
+
+    static Voice<T> process(const Index& index, const Voices<T>& corpus, Mode mode, const std::optional<T>& octave) {
+        if (corpus.is_empty_like()) {
+            return {};
+        }
+
+        if (mode == Mode::cont) {
+            if (octave.has_value()) {
+                return Index::apply_octave(index, corpus, *octave);
+            }
+            return corpus[index.get_mod(corpus.size())];
+        }
+
+        if (auto bounded_index = index.get(corpus.size(), mode)) {
+            return corpus[*bounded_index];
+        }
+
+        // Mode::pass with index outside bounds
+        return {};
+    }
+
+
+    static Voice<T> process(double cursor, const Voices<T>& corpus, Mode mode, const std::optional<T>& octave) {
+        return process(Index::from_phase_like(cursor, corpus.size()), corpus, mode, octave);
+    }
+};
 
 
 // ==============================================================================================
 
 template<typename T>
-class Interpolator {
+class InterpolatorNode : public NodeBase<T> {
 public:
-    static constexpr double epsilon = 1e-6;
+    struct Keys {
+        static const inline std::string CURSOR = "cursor";
+        static const inline std::string CORPUS = "corpus";
+        static const inline std::string MODE = "mode";
+        static const inline std::string OCTAVE = "octave";
+        static const inline std::string USES_INDEX = "uses_index";
 
-    // TODO: Implement to_string and from_string (utils::is_serializable) for all structs
-    struct Continue {
-        T pivot;
+        static const inline std::string CLASS_NAME = "interpolator";
     };
 
-    struct Modulo {};
 
-    struct Clip {};
-
-    struct Pass {};
-
-    using Strategy = std::variant<Continue, Modulo, Clip, Pass>;
-
-
-    static Strategy default_strategy() {
-        return Clip();
-    }
-
-
-    static Voice<T> process(double cursor, const Voices<T>& corpus, const Strategy& strategy) {
-        if (corpus.is_empty_like()) {
-            return {};
-        }
-
-        return std::visit([&cursor, &corpus](const auto& s) {
-            return match(s, cursor, corpus);
-        }, strategy);
-    }
-
-private:
-    static Voice<T> match(const Strategy& strategy, double cursor, const Voices<T>& corpus) {
-        if (std::holds_alternative<Continue>(strategy)) {
-            if constexpr (!std::is_arithmetic_v<T>) {
-                return modulo(cursor, corpus);
-            } else {
-                return continuation(cursor, corpus, std::get<Continue>(strategy).pivot);
-            }
-        } else if (std::holds_alternative<Modulo>(strategy)) {
-            return modulo(cursor, corpus);
-        } else if (std::holds_alternative<Clip>(strategy)) {
-            return clip(cursor, corpus);
-        } else if (std::holds_alternative<Pass>(strategy)) {
-            return pass(cursor, corpus);
-        } else {
-            throw std::domain_error("Invalid strategy type");
-        }
-    }
-
-
-    template<typename E = T, typename = std::enable_if_t<std::is_arithmetic_v<E>>>
-    static Voice<T> continuation(double cursor, const Voices<T>& corpus, const T& pivot) {
-        auto index = static_cast<std::size_t>(utils::modulo(index_of(cursor, corpus.size())
-                                                            , static_cast<long>(corpus.size())));
-        auto multiplier = static_cast<T>(std::floor(cursor / 1.0));
-        //        std::cout << "continuation (cursor=" << cursor << ", index=" << index << ", multiplier=" << multiplier << ")" << std::endl;
-        return corpus[index] + pivot * multiplier;
-    }
-
-
-    static Voice<T> modulo(double cursor, const Voices<T>& corpus) {
-        auto index = static_cast<std::size_t>(utils::modulo(index_of(cursor, corpus.size())
-                                                            , static_cast<long>(corpus.size())));
-        //        std::cout << "modulo (cursor=" << cursor << ", index=" << index << ")" << std::endl;
-        return corpus[index];
-    }
-
-
-    static Voice<T> clip(double cursor, const Voices<T>& corpus) {
-        auto index = static_cast<std::size_t>(utils::clip(index_of(cursor, corpus.size())
-                                                          , {0L}, {static_cast<long>(corpus.size() - 1)}));
-        //        std::cout << "clip (cursor=" << cursor << ", index=" << index << ")" << std::endl;
-        return corpus[index];
-    }
-
-
-    static Voice<T> pass(double cursor, const Voices<T>& corpus) {
-        auto index = index_of(cursor, corpus.size());
-
-        if (index < 0 || index >= static_cast<long>(corpus.size())) {
-            //            std::cout << "pass INVALID (cursor=" << cursor << ", index=" << index << ")" << std::endl;
-            return {};
-        }
-
-        //        std::cout << "pass VALID (cursor=" << cursor << ", index=" << index << ")" << std::endl;
-        return corpus[static_cast<std::size_t>(index)];
-    }
-
-
-    static long index_of(double position, std::size_t map_size) {
-        // This should work correctly up to Mappings of size 67_108_864,
-        //   assuming doubles of 8 bytes (tested up to 10_000)
-        return static_cast<long>(std::floor(position * static_cast<double>(map_size) + epsilon));
-    }
-};
-
-
-// ==============================================================================================
-
-template<typename PivotType>
-class InterpolationAdapter : public Node<typename Interpolator<PivotType>::Strategy> {
-public:
-    using Strategy = typename Interpolator<PivotType>::Strategy;
-
-    static const inline std::string PIVOT = "pivot";
-    static const inline std::string STRATEGY = "strategy";
-    static const inline std::string CLASS_NAME = "interpolation_adapter";
-
-    static constexpr std::size_t NUM_STRATEGIES = std::variant_size_v<Strategy>;
-
-
-    InterpolationAdapter(const std::string& id
-                         , ParameterHandler& parent
-                         , Node<Facet>* strategy = nullptr
-                         , Node<PivotType>* pivot = nullptr)
-        : m_parameter_handler(Specification(param::types::generative)
-                              .with_identifier(id)
-                              .with_static_property(param::properties::template_class, CLASS_NAME)
-                              , parent)
-        , m_socket_handler(m_parameter_handler)
-        , m_strategy(m_socket_handler.create_socket(STRATEGY, strategy))
-        , m_pivot(m_socket_handler.create_socket(PIVOT, pivot)) {}
-
-
-    std::vector<Generative*> get_connected() override {
-        return m_socket_handler.get_connected();
-    }
-
-
-    ParameterHandler& get_parameter_handler() override {
-        return m_parameter_handler;
-    }
-
-
-    void disconnect_if(Generative& connected_to) override {
-        m_socket_handler.disconnect_if(connected_to);
-    }
-
-
-    Voices<Strategy> process() override {
-        if (!m_strategy.has_changed() && !m_pivot.has_changed()) {
-            return m_current_value;
-        }
-
-        auto strategy = m_strategy.process();
-        auto pivot = m_pivot.process();
-
-        auto num_voices = std::max(strategy.size(), pivot.size());
-
-        auto strategies = strategy.adapted_to(num_voices).firsts();
-        auto pivots = pivot.adapted_to(num_voices).firsts();
-
-        auto output = Voices<typename Interpolator<PivotType>::Strategy>::zeros(num_voices);
-        for (std::size_t i = 0; i < strategies.size(); ++i) {
-            output[i].append(parse_strategy(strategies[i], pivots[i]));
-        }
-
-        m_current_value = std::move(output);
-
-        return m_current_value;
-    }
-
-
-    static Strategy parse_strategy(const std::optional<Facet>& strategy_type
-                                   , const std::optional<PivotType>& pivot) {
-        if (!strategy_type) {
-            // default
-            return typename Interpolator<PivotType>::Clip();
-        }
-
-        auto index = utils::double2index(strategy_type->get(), NUM_STRATEGIES);
-
-        return parse_strategy(index, pivot);
-    }
-
-
-    static Strategy parse_strategy(std::size_t index, const std::optional<PivotType>& pivot) {
-        if (index == 0) {
-            if (pivot) {
-                return typename Interpolator<PivotType>::Continue{*pivot};
-            }
-            return typename Interpolator<PivotType>::Modulo();
-        } else if (index == 1) {
-            return typename Interpolator<PivotType>::Modulo();
-        } else if (index == 2) {
-            return typename Interpolator<PivotType>::Clip();
-        } else {
-            return typename Interpolator<PivotType>::Pass();
-        }
-    }
-
-
-    static double index2double(std::size_t index) {
-        return utils::index2double(index, NUM_STRATEGIES);
-    }
-
-private:
-    ParameterHandler m_parameter_handler;
-    SocketHandler m_socket_handler;
-
-    Socket<Facet>& m_strategy;
-    Socket<PivotType>& m_pivot;
-
-
-    Voices<Strategy> m_current_value = Voices<Strategy>::empty_like();
-};
-
-
-// ==============================================================================================
-
-struct InterpolatorKeys {
-    static const inline std::string TRIGGER = "trigger";
-    static const inline std::string CURSOR = "cursor";
-    static const inline std::string CORPUS = "corpus";
-    static const inline std::string STRATEGY = "strategy";
-
-    static const inline std::string CLASS_NAME = "interpolator";
-};
-
-
-// ==============================================================================================
-
-template<typename OutputType>
-class InterpolatorNode : public NodeBase<OutputType> {
-public:
     InterpolatorNode(const std::string& id
                      , ParameterHandler& parent
                      , Node<Trigger>* trigger
                      , Node<Facet>* cursor
-                     , Node<OutputType>* corpus
-                     , Node<typename Interpolator<OutputType>::Strategy>* strategy
+                     , Node<T>* corpus
+                     , Node<Facet>* mode
+                     , Node<Facet>* octave
+                     , Node<Facet>* uses_index
                      , Node<Facet>* enabled
                      , Node<Facet>* num_voices)
-        : NodeBase<OutputType>(id, parent, enabled, num_voices, InterpolatorKeys::CLASS_NAME)
-        , m_trigger(NodeBase<OutputType>::add_socket(InterpolatorKeys::TRIGGER, trigger))
-        , m_cursor(NodeBase<OutputType>::add_socket(InterpolatorKeys::CURSOR, cursor))
-        , m_corpus(NodeBase<OutputType>::add_socket(InterpolatorKeys::CORPUS, corpus))
-        , m_strategy(NodeBase<OutputType>::add_socket(InterpolatorKeys::STRATEGY, strategy)) {}
+        : NodeBase<T>(id, parent, enabled, num_voices, Keys::CLASS_NAME)
+        , m_trigger(NodeBase<T>::add_socket(param::properties::trigger, trigger))
+        , m_cursor(NodeBase<T>::add_socket(Keys::CURSOR, cursor))
+        , m_corpus(NodeBase<T>::add_socket(Keys::CORPUS, corpus))
+        , m_mode(NodeBase<T>::add_socket(Keys::MODE, mode))
+        , m_octave(NodeBase<T>::add_socket(Keys::OCTAVE, octave))
+        , m_uses_index(NodeBase<T>::add_socket(Keys::USES_INDEX, uses_index)) {}
 
 
-    Voices<OutputType> process() override {
-        if (auto t = NodeBase<OutputType>::pop_time(); !t) {
+    Voices<T> process() override {
+        if (auto t = NodeBase<T>::pop_time(); !t) {
             return m_current_value;
         }
 
-        if (!NodeBase<OutputType>::is_enabled() || !m_trigger.is_connected()) {
-            m_current_value = Voices<OutputType>::empty_like();
+        if (disabled()) {
+            m_current_value = Voices<T>::empty_like();
             return m_current_value;
         }
 
@@ -296,21 +103,38 @@ public:
         }
 
         auto cursor = m_cursor.process();
-        auto strategy = m_strategy.process();
+        auto mode = m_mode.process();
+        auto octave = m_octave.process();
+        auto use_index = m_uses_index.process().first_or(Interpolator<T>::DEFAULT_USES_INDEX);
 
-        auto num_voices = NodeBase<OutputType>::voice_count(trigger.size(), cursor.size(), strategy.size());
+        auto num_voices = NodeBase<T>::voice_count(trigger.size(), cursor.size(), mode.size(), octave.size());
 
         auto triggers = trigger.adapted_to(num_voices);
         auto cursors = cursor.adapted_to(num_voices).firsts();
-        auto strategies = strategy.adapted_to(num_voices).firsts_or(Interpolator<OutputType>::default_strategy());
+        auto modes = mode.adapted_to(num_voices).firsts_or(Interpolator<T>::DEFAULT_MODE);
+        auto octaves = octave.adapted_to(num_voices).template firsts<T>();
 
         auto corpus = m_corpus.process();
 
         m_current_value.adapted_to(num_voices);
         for (std::size_t i = 0; i < trigger.size(); ++i) {
             if (Trigger::contains_pulse_on(triggers[i]) && cursors[i].has_value()) {
-                m_current_value[i] = Interpolator<OutputType>::process(static_cast<double>(*cursors[i]), corpus
-                                                                       , strategies[i]);
+                if (use_index) {
+                    m_current_value[i] = Interpolator<T>::process(
+                        Index::from_phase_like(*cursors[i], corpus.size())
+                        , corpus
+                        , modes[i]
+                        , octaves[i]
+                    );
+
+                } else {
+                    m_current_value[i] = Interpolator<T>::process(
+                        static_cast<double>(*cursors[i])
+                        , corpus
+                        , modes[i]
+                        , octaves[i]
+                    );
+                }
             }
         }
 
@@ -318,12 +142,22 @@ public:
     }
 
 private:
+    bool disabled() {
+        return !NodeBase<T>::is_enabled()
+               || !m_trigger.is_connected()
+               || !m_corpus.is_connected()
+               || !m_cursor.is_connected();
+    }
+
+
     Socket<Trigger>& m_trigger;
     Socket<Facet>& m_cursor;
-    Socket<OutputType>& m_corpus;
-    Socket<typename Interpolator<OutputType>::Strategy>& m_strategy;
+    Socket<T>& m_corpus;
+    Socket<Facet>& m_mode;
+    Socket<Facet>& m_octave;
+    Socket<Facet>& m_uses_index;
 
-    Voices<OutputType> m_current_value = Voices<OutputType>::empty_like();
+    Voices<T> m_current_value = Voices<T>::empty_like();
 };
 
 
@@ -331,29 +165,45 @@ private:
 
 template<typename OutputType, typename StoredType, typename FloatType = float>
 struct InterpolatorWrapper {
-    using Strategy = typename Interpolator<OutputType>::Strategy;
+    using Keys = typename InterpolatorNode<OutputType>::Keys;
+    using Mode = typename Interpolator<OutputType>::Mode;
+    using InterpolatorT = Interpolator<OutputType>;
 
-    ParameterHandler parameter_handler;
+    ParameterHandler ph;
 
-    Sequence<Trigger> trigger{InterpolatorKeys::TRIGGER, parameter_handler};
-    Sequence<Facet, FloatType> cursor{InterpolatorKeys::CURSOR, parameter_handler};
-    Sequence<OutputType, StoredType> corpus{InterpolatorKeys::CORPUS, parameter_handler};
-    Sequence<Strategy> strategy{InterpolatorKeys::STRATEGY, parameter_handler};
+    Sequence<Trigger> trigger{param::properties::trigger, ph, Trigger::pulse_on()};
+    Sequence<Facet, FloatType> cursor{Keys::CURSOR, ph};
+    Sequence<OutputType, StoredType> corpus{Keys::CORPUS, ph};
+    Sequence<Facet, Mode> mode{Keys::MODE, ph, Voices<Mode>::singular(InterpolatorT::DEFAULT_MODE)};
+    Sequence<Facet, FloatType> octave{Keys::OCTAVE, ph, Voices<double>::singular(InterpolatorT::DEFAULT_OCTAVE)};
+    Variable<Facet, bool> uses_index{Keys::USES_INDEX, ph, InterpolatorT::DEFAULT_USES_INDEX};
 
-    Sequence<Facet, bool> enabled{param::properties::enabled, parameter_handler, true};
-    Variable<Facet, std::size_t> num_voices{param::properties::num_voices, parameter_handler, 1};
+    Sequence<Facet, bool> enabled{param::properties::enabled, ph, true};
+    Variable<Facet, std::size_t> num_voices{param::properties::num_voices, ph, 1};
 
-    InterpolatorNode<OutputType> interpolator{
-        InterpolatorKeys::CLASS_NAME
-        , parameter_handler
+    InterpolatorNode<OutputType> interpolator{Keys::CLASS_NAME
+        , ph
         , &trigger
         , &cursor
         , &corpus
-        , &strategy
+        , &mode
+        , &octave
+        , &uses_index
         , &enabled
         , &num_voices
     };
 };
+
+template<typename FloatType = double>
+using InterpolatorDoubleWrapper = InterpolatorWrapper<Facet, double, FloatType>;
+
+template<typename FloatType = double>
+using InterpolatorIntWrapper = InterpolatorWrapper<Facet, int, FloatType>;
+
+template<typename FloatType = double>
+using InterpolatorStringWrapper = InterpolatorWrapper<std::string, std::string, FloatType>;
+
+
 } // namespace serialist
 
-#endif //SERIALISTLOOPER_INTERPOLATOR_H
+#endif //SERIALIST_INTERPOLATOR_H

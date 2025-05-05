@@ -106,12 +106,26 @@ public:
 
 
     template<typename T>
-    static T apply_octave(const Index& index, const Vec<T>& v, const T& octave, bool invert = false) {
+    static T apply_octave(const Index& index, const Voice<T>& v, const T& octave, bool invert = false) {
         if constexpr (std::is_arithmetic_v<T>) {
             auto num_octaves = index.get_octave(v.size());
             auto i = index.get_mod(v.size(), invert);
 
-            return v[i] + *octave * num_octaves;
+            return v[i] + octave * num_octaves;
+        } else {
+            // Non-arithmetic types do not support octaves
+            return v[index.get_mod(v.size(), invert)];
+        }
+    }
+
+    template<typename T>
+    static Voice<T> apply_octave(const Index& index, const Voices<T>& v, const T& octave, bool invert = false) {
+        // Note: Different signature but identical implementation since Vec implements elementwise operators
+        if constexpr (std::is_arithmetic_v<T>) {
+            auto num_octaves = index.get_octave(v.size());
+            auto i = index.get_mod(v.size(), invert);
+
+            return v[i] + octave * static_cast<T>(num_octaves);
         } else {
             // Non-arithmetic types do not support octaves
             return v[index.get_mod(v.size(), invert)];
@@ -166,7 +180,7 @@ public:
 
     IndexType get_mod(std::size_t size, bool invert = false) const {
         assert(size > 0);
-        auto mod_result = m_value % static_cast<IndexType>(size);
+        auto mod_result = utils::modulo(m_value, static_cast<IndexType>(size));
 
         return invert ? apply_inversion(mod_result, size) : mod_result;
     }
@@ -180,7 +194,10 @@ public:
     }
 
 
-    IndexType get_octave(std::size_t size) const { return m_value / static_cast<IndexType>(size); }
+    IndexType get_octave(std::size_t size) const {
+        // Note: floor division since negative denominators should be floored, not truncated, e.g. -3/5 = -1
+        return utils::floor_division(m_value, static_cast<IndexType>(size));
+    }
 
 
     std::optional<IndexType> get_pass(std::size_t size, bool invert = false) const {
