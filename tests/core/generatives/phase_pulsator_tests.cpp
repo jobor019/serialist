@@ -5,7 +5,7 @@
 #include "core/policies/policies.h"
 #include "node_runner.h"
 #include "core/generatives/phase_pulsator.h"
-#include "generatives/oscillator.h"
+#include "generatives/phase_node.h"
 
 #include "generators.h"
 #include "matchers/m1m.h"
@@ -31,10 +31,10 @@ struct OscillatorPairedPulsator {
         oscillator.period_type.set_value(type);
         oscillator.offset_type.set_value(type);
 
-        phase_pulsator.pulsator_node.set_cursor(&oscillator.oscillator);
+        phase_pulsator.pulsator_node.set_cursor(&oscillator.phase_node);
 
         runner = NodeRunner{&phase_pulsator.pulsator_node};
-        runner.add_generative(oscillator.oscillator);
+        runner.add_generative(oscillator.phase_node);
 
         time_epsilon = runner.get_config().step_size.get_value() + EPSILON;
     }
@@ -61,7 +61,7 @@ struct OscillatorPairedPulsator {
      */
     RunResult<Trigger> step_past_threshold() {
         auto r = runner.step_while(c1m::emptyt());
-        auto current_phase = Phase(*oscillator.oscillator.process().first());
+        auto current_phase = Phase(*oscillator.phase_node.process().first());
         if (Phase::distance(current_phase, Phase::zero()) > runner.get_step_size().get_value() + EPSILON) {
             throw test_error("this function should only be used when the output of runner.step_while(c1m::emptyt()) "
                              "is expected to cross a threshold (actual phase: " + std::to_string(current_phase.get()) +
@@ -97,7 +97,7 @@ struct OscillatorPairedPulsator {
 
     double get_oscillator_phase() {
         // Note: this will not trigger a new value unless we explicitly call update_time on the oscillator first
-        return *oscillator.oscillator.process().first();
+        return *oscillator.phase_node.process().first();
     }
 
 
@@ -117,7 +117,7 @@ struct OscillatorPairedPulsator {
 
 
     PhasePulsatorWrapper<> phase_pulsator;
-    OscillatorWrapper<> oscillator;
+    PhaseWrapper<> oscillator;
     double time_epsilon;
     NodeRunner<Trigger> runner;
 };
@@ -160,7 +160,7 @@ TEST_CASE("PhasePulsator: Phase triggers new pulse exactly at period (R1.1.1 & R
     // initial step to phase 0.0 (forward) or 1.0 (backward) => trigger pulse_on
     auto r = runner.step();
     REQUIRE_THAT(r, m1m::equalst_on());
-    REQUIRE_THAT(RunResult<Facet>::dummy(p.oscillator.oscillator.process()), m11::eqf(expected_phase_at_trigger));
+    REQUIRE_THAT(RunResult<Facet>::dummy(p.oscillator.phase_node.process()), m11::eqf(expected_phase_at_trigger));
     auto pulse_on_id = *r.pulse_on_id();
 
     // step one full period (1.0 ticks) => trigger pulse_off matching previous and new pulse_on in same step

@@ -3,7 +3,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "core/policies/policies.h"
-#include "core/generatives/oscillator.h"
+#include "core/generatives/phase_node.h"
 
 
 #include "node_runner.h"
@@ -15,7 +15,7 @@ using namespace serialist::test;
 
 /**
 *  ==============================================================================================
-*  Oscillator Testing Guidelines:
+*  PhaseAccumulator Testing Guidelines:
 *  ==============================================================================================
 *
 *  In most cases where we need to know that a cycle starts / ends at a particular time, the best solution is to
@@ -25,8 +25,8 @@ using namespace serialist::test;
 *  The reason for this is (obviously) rounding errors. While `step_until(t, Anchor::before)` ensures that
 *  current_time < t, we cannot be sure that `f(current_time) < f(t)`.
 *
-*  In case of the Oscillator, if we for example have period = 2.0 and we step until t < 2.0, we can be sure that
-*  t < 2.0, but we cannot be sure that (t / p) < 1.0 (where 1.0 is the oscillator's internal modulo condition).
+*  In this case, if we for example have period = 2.0 and we step until t < 2.0, we can be sure that
+*  t < 2.0, but we cannot be sure that (t / p) < 1.0 (where 1.0 is the PhaseNode's internal modulo condition).
 *
 *  Still, if it's strictly necessary to test a given time, we can use `c11::circular_eqf()` to check if a value
 *  is approximately equal to 0.0 modulo 1.0.
@@ -36,8 +36,8 @@ using namespace serialist::test;
 // R1.: Periodic with Grid Alignment (TL)
 // ==============================================================================================
 
-TEST_CASE("Oscillator (TL): Period and offset control duration and start time of cycle (R1.1.1)", "[oscillator]") {
-    auto w = OscillatorWrapper();
+TEST_CASE("PhaseNode (TL): Period and offset control duration and start time of cycle (R1.1.1)", "[phase_node]") {
+    auto w = PhaseWrapper();
 
     w.mode.set_value(PaMode::transport_locked);
 
@@ -66,7 +66,7 @@ TEST_CASE("Oscillator (TL): Period and offset control duration and start time of
     w.period.set_values(period);
     w.offset.set_values(offset);
 
-    NodeRunner runner{&w.oscillator, TestConfig().with_step_size(DomainDuration::ticks(step_size)), TimePoint(t0)};
+    NodeRunner runner{&w.phase_node, TestConfig().with_step_size(DomainDuration::ticks(step_size)), TimePoint(t0)};
 
     // Step until first value in first cycle
     if (offset > 0.0) {
@@ -94,8 +94,8 @@ TEST_CASE("Oscillator (TL): Period and offset control duration and start time of
 }
 
 
-TEST_CASE("Oscillator (TL): Negative period yields phase-inverted cycles (R1.1.2a)", "[oscillator]") {
-    auto w = OscillatorWrapper();
+TEST_CASE("PhaseNode (TL): Negative period yields phase-inverted cycles (R1.1.2a)", "[phase_node]") {
+    auto w = PhaseWrapper();
     auto step_size = 0.01;
 
     auto [period_value, value_per_tick] = GENERATE(
@@ -115,7 +115,7 @@ TEST_CASE("Oscillator (TL): Negative period yields phase-inverted cycles (R1.1.2
     w.mode.set_value(PaMode::transport_locked);
     w.period.set_values(period_value);
 
-    NodeRunner runner(&w.oscillator, TestConfig().with_step_size(DomainDuration::ticks(step_size)));
+    NodeRunner runner(&w.phase_node, TestConfig().with_step_size(DomainDuration::ticks(step_size)));
 
     // Step one full cycle and a single value into the next cycle
     auto r = runner.step_while(c11::strictly_decreasingf());
@@ -133,8 +133,8 @@ TEST_CASE("Oscillator (TL): Negative period yields phase-inverted cycles (R1.1.2
 }
 
 
-TEST_CASE("Oscillator (TL): Zero period yields constant value 0 (R1.1.2b)", "[oscillator]") {
-    auto w = OscillatorWrapper();
+TEST_CASE("PhaseNode (TL): Zero period yields constant value 0 (R1.1.2b)", "[phase_node]") {
+    auto w = PhaseWrapper();
 
     auto offset = GENERATE(0.0, 0.1, 1.0, 100.0);
 
@@ -142,18 +142,18 @@ TEST_CASE("Oscillator (TL): Zero period yields constant value 0 (R1.1.2b)", "[os
     w.period.set_values(0.0);
     w.offset.set_values(offset);
 
-    NodeRunner runner(&w.oscillator);
+    NodeRunner runner(&w.phase_node);
 
     auto r = runner.step_n(1000);
     REQUIRE_THAT(r, m11::eqf(0.0, MatchType::all));
 }
 
 
-TEST_CASE("Oscillator (TL): Offset range is mapped onto [0.0, abs(period)), (R1.1.2c)", "[oscillator]") {
-    auto w = OscillatorWrapper();
+TEST_CASE("PhaseNode (TL): Offset range is mapped onto [0.0, abs(period)), (R1.1.2c)", "[phase_node]") {
+    auto w = PhaseWrapper();
     w.mode.set_value(PaMode::transport_locked);
 
-    NodeRunner runner(&w.oscillator);
+    NodeRunner runner(&w.phase_node);
 
     auto value_epsilon = TestConfig::DEFAULT_STEP_SIZE.get_value() + EPSILON;
 
@@ -196,10 +196,10 @@ TEST_CASE("Oscillator (TL): Offset range is mapped onto [0.0, abs(period)), (R1.
 }
 
 
-TEST_CASE("Oscillator (TL): Edge cases do not impact output (R1.1.2d, R1.3)", "[oscillator]") {
-    auto w = OscillatorWrapper();
+TEST_CASE("PhaseNode (TL): Edge cases do not impact output (R1.1.2d, R1.3)", "[phase_node]") {
+    auto w = PhaseWrapper();
     w.mode.set_value(PaMode::transport_locked);
-    NodeRunner runner(&w.oscillator);
+    NodeRunner runner(&w.phase_node);
 
     auto t1 = DomainTimePoint::ticks(5.0);
     auto [period, expected_value_at_t1, value_per_tick] = GENERATE(
@@ -283,9 +283,9 @@ TEST_CASE("Oscillator (TL): Edge cases do not impact output (R1.1.2d, R1.3)", "[
 }
 
 
-TEST_CASE("Oscillator (TL): Two oscillators with same config produce the same output", "[oscillator]") {
-    auto w1 = OscillatorWrapper();
-    auto w2 = OscillatorWrapper();
+TEST_CASE("PhaseNode (TL): Two nodes with same config produce the same output", "[phase_node]") {
+    auto w1 = PhaseWrapper();
+    auto w2 = PhaseWrapper();
 
     auto period = GENERATE(1.0, 2.0, 3.0, 0.4);
     auto runner2_start_time = GENERATE(0.0, 0.2, 0.5, 0.6);
@@ -296,8 +296,8 @@ TEST_CASE("Oscillator (TL): Two oscillators with same config produce the same ou
     w2.mode.set_value(PaMode::transport_locked);
     w2.period.set_values(period);
 
-    NodeRunner runner1{&w1.oscillator};
-    NodeRunner runner2{&w2.oscillator, TimePoint{runner2_start_time}};
+    NodeRunner runner1{&w1.phase_node};
+    NodeRunner runner2{&w2.phase_node, TimePoint{runner2_start_time}};
 
     auto r1 = runner1.step_until(end_time, Anchor::before);
     auto r2 = runner2.step_until(end_time, Anchor::before);
@@ -306,12 +306,12 @@ TEST_CASE("Oscillator (TL): Two oscillators with same config produce the same ou
 }
 
 
-TEST_CASE("Oscillator (TL): Period and offset type controls time domain type of cycle (R1.2.1)", "[oscillator]") {
+TEST_CASE("PhaseNode (TL): Period and offset type controls time domain type of cycle (R1.2.1)", "[phase_node]") {
     // Note: All of this could technically be tested in R1.1.1 as most of it is pure duplication of that test.
     //       Regardless, this is implemented as a separate test to more clearly separate the two requirements and
     //       to avoid building tests that are testing too many things at once.
 
-    auto w = OscillatorWrapper();
+    auto w = PhaseWrapper();
 
     // type = ticks is already tested in earlier tests. This test only tests period_type == offset_type.
     auto type = GENERATE(DomainType::beats, DomainType::bars);
@@ -343,7 +343,7 @@ TEST_CASE("Oscillator (TL): Period and offset type controls time domain type of 
     w.period.set_values(period);
     w.offset.set_values(offset);
 
-    NodeRunner runner{&w.oscillator
+    NodeRunner runner{&w.phase_node
                       , TestConfig().with_step_size(DomainDuration{step_size, type})
                       , TimePoint::zero().with_meter(meter)
     };
@@ -368,10 +368,10 @@ TEST_CASE("Oscillator (TL): Period and offset type controls time domain type of 
 }
 
 
-// TEST_CASE("Oscillator (TL): Mixed types are treated as ticks when one type is ticks (R1.2.2a)", "[oscillator]") {
+// TEST_CASE("PhaseNode (TL): Mixed types are treated as ticks when one type is ticks (R1.2.2a)", "[phase_node]") {
 //     REQUIRE(false); // TODO: This test is incomplete and incorrect
 //
-//     auto w = OscillatorWrapper();
+//     auto w = PhaseNodeWrapper();
 //     w.mode.set_value(PaMode::transport_locked);
 //
 //     auto step_size = 0.01;
@@ -415,8 +415,8 @@ TEST_CASE("Oscillator (TL): Period and offset type controls time domain type of 
 // = R2. Periodic without Grid Alignment (FP) =
 // ==============================================================================================
 
-TEST_CASE("Oscillator (FP): Period and offset control duration and start value of cycle (R2.1.1a)", "[oscillator]") {
-    auto w = OscillatorWrapper();
+TEST_CASE("PhaseNode (FP): Period and offset control duration and start value of cycle (R2.1.1a)", "[phase_node]") {
+    auto w = PhaseWrapper();
 
     w.mode.set_value(PaMode::free_periodic);
 
@@ -429,7 +429,7 @@ TEST_CASE("Oscillator (FP): Period and offset control duration and start value o
 
     CAPTURE(period, offset, step_size);
 
-    NodeRunner runner{&w.oscillator, TestConfig().with_step_size(DomainDuration::ticks(step_size))};
+    NodeRunner runner{&w.phase_node, TestConfig().with_step_size(DomainDuration::ticks(step_size))};
 
     // First value should be offset
     auto r = runner.step();
@@ -445,13 +445,13 @@ TEST_CASE("Oscillator (FP): Period and offset control duration and start value o
     REQUIRE_THAT(r, m11::approx_eqf(offset, step_size + EPSILON));
 }
 
-TEST_CASE("Oscillator (FP): Output is continuous when period changes (R2.1.1b)", "[oscillator]") {
+TEST_CASE("PhaseNode (FP): Output is continuous when period changes (R2.1.1b)", "[phase_node]") {
     // TODO
 }
 
 
-TEST_CASE("Oscillator (FP): Zero period yields constant previous/offset value  (R2.1.2b)", "[oscillator]") {
-    auto w = OscillatorWrapper();
+TEST_CASE("PhaseNode (FP): Zero period yields constant previous/offset value  (R2.1.2b)", "[phase_node]") {
+    auto w = PhaseWrapper();
 
     // auto offset = GENERATE(0.0, 0.1, 1.0, 100.0);
     auto offset = GENERATE(0.0);
@@ -461,14 +461,14 @@ TEST_CASE("Oscillator (FP): Zero period yields constant previous/offset value  (
 
     SECTION("No previous value: yield offset value") {
         w.period.set_values(0.0);
-        NodeRunner runner(&w.oscillator);
+        NodeRunner runner(&w.phase_node);
         auto r = runner.step_n(1000);
         REQUIRE_THAT(r, m11::eqf(offset, MatchType::all));
     }
 
     SECTION("Previous value exists: yield previous value") {
         w.period.set_values(1.0);
-        NodeRunner runner(&w.oscillator);
+        NodeRunner runner(&w.phase_node);
 
         double target_value = 0.5;
 
@@ -489,20 +489,20 @@ TEST_CASE("Oscillator (FP): Zero period yields constant previous/offset value  (
 // ==============================================================================================
 
 
-TEST_CASE("Oscillator: ctor", "[oscillator]") {
-    auto w = OscillatorWrapper();
+TEST_CASE("PhaseNode: ctor", "[phase_node]") {
+    auto w = PhaseWrapper();
 }
 
 
-TEST_CASE("Oscillator: enable", "[oscillator]") {
-    auto w = OscillatorWrapper();
+TEST_CASE("PhaseNode: enable", "[phase_node]") {
+    auto w = PhaseWrapper();
 
-    auto& oscillator = w.oscillator;
+    auto& node = w.phase_node;
     auto& enabled = w.enabled;
 
-    w.mode.set_value(PaMode::transport_locked); // unit phase oscillator
+    w.mode.set_value(PaMode::transport_locked); // unit phase node
 
-    NodeRunner runner{&oscillator};
+    NodeRunner runner{&node};
 
     enabled.set_values(false); // Disable output
 
@@ -521,8 +521,8 @@ TEST_CASE("Oscillator: enable", "[oscillator]") {
 }
 
 
-TEST_CASE("Oscillator (TL/FP): Period controls the duration of a cycle (R1.1.1, R1.2.1)", "[oscillator]") {
-    auto w = OscillatorWrapper();
+TEST_CASE("PhaseNode (TL/FP): Period controls the duration of a cycle (R1.1.1, R1.2.1)", "[phase_node]") {
+    auto w = PhaseWrapper();
     auto step_size = 0.01;
     auto meter = GENERATE(Meter{4, 4}, Meter{2, 8}, Meter{3, 2});
 
@@ -531,7 +531,7 @@ TEST_CASE("Oscillator (TL/FP): Period controls the duration of a cycle (R1.1.1, 
 
     auto period_type = GENERATE(DomainType::ticks, DomainType::beats, DomainType::bars);
 
-    // The precision of the oscillator's output (i.e. how close to 1.0 it is at the end of the cycle)
+    // The precision of the PhaseNode's output (i.e. how close to 1.0 it is at the end of the cycle)
     // depends on the step size in relation to the period. Formula is:
     // epsilon = step_size / period + EPSILON
     auto [period_value, value_epsilon] = GENERATE(
@@ -551,7 +551,7 @@ TEST_CASE("Oscillator (TL/FP): Period controls the duration of a cycle (R1.1.1, 
     w.period.set_values(period_value);
     w.period_type.set_value(period_type);
 
-    NodeRunner runner(&w.oscillator
+    NodeRunner runner(&w.phase_node
                       , TestConfig().with_step_size(DomainDuration::ticks(step_size))
                       , TimePoint{}.with_meter(meter)
     );
@@ -573,8 +573,8 @@ TEST_CASE("Oscillator (TL/FP): Period controls the duration of a cycle (R1.1.1, 
 }
 
 
-TEST_CASE("Oscillator (TL): Offset controls the temporal offset (R1.1.3)", "[oscillator]") {
-    auto w = OscillatorWrapper();
+TEST_CASE("PhaseNode (TL): Offset controls the temporal offset (R1.1.3)", "[phase_node]") {
+    auto w = PhaseWrapper();
     auto step_size = 0.01;
 
     auto meter = GENERATE(Meter{4, 4}, Meter{2, 8}, Meter{3, 2});
@@ -588,7 +588,7 @@ TEST_CASE("Oscillator (TL): Offset controls the temporal offset (R1.1.3)", "[osc
     w.offset.set_values(offset);
     w.offset_type.set_value(domain_type);
 
-    NodeRunner runner{&w.oscillator
+    NodeRunner runner{&w.phase_node
                       , TestConfig().with_step_size(DomainDuration::ticks(step_size))
                       , TimePoint{}.with_meter(meter)
     };
@@ -607,8 +607,8 @@ TEST_CASE("Oscillator (TL): Offset controls the temporal offset (R1.1.3)", "[osc
 }
 
 
-TEST_CASE("Oscillator: Offset controls the value offset in mode FP", "[oscillator]") {
-    auto w = OscillatorWrapper();
+TEST_CASE("PhaseNode: Offset controls the value offset in mode FP", "[phase_node]") {
+    auto w = PhaseWrapper();
     auto step_size = 0.01;
 
     auto meter = GENERATE(Meter{4, 4}, Meter{2, 8}, Meter{3, 2});
@@ -623,7 +623,7 @@ TEST_CASE("Oscillator: Offset controls the value offset in mode FP", "[oscillato
     w.offset_type.set_value(domain_type);
 
     NodeRunner runner{
-        &w.oscillator
+        &w.phase_node
         , TestConfig().with_step_size(DomainDuration::ticks(step_size))
         , TimePoint{}.with_meter(meter)
     };
@@ -641,12 +641,12 @@ TEST_CASE("Oscillator: Offset controls the value offset in mode FP", "[oscillato
 }
 
 
-TEST_CASE("Oscillator: Offset range is determined by period in mode TL", "[oscillator]") {
-    auto w = OscillatorWrapper();
+TEST_CASE("PhaseNode: Offset range is determined by period in mode TL", "[phase_node]") {
+    auto w = PhaseWrapper();
     auto step_size = 0.01;
     auto epsilon = step_size + EPSILON;
 
-    NodeRunner runner{&w.oscillator, TestConfig().with_step_size(DomainDuration::ticks(step_size))};
+    NodeRunner runner{&w.phase_node, TestConfig().with_step_size(DomainDuration::ticks(step_size))};
 
     auto [period, offset, expected, following_cycle] = GENERATE(
         table<double, double, double, double>( {
@@ -674,8 +674,8 @@ TEST_CASE("Oscillator: Offset range is determined by period in mode TL", "[oscil
 }
 
 
-// TEST_CASE("Oscillator: Offset range is mapped to [0.0, 1.0] in mode FP", "[oscillator]") {
-//     auto w = OscillatorWrapper();
+// TEST_CASE("PhaseNode: Offset range is mapped to [0.0, 1.0] in mode FP", "[phase_node]") {
+//     auto w = PhaseNodeWrapper();
 //     auto step_size = 0.01;
 //     auto epsilon = step_size + EPSILON;
 //

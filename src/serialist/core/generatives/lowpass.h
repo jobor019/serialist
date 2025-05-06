@@ -113,7 +113,7 @@ struct LowPassWrapper {
 
     ParameterHandler ph;
 
-    Sequence<Trigger> trigger{param::properties::trigger, ph, Voices<Trigger>::empty_like()};
+    Sequence<Trigger> trigger{param::properties::trigger, ph, Voices<Trigger>::singular(Trigger::pulse_on())};
     Sequence<Facet, FloatType> input{Keys::INPUT, ph, Voices<FloatType>::empty_like()};
     Sequence<Facet, FloatType> tau{Keys::TAU, ph, Voices<FloatType>::singular(LowPass::DEFAULT_TAU)};
     Variable<Facet, DomainType> tau_type{Keys::TAU_TYPE, ph, LowPass::DEFAULT_TAU_TYPE};

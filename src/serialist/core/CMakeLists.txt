@@ -3,7 +3,7 @@ SET(CORE_NAME core)
 add_library(${CORE_NAME}
         INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/temporal/filters.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/temporal/phase_accumulator.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/temporal/phase_node.h
         ${CMAKE_CURRENT_SOURCE_DIR}/temporal/phase_pulse.h
         ${CMAKE_CURRENT_SOURCE_DIR}/temporal/pulse.h
         ${CMAKE_CURRENT_SOURCE_DIR}/temporal/time_gate.h
@@ -34,7 +34,7 @@ add_library(${CORE_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/interpolator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/make_note.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/operator.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/oscillator.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/phase_node.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/patternizer.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/phase_map.h
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/phase_pulsator.h

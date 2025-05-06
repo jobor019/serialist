@@ -17,7 +17,7 @@ add_executable(core_tests EXCLUDE_FROM_ALL
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/interpolator_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/make_note_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/operator_tests.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/oscillator_tests.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/generatives/phase_node_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/patternizer_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/phase_map_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/phase_pulsator_tests.cpp
