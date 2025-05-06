@@ -108,9 +108,25 @@ public:
     }
 
 
-    /** @brief Using a vector of the same size as the objects, set each object to the corresponding element in the vector*/
+    /** @brief Using a vector of the same size as the objects,
+     *         set each object to the corresponding element in the vector
+     */
     template<typename Setter, typename ArgType, typename = std::enable_if_t<std::is_member_function_pointer_v<Setter>>>
     void set(Setter func, Vec<ArgType>&& values) {
+        if (values.size() != m_objects.size()) {
+            throw std::invalid_argument("values.size() != m_vector.size()");
+        }
+
+        for (std::size_t i = 0; i < values.size(); ++i) {
+            (m_objects[i].*func)(std::move(values[i]));
+        }
+    }
+
+    /** @brief Using a Voices object of the same size as the objects,
+     *         set each object to the corresponding element in the Voices
+     */
+    template<typename Setter, typename ArgType, typename = std::enable_if_t<std::is_member_function_pointer_v<Setter>>>
+    void set(Setter func, Voices<ArgType>&& values) {
         if (values.size() != m_objects.size()) {
             throw std::invalid_argument("values.size() != m_vector.size()");
         }

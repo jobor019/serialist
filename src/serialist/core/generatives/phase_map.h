@@ -14,6 +14,10 @@ public:
     static constexpr double DEFAULT_DURATION = 1.0;
     static const inline Voice<double> DEFAULT_DURATIONS{DEFAULT_DURATION};
 
+    PhaseMap() {
+        reset_durations();
+    }
+
 
     std::optional<Phase> process(const Phase& cursor) {
         auto it = std::lower_bound(m_cumsum.begin(), m_cumsum.end(), cursor.get());
@@ -31,8 +35,24 @@ public:
     }
 
 
-    void set_durations(const Voice<double>& durations) {
-        assert(!durations.empty()); // Already filtered and normalized to abs sum 1.0 (normalize_l1)
+    void set_durations(Voice<double>&& durations) {
+        // Shorthand for tuplets, e.g. 3 = [1,1,1], 5 = [1,1,1,1,1], etc.
+        if (durations.size() == 1) {
+            // Having N pauses wouldn't be meaningful here, hence std::abs
+            auto n = std::round(std::abs(durations[0]));
+
+            durations = Vec<double>::repeated(static_cast<std::size_t>(n), 1.0/n);
+
+        } else {
+            durations.filter([](double d) { return !utils::equals(d, 0.0); })
+                     .normalize_l1();
+        }
+
+        // Handles all the cases where durations is empty: initial input was empty, n was 0 or all durations were 0
+        if (durations.empty()) {
+            reset_durations();
+            return;
+        }
 
         auto size = durations.size();
         auto sum = 0.0;
@@ -45,17 +65,23 @@ public:
             is_pause.append(durations[i] <= 0.0);
         }
 
-        m_durations = durations;
-
+        m_durations = std::move(durations);
         m_cumsum = std::move(cumsum);
         m_is_pause = std::move(is_pause);
     }
 
 private:
-    Voice<double> m_durations = DEFAULT_DURATIONS;
+    void reset_durations() {
+        m_durations = DEFAULT_DURATIONS;
+        m_cumsum = m_durations;
+        m_is_pause = Voice<bool>::zeros(m_durations.size());
+    }
 
-    Voice<double> m_cumsum = m_durations;
-    Voice<bool> m_is_pause = Voice<bool>::zeros(m_durations.size());
+
+    Voice<double> m_durations;
+
+    Voice<double> m_cumsum;
+    Voice<bool> m_is_pause;
 };
 
 
@@ -127,22 +153,14 @@ public:
 
 private:
     std::size_t get_voice_count() {
-        return voice_count(m_cursor.voice_count());
+        return voice_count(m_cursor.voice_count(), m_durations.voice_count());
     }
 
 
     void update_parameters(std::size_t num_voices, bool size_has_changed) {
         if (size_has_changed || m_durations.has_changed()) {
-            auto durations = m_durations.process()
-                    .first_vec_or<>(PhaseMap::DEFAULT_DURATIONS)
-                    .filter([](double d) { return !utils::equals(d, 0.0); })
-                    .normalize_l1();
-
-            if (durations.empty()) {
-                durations = PhaseMap::DEFAULT_DURATIONS;
-            }
-
-            m_phase_maps.set(&PhaseMap::set_durations, durations);
+            auto durations = m_durations.process().adapted_to(num_voices).as_type<double>();
+            m_phase_maps.set(&PhaseMap::set_durations, std::move(durations));
         }
     }
 

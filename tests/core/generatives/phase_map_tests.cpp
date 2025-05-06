@@ -9,14 +9,12 @@
 
 #include "generators.h"
 #include "matchers/m11.h"
+#include "matchers/m1m.h"
+#include "matchers/m1s.h"
 
 using namespace serialist;
 using namespace serialist::test;
 
-
-TEST_CASE("PhaseMap ctor", "[phase_map]") {
-    PhaseMapWrapper w;
-}
 
 TEST_CASE("PhaseMap: Phase is mapped to durations", "[phase_map]") {
     PhaseMapWrapper w;
@@ -96,4 +94,66 @@ TEST_CASE("PhaseMap: Phase is mapped to durations", "[phase_map]") {
         cursor.set_values(Phase::max());
         REQUIRE_THAT(runner.step(), m11::eqf(Phase::max()));
     }
+}
+
+
+TEST_CASE("PhaseMap: Single duration maps to corresponding tuplet") {
+    PhaseMapWrapper w;
+
+    auto& pm = w.phase_map_node;
+    auto& cursor = w.cursor;
+    auto& durations = w.durations;
+
+    durations.set_values(5.0); // quintuplets
+
+    NodeRunner runner(&pm);
+    auto [cursor_position, expected_output] = GENERATE(
+            table<double, double>({
+                {0.0, 0.0},
+                {0.1, 0.5},
+                {0.2 - EPSILON, Phase::max()},
+
+                {0.2 + EPSILON, 0.0},
+                {0.3, 0.5},
+                {0.4 - EPSILON, Phase::max()}
+            }));
+
+    CAPTURE(cursor_position, expected_output);
+
+    cursor.set_values(cursor_position);
+    REQUIRE_THAT(runner.step(), m11::eqf(expected_output));
+
+    cursor.set_values(1.0/5.0 - EPSILON);
+
+}
+
+
+TEST_CASE("PhaseMap: Each voice can have a different mapping", "[phase_map]") {
+    PhaseMapWrapper w;
+
+    auto& pm = w.phase_map_node;
+    auto& cursor = w.cursor;
+    auto& durations = w.durations;
+
+    NodeRunner runner(&pm);
+
+    durations.set_values({
+        Voice<double>{1.0},
+        Voice<double>{0.5, 0.5},
+        Voice<double>{0.25, 0.25, 0.25, 0.25}
+    });
+
+    cursor.set_values(0.0);
+    REQUIRE_THAT(runner.step(), m1s::eqf(Voice<double>{0.0, 0.0, 0.0}));
+
+    cursor.set_values(0.25 + EPSILON);
+    REQUIRE_THAT(runner.step(), m1s::eqf(Voice<double>{0.25, 0.5, 0.0}));
+
+    cursor.set_values(0.5 + EPSILON);
+    REQUIRE_THAT(runner.step(), m1s::eqf(Voice<double>{0.5, 0.0, 0.0}));
+
+    cursor.set_values(Phase::max());
+    REQUIRE_THAT(runner.step(), m1s::eqf(Voice<double>{Phase::max(), Phase::max(), Phase::max()}));
+
+
 }
