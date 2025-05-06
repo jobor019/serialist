@@ -19,7 +19,7 @@ using namespace serialist::test;
 using NC = NoteComparator;
 
 
-TEST_CASE("MakeNote chord", "[make_note]") {
+TEST_CASE("MakeNote: chord", "[make_note]") {
     MakeNote mn;
     auto pulse_on = Trigger::pulse_on();
     auto note_on = mn.process({pulse_on}, {60, 64, 67}, 100, {0});
@@ -57,6 +57,97 @@ template<typename T = uint32_t>
 Voices<T> sequence(T first = 60, std::size_t count = 3) {
     Vec<T> values = Vec<T>::linspace(first, first + count - 1, count);
     return Voices<T>::transposed(values);
+}
+
+TEST_CASE("MakeNote: Overlapping pulses, legato > 1.0 (R1.1.4)", "[makenote]") {
+    MakeNoteWrapper w;
+    w.velocity.set_values(100);
+
+    auto& nn = w.note_number;
+    auto& ch = w.channel;
+    auto& trigger = w.trigger;
+
+    NodeRunner runner{&w.make_note_node};
+
+
+    SECTION("Overlapping pulses on the same note yield note off only when the last pulse is released ") {
+        nn.set_values(60);
+        ch.set_values(1);
+
+        auto pulse_on1 = Trigger::pulse_on();
+        auto pulse_on2 = Trigger::pulse_on();
+
+        trigger.set_values(pulse_on1);
+
+        // NoteOn associated with pulse_on1
+        REQUIRE_THAT(runner.step(), m11::eq_note(NC::on(60, 100, 1)));
+
+        // NoteOn associated with pulse_on2
+        trigger.set_values(pulse_on2);
+        REQUIRE_THAT(runner.step(), m11::eq_note(NC::on(60, 100, 1)));
+
+        // Releasing pulse_on1 shouldn't yield a NoteOff as pulse_on2 is held for the same nn/ch
+        trigger.set_values(Trigger::pulse_off(pulse_on1.get_id()));
+        REQUIRE_THAT(runner.step(), m1m::emptye());
+
+        // Releasing pulse_on2 should yield a NoteOff as it's the last one associated with given nn/ch
+        trigger.set_values(Trigger::pulse_off(pulse_on2.get_id()));
+        REQUIRE_THAT(runner.step(), m11::eq_note(NC::off(60, 1)));
+
+    }
+
+    SECTION("Overlapping pulses on different notes are not affected") {
+        ch.set_values(1);
+
+        auto pulse_on1 = Trigger::pulse_on();
+        auto pulse_on2 = Trigger::pulse_on();
+
+        trigger.set_values(pulse_on1);
+        nn.set_values(60);
+
+        // NoteOn(60) associated with pulse_on1
+        REQUIRE_THAT(runner.step(), m11::eq_note(NC::on(60, 100, 1)));
+
+        // NoteOn(61) associated with pulse_on2
+        trigger.set_values(pulse_on2);
+        nn.set_values(61);
+        REQUIRE_THAT(runner.step(), m11::eq_note(NC::on(61, 100, 1)));
+
+        // Releasing pulse_on1 should yield a NoteOff as it's not associated with the same nn
+        trigger.set_values(Trigger::pulse_off(pulse_on1.get_id()));
+        REQUIRE_THAT(runner.step(), m11::eq_note(NC::off(60, 1)));
+
+        // Releasing pulse_on2 should yield a NoteOff
+        trigger.set_values(Trigger::pulse_off(pulse_on2.get_id()));
+        REQUIRE_THAT(runner.step(), m11::eq_note(NC::off(61, 1)));
+
+    }
+
+    SECTION("Overlapping pulses on different channels are not affected") {
+        nn.set_values(60);
+
+        auto pulse_on1 = Trigger::pulse_on();
+        auto pulse_on2 = Trigger::pulse_on();
+
+        trigger.set_values(pulse_on1);
+        ch.set_values(1);
+
+        // NoteOn(60, _, 1) associated with pulse_on1
+        REQUIRE_THAT(runner.step(), m11::eq_note(NC::on(60, 100, 1)));
+
+        // NoteOn(60, _, 2) associated with pulse_on2
+        trigger.set_values(pulse_on2);
+        ch.set_values(2);
+        REQUIRE_THAT(runner.step(), m11::eq_note(NC::on(60, 100, 2)));
+
+        // Releasing pulse_on1 should yield a NoteOff as it's not associated with the same ch
+        trigger.set_values(Trigger::pulse_off(pulse_on1.get_id()));
+        REQUIRE_THAT(runner.step(), m11::eq_note(NC::off(60, 1)));
+
+        // Releasing pulse_on2 should yield a NoteOff
+        trigger.set_values(Trigger::pulse_off(pulse_on2.get_id()));
+        REQUIRE_THAT(runner.step(), m11::eq_note(NC::off(60, 2)));
+    }
 }
 
 
@@ -220,3 +311,5 @@ TEST_CASE("MakeNote: Flush when number of channels decreases (R1.2.3)", "[make_n
         REQUIRE_THAT(r, m1s::equals_sequence({{}, NC::off(61), {}}));
     }
 }
+
+

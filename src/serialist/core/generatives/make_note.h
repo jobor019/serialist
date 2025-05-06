@@ -68,12 +68,29 @@ private:
 
     Voice<Event> process_pulse_off(std::size_t id) {
         return m_held_notes.get_held_mut()
-                .filter_drain([&id](const IdentifiedChanneledHeld& v) {
-                    return v.id != id;
-                })
-                .as_type<Event>([](const IdentifiedChanneledHeld& note) {
-                    return Event(MidiNoteEvent{note.note, 0, note.channel});
-                });
+                           .filter_drain([&id](const IdentifiedChanneledHeld& v) {
+                               return v.id != id;
+                           })
+                           .filter([this](const IdentifiedChanneledHeld& v) {
+                               // Remove all notes that still are held by another pulse_on at this point.
+                               // we don't want to generate a note off in this scenario since that would cancel
+                               // the other held note (e.g. for legato > 1.0)
+                               // Note that they are still removed from m_held_notes, just not returned by this function
+                               return !is_last(v.note, v.channel);
+                           })
+                           .as_type<Event>([](const IdentifiedChanneledHeld& note) {
+                               return Event(MidiNoteEvent{note.note, 0, note.channel});
+                           });
+    }
+
+
+    /**
+     * @brief Check if any other currently held pulse_on is associated with the same note
+     */
+    bool is_last(NoteNumber note, unsigned int channel) const {
+        return static_cast<bool>(m_held_notes.find([&note, &channel](const IdentifiedChanneledHeld& v) {
+            return v.note == note && v.channel == channel;
+        }));
     }
 
 

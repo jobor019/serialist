@@ -89,19 +89,6 @@ public:
     }
 
 
-    // Voices<T> get_held() const {
-    //     auto held = Voices<T>::zeros(m_voiced_held.size());
-    //     for (std::size_t i = 0; i < m_voiced_held.size(); ++i) {
-    //         held[i] = m_voiced_held.get_objects()[i].get_held();
-    //     }
-    //     return held;
-    // }
-    //
-    // Voice<T> get_held(std::size_t voice_index) {
-    //     return m_voiced_held.get_objects()[voice_index].get_held();
-    // }
-
-
     Voices<T> flush() {
         return m_voiced_held.flush();
     }
