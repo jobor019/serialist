@@ -99,7 +99,7 @@ public:
     double process(const TimePoint& t, PaState& s, PaParameters& p) override {
         if (!s.x) {
             // first callback => set to initial phase
-            s.x = offset_as_phase(t, p);
+            s.x = phasor_value_offset(t, p);
         } else if (s.has_trigger) {
             s.x = Phase::phase_mod(*s.x + *p.step_size);
         }
