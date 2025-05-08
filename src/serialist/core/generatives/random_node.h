@@ -107,17 +107,12 @@ private:
     }
 
 
-    Voice<double> all_choices(std::size_t num_discrete_steps) const {
-        return Vec<double>::linspace(0, m_max, std::max(static_cast<std::size_t>(1), num_discrete_steps));
+    static Voice<double> all_choices(std::size_t num_discrete_steps) {
+        return Vec<Index::IndexType>::range(0, static_cast<Index::IndexType>(num_discrete_steps))
+                .as_type<double>([num_discrete_steps](const Index::IndexType& i) {
+                    return Index::phase_op(i, num_discrete_steps);
+                });
     }
-
-
-    // double scale_to_max(double x) const { return x * m_max; }
-
-
-    // double scale_to_max(std::size_t index, std::size_t num_steps) const {
-    //     return static_cast<double>(index) / static_cast<double>(num_steps) * m_max;
-    // }
 
 
     void reset_choices() {
@@ -472,8 +467,7 @@ private:
     std::size_t get_voice_count() {
         return voice_count(m_trigger.voice_count()
                            , m_chord_size.voice_count()
-                           , m_num_quantization_steps.voice_count()
-                           , m_weights.voice_count());
+                           , m_num_quantization_steps.voice_count());
     }
 
 
@@ -483,17 +477,14 @@ private:
         auto steps = m_num_quantization_steps.process(num_voices).firsts_or(RandomHandler::DEFAULT_QUANTIZATION);
         auto brownian_step = m_max_brownian_step.process().first_or(RandomHandler::DEFAULT_BROWNIAN_STEP);
         auto exp_lb = m_exp_lower_bound.process().first_or(RandomHandler::DEFAULT_EXP_LOWER_BOUND);
-        auto weights = m_weights.process(num_voices).as_type<double>();
+        auto weights = m_weights.process().firsts_or<double>(0.0);
 
         m_random_handlers.set(&RandomHandler::set_mode, mode);
         m_random_handlers.set(&RandomHandler::set_repetition_strategy, reps);
         m_random_handlers.set(&RandomHandler::set_quantization_steps, std::move(steps));
         m_random_handlers.set(&RandomHandler::set_max_brownian_step, brownian_step);
         m_random_handlers.set(&RandomHandler::set_exp_lower_bound, exp_lb);
-
-        for (std::size_t i = 0; i < num_voices; ++i) {
-            m_random_handlers[i].set_weights(weights[i]);
-        }
+        m_random_handlers.set(&RandomHandler::set_weights, weights);
     }
 
 

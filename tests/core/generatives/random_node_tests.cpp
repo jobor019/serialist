@@ -51,3 +51,33 @@ TEST_CASE("Random(Node): quantized values handle index round-trip correctly", "[
         REQUIRE_THAT(r, m11::eqf(step, MatchType::any));
     }
 }
+
+
+TEST_CASE("Random(Node): Repetitions mode does not change value outcomes", "[random_node]") {
+    using AvoidRepetitions = RandomHandler::AvoidRepetitions;
+
+    // Note: this test case was added due to a bug discovered at runtime
+    RandomWrapper<> w;
+    w.random.set_seed(0);
+    NodeRunner runner{&w.random};
+
+    auto& repetitions = w.repetition_strategy;
+    auto& quantization = w.num_quantization_steps;
+
+
+    // auto rmode = GENERATE(AvoidRepetitions::off, AvoidRepetitions::chordal, AvoidRepetitions::sequential);
+    // auto rmode = AvoidRepetitions::chordal;
+    auto rmode = AvoidRepetitions::off;
+    CAPTURE(rmode);
+
+    quantization.set_values(2);
+    repetitions.set_value(rmode);
+
+    // We only expect to see 0.0 or 0.5 as output
+    auto r = runner.step_n(100);
+    REQUIRE_THAT(r, m11::in_rangef(0.0, 0.5 + EPSILON, MatchType::all));
+    REQUIRE_THAT(r, m11::eqf(0.0, MatchType::any));
+    REQUIRE_THAT(r, m11::eqf(0.5, MatchType::any));
+
+
+}
