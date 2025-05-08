@@ -299,12 +299,12 @@ private:
             return 0.0;
         }
 
-        if (m_current_weights.empty()) {
+        if (utils::equals(m_current_weights.sum(), 0.0)) {
             reset_weights();
         }
 
         auto i = m_random.weighted_choice(m_current_weights);
-        m_current_weights.pop_index(i);
+        m_current_weights[i] = 0.0;
         return index_to_phase(i, m_weights.size());
     }
 

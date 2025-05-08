@@ -104,7 +104,8 @@ inline std::unique_ptr<VoiceComparison<Facet>> containsf_duplicates() {
     return std::make_unique<VoiceComparison<Facet>>([](const Voice<Facet>& v) {
         for (std::size_t i = 0; i < v.size(); ++i) {
             for (std::size_t j = i + 1; j < v.size(); ++j) {
-                if (v[i] == v[j]) return true;
+                if (v[i] == v[j])
+                    return true;
             }
         }
         return false;

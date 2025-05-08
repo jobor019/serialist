@@ -121,8 +121,6 @@ TEST_CASE("Random(Node): Weighted will not select element with zero weight (with
 }
 
 
-
-
 TEST_CASE("Random(Node): AvoidRepetitions::chordal repetitions are handled correctly", "[random_node]") {
     RandomWrapper<> w;
     w.random.set_seed(0);
@@ -136,13 +134,16 @@ TEST_CASE("Random(Node): AvoidRepetitions::chordal repetitions are handled corre
     auto& quantization = w.num_quantization_steps;
 
     SECTION("Mode::uniform does not contain duplicates") {
-        // uniform values: [0, 0.25, 0.5, 0.75]
+        // uniform possible values: [0, 0.25, 0.5, 0.75]
         mode.set_value(Mode::uniform);
-        size.set_values(4);
-        quantization.set_values(4);
+
+        auto size_value = GENERATE(1, 2, 3, 4);
+        CAPTURE(size_value);
+        size.set_values(size_value);
 
         auto r = runner.step_n(1000);
-        REQUIRE_THAT(r, m1m::eqf_unordered(Voice<double>{0, 0.25, 0.5, 0.75}, MatchType::all));
+        REQUIRE_THAT(r, m1m::sizef(size_value, MatchType::all));
+
     }
 
     SECTION("Mode::uniform where chord size is greater than quantization steps") {
@@ -152,25 +153,23 @@ TEST_CASE("Random(Node): AvoidRepetitions::chordal repetitions are handled corre
 
         auto r = runner.step_n(1000);
         REQUIRE_THAT(r, m1m::sizef(5, MatchType::all));
-
-
+        REQUIRE_THAT(r, m1m::containsf_duplicates(MatchType::all));
     }
 
     SECTION("Mode::weighted where chord size is smaller than or eq number of weights does not contain duplicates") {
         mode.set_value(Mode::weighted);
 
-        // 4 weights. actual weights are irrelevant, just need to be non-zero
-        weights.set_values(Voices<double>::transposed({0.9, 0.9, 0.1, 0.9}));
+        // 5 weights. actual weights are irrelevant, just need to be non-zero
+        weights.set_values(Voices<double>::transposed({0.1, 0.3, 1, 0.3, 0.1}));
 
-        // auto size_value = GENERATE(1, 2, 3, 4);
-        auto size_value = GENERATE(4);
+        // auto size_value = GENERATE(1, 2, 3, 4, 5);
+        auto size_value = GENERATE(2);
         CAPTURE(size_value);
         size.set_values(size_value);
 
         auto r = runner.step_n(1000);
-        r.entire_output()[0].print();
-        REQUIRE_THAT(r, m1m::sizef(size_value));
-        REQUIRE_THAT(r, !m1m::containsf_duplicates(MatchType::all));
+        REQUIRE_THAT(r, m1m::sizef(size_value, MatchType::all));
+        REQUIRE_THAT(r, !m1m::containsf_duplicates(MatchType::any));
 
     }
 

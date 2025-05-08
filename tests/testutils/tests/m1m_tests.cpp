@@ -7,6 +7,12 @@
 
 using namespace serialist::test;
 
+TEST_CASE("testutils::m1m facet comparisons", "[testutils][m1m]") {
+    REQUIRE_THAT(RunResult<Facet>::dummy(Voice<double>{0.4, 0.4}.as_type<Facet>(), false), m1m::containsf_duplicates());
+    REQUIRE_THAT(RunResult<Facet>::dummy(Voice<double>{0.4, 0.39}.as_type<Facet>(), false), !m1m::containsf_duplicates());
+}
+
+
 TEST_CASE("testutils::m1m trigger comparisons", "[testutils][m1m]") {
     SECTION("sortedt: valid cases") {
         // Single pulse_on is sorted
