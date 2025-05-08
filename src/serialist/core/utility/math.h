@@ -119,12 +119,12 @@ inline double index2double(std::size_t index, std::size_t index_range) {
 // ==============================================================================================
 
 template<typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
-inline T increment(T value, T fold_value = std::numeric_limits<T>::min()) {
+T increment(T value, T fold_value = std::numeric_limits<T>::min()) {
     return (value == std::numeric_limits<T>::max()) ? fold_value : value + 1;
 }
 
 template<typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
-inline T decrement(T value, T fold_value = std::numeric_limits<T>::max()) {
+T decrement(T value, T fold_value = std::numeric_limits<T>::max()) {
     return (value == std::numeric_limits<T>::min()) ? fold_value : value - 1;
 }
 
@@ -164,17 +164,16 @@ bool in(T value, T start, T end, bool start_inclusive = true, bool end_inclusive
     return (start_inclusive ? value >= start : value > start) && (end_inclusive ? value <= end : value < end);
 }
 
-
 // ==============================================================================================
 
 template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
-inline long sign(T value) {
+long sign(T value) {
     return value < 0 ? -1 : 1;
 }
 
 
 template<typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
-inline std::size_t num_digits(T num) {
+std::size_t num_digits(T num) {
     if (num == 0)
         return 1;
     if (num < 0)

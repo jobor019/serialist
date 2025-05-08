@@ -115,6 +115,27 @@ private:
     }
 
 
+    Voice<double> all_weighted_choices() const {
+        Vec<std::size_t> valid_indices;
+
+        for (std::size_t i = 0; i < m_weights.size(); ++i) {
+            if (!utils::equals(m_weights[i], 0.0)) {
+                valid_indices.append(i);
+            }
+        }
+
+        if (valid_indices.empty()) {
+            return {0.0};
+        }
+
+        auto num_discrete_steps = m_weights.size();
+
+        return valid_indices.as_type<double>([&num_discrete_steps](const std::size_t& i) {
+            return Index::phase_op(i, num_discrete_steps);
+        });
+    }
+
+
     void reset_choices() {
         if (use_quantization()) {
             m_current_choices = all_choices(*m_quantization_steps);
@@ -168,11 +189,11 @@ private:
         // note: weighted will always be discrete
 
         if (*m_repetition_strategy != AvoidRepetitions::off && chord_size >= m_weights.size()) {
-            return m_random.scrambled(all_choices(m_weights.size()));
+            return m_random.scrambled(all_weighted_choices());
         }
 
         if (*m_repetition_strategy == AvoidRepetitions::chordal) {
-            reset_choices();
+            m_current_choices = all_weighted_choices();
         }
 
         auto r = Voice<double>::allocated(chord_size);
@@ -260,7 +281,7 @@ private:
         }
 
         if (m_weights.empty()) {
-            return next_choice();
+            return 0.0;
         }
 
         if (m_current_weights.empty()) {
@@ -269,7 +290,7 @@ private:
 
         auto i = m_random.weighted_choice(m_current_weights);
         m_current_weights.pop_index(i);
-        return index_to_phase(i, m_current_weights.size());
+        return index_to_phase(i, m_weights.size());
     }
 
 

@@ -16,6 +16,9 @@
 using namespace serialist;
 using namespace serialist::test;
 
+using AvoidRepetitions = RandomHandler::AvoidRepetitions;
+using Mode = RandomHandler::Mode;
+
 TEST_CASE("Random(Node): ctor", "[random_node]") {
     RandomWrapper<> w;
 
@@ -54,8 +57,6 @@ TEST_CASE("Random(Node): quantized values handle index round-trip correctly", "[
 
 
 TEST_CASE("Random(Node): Repetitions mode does not change value outcomes", "[random_node]") {
-    using AvoidRepetitions = RandomHandler::AvoidRepetitions;
-
     // Note: this test case was added due to a bug discovered at runtime
     RandomWrapper<> w;
     w.random.set_seed(0);
@@ -65,9 +66,7 @@ TEST_CASE("Random(Node): Repetitions mode does not change value outcomes", "[ran
     auto& quantization = w.num_quantization_steps;
 
 
-    // auto rmode = GENERATE(AvoidRepetitions::off, AvoidRepetitions::chordal, AvoidRepetitions::sequential);
-    // auto rmode = AvoidRepetitions::chordal;
-    auto rmode = AvoidRepetitions::off;
+    auto rmode = GENERATE(AvoidRepetitions::off, AvoidRepetitions::chordal, AvoidRepetitions::sequential);
     CAPTURE(rmode);
 
     quantization.set_values(2);
@@ -78,6 +77,45 @@ TEST_CASE("Random(Node): Repetitions mode does not change value outcomes", "[ran
     REQUIRE_THAT(r, m11::in_rangef(0.0, 0.5 + EPSILON, MatchType::all));
     REQUIRE_THAT(r, m11::eqf(0.0, MatchType::any));
     REQUIRE_THAT(r, m11::eqf(0.5, MatchType::any));
+}
 
 
+TEST_CASE("Random(Node): Weighted will not select element with zero weight (with single exception)", "[random_node]") {
+    // Note: this test case was added due to a bug discovered at runtime
+    RandomWrapper<> w;
+    w.random.set_seed(0);
+    NodeRunner runner{&w.random};
+
+    w.mode.set_value(Mode::weighted);
+
+    auto rmode = GENERATE(AvoidRepetitions::off, AvoidRepetitions::chordal, AvoidRepetitions::sequential);
+    CAPTURE(rmode);
+
+    auto& repetitions = w.repetition_strategy;
+    repetitions.set_value(rmode);
+
+    SECTION("Normal case") {
+        // Valid outcomes: 0.0 (index 0, 50%), 0.6 (index 3, 25%), 0.8 (index 4, 25%)
+        w.weights.set_values(Voices<double>::transposed({0.5, 0.0, 0.0, 0.25, 0.25}));
+
+        auto r = runner.step_n(100);
+        REQUIRE_THAT(r, m11::in_setf(Voice<double>{0.0, 0.6, 0.8}, MatchType::all));
+        REQUIRE_THAT(r, m11::eqf(0.0, MatchType::any));
+        REQUIRE_THAT(r, m11::eqf(0.6, MatchType::any));
+        REQUIRE_THAT(r, m11::eqf(0.8, MatchType::any));
+    }
+
+    SECTION("Exception: When all weights are zero, output is 0.0") {
+        w.weights.set_values(Voices<double>::transposed({0.0, 0.0, 0.0, 0.0, 0.0}));
+
+        auto r = runner.step_n(100);
+        REQUIRE_THAT(r, m11::eqf(0.0, MatchType::all));
+    }
+
+    SECTION("Edge case: if first weight is zero and a non-zero weight exists, output is never 0.0") {
+        w.weights.set_values(Voices<double>::transposed({0.0, 0.0, 0.0, 0.0, 1.0}));
+
+        auto r = runner.step_n(100);
+        REQUIRE_THAT(r, m11::eqf(0.8, MatchType::all));
+    }
 }

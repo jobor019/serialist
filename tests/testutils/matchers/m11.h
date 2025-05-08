@@ -166,6 +166,20 @@ ResultMatcher<Facet> approx_in_rangef(const T& low
 }
 
 
+template<typename T>
+ResultMatcher<T> in_set(const Vec<T>& set, MatchType match_type = MatchType::last, bool allow_no_comparison = false) {
+    return {c11::in_set(set), "is in set " + set.template as_type<std::string>([](const T& t) {
+        return serialize(t);
+    }).to_string(), match_type, allow_no_comparison};
+}
+
+
+template<typename T>
+ResultMatcher<Facet> in_setf(const Vec<T>& set, MatchType match_type = MatchType::last, bool allow_no_comparison = false) {
+    return in_set<Facet>(set.template as_type<Facet>(), match_type, allow_no_comparison);
+}
+
+
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 inline ResultMatcher<Facet> strictly_increasingf(MatchType match_type = MatchType::all

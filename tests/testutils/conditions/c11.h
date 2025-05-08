@@ -147,6 +147,14 @@ std::unique_ptr<ValueComparison<T>> in_range(const T& low
 
 
 template<typename T>
+std::unique_ptr<ValueComparison<T>> in_set(const Vec<T>& set) {
+    return std::make_unique<ValueComparison<T>>([=](const T& v) {
+        return set.contains(v);
+    });
+}
+
+
+template<typename T>
 std::unique_ptr<ValueComparison<Facet>> in_rangef(const T& low
                                                   , const T& high
                                                   , bool end_inclusive = false
