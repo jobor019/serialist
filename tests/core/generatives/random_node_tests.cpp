@@ -199,6 +199,4 @@ TEST_CASE("Random(Node): AvoidRepetitions::chordal repetitions are handled corre
         REQUIRE_THAT(r, m1m::sizef(4, MatchType::all));
         REQUIRE_THAT(r, m1m::containsf_duplicates(MatchType::all));
     }
-
-
 }

@@ -36,11 +36,11 @@ public:
     static constexpr auto DEFAULT_REPETITIONS = AvoidRepetitions::off;
     static constexpr std::size_t DEFAULT_CHORD_SIZE = 1;
     static constexpr std::size_t DEFAULT_QUANTIZATION = NO_QUANTIZATION;
-    static constexpr auto DEFAULT_BROWNIAN_STEP = 0.05;
+    static constexpr auto DEFAULT_BROWNIAN_STEP = 0.01;
     static constexpr auto DEFAULT_EXP_LOWER_BOUND = 0.01;
 
     static constexpr auto BROWNIAN_START_VALUE = 0.0;
-    static constexpr auto EXP_LB_LIMIT = 1e-6;
+    static constexpr auto EXP_LB_LIMIT = 0.001;
 
 
     explicit RandomHandler(std::optional<int> seed = std::nullopt, double epsilon = EPSILON)
