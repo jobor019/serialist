@@ -131,7 +131,7 @@ private:
         auto num_discrete_steps = m_weights.size();
 
         return valid_indices.as_type<double>([&num_discrete_steps](const std::size_t& i) {
-            return Index::phase_op(i, num_discrete_steps);
+            return Index::phase_op(static_cast<Index::IndexType>(i), num_discrete_steps);
         });
     }
 
@@ -161,16 +161,22 @@ private:
     Voice<double> uniform(std::size_t chord_size) {
         // discrete
         if (use_quantization() && *m_quantization_steps > 1) {
-            if (*m_repetition_strategy != AvoidRepetitions::off && chord_size >= *m_quantization_steps) {
-                return m_random.scrambled(all_choices(*m_quantization_steps));
-            }
+            auto r = Voice<double>::allocated(chord_size);
+            auto remaining_choices = chord_size;
 
             if (*m_repetition_strategy == AvoidRepetitions::chordal) {
                 reset_choices();
             }
 
-            auto r = Voice<double>::allocated(chord_size);
-            for (std::size_t i = 0; i < chord_size; ++i) {
+            if (*m_repetition_strategy != AvoidRepetitions::off) {
+                auto num_full_cycles = remaining_choices / *m_quantization_steps;
+                for (std::size_t i = 0; i < num_full_cycles; ++i) {
+                    r.extend(m_random.scrambled(all_choices(*m_quantization_steps)));
+                }
+                remaining_choices -= num_full_cycles * *m_quantization_steps;
+            }
+
+            for (std::size_t i = 0; i < remaining_choices; ++i) {
                 r.append(next_choice());
             }
             return r;
@@ -188,16 +194,25 @@ private:
 
         // note: weighted will always be discrete
 
-        if (*m_repetition_strategy != AvoidRepetitions::off && chord_size >= m_weights.size()) {
-            return m_random.scrambled(all_weighted_choices());
-        }
-
-        if (*m_repetition_strategy == AvoidRepetitions::chordal) {
-            m_current_choices = all_weighted_choices();
-        }
-
         auto r = Voice<double>::allocated(chord_size);
-        for (std::size_t i = 0; i < chord_size; ++i) {
+        auto remaining_choices = chord_size;
+
+        if (*m_repetition_strategy != AvoidRepetitions::off) {
+            auto all_valid_choices = all_weighted_choices();
+            assert(!all_valid_choices.empty());
+
+            if (*m_repetition_strategy == AvoidRepetitions::chordal) {
+                m_current_choices = all_valid_choices;
+            }
+
+            auto num_full_cycles = remaining_choices / all_valid_choices.size();
+            for (std::size_t i = 0; i < num_full_cycles; ++i) {
+                r.extend(m_random.scrambled(all_valid_choices.cloned()));
+            }
+            remaining_choices -= num_full_cycles * all_valid_choices.size();
+        }
+
+        for (std::size_t i = 0; i < remaining_choices; ++i) {
             r.append(next_weighted_choice());
         }
         return r;

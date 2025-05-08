@@ -74,6 +74,44 @@ std::unique_ptr<VoiceComparison<Facet>> eqf(const Vec<T>& expected) {
 }
 
 
+template<typename T>
+std::unique_ptr<VoiceComparison<Facet>> containsf(const T& expected) {
+    return std::make_unique<VoiceComparison<Facet>>([=](const Voice<Facet>& v) {
+        return v.contains(fcast(expected));
+    });
+}
+
+
+template<typename T>
+std::unique_ptr<VoiceComparison<Facet>> containsf_all(const Vec<T>& expected) {
+    return std::make_unique<VoiceComparison<Facet>>([=](const Voice<Facet>& v) {
+        return v.contains_all(expected.template as_type<Facet>());
+    });
+}
+
+
+template<typename T>
+std::unique_ptr<VoiceComparison<Facet>> eqf_unordered(const Vec<T>& expected) {
+    return std::make_unique<VoiceComparison<Facet>>([=](const Voice<Facet>& v) {
+        if (expected.size() != v.size())
+            return false;
+
+        return expected.template as_type<Facet>().sort() == v.cloned().sort();
+    });
+}
+
+inline std::unique_ptr<VoiceComparison<Facet>> containsf_duplicates() {
+    return std::make_unique<VoiceComparison<Facet>>([](const Voice<Facet>& v) {
+        for (std::size_t i = 0; i < v.size(); ++i) {
+            for (std::size_t j = i + 1; j < v.size(); ++j) {
+                if (v[i] == v[j]) return true;
+            }
+        }
+        return false;
+    });
+}
+
+
 // ==============================================================================================
 // TRIGGER COMPARISONS
 // ==============================================================================================

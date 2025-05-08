@@ -119,3 +119,88 @@ TEST_CASE("Random(Node): Weighted will not select element with zero weight (with
         REQUIRE_THAT(r, m11::eqf(0.8, MatchType::all));
     }
 }
+
+
+
+
+TEST_CASE("Random(Node): AvoidRepetitions::chordal repetitions are handled correctly", "[random_node]") {
+    RandomWrapper<> w;
+    w.random.set_seed(0);
+    NodeRunner runner{&w.random};
+
+    w.repetition_strategy.set_value(AvoidRepetitions::chordal);
+
+    auto& size = w.chord_size;
+    auto& weights = w.weights;
+    auto& mode = w.mode;
+    auto& quantization = w.num_quantization_steps;
+
+    SECTION("Mode::uniform does not contain duplicates") {
+        // uniform values: [0, 0.25, 0.5, 0.75]
+        mode.set_value(Mode::uniform);
+        size.set_values(4);
+        quantization.set_values(4);
+
+        auto r = runner.step_n(1000);
+        REQUIRE_THAT(r, m1m::eqf_unordered(Voice<double>{0, 0.25, 0.5, 0.75}, MatchType::all));
+    }
+
+    SECTION("Mode::uniform where chord size is greater than quantization steps") {
+        mode.set_value(Mode::uniform);
+        size.set_values(5);
+        quantization.set_values(4);
+
+        auto r = runner.step_n(1000);
+        REQUIRE_THAT(r, m1m::sizef(5, MatchType::all));
+
+
+    }
+
+    SECTION("Mode::weighted where chord size is smaller than or eq number of weights does not contain duplicates") {
+        mode.set_value(Mode::weighted);
+
+        // 4 weights. actual weights are irrelevant, just need to be non-zero
+        weights.set_values(Voices<double>::transposed({0.9, 0.9, 0.1, 0.9}));
+
+        // auto size_value = GENERATE(1, 2, 3, 4);
+        auto size_value = GENERATE(4);
+        CAPTURE(size_value);
+        size.set_values(size_value);
+
+        auto r = runner.step_n(1000);
+        r.entire_output()[0].print();
+        REQUIRE_THAT(r, m1m::sizef(size_value));
+        REQUIRE_THAT(r, !m1m::containsf_duplicates(MatchType::all));
+
+    }
+
+    SECTION("Mode::weighted where chord size larger than number of weights has correct size with duplicates") {
+        mode.set_value(Mode::weighted);
+
+        // 4 weights. actual weights are irrelevant, just need to be non-zero
+        weights.set_values(Voices<double>::transposed({0.9, 0.9, 0.1, 0.9}));
+
+        auto size_value = GENERATE(5, 6, 10);
+        CAPTURE(size_value);
+        size.set_values(size_value);
+
+        auto r = runner.step_n(1000);
+        REQUIRE_THAT(r, m1m::sizef(size_value, MatchType::all));
+        REQUIRE_THAT(r, m1m::containsf_duplicates(MatchType::all));
+    }
+
+    SECTION("Mode::weighted where chord size is same as number of weights but some weights are 0") {
+        mode.set_value(Mode::weighted);
+
+        // 4 weights with 2 being 0.0
+        weights.set_values(Voices<double>::transposed({0.9, 0.0, 0.0, 0.9}));
+
+        size.set_values(4);
+
+        auto r = runner.step_n(1000);
+        REQUIRE_THAT(r, m1m::sizef(4, MatchType::all));
+        REQUIRE_THAT(r, m1m::containsf_duplicates(MatchType::all));
+    }
+
+
+}

@@ -13,7 +13,8 @@ using namespace serialist;
 using namespace serialist::test;
 
 /**
- * Sequential matchers for Voices<T> of size (S x 1), i.e. voices.size() == S and voices[s].size() == 1 for all s in S
+ * Sequential matchers for Voices<T> of size S x 1 (SEQUENCE),
+ *  i.e. voices.size() == S and voices[s].size() == 1 for all s in S
  */
 namespace serialist::test::m1s {
 

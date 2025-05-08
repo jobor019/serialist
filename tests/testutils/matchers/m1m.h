@@ -11,7 +11,7 @@ using namespace serialist;
 using namespace serialist::test;
 
 /**
- * Chordal matchers for Voices<T> of size (1 x M), i.e. voices.size() == 1 and voices[0].size() == M
+ * Chordal matchers for Voices<T> of size 1 x M (CHORD), i.e. voices.size() == 1 and voices[0].size() == M
  */
 namespace serialist::test::m1m {
 
@@ -68,6 +68,49 @@ ResultMatcher<Facet> eqf(const Vec<T>& expected, MatchType match_type = MatchTyp
             return serialize(t);
         }).to_string(), match_type, allow_no_comparison};
 }
+
+
+template<typename T>
+ResultMatcher<Facet> containsf(const T& expected
+                               , MatchType match_type = MatchType::last
+                               , bool allow_no_comparison = false) {
+    return {c1m::containsf(expected), std::string{"contains "} + serialize(expected), match_type, allow_no_comparison};
+}
+
+
+template<typename T>
+ResultMatcher<Facet> containsf_all(const Vec<T>& expected
+                                   , MatchType match_type = MatchType::last
+                                   , bool allow_no_comparison = false) {
+    return {c1m::containsf_all(expected)
+            , std::string{"contains all "} + expected.template as_type<std::string>([](const T& t) {
+                return serialize(t);
+            }).to_string()
+            , match_type
+            , allow_no_comparison
+    };
+}
+
+
+template<typename T>
+ResultMatcher<Facet> eqf_unordered(const Vec<T>& expected
+                                   , MatchType match_type = MatchType::last
+                                   , bool allow_no_comparison = false) {
+    return {c1m::eqf_unordered(expected)
+            , std::string{"is == (unordered eq) "} + expected.template as_type<std::string>([](const T& t) {
+                return serialize(t);
+            }).to_string()
+            , match_type
+            , allow_no_comparison
+    };
+}
+
+
+inline ResultMatcher<Facet> containsf_duplicates(MatchType match_type = MatchType::last
+                                                 , bool allow_no_comparison = false) {
+    return {c1m::containsf_duplicates(), "contains duplicates", match_type, allow_no_comparison};
+}
+
 
 // ==============================================================================================
 // TRIGGER MATCHERS
