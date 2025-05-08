@@ -189,7 +189,7 @@ private:
 
     Voice<double> weighted(std::size_t chord_size) {
         if (m_weights.size() <= 1) {
-            return uniform(chord_size);
+            return {0.0};
         }
 
         // note: weighted will always be discrete

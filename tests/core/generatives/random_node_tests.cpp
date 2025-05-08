@@ -162,8 +162,7 @@ TEST_CASE("Random(Node): AvoidRepetitions::chordal repetitions are handled corre
         // 5 weights. actual weights are irrelevant, just need to be non-zero
         weights.set_values(Voices<double>::transposed({0.1, 0.3, 1, 0.3, 0.1}));
 
-        // auto size_value = GENERATE(1, 2, 3, 4, 5);
-        auto size_value = GENERATE(2);
+        auto size_value = GENERATE(1, 2, 3, 4, 5);
         CAPTURE(size_value);
         size.set_values(size_value);
 
