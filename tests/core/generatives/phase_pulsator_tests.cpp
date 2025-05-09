@@ -9,6 +9,7 @@
 
 #include "generators.h"
 #include "matchers/m1m.h"
+#include "matchers/m1s.h"
 #include "matchers/m11.h"
 
 using namespace serialist;
@@ -954,4 +955,41 @@ TEST_CASE("PhasePulsator: Legato edge cases (R1.2.6)", "[phase_pulsator]") {
 
     SECTION("") {}
 
+}
+
+
+TEST_CASE("PhasePulsator: correct inferred voice count of first value after being enabled", "[phase_pulsator]") {
+    // Test added due to a bug discovered at runtime
+
+    PhasePulsatorWrapper w;
+    PhaseWrapper phase_w;
+    NodeRunner runner{&w.pulsator_node};
+    runner.add_generative(phase_w.phase_node);
+
+    // four voices with different phases
+    phase_w.period.set_values(Voices<double>::transposed({0.8, 0.9, 1.0, 1.1}));
+
+    auto& pulse = w.pulsator_node;
+
+    pulse.set_cursor(&phase_w.phase_node);
+
+    // Step to an arbitrary point
+    auto r = runner.step_until(DomainTimePoint::ticks(2.5), Anchor::after);
+    REQUIRE_THAT(r, m1s::size<Trigger>(4, MatchType::all));
+
+    w.enabled.set_values(false);
+
+    // First step after disabled: we expect a flush here
+    r = runner.step();
+    REQUIRE_THAT(r, m1s::size<Trigger>(4));
+
+    // Second step after disabled: we expect empty output
+    r = runner.step();
+    REQUIRE_THAT(r, m11::empty<Trigger>());
+
+    w.enabled.set_values(true);
+
+    // First step after re-enabling: we expect size to once again be same as inferred by the phase node
+    r = runner.step();
+    REQUIRE_THAT(r, m1s::size<Trigger>(4));
 }

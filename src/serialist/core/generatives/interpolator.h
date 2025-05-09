@@ -121,7 +121,7 @@ public:
             if (Trigger::contains_pulse_on(triggers[i]) && cursors[i].has_value()) {
                 if (use_index) {
                     m_current_value[i] = Interpolator<T>::process(
-                        Index::from_phase_like(*cursors[i], corpus.size())
+                        Index::from_index_facet(*cursors[i])
                         , corpus
                         , modes[i]
                         , octaves[i]

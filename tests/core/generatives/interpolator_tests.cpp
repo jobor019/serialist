@@ -13,7 +13,7 @@
 using namespace serialist;
 using namespace serialist::test;
 
-TEST_CASE("Interpolator: Continue Mode (integral)", "[interpolator]") {
+TEST_CASE("Interpolator: Continue Mode", "[interpolator]") {
 
     InterpolatorIntWrapper<> w;
     NodeRunner runner{&w.interpolator};
@@ -128,7 +128,7 @@ TEST_CASE("Interpolator: Continue (floating)", "[interpolator]") {
 
 // ==============================================================================================
 
-TEST_CASE("Interpolator: Modulo (Integral)", "[interpolator]") {
+TEST_CASE("Interpolator: Modulo", "[interpolator]") {
     InterpolatorIntWrapper<> w;
     NodeRunner runner{&w.interpolator};
 
@@ -190,7 +190,7 @@ TEST_CASE("Interpolator: Modulo (Integral)", "[interpolator]") {
 
 // ==============================================================================================
 
-TEST_CASE("Interpolator: Clip (Integral)", "[interpolator]") {
+TEST_CASE("Interpolator: Clip", "[interpolator]") {
     InterpolatorIntWrapper<> w;
     NodeRunner runner{&w.interpolator};
 
@@ -250,7 +250,7 @@ TEST_CASE("Interpolator: Clip (Integral)", "[interpolator]") {
 
 // ==============================================================================================
 
-TEST_CASE("Interpolator: Pass (Integral)", "[interpolator]") {
+TEST_CASE("Interpolator: Pass", "[interpolator]") {
     InterpolatorIntWrapper<> w;
     NodeRunner runner{&w.interpolator};
 
@@ -343,5 +343,57 @@ TEST_CASE("Interpolator: No rounding errors for corpora with sizes between 1 and
 
         cursor.set_values(position);
         REQUIRE_THAT(runner.step(), m11::eqf(static_cast<double>(cursor_index)));
+    }
+}
+
+
+// ==============================================================================================
+
+TEST_CASE("Interpolator: Use Index (Cont)", "[interpolator]") {
+
+    InterpolatorIntWrapper<> w;
+    NodeRunner runner{&w.interpolator};
+
+    w.uses_index.set_value(true);
+
+    auto& cursor = w.cursor;
+
+    // Corpus size 4
+    Voices<int> corpus{{  0, 2}
+        , {4}
+        , {5}
+        , {7, 9, 11}};
+
+    w.corpus.set_values(corpus);
+    w.mode.set_values(Index::Strategy::cont);
+    w.octave.set_values(12.0);
+
+    SECTION("index 0") {
+        cursor.set_values(0);
+        REQUIRE_THAT(runner.step(), m1m::eqf(Voice<double>{0, 2}));
+    }
+
+    SECTION("index 4 (octave)") {
+        cursor.set_values(4);
+        REQUIRE_THAT(runner.step(), m1m::eqf(Voice<double>{12, 14}));
+    }
+    SECTION("index 2") {
+        cursor.set_values(2);
+        REQUIRE_THAT(runner.step(), m11::eqf(5));
+    }
+
+    SECTION("index 10 (index 2 + 2 octave)") {
+        cursor.set_values(10);
+        REQUIRE_THAT(runner.step(), m11::eqf(5 + 12 * 2));
+    }
+
+    SECTION("index -6 (index -2 - 1 octave)") {
+        cursor.set_values(-6);
+        REQUIRE_THAT(runner.step(), m11::eqf(5 - 12 * 2));
+    }
+
+    SECTION("no index") {
+        cursor.set_values(Voices<double>::empty_like());
+        REQUIRE_THAT(runner.step(), m11::emptyf());
     }
 }
