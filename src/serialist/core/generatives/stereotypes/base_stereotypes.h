@@ -188,8 +188,8 @@ public:
 
         bool enabled = is_enabled(*t);
         auto enabled_state = m_enabled_gate.update(enabled);
-        auto flush_all = Trigger::contains_pulse_on(m_flush.process());
-        if (auto flushed = handle_enabled_state(enabled_state, flush_all)) {
+        auto should_flush = Trigger::contains_pulse_on(m_flush.process());
+        if (auto flushed = handle_enabled_state(enabled_state, should_flush)) {
             // Note: this should never be flushed unless the node is disabled,
             //       so this value will always be returned in the next statement
             m_current_value = *flushed;
