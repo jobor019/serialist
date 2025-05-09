@@ -9,6 +9,7 @@
 #include "core/generatives/stereotypes/base_stereotypes.h"
 #include "sequence.h"
 #include "variable.h"
+#include "temporal/pulse.h"
 
 
 namespace serialist {
@@ -158,12 +159,15 @@ public:
             output.merge_uneven(m_make_notes.resize(num_voices), true);
         }
 
-        trigger.adapted_to(num_voices);
+        auto has_broadcast_changes = m_pulse_broadcast_handler.broadcast(trigger, num_voices);
         auto note_numbers = note_number.adapted_to(num_voices).as_type<NoteNumber>();
         auto velocities = velocity.adapted_to(num_voices).firsts<uint32_t>();
         auto channels = channel.adapted_to(num_voices).as_type<uint32_t>();
 
         for (std::size_t i = 0; i < num_voices; ++i) {
+            if (has_broadcast_changes[i]) {
+                output[i].extend(m_make_notes[i].flush());
+            }
             output[i].extend(m_make_notes[i].process(trigger[i], note_numbers[i], velocities[i], channels[i]));
         }
 
@@ -180,6 +184,7 @@ public:
      *           This is not thread-safe.
      */
     Voices<Event> flush() {
+        m_pulse_broadcast_handler.clear();
         return m_make_notes.flush();
     }
 
@@ -216,10 +221,14 @@ private:
      */
     std::optional<Voices<Event>> handle_enabled_state(EnabledState state) {
         if (state == EnabledState::disabled_this_cycle) {
+            m_pulse_broadcast_handler.clear();
             return m_make_notes.flush();
-        } else if (state == EnabledState::disabled_previous_cycle || state == EnabledState::disabled) {
+        }
+
+        if (state == EnabledState::disabled_previous_cycle || state == EnabledState::disabled) {
             return Voices<Event>::empty_like();
         }
+
         return std::nullopt;
     }
 
@@ -231,6 +240,7 @@ private:
 
     EnabledGate m_enabled_gate;
     TimeEventGate m_time_event_gate;
+    PulseBroadcastHandler m_pulse_broadcast_handler;
 
     MultiVoiced<MakeNote, Event> m_make_notes;
 

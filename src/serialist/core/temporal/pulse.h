@@ -20,229 +20,151 @@ struct PulseIdentifier {
     explicit operator Trigger() const { return Trigger::with_manual_id(Trigger::Type::pulse_off, id); }
 };
 
-
 // ==============================================================================================
 
-class Pulse {
+/**
+ * This class is intended for any Generative that uses pulse_offs, where the pulse_offs may be broadcast due
+ * to changes in other parameters. The idea is that rather than calling `triggers.adapted_to(num_voices)` directly,
+ * we utilize this class to indicate which voices whose indices may have changed due to broadcasting-related aspects.
+ *
+ * For example, suppose that we have a MakeNoteNode which receives the following:
+ * - t=0: triggers={ ON(a), ON(b)         },  note_numbers={60, 62, 64}
+ * - t=1: triggers={  -   ,  -    , ON(c) },  note_numbers={60, 62, 64}
+ *
+ * At t=0, we'll get three outgoing voices:          { ON(a, 60), ON(b, 62), ON(a, 64) }.
+ * At t=1, if we don't utilize this class, we'll get { -        , -        , ON(c, 64) }, which means that the third
+ *         voice will have a lingering pulse associated with (a), which likely won't ever be released.
+ *
+ * Utilizing this class, we will get a map indicating that the voice at index 2 has changed due to broadcasting,
+ * which allows us to flush the voice accordingly before generating the new value associated with ON(c).
+ *
+ *
+ * Similarly, we may have cases where multiple triggers have their indices re-associated due to change in trigger count,
+ * For example, consider the following:
+ * - t=0: triggers={ ON(a), ON(b)         },  note_numbers={60, 61, 62, 63, 64, 65, 66}
+ * - t=1: triggers={  -   ,  -    , ON(c) },  note_numbers={60, 61, 62, 63, 64, 65, 66}
+ *
+ * At t=0, this would give us the following associations:           { a, b, a, b, a, b, a }
+ * At t=1, we'd have the following associations                     { a, b, c, a, b, c, a }
+ * which means that we'd need to flush the following re-associated: { -, -, X, X, X, X, - }
+ *
+ *
+ * Note that this is only relevant for Generatives that use pulse_offs. Most Generatives only care about pulse_on,
+ * in which case this class is completely redundant and `triggers.adapted_to(num_voices)` is sufficient
+ */
+class PulseBroadcastHandler {
 public:
-    Pulse(std::size_t id, const DomainTimePoint& trigger_time
-          , const std::optional<DomainTimePoint>& pulse_off_time = std::nullopt)
-            : m_id(id)
-              , m_trigger_time(trigger_time)
-              , m_pulse_off_time(pulse_off_time) {
-        assert_invariants();
-    }
-
-    bool elapsed(const TimePoint& current_time) const {
-        return m_pulse_off_time && m_pulse_off_time->elapsed(current_time);
-    }
-
-    bool has_pulse_off() const {
-        return static_cast<bool>(m_pulse_off_time);
-    }
-
-    std::size_t get_id() const { return m_id; }
-
-    /** @throws ParameterError if pulse_off_time is not of the same type as the trigger time */
-    void set_pulse_off(const DomainTimePoint& time) {
-        if (time.get_type() != m_trigger_time.get_type()) {
-            throw ParameterError("pulse_off_time must be of the same type as the trigger time");
-        }
-        m_pulse_off_time = time;
-    }
-
-
-    void scale_duration(double factor) {
-        if (m_pulse_off_time) {
-            auto duration = m_trigger_time - *m_pulse_off_time;
-            m_pulse_off_time = m_trigger_time + (duration * factor);
-        }
-    }
-
     /**
-     * @brief sets period of the pulse if period is of the same type as the trigger time
+     * @return boolean mask for the indices that need to be flushed due to changes in broadcasting of size `num_voices`
+     *         Note that this will not return size-related changes, only broadcast-related changes, e.g.
+     *
+     *         - num_voices: 5 => 3, triggers.size() = 8 returns {}. voices 3 and 4 will need to be flushed,
+     *           but not due to broadcasting, so this is likely handled elsewhere
+     *
+     *         - num_voices: 5 => 3, triggers.size(): 5 => 3 returns {}. same as above
+     *
+     *         - num_voices: 3 => 5, triggers.size() = 3 returns {}. Relevant changes in broadcasting apply, but they
+     *           don't require flushing as we're only adding voices that previously didn't exist
+     *
+     *         - num_voices: 3, triggers.size(): 2 = > 3 returns {0, 0, 1}.
+     *
      */
-    bool try_set_duration(const DomainDuration& duration) {
-        if (m_trigger_time.get_type() == duration.get_type()) {
-            m_pulse_off_time = m_trigger_time + duration;
-            return true;
+    Vec<bool> broadcast(Voices<Trigger>& triggers, std::size_t num_voices) {
+        assert(num_voices > 0);
+
+        if (is_first_value()) {
+            update_state(triggers, num_voices);
+            triggers.adapted_to(num_voices);
+            return empty_vector(num_voices);
         }
-        return false;
-    }
 
-    DomainTimePoint get_trigger_time() const { return m_trigger_time; }
+        assert(m_previous_trigger_size.has_value()
+            && m_previous_num_voices.has_value()
+            && !m_previous_broadcasted_indices.empty());
 
-    const std::optional<DomainTimePoint>& get_pulse_off_time() const { return m_pulse_off_time; }
-
-    DomainType get_type() const {
-        return m_trigger_time.get_type();
-    }
-
-private:
-    void assert_invariants() {
-        assert(!m_pulse_off_time || m_pulse_off_time->get_type() == m_trigger_time.get_type());
-    }
-
-    std::size_t m_id;
-    DomainTimePoint m_trigger_time;
-    std::optional<DomainTimePoint> m_pulse_off_time;
-};
-
-
-// ==============================================================================================
-
-
-class Pulses : public Flushable<Trigger> {
-public:
-
-    Trigger new_pulse(const DomainTimePoint& pulse_on_time
-                      , const std::optional<DomainTimePoint>& pulse_off_time
-                      , std::optional<std::size_t> id = std::nullopt) {
-//        if (pulse_on_time.get_type() != m_type) {
-//            throw ParameterError("pulse_on_time must be of the same type as the pulses");
-//        }
-//
-//        if (pulse_off_time && pulse_off_time->get_type() != m_type) {
-//            throw ParameterError("pulse_off_time must be of the same type as the pulses");
-//        }
-
-        auto pulse_id = TriggerIds::new_or(id);
-
-        m_pulses.append(Pulse(pulse_id, pulse_on_time, pulse_off_time));
-
-        return Trigger::with_manual_id(Trigger::Type::pulse_on, pulse_id);
-    }
-
-
-    Voice<Trigger> flush() override {
-        return m_pulses.drain()
-                .template as_type<Trigger>([](const Pulse& p) {
-                    return Trigger::pulse_off(p.get_id());
-                });
-    }
-
-    Vec<Pulse> drain_elapsed(const TimePoint& time, bool include_endless = false) {
-        return m_pulses.filter_drain([time, include_endless](const Pulse& p) {
-            return !(p.elapsed(time) || (include_endless && !p.has_pulse_off()));
-        });
-    }
-
-    Voice<Trigger> drain_elapsed_as_triggers(const TimePoint& time, bool include_endless = false) {
-        return drain_elapsed(time, include_endless)
-                .template as_type<Trigger>([](const Pulse& p) {
-                    return Trigger::pulse_off(p.get_id());
-                });
-    }
-
-    Voice<Pulse> drain_endless() {
-        return m_pulses.filter_drain([](const Pulse& p) {
-            return !p.has_pulse_off();
-        });
-    }
-
-    Voice<Pulse> drain_by_id(std::size_t id) {
-        return m_pulses.filter_drain([id](const Pulse& p) {
-            return p.get_id() != id; // remove all elements for which the id matches
-        });
-    }
-
-    Voice<Trigger> drain_by_id_as_triggers(std::size_t id) {
-        return drain_by_id(id)
-                .template as_type<Trigger>([](const Pulse& p) {
-                    return Trigger::pulse_off(p.get_id());
-                });
-    }
-
-    Voice<Trigger> drain_endless_as_triggers() {
-        return drain_endless()
-                .template as_type<Trigger>([](const Pulse& p) {
-                    return Trigger::pulse_off(p.get_id());
-                });
-    }
-
-    Voice<Pulse> drain_non_matching(DomainType type) {
-        return m_pulses.filter_drain([&type](const Pulse& p) {
-            return p.get_trigger_time().get_type() == type; // remove all elements for which the type does not match
-        });
-    }
-
-    Voice<Trigger> drain_non_matching_as_triggers(DomainType type) {
-        return drain_non_matching(type)
-                .template as_type<Trigger>([](const Pulse& p) {
-                    return Trigger::pulse_off(p.get_id());
-                });
-    }
-
-
-
-    void scale_durations(double factor) {
-        for (Pulse& p : m_pulses) {
-            p.scale_duration(factor);
+        if (*m_previous_trigger_size == triggers.size() && *m_previous_num_voices == num_voices) {
+            triggers.adapted_to(num_voices);
+            return empty_vector(num_voices); // no changes, no need to update state
         }
+
+        // TODO: This part is redundant but was originally written for clarification
+        // if (*m_previous_trigger_size == triggers.size() && *m_previous_num_voices != num_voices) {
+        //     // Two cases:
+        //     // - num_voices increased: we're adding new broadcasted voices but these were previously empty so no flush needed
+        //     // - num_voices decreased: we're removing voices. Flushing required but handled elsewhere
+        //     update_state(triggers, num_voices);
+        //     return {};
+        // }
+        //
+        // if (*m_previous_trigger_size == *m_previous_num_voices && triggers.size() == num_voices) {
+        //     // both voices have equivalent counts both before and after, meaning no broadcasting applies
+        //     update_state(triggers, num_voices);
+        //     return {};
+        // }
+
+        auto current_broadcast_indices = get_broadcast_indices(triggers.size(), num_voices);
+        auto diff = get_broadcast_diff(m_previous_broadcasted_indices, current_broadcast_indices);
+        update_state(triggers, num_voices, std::move(current_broadcast_indices));
+
+        triggers.adapted_to(num_voices);
+
+        return diff;
     }
 
-    void try_set_durations(const DomainDuration& duration) {
-        for (Pulse& p : m_pulses) {
-            p.try_set_duration(duration);
-        }
+    void clear() {
+        m_previous_trigger_size = std::nullopt;
+        m_previous_num_voices = std::nullopt;
+        m_previous_broadcasted_indices.clear();
     }
-
-
-
-    const Pulse* last_of_type(DomainType type) const {
-        const Pulse* output = nullptr;
-        for (const auto& p: m_pulses) {
-            if (p.get_trigger_time().get_type() == type && p.has_pulse_off()) {
-                if (!output || output->get_pulse_off_time()->get_value() < p.get_pulse_off_time()->get_value()) {
-                    output = &p;
-                }
-            }
-        }
-        return output;
-    }
-
-
-
-//    /**
-//     * @brief Sets period for all existing pulses to fixed value
-//     */
-//    void reschedule(const DomainDuration& new_duration) {
-//        for (Pulse& p : m_pulses) {
-//            // TODO: This is not a good strategy: what if initial DTP is incompatible with new_duration?
-//            p.set_pulse_off(p.get_trigger_time() + new_duration);
-//        }
-//    }
-
-    Voice<Trigger> reset() {
-        return flush();
-    }
-
-    bool empty() const {
-        return m_pulses.empty();
-    }
-
-//    void set_type(DomainType type, const TimePoint& last_transport_time) {
-//        if (m_type == type) {
-//            return;
-//        }
-//
-//        for (Pulse& p : m_pulses) {
-//            p.set_type(type, last_transport_time);
-//        }
-//
-//        m_type = type;
-//    }
-
-//    DomainType get_type() const { return m_type; }
-
-    const Vec<Pulse>& vec() const { return m_pulses; }
-
-    Vec<Pulse>& vec_mut() { return m_pulses; }
 
 
 private:
-    Vec<Pulse> m_pulses;
-//    DomainType m_type;
+    bool is_first_value() const {
+        return !static_cast<bool>(m_previous_trigger_size);
+    }
+
+    static Vec<bool> empty_vector(std::size_t num_voices) {
+        return Vec<bool>::zeros(num_voices);
+    }
+
+    void update_state(const Voices<Trigger>& triggers, std::size_t num_voices, Vec<std::size_t>&& index_map) {
+        m_previous_trigger_size = triggers.size();
+        m_previous_num_voices = num_voices;
+        m_previous_broadcasted_indices = std::move(index_map);
+    }
+
+
+    void update_state(const Voices<Trigger>& triggers, std::size_t num_voices) {
+        update_state(triggers, num_voices, get_broadcast_indices(triggers.size(), num_voices));
+    }
+
+    static Vec<std::size_t> get_broadcast_indices(std::size_t trigger_size, std::size_t num_voices) {
+        assert(trigger_size > 0);
+
+        auto v = Vec<std::size_t>::allocated(num_voices);
+        for (std::size_t i = 0; i < num_voices; ++i) {
+            v.append(i % trigger_size);
+        }
+        return v;
+    }
+
+    /** @brief Returns boolean mask for the indices that need to be flushed due to changes in broadcasting */
+    static Vec<bool> get_broadcast_diff(const Vec<std::size_t>& previous, const Vec<std::size_t>& current) {
+        // Note: this function only returns changes significant for broadcasting, not size changes
+        auto size = std::min(previous.size(), current.size());
+
+        Vec<bool> diff = Vec<bool>::zeros(current.size()); // still want boolean mask to have same size as current
+        for (std::size_t i = 0; i < size; ++i) {
+            diff[i] = previous[i] != current[i];
+        }
+
+        return diff;
+
+    }
+
+    std::optional<std::size_t> m_previous_trigger_size;
+    std::optional<std::size_t> m_previous_num_voices;
+    Vec<std::size_t> m_previous_broadcasted_indices;
 };
 
 
@@ -464,6 +386,234 @@ private:
 
     Vec<OutletHeld> m_held;
 };
+
+
+
+// TODO: Remove: legacy helper classes associated with classes that are no longer part of the library
+
+// ==============================================================================================
+
+// class Pulse {
+// public:
+//     Pulse(std::size_t id, const DomainTimePoint& trigger_time
+//           , const std::optional<DomainTimePoint>& pulse_off_time = std::nullopt)
+//             : m_id(id)
+//               , m_trigger_time(trigger_time)
+//               , m_pulse_off_time(pulse_off_time) {
+//         assert_invariants();
+//     }
+//
+//     bool elapsed(const TimePoint& current_time) const {
+//         return m_pulse_off_time && m_pulse_off_time->elapsed(current_time);
+//     }
+//
+//     bool has_pulse_off() const {
+//         return static_cast<bool>(m_pulse_off_time);
+//     }
+//
+//     std::size_t get_id() const { return m_id; }
+//
+//     /** @throws ParameterError if pulse_off_time is not of the same type as the trigger time */
+//     void set_pulse_off(const DomainTimePoint& time) {
+//         if (time.get_type() != m_trigger_time.get_type()) {
+//             throw ParameterError("pulse_off_time must be of the same type as the trigger time");
+//         }
+//         m_pulse_off_time = time;
+//     }
+//
+//
+//     void scale_duration(double factor) {
+//         if (m_pulse_off_time) {
+//             auto duration = m_trigger_time - *m_pulse_off_time;
+//             m_pulse_off_time = m_trigger_time + (duration * factor);
+//         }
+//     }
+//
+//     /**
+//      * @brief sets period of the pulse if period is of the same type as the trigger time
+//      */
+//     bool try_set_duration(const DomainDuration& duration) {
+//         if (m_trigger_time.get_type() == duration.get_type()) {
+//             m_pulse_off_time = m_trigger_time + duration;
+//             return true;
+//         }
+//         return false;
+//     }
+//
+//     DomainTimePoint get_trigger_time() const { return m_trigger_time; }
+//
+//     const std::optional<DomainTimePoint>& get_pulse_off_time() const { return m_pulse_off_time; }
+//
+//     DomainType get_type() const {
+//         return m_trigger_time.get_type();
+//     }
+//
+// private:
+//     void assert_invariants() {
+//         assert(!m_pulse_off_time || m_pulse_off_time->get_type() == m_trigger_time.get_type());
+//     }
+//
+//     std::size_t m_id;
+//     DomainTimePoint m_trigger_time;
+//     std::optional<DomainTimePoint> m_pulse_off_time;
+// };
+//
+//
+// // ==============================================================================================
+//
+//
+// class Pulses : public Flushable<Trigger> {
+// public:
+//
+//     Trigger new_pulse(const DomainTimePoint& pulse_on_time
+//                       , const std::optional<DomainTimePoint>& pulse_off_time
+//                       , std::optional<std::size_t> id = std::nullopt) {
+// //        if (pulse_on_time.get_type() != m_type) {
+// //            throw ParameterError("pulse_on_time must be of the same type as the pulses");
+// //        }
+// //
+// //        if (pulse_off_time && pulse_off_time->get_type() != m_type) {
+// //            throw ParameterError("pulse_off_time must be of the same type as the pulses");
+// //        }
+//
+//         auto pulse_id = TriggerIds::new_or(id);
+//
+//         m_pulses.append(Pulse(pulse_id, pulse_on_time, pulse_off_time));
+//
+//         return Trigger::with_manual_id(Trigger::Type::pulse_on, pulse_id);
+//     }
+//
+//
+//     Voice<Trigger> flush() override {
+//         return m_pulses.drain()
+//                 .template as_type<Trigger>([](const Pulse& p) {
+//                     return Trigger::pulse_off(p.get_id());
+//                 });
+//     }
+//
+//     Vec<Pulse> drain_elapsed(const TimePoint& time, bool include_endless = false) {
+//         return m_pulses.filter_drain([time, include_endless](const Pulse& p) {
+//             return !(p.elapsed(time) || (include_endless && !p.has_pulse_off()));
+//         });
+//     }
+//
+//     Voice<Trigger> drain_elapsed_as_triggers(const TimePoint& time, bool include_endless = false) {
+//         return drain_elapsed(time, include_endless)
+//                 .template as_type<Trigger>([](const Pulse& p) {
+//                     return Trigger::pulse_off(p.get_id());
+//                 });
+//     }
+//
+//     Voice<Pulse> drain_endless() {
+//         return m_pulses.filter_drain([](const Pulse& p) {
+//             return !p.has_pulse_off();
+//         });
+//     }
+//
+//     Voice<Pulse> drain_by_id(std::size_t id) {
+//         return m_pulses.filter_drain([id](const Pulse& p) {
+//             return p.get_id() != id; // remove all elements for which the id matches
+//         });
+//     }
+//
+//     Voice<Trigger> drain_by_id_as_triggers(std::size_t id) {
+//         return drain_by_id(id)
+//                 .template as_type<Trigger>([](const Pulse& p) {
+//                     return Trigger::pulse_off(p.get_id());
+//                 });
+//     }
+//
+//     Voice<Trigger> drain_endless_as_triggers() {
+//         return drain_endless()
+//                 .template as_type<Trigger>([](const Pulse& p) {
+//                     return Trigger::pulse_off(p.get_id());
+//                 });
+//     }
+//
+//     Voice<Pulse> drain_non_matching(DomainType type) {
+//         return m_pulses.filter_drain([&type](const Pulse& p) {
+//             return p.get_trigger_time().get_type() == type; // remove all elements for which the type does not match
+//         });
+//     }
+//
+//     Voice<Trigger> drain_non_matching_as_triggers(DomainType type) {
+//         return drain_non_matching(type)
+//                 .template as_type<Trigger>([](const Pulse& p) {
+//                     return Trigger::pulse_off(p.get_id());
+//                 });
+//     }
+//
+//
+//
+//     void scale_durations(double factor) {
+//         for (Pulse& p : m_pulses) {
+//             p.scale_duration(factor);
+//         }
+//     }
+//
+//     void try_set_durations(const DomainDuration& duration) {
+//         for (Pulse& p : m_pulses) {
+//             p.try_set_duration(duration);
+//         }
+//     }
+//
+//
+//
+//     const Pulse* last_of_type(DomainType type) const {
+//         const Pulse* output = nullptr;
+//         for (const auto& p: m_pulses) {
+//             if (p.get_trigger_time().get_type() == type && p.has_pulse_off()) {
+//                 if (!output || output->get_pulse_off_time()->get_value() < p.get_pulse_off_time()->get_value()) {
+//                     output = &p;
+//                 }
+//             }
+//         }
+//         return output;
+//     }
+//
+//
+//
+// //    /**
+// //     * @brief Sets period for all existing pulses to fixed value
+// //     */
+// //    void reschedule(const DomainDuration& new_duration) {
+// //        for (Pulse& p : m_pulses) {
+// //            // TODO: This is not a good strategy: what if initial DTP is incompatible with new_duration?
+// //            p.set_pulse_off(p.get_trigger_time() + new_duration);
+// //        }
+// //    }
+//
+//     Voice<Trigger> reset() {
+//         return flush();
+//     }
+//
+//     bool empty() const {
+//         return m_pulses.empty();
+//     }
+//
+// //    void set_type(DomainType type, const TimePoint& last_transport_time) {
+// //        if (m_type == type) {
+// //            return;
+// //        }
+// //
+// //        for (Pulse& p : m_pulses) {
+// //            p.set_type(type, last_transport_time);
+// //        }
+// //
+// //        m_type = type;
+// //    }
+//
+// //    DomainType get_type() const { return m_type; }
+//
+//     const Vec<Pulse>& vec() const { return m_pulses; }
+//
+//     Vec<Pulse>& vec_mut() { return m_pulses; }
+//
+//
+// private:
+//     Vec<Pulse> m_pulses;
+// //    DomainType m_type;
+// };
 
 
 } // namespace serialist

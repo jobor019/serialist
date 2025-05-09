@@ -313,3 +313,92 @@ TEST_CASE("MakeNote: Flush when number of channels decreases (R1.2.3)", "[make_n
 }
 
 
+TEST_CASE("MakeNote: Trigger Broadcasting (R1.2.5)", "[make_note]") {
+    MakeNoteWrapper w;
+
+    NodeRunner runner{&w.make_note_node};
+    auto& nn = w.note_number;
+    auto& trigger = w.trigger;
+
+    w.velocity.set_values(100);
+    w.channel.set_values(1);
+    w.num_voices.set_value(0);
+
+
+    SECTION("Notes from previously broadcasted triggers are flushed when incoming trigger usurp") {
+        // Trigger voice count: 2 (both on)
+        trigger.set_values(Voices<Trigger>::transposed({Trigger::pulse_on(), Trigger::pulse_on()}));
+
+        // Number of notes: 3
+        w.note_number.set_values(Voices<NoteNumber>::transposed({60, 61, 62}));
+
+        // We expect three voices, all on, with notes 60, 61, 62, where the last voice is
+        // associated with the first trigger due to broadcasting
+        auto r = runner.step();
+        REQUIRE_THAT(r, mms::sizee(3));
+        REQUIRE_THAT(r, mms::voice_equals(0, NC::on(60)));
+        REQUIRE_THAT(r, mms::voice_equals(1, NC::on(61)));
+        REQUIRE_THAT(r, mms::voice_equals(2, NC::on(62)));
+
+        // Number of triggers change from 2 to 3
+        trigger.set_values(Voices<Trigger>{
+            {}
+            , {}
+            , {Trigger::pulse_on()}
+        });
+
+        // Since the trigger count changed, the last voice (which was previously active due to a broadcast trigger)
+        // should be flushed when the new trigger usurps the broadcast one, and a new note on should be generated
+        r = runner.step();
+        REQUIRE_THAT(r, mms::voice_equals(0, NC::empty()));
+        REQUIRE_THAT(r, mms::voice_equals(1, NC::empty()));
+        REQUIRE_THAT(r, mms::voice_equals(2, {NC::off(62), NC::on(62)}));
+
+        // Note: if this wasn't the case, we'd risk infinitely stuck triggers as the previously broadcasted trigger
+        //       would linger forever, as voice 2 will no longer be associated with voice 0 when the pulse_off is sent
+        //       on voice 0.
+    }
+
+    SECTION("Notes from broadcast triggers are flushed when changes in trigger count lead to re-association") {
+        // Trigger voice count: 2 (both on)
+        trigger.set_values(Voices<Trigger>::transposed({Trigger::pulse_on(), Trigger::pulse_on()}));
+
+        // Number of notes: 7
+        w.note_number.set_values(Voices<NoteNumber>::transposed({60, 61, 62, 63, 64, 65, 66}));
+
+        // We expect seven voices, all on, with notes 60, 61, 62 63, 64, 65, 66.
+        // The triggers associated with each voice are (by index) [ 0, 1, 0, 1, 0, 1, 0 ]
+        auto r = runner.step();
+        REQUIRE_THAT(r, mms::sizee(7));
+        REQUIRE_THAT(r, mms::voice_equals(0, NC::on(60)));
+        REQUIRE_THAT(r, mms::voice_equals(1, NC::on(61)));
+        REQUIRE_THAT(r, mms::voice_equals(2, NC::on(62)));
+        REQUIRE_THAT(r, mms::voice_equals(3, NC::on(63)));
+        REQUIRE_THAT(r, mms::voice_equals(4, NC::on(64)));
+        REQUIRE_THAT(r, mms::voice_equals(5, NC::on(65)));
+        REQUIRE_THAT(r, mms::voice_equals(6, NC::on(66)));
+
+        // Number of triggers change from 2 to 3
+        trigger.set_values(Voices<Trigger>{
+            {}
+            , {}
+            , {Trigger::pulse_on()}
+        });
+
+        // Since the trigger count changed, the way the voices are associated with triggers has changed. We now have
+        // [ 0, 1, 2, 0, 1, 2, 0 ]. Which, compared to the intial (written here again for reference):
+        // [ 0, 1, 0, 1, 0, 1, 0 ], yields the following voice changes:
+        // [ -, -, X, X, X, X, - ]. We therefore expect voices 2, 3, 4 and 5 to be flushed due to broadcast changes, and
+        // [ -, -, X, -, -, X, - ]  i.e voices 2 and 5 to generate new pulses due to the new trigger
+        r = runner.step();
+        REQUIRE_THAT(r, mms::voice_equals(0, NC::empty()));
+        REQUIRE_THAT(r, mms::voice_equals(1, NC::empty()));
+        REQUIRE_THAT(r, mms::voice_equals(2, {NC::off(62), NC::on(62)}));
+        REQUIRE_THAT(r, mms::voice_equals(3, NC::off(63)));
+        REQUIRE_THAT(r, mms::voice_equals(4, NC::off(64)));
+        REQUIRE_THAT(r, mms::voice_equals(5, {NC::off(65), NC::on(65)}));
+        REQUIRE_THAT(r, mms::voice_equals(6, NC::empty()));
+    }
+
+
+}

@@ -7,6 +7,7 @@
 #include "core/temporal/phase_pulse.h"
 #include "variable.h"
 #include "sequence.h"
+#include "types/phase.h"
 
 
 namespace serialist {
