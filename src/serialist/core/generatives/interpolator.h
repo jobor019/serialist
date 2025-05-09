@@ -43,11 +43,6 @@ public:
         // Mode::pass with index outside bounds
         return {};
     }
-
-
-    static Voice<T> process(double cursor, const Voices<T>& corpus, Mode mode, const std::optional<T>& octave) {
-        return process(Index::from_phase_like(cursor, corpus.size()), corpus, mode, octave);
-    }
 };
 
 
@@ -117,29 +112,32 @@ public:
         auto corpus = m_corpus.process();
 
         m_current_value.adapted_to(num_voices);
+
+        auto indices = Vec<std::optional<Index>>::allocated(trigger.size());
+
         for (std::size_t i = 0; i < trigger.size(); ++i) {
             if (Trigger::contains_pulse_on(triggers[i]) && cursors[i].has_value()) {
                 if (use_index) {
-                    m_current_value[i] = Interpolator<T>::process(
-                        Index::from_index_facet(*cursors[i])
-                        , corpus
-                        , modes[i]
-                        , octaves[i]
-                    );
+                    auto index = Index::from_index_facet(*cursors[i]);
+                    m_current_value[i] = Interpolator<T>::process(index, corpus, modes[i], octaves[i]);
+                    indices.append(std::move(index));
 
                 } else {
-                    m_current_value[i] = Interpolator<T>::process(
-                        static_cast<double>(*cursors[i])
-                        , corpus
-                        , modes[i]
-                        , octaves[i]
-                    );
+                    auto index = Index::from_phase_like(static_cast<double>(*cursors[i]), corpus.size());
+                    m_current_value[i] = Interpolator<T>::process(index, corpus, modes[i], octaves[i]);
+                    indices.append(std::move(index));
                 }
+            } else {
+                indices.append(std::nullopt);
             }
         }
 
+        m_previous_indices = std::move(indices);
+
         return m_current_value;
     }
+
+    Voice<std::optional<Index>> previous_indices() const { return m_previous_indices; }
 
 private:
     bool disabled() {
@@ -158,6 +156,8 @@ private:
     Socket<Facet>& m_uses_index;
 
     Voices<T> m_current_value = Voices<T>::empty_like();
+
+    Voice<std::optional<Index>> m_previous_indices; // Only relevant for UI (TODO: ensure thread-safety)
 };
 
 
