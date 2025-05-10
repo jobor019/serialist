@@ -22,7 +22,7 @@ using NC = NoteComparator;
 TEST_CASE("MakeNote: chord", "[make_note]") {
     MakeNote mn;
     auto pulse_on = Trigger::pulse_on();
-    auto note_on = mn.process({pulse_on}, {60, 64, 67}, 100, {0});
+    auto note_on = mn.process({pulse_on}, {60, 64, 67}, {100}, {0});
 
     REQUIRE(note_on.size() == 3);
     REQUIRE(note_on.all([](const Event& event) { return event.is<MidiNoteEvent>(); }));
@@ -32,7 +32,7 @@ TEST_CASE("MakeNote: chord", "[make_note]") {
     REQUIRE(note_on.all([](const Event& event) { return event.as<MidiNoteEvent>().velocity == 100; }));
     REQUIRE(note_on.all([](const Event& event) { return event.as<MidiNoteEvent>().channel == 0; }));
 
-    auto note_off = mn.process({Trigger::pulse_off(pulse_on.get_id())}, {}, 100, {0});
+    auto note_off = mn.process({Trigger::pulse_off(pulse_on.get_id())}, {}, {100}, {0});
 
     REQUIRE(note_off.size() == 3);
     REQUIRE(note_off.all([](const Event& event) { return event.is<MidiNoteEvent>(); }));
@@ -401,4 +401,56 @@ TEST_CASE("MakeNote: Trigger Broadcasting (R1.2.5)", "[make_note]") {
     }
 
 
+}
+
+
+TEST_CASE("MakeNote: Velocity Broadcasting (R1.2.6)", "[make_note]") {
+    MakeNoteWrapper w;
+
+    NodeRunner runner{&w.make_note_node};
+    auto& nn = w.note_number;
+    auto& vel = w.velocity;
+    auto& trigger = w.trigger;
+
+    w.channel.set_values(1);
+    w.num_voices.set_value(0);
+
+    SECTION("Velocity affects voice count") {
+        // sequences of 1 note, 3 velocities: we expect 3 voices with velocities [100, 80, 60]
+        nn.set_values(60);
+        vel.set_values(Voices<uint32_t>::transposed({100, 80, 60}));
+        trigger.set_values(Trigger::pulse_on());
+        auto r = runner.step();
+        REQUIRE_THAT(r, mms::sizee(3));
+        REQUIRE_THAT(r, mms::voice_equals(0, {NC::on(60, 100)}));
+        REQUIRE_THAT(r, mms::voice_equals(1, {NC::on(60, 80)}));
+        REQUIRE_THAT(r, mms::voice_equals(2, {NC::on(60, 60)}));
+    }
+
+    SECTION("Velocity does not affect chord size") {
+        // chord of 1 note, 3 velocities: we expect 1 voice with the first velocity only
+        nn.set_values(60);
+        vel.set_values({{100, 80, 60}});
+        trigger.set_values(Trigger::pulse_on());
+        auto r = runner.step();
+        REQUIRE_THAT(r, mms::sizee(1));
+        REQUIRE_THAT(r, mms::voice_equals(0, {NC::on(60, 100)}));
+    }
+
+    SECTION("Velocity is distributed over chord when applicable") {
+        // chord of 5 notes, 2 velocities: we expect 1 voice with 5 notes with velocities [100, 80, 100, 80, 100]
+        nn.set_values({{60, 61, 62, 63, 64}});
+        vel.set_values({{100, 80}});
+        trigger.set_values(Trigger::pulse_on());
+        auto r = runner.step();
+        REQUIRE_THAT(r, mms::sizee(1));
+        REQUIRE_THAT(r, mms::voice_equals( 0, {
+                         NC::on(60, 100)
+                         , NC::on(61, 80)
+                         , NC::on(62, 100)
+                         , NC::on(63, 80)
+                         , NC::on(64, 100)})
+        );
+
+    }
 }

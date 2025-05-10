@@ -17,7 +17,7 @@ class MakeNote : Flushable<Event> {
 public:
     Voice<Event> process(const Voice<Trigger>& triggers
                          , const Voice<NoteNumber>& chord
-                         , const std::optional<uint32_t>& velocity
+                         , const Voice<uint32_t>& velocities
                          , const Voice<uint32_t>& channel) {
         Voice<Event> events;
 
@@ -32,7 +32,7 @@ public:
         if (auto index = triggers.index([](const Trigger& trigger) {
             return trigger.is_pulse_on();
         })) {
-            events.extend(process_pulse_on(triggers[*index].get_id(), chord, velocity, channel));
+            events.extend(process_pulse_on(triggers[*index].get_id(), chord, velocities, channel));
         }
 
         return events;
@@ -49,17 +49,20 @@ public:
 private:
     Voice<Event> process_pulse_on(const std::size_t trigger_id
                                   , const Voice<NoteNumber>& notes
-                                  , const std::optional<uint32_t>& velocity
+                                  , const Voice<uint32_t>& velocities
                                   , const Voice<uint32_t>& channels) {
-        if (notes.empty() || !velocity || channels.empty()) {
+        if (notes.empty() || velocities.empty() || channels.empty()) {
             return {};
         }
 
+        // Individual velocities per note in a chord is possible, but velocities should not affect number of total notes
+        auto adapted_velocities = velocities.cloned().resize_fold(notes.size());
+
         auto events = Voice<Event>::allocated(notes.size() * channels.size());
         for (const auto& channel : channels) {
-            for (const auto& note : notes) {
-                m_held_notes.bind({trigger_id, note, channel});
-                events.append(Event(MidiNoteEvent{note, *velocity, channel}));
+            for (std::size_t i = 0; i < notes.size(); ++i) {
+                m_held_notes.bind({trigger_id, notes[i], channel});
+                events.append(Event(MidiNoteEvent{notes[i], adapted_velocities[i], channel}));
             }
         }
 
@@ -161,7 +164,7 @@ public:
 
         auto has_broadcast_changes = m_pulse_broadcast_handler.broadcast(trigger, num_voices);
         auto note_numbers = note_number.adapted_to(num_voices).as_type<NoteNumber>();
-        auto velocities = velocity.adapted_to(num_voices).firsts<uint32_t>();
+        auto velocities = velocity.adapted_to(num_voices).as_type<uint32_t>();
         auto channels = channel.adapted_to(num_voices).as_type<uint32_t>();
 
         for (std::size_t i = 0; i < num_voices; ++i) {
