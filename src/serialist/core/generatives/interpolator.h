@@ -113,26 +113,26 @@ public:
 
         m_current_value.adapted_to(num_voices);
 
-        auto indices = Vec<std::optional<Index>>::allocated(trigger.size());
+        if (m_previous_indices.empty()) {
+            m_previous_indices = Voice<std::optional<Index>>::repeated(num_voices, std::nullopt);
+        }
+
+        m_previous_indices.resize_fold(num_voices);
 
         for (std::size_t i = 0; i < trigger.size(); ++i) {
             if (Trigger::contains_pulse_on(triggers[i]) && cursors[i].has_value()) {
                 if (use_index) {
                     auto index = Index::from_index_facet(*cursors[i]);
                     m_current_value[i] = Interpolator<T>::process(index, corpus, modes[i], octaves[i]);
-                    indices.append(std::move(index));
+                    m_previous_indices[i] = std::move(index);
 
                 } else {
                     auto index = Index::from_phase_like(static_cast<double>(*cursors[i]), corpus.size());
                     m_current_value[i] = Interpolator<T>::process(index, corpus, modes[i], octaves[i]);
-                    indices.append(std::move(index));
+                    m_previous_indices[i] = std::move(index);
                 }
-            } else {
-                indices.append(std::nullopt);
             }
         }
-
-        m_previous_indices = std::move(indices);
 
         return m_current_value;
     }
@@ -179,7 +179,7 @@ struct InterpolatorWrapper {
     Variable<Facet, bool> uses_index{Keys::USES_INDEX, ph, InterpolatorT::DEFAULT_USES_INDEX};
 
     Sequence<Facet, bool> enabled{param::properties::enabled, ph, true};
-    Variable<Facet, std::size_t> num_voices{param::properties::num_voices, ph, 1};
+    Variable<Facet, std::size_t> num_voices{param::properties::num_voices, ph, 0};
 
     InterpolatorNode<OutputType> interpolator{Keys::CLASS_NAME
         , ph

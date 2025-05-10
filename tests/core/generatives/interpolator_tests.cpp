@@ -8,6 +8,7 @@
 #include "generators.h"
 #include "node_runner.h"
 #include "matchers/m1m.h"
+#include "matchers/m1s.h"
 #include "matchers/m11.h"
 
 using namespace serialist;
@@ -395,5 +396,27 @@ TEST_CASE("Interpolator: Use Index (Cont)", "[interpolator]") {
     SECTION("no index") {
         cursor.set_values(Voices<double>::empty_like());
         REQUIRE_THAT(runner.step(), m11::emptyf());
+    }
+}
+
+
+TEST_CASE("Interpolator: Untriggered voices output their previous value", "[interpolator]") {
+    InterpolatorIntWrapper<> w;
+    NodeRunner runner{&w.interpolator};
+
+    auto& cursor = w.cursor;
+    auto& trigger = w.trigger;
+
+    w.corpus.set_values(Voices<int>::transposed({111, 222, 333, 444}));
+
+    SECTION("Single phase, multiple triggers") {
+        trigger.set_values(Voices<Trigger>::transposed({Trigger::pulse_on(), Trigger::pulse_on()}));
+        cursor.set_values(0.0);
+        REQUIRE_THAT(runner.step(), m1s::eqf(Voice<int>{111, 111}));
+
+        // Trigger only on 2nd voice, we expect first voice to output its old value
+        trigger.set_values({Voice<Trigger>{}, Voice<Trigger>{Trigger::pulse_on()}});
+        cursor.set_values(0.5);
+        REQUIRE_THAT(runner.step(), m1s::eqf(Voice<int>{111, 333}));
     }
 }
