@@ -11,6 +11,7 @@
 #include "matchers/m1m.h"
 #include "matchers/m1s.h"
 #include "matchers/m11.h"
+#include "matchers/mms.h"
 
 using namespace serialist;
 using namespace serialist::test;
@@ -975,7 +976,7 @@ TEST_CASE("PhasePulsator: correct inferred voice count of first value after bein
 
     // Step to an arbitrary point
     auto r = runner.step_until(DomainTimePoint::ticks(2.5), Anchor::after);
-    REQUIRE_THAT(r, m1s::size<Trigger>(4, MatchType::all));
+    REQUIRE_THAT(r, mms::size<Trigger>(4, MatchType::all)); // Note: mms, not m1s since some voices may be empty
 
     w.enabled.set_values(false);
 
@@ -991,5 +992,5 @@ TEST_CASE("PhasePulsator: correct inferred voice count of first value after bein
 
     // First step after re-enabling: we expect size to once again be same as inferred by the phase node
     r = runner.step();
-    REQUIRE_THAT(r, m1s::size<Trigger>(4));
+    REQUIRE_THAT(r, mms::size<Trigger>(4));
 }
