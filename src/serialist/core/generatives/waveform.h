@@ -17,11 +17,11 @@ namespace serialist {
 
 class Waveform {
 public:
-    enum class Mode { phasor, sin, square, tri };
+    enum class Mode { phase, sin, square, tri };
 
     static constexpr double DEFAULT_DUTY = 0.5;
     static constexpr double DEFAULT_CURVE = 1.0;
-    static constexpr auto DEFAULT_MODE = Mode::phasor;
+    static constexpr auto DEFAULT_MODE = Mode::phase;
 
 
     explicit Waveform(double epsilon = EPSILON)
@@ -34,7 +34,7 @@ public:
         double y;
 
         switch (mode) {
-            case Mode::phasor:
+            case Mode::phase:
                 y = phase;
                 break;
             case Mode::sin:
