@@ -89,4 +89,19 @@ TEST_CASE("IndexNode: basic operation", "[index_node]") {
         reset_trigger.set_values(Trigger::pulse_on());
         REQUIRE_THAT(runner.step(), m11::eqf(4));
     }
+
+    SECTION("The output resets if size changes so that current value is out of range") {
+        num_steps.set_values(5);
+        stride.set_values(1.0);
+        trigger.set_values(Trigger::pulse_on());
+
+        REQUIRE_THAT(runner.step(), m11::eqf(0));
+        REQUIRE_THAT(runner.step(), m11::eqf(1));
+        REQUIRE_THAT(runner.step(), m11::eqf(2));
+        REQUIRE_THAT(runner.step(), m11::eqf(3));
+
+        num_steps.set_values(3);
+        REQUIRE_THAT(runner.step(), m11::eqf(0));
+    }
+
 }

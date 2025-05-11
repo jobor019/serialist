@@ -30,7 +30,7 @@ public:
         if (num_steps != m_previous_num_steps) {
             m_previous_num_steps = num_steps;
 
-            if (reset_on_change) {
+            if (reset_on_change || (m_current_value  && *m_current_value >= static_cast<double>(num_steps))) {
                 m_current_value = initial_value(num_steps, stride);
                 return static_cast<std::size_t>(*m_current_value);
             }
