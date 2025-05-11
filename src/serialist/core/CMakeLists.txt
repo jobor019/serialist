@@ -83,6 +83,7 @@ add_library(${CORE_NAME}
         generatives/lowpass.h
         generatives/router.h
         param/multi_socket.h
+        generatives/index_node.h
         # BELOW: Automatically added - move to correct location above and append ${CMAKE_CURRENT_SOURCE_DIR}
 
 )

@@ -71,6 +71,18 @@ T floor_division(T n, T d) {
 }
 
 
+/**
+ * @brief Computes the floor of a double if it's at least `epsilon` away from the next integer, otherwise returns ceil
+ */
+template<typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+T conditional_floor(double d, double epsilon) {
+    if (std::abs(d - std::ceil(d)) < epsilon) {
+        return static_cast<T>(std::ceil(d));
+    }
+    return static_cast<T>(std::floor(d));
+}
+
+
 // ==============================================================================================
 
 template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>

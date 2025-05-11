@@ -38,6 +38,7 @@ add_executable(core_tests EXCLUDE_FROM_ALL
         generatives/lowpass_tests.cpp
         generatives/router_tests.cpp
         algo/pulse_tests.cpp
+        generatives/index_node_tests.cpp
 
 )
 
