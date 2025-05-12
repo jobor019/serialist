@@ -24,7 +24,9 @@ public:
     static constexpr bool DEFAULT_RESET = false;
 
 
-
+    static std::size_t parse(std::size_t num_steps) {
+        return num_steps == UNBOUNDED ? UPPER_LIMIT : num_steps;
+    }
 
     std::size_t process(std::size_t num_steps, double stride, bool reset_on_change) {
         if (num_steps != m_previous_num_steps) {
@@ -41,7 +43,7 @@ public:
             return static_cast<std::size_t>(*m_current_value);
         }
 
-        num_steps = num_steps == UNBOUNDED ? UPPER_LIMIT : num_steps;
+        num_steps = parse(num_steps);
 
         *m_current_value = utils::modulo(*m_current_value + stride, static_cast<double>(num_steps));
 
@@ -115,12 +117,6 @@ public:
             return m_current_value;
         }
 
-        auto reset_triggers = m_reset.process();
-        if (Trigger::contains_pulse_on(reset_triggers)) {
-            for (auto& stepper : m_index_handlers) {
-                stepper.reset();
-            }
-        }
 
         auto trigger = m_trigger.process();
         if (trigger.is_empty_like())
@@ -134,12 +130,17 @@ public:
 
         auto num_steps = m_num_steps.process().adapted_to(num_voices).firsts_or(IndexHandler::UNBOUNDED);
         auto stride = m_stride.process().adapted_to(num_voices).firsts_or(IndexHandler::DEFAULT_STRIDE);
+        auto reset_triggers = m_reset.process().adapted_to(num_voices);
         auto reset_on_change = m_reset_on_change.process().adapted_to(num_voices).firsts_or(IndexHandler::DEFAULT_RESET);
         trigger.adapted_to(num_voices);
 
         m_current_value.adapted_to(num_voices);
 
         for (std::size_t i = 0; i < num_voices; ++i) {
+            if (Trigger::contains_pulse_on(reset_triggers[i])) {
+                m_index_handlers[i].reset();
+            }
+
             if (Trigger::contains_pulse_on(trigger[i])) {
                 auto v = m_index_handlers[i].process(num_steps[i], stride[i], reset_on_change[i]);
                 m_current_value[i] = {static_cast<Facet>(v)};
