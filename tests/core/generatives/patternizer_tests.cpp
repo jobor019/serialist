@@ -40,3 +40,23 @@ TEST_CASE("Patternizer: basic operation (temp)", "[patternizer]") {
     REQUIRE((*r.voices())[0][0] == 10);
     REQUIRE((*r.voices())[0][1] == 11);
 }
+
+
+TEST_CASE("Patternizer: negative mode", "[patternizer]") {
+    PatternizerIntWrapper<> w;
+
+    w.chord.set_values(Voices<int>::singular({10, 11, 12, 13}));
+
+    w.pattern.set_values(Voices<double>::singular({0}));
+    w.inverse.set_value(false);
+    w.pattern_uses_index.set_value(true);
+    w.mode.set_values(Mode::negative);
+
+    w.trigger.set_values(Trigger::pulse_on());
+
+    NodeRunner runner{&w.patternizer_mode};
+
+    auto r = runner.step();
+    REQUIRE_THAT(r, m1m::sizef(3));
+    REQUIRE_THAT(r, m1m::eqf(Vec{11, 12, 13}));
+}

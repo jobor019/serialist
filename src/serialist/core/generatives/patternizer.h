@@ -15,12 +15,27 @@ namespace serialist {
 template<typename T>
 class Patternizer {
 public:
-    using Mode = Index::Strategy;
+    enum class Mode { mod, cont, clip, pass, negative };
 
     static constexpr auto DEFAULT_MODE = Mode::mod;
     static constexpr bool DEFAULT_PATTERN_USES_INDEX = false;
     static constexpr bool DEFAULT_INVERTED = false;
 
+
+    Index::Strategy mode_to_strategy(Mode mode) {
+        switch (mode) {
+            case Mode::mod:
+                return Index::Strategy::mod;
+            case Mode::cont:
+                return Index::Strategy::cont;
+            case Mode::clip:
+                return Index::Strategy::clip;
+            case Mode::pass:
+                return Index::Strategy::pass;
+            default:
+                throw std::runtime_error("Unsupported mode");
+        }
+    }
 
 
     Voice<T> process(const Voice<T>& v
@@ -30,6 +45,10 @@ public:
                      , bool invert) {
         if (v.empty())
             return v;
+
+        if (mode == Mode::negative) {
+            return select_negative(v, indices, invert);
+        }
 
         return select(v, indices, mode, octave, invert);
     }
@@ -55,11 +74,32 @@ private:
                     , std::optional<T> octave
                     , bool invert) {
         assert(!v.empty());
+        assert(mode != Mode::negative);
 
         auto result = Voice<T>::allocated(indices.size());
         for (const Index& i : indices) {
             if (auto selected = select_single(v, i, mode, octave, invert)) {
                 result.append(*selected);
+            }
+        }
+
+        return result;
+    }
+
+    Voice<T> select_negative(const Voice<T>& v
+                             , const Voice<Index>& indices
+                             , bool invert) {
+        Vec<std::size_t> indices_to_remove;
+        for (const auto& index : indices) {
+            if (auto i = index.get_pass(v.size(), invert)) {
+                indices_to_remove.append(*i);
+            }
+        }
+
+        Voice<T> result;
+        for (std::size_t i = 0; i < v.size(); ++i) {
+            if (!indices_to_remove.contains(i)) {
+                result.append(v[i]);
             }
         }
 
@@ -76,7 +116,7 @@ private:
             return Index::apply_octave(index, v, *octave);
         }
 
-        if (auto i = index.get(v.size(), mode, invert)) {
+        if (auto i = index.get(v.size(), mode_to_strategy(mode), invert)) {
             return v[*i];
         }
         return std::nullopt;
