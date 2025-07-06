@@ -167,7 +167,7 @@ private:
                 m_pulses.release(p->get());
                 return p->get();
             }
-            // otherwise: just flag it as released
+            // otherwise: just flag it as triggered without releasing
             p->get().triggered = true;
         }
         return std::nullopt;
@@ -199,7 +199,7 @@ private:
         });
     }
 
-    bool m_is_first_value = true; // TODO: Ugly hack to avoid flushing on first value
+    bool m_is_first_value = true; // avoid flushing on first value
 
     Held<PulseIdentifier, true> m_pulses;
     Mode m_mode = DEFAULT_MODE;

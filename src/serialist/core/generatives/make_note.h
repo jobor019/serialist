@@ -111,6 +111,8 @@ public:
         static const inline std::string VELOCITY = "velocity";
         static const inline std::string CHANNEL = "channel";
 
+        static const inline std::string AUTO_CHANNEL = "auto_channel";
+
         static const inline std::string CLASS_NAME = "makenote";
     };
 
@@ -121,13 +123,15 @@ public:
                  , Node<Facet>* note_number = nullptr
                  , Node<Facet>* velocity = nullptr
                  , Node<Facet>* channel = nullptr
+                 , Node<Facet>* auto_channel = nullptr
                  , Node<Facet>* enabled = nullptr
                  , Node<Facet>* num_voices = nullptr)
         : NodeBase(identifier, parent, enabled, num_voices, Keys::CLASS_NAME)
         , m_trigger(add_socket(param::properties::trigger, trigger))
         , m_note_number(add_socket(Keys::NOTE_NUMBER, note_number))
         , m_velocity(add_socket(Keys::VELOCITY, velocity))
-        , m_channel(add_socket(Keys::CHANNEL, channel)) {}
+        , m_channel(add_socket(Keys::CHANNEL, channel))
+        , m_auto_channel(add_socket(Keys::AUTO_CHANNEL, auto_channel)){}
 
 
     Voices<Event> process() override {
@@ -151,9 +155,19 @@ public:
 
         auto note_number = m_note_number.process();
         auto velocity = m_velocity.process();
-        auto channel = m_channel.process();
 
-        auto num_voices = voice_count(trigger.size(), note_number.size(), velocity.size(), channel.size());
+        auto auto_channel = m_auto_channel.process().first_or(false);
+
+        std::size_t num_voices;
+        auto channel = Voices<uint32_t>::empty_like();
+
+        if (auto_channel) {
+            num_voices = voice_count(trigger.size(), note_number.size(), velocity.size());
+            channel = Voices<uint32_t>::transposed(Voice<uint32_t>::range(1, num_voices + 1));
+        } else {
+            channel = m_channel.process().as_type<uint32_t>();
+            num_voices = voice_count(trigger.size(), note_number.size(), velocity.size(), channel.size());
+        }
 
         auto output = Voices<Event>::zeros(num_voices);
 
@@ -165,7 +179,7 @@ public:
         auto has_broadcast_changes = m_pulse_broadcast_handler.broadcast(trigger, num_voices);
         auto note_numbers = note_number.adapted_to(num_voices).as_type<NoteNumber>();
         auto velocities = velocity.adapted_to(num_voices).as_type<uint32_t>();
-        auto channels = channel.adapted_to(num_voices).as_type<uint32_t>();
+        auto channels = channel.adapted_to(num_voices);
 
         for (std::size_t i = 0; i < num_voices; ++i) {
             if (has_broadcast_changes[i]) {
@@ -241,6 +255,8 @@ private:
     Socket<Facet>& m_velocity;
     Socket<Facet>& m_channel;
 
+    Socket<Facet>& m_auto_channel;
+
     EnabledGate m_enabled_gate;
     TimeEventGate m_time_event_gate;
     PulseBroadcastHandler m_pulse_broadcast_handler;
@@ -256,12 +272,15 @@ private:
 struct MakeNoteWrapper {
     using Keys = MakeNoteNode::Keys;
 
+    static constexpr bool DEFAULT_AUTO_CHANNEL = false;
+
     ParameterHandler parameter_handler;
 
     Sequence<Trigger> trigger{param::properties::trigger, parameter_handler, Voices<Trigger>::empty_like()};
     Sequence<Facet, NoteNumber> note_number{Keys::NOTE_NUMBER, parameter_handler, Voices<NoteNumber>::singular(60)};
     Sequence<Facet, uint32_t> velocity{Keys::VELOCITY, parameter_handler, Voices<uint32_t>::singular(100)};
     Sequence<Facet, uint32_t> channel{Keys::CHANNEL, parameter_handler, Voices<uint32_t>::singular(true)};
+    Variable<Facet, bool> auto_channel{Keys::AUTO_CHANNEL, parameter_handler, DEFAULT_AUTO_CHANNEL};
     Sequence<Facet, bool> enabled{param::properties::enabled, parameter_handler, Voices<bool>::singular(true)};
     Variable<Facet, std::size_t> num_voices{param::properties::num_voices, parameter_handler, 0};
 
@@ -271,6 +290,7 @@ struct MakeNoteWrapper {
                                 , &note_number
                                 , &velocity
                                 , &channel
+                                , &auto_channel
                                 , &enabled
                                 , &num_voices
     };
