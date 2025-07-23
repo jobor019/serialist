@@ -7,7 +7,7 @@
 [submodule "external/magic_enum"]
 	path = external/magic_enum
 	url = git@github.com:Neargye/magic_enum.git
-[submodule "external/expected/--recursive"]
+[submodule "external/expected"]
 	path = external/expected/expected
 	url = git@github.com:TartanLlama/expected.git
 [submodule "external/Catch2"]
