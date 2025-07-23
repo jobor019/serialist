@@ -10,3 +10,6 @@
 [submodule "external/expected/--recursive"]
 	path = external/expected/expected
 	url = git@github.com:TartanLlama/expected.git
+[submodule "external/Catch2"]
+	path = external/Catch2
+	url = git@github.com:catchorg/Catch2.git

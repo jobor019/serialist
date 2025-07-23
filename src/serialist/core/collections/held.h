@@ -8,7 +8,7 @@
 
 namespace serialist {
 
-template<typename T, bool AllowDuplicates = false>
+template<typename T, bool AllowDuplicates = false, bool InsertSorted = false>
 class Held : public Flushable<T> {
 public:
     explicit Held()  {
@@ -19,11 +19,11 @@ public:
 
     bool bind(const T& v) {
         if constexpr (AllowDuplicates) {
-            m_held.append(v);
+            insert(v);
             return true;
         } else {
             if (!m_held.contains(v)) {
-                m_held.append(v);
+                insert(v);
                 return true;
             }
             return false;
@@ -67,6 +67,15 @@ public:
 
 
 private:
+    void insert(const T& v) {
+        if constexpr (InsertSorted) {
+            m_held.insert_sorted(v);
+        } else {
+            m_held.append(v);
+        }
+    }
+
+
     Vec<T> m_held;
 };
 
