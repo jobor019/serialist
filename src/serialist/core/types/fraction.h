@@ -1,6 +1,7 @@
 #ifndef SERIALISTLOOPER_FRACTION_H
 #define SERIALISTLOOPER_FRACTION_H
 
+#include <cassert>
 #include <cmath>
 #include <sstream>
 
