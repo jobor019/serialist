@@ -5,7 +5,7 @@
 #include <iomanip>
 #include <vector>
 #include <optional>
-#include <magic_enum.hpp>
+#include <magic_enum/magic_enum.hpp>
 
 #include "utility/math.h"
 

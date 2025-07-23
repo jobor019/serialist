@@ -2,9 +2,6 @@
 #ifndef SERIALISTLOOPER_TRAITS_H
 #define SERIALISTLOOPER_TRAITS_H
 
-#include "magic_enum.hpp"
-#include <deque>
-#include <cmath>
 #include <type_traits>
 #include <iostream>
 

@@ -3,8 +3,7 @@
 #ifndef SERIALIST_LOOPER_UTILS_H
 #define SERIALIST_LOOPER_UTILS_H
 
-#include <type_traits>
-#include "magic_enum.hpp"
+#include "magic_enum/magic_enum.hpp"
 
 namespace serialist::utils {
 
