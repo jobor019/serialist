@@ -4,13 +4,14 @@
 
 #include <type_traits>
 #include <iostream>
+#include <atomic>
 
 namespace serialist::utils {
 
 template<typename T>
 struct is_printable {
     template<typename U>
-    static auto test(int) -> decltype(std::cout << std::__1::declval<U>(), std::true_type{});
+    static auto test(int) -> decltype(std::cout << std::declval<U>(), std::true_type{});
 
     template<typename U>
     static std::false_type test(...);
@@ -31,7 +32,7 @@ template<typename OutputStream>
 struct is_output_stream {
 private:
     template<typename U>
-    static auto test(int) -> decltype(std::cout << std::__1::declval<U>(), std::true_type{});
+    static auto test(int) -> decltype(std::cout << std::declval<U>(), std::true_type{});
 
     template<typename U>
     static std::false_type test(...);
