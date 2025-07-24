@@ -198,7 +198,7 @@ private:
                                , std::size_t num_steps
                                , bool include_end = false) {
         assert(RangeUtils::is_valid(start, end, false, include_end));
-        num_steps = std::max(1UL, num_steps - static_cast<std::size_t>(include_end));
+        num_steps = std::max(std::size_t{1}, num_steps - static_cast<std::size_t>(include_end));
         return static_cast<double>(end - start) / static_cast<double>(num_steps);
     }
 

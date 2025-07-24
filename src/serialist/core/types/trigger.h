@@ -1,6 +1,7 @@
 #ifndef SERIALISTLOOPER_TRIGGER_H
 #define SERIALISTLOOPER_TRIGGER_H
 
+#include <mutex>
 #include <unordered_set>
 #include "core/collections/vec.h"
 #include "core/collections/voices.h"

@@ -2,6 +2,7 @@
 #ifndef SERIALISTLOOPER_EVENT_H
 #define SERIALISTLOOPER_EVENT_H
 
+#include <variant>
 #include "core/algo/pitch/notes.h"
 
 namespace serialist {

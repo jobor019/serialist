@@ -2,6 +2,7 @@
 #ifndef SERIALISTLOOPER_SOCKET_BASE_H
 #define SERIALISTLOOPER_SOCKET_BASE_H
 
+#include <mutex>
 #include "core/connectable.h"
 #include "core/generative.h"
 #include "core/param/parameter_keys.h"

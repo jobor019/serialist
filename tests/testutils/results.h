@@ -1,6 +1,7 @@
 #ifndef TESTUTILS_RESULTS_H
 #define TESTUTILS_RESULTS_H
 
+#include <variant>
 #include <core/policies/policies.h>
 #include "core/types/facet.h"
 #include <core/generative.h>

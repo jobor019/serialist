@@ -2,6 +2,7 @@
 #ifndef SERIALISTLOOPER_SOCKET_HANDLER_H
 #define SERIALISTLOOPER_SOCKET_HANDLER_H
 
+#include <memory>
 #include "core/connectable.h"
 #include "core/param/parameter_keys.h"
 
