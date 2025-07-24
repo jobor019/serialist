@@ -1,6 +1,7 @@
 #ifndef SERIALIST_ROUTER_H
 #define SERIALIST_ROUTER_H
 
+#include <variant>
 #include "core/param/socket_handler.h"
 #include "core/param/multi_socket.h"
 #include "core/generative.h"
