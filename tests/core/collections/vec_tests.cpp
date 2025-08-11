@@ -260,6 +260,20 @@ TEST_CASE("Vec erase", "[erase]") {
         REQUIRE(v.size() == 3);
         REQUIRE(v == Vec{1, 3, 4});
     }
+
+    SECTION("Erase negative indices") {
+        Vec v2 = {1, 2, 3};
+        v2.erase(-1);
+        REQUIRE(v2 == Vec{1, 2});
+
+        v2.erase(-1);
+        REQUIRE(v2 == Vec{1});
+
+        v2.erase(-1);
+        REQUIRE(v2.empty());
+
+
+    }
 }
 
 

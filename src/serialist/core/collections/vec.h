@@ -537,6 +537,13 @@ public:
     }
 
 
+    template<typename SizeType, typename = std::enable_if_t<std::is_integral_v<SizeType>>>
+    Vec& replace(SizeType index, const T& value) {
+        m_vector[sign_index(index)] = value;
+        return *this;
+    }
+
+
     void clear() {
         m_vector.clear();
     }
@@ -1368,6 +1375,34 @@ public:
 
         return *this;
     }
+
+    // ======================== UTILITY =============================
+
+    template<typename SizeType, typename = std::enable_if_t<std::is_integral_v<SizeType> > >
+    bool index_is_in_bounds(SizeType index) const {
+        if constexpr (std::is_signed_v<SizeType>) {
+            return sign_index(index) < m_vector.size();
+        } else {
+            return static_cast<std::size_t>(index) < m_vector.size();
+        }
+    }
+
+    template<typename SizeType, typename = std::enable_if_t<std::is_integral_v<SizeType> > >
+    std::optional<std::size_t> bounded_index(SizeType index) const {
+        std::size_t signed_index;
+
+        if constexpr (std::is_signed_v<SizeType>) {
+            signed_index = sign_index(index);
+        } else {
+            signed_index = static_cast<std::size_t>(index);
+        }
+
+        if (signed_index < m_vector.size()) {
+            return signed_index;
+        }
+        return std::nullopt;
+    }
+
 
 private:
     std::size_t sign_index(long index) const {

@@ -9,8 +9,10 @@ add_executable(core_tests EXCLUDE_FROM_ALL
         ${CMAKE_CURRENT_SOURCE_DIR}/algo/voices_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/algo/fraction_tests.cpp
 
+        ${CMAKE_CURRENT_SOURCE_DIR}/collections/queue_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/collections/range_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/collections/scheduler_tests.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/collections/stack_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/collections/vec_tests.cpp
 
         ${CMAKE_CURRENT_SOURCE_DIR}/generatives/allocator_tests.cpp

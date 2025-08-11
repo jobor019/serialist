@@ -49,7 +49,6 @@ public:
 private:
     std::size_t m_size;
     std::deque<T> m_queue;
-    std::mutex m_mutex;
 };
 
 } // namespace serialist
