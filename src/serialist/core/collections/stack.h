@@ -39,7 +39,7 @@ public:
         return result;
     }
 
-    Vec<T> get_snapshot() const { return {m_stack.cbegin(), m_stack.cend()}; }
+    Vec<T> get_snapshot() const { return Vec<T>{std::vector<T>{m_stack.cbegin(), m_stack.cend()}}; }
 
     const T& top() const { return m_stack.back(); }      // Most recently added (top)
     const T& bottom() const { return m_stack.front(); } // Oldest element (bottom)

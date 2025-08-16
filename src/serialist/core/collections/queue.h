@@ -40,7 +40,7 @@ public:
     }
 
 
-    Vec<T> get_snapshot() { return {m_queue.cbegin(), m_queue.cend()}; }
+    Vec<T> get_snapshot() { return Vec<T>{std::vector<T>{m_queue.cbegin(), m_queue.cend()}}; }
     const T& back() { return m_queue.back(); }
     bool empty() { return m_queue.empty(); }
     std::size_t size() { return m_queue.size(); }

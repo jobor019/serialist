@@ -1378,17 +1378,31 @@ public:
 
     // ======================== UTILITY =============================
 
+    enum class BoundLimit {
+        before, // last valid index for access, operator[], replacement, etc.
+        at,
+        after // last valid index for insertion
+    };
+
     template<typename SizeType, typename = std::enable_if_t<std::is_integral_v<SizeType> > >
-    bool index_is_in_bounds(SizeType index) const {
+    bool index_is_in_bounds(SizeType index, BoundLimit bound_limit = BoundLimit::before) const {
+        std::size_t signed_index;
         if constexpr (std::is_signed_v<SizeType>) {
-            return sign_index(index) < m_vector.size();
+            signed_index = sign_index(index);
         } else {
-            return static_cast<std::size_t>(index) < m_vector.size();
+            signed_index = static_cast<std::size_t>(index);
+        }
+
+        switch (bound_limit) {
+            case BoundLimit::before: return signed_index < m_vector.size();
+            case BoundLimit::at: return signed_index <= m_vector.size();
+            case BoundLimit::after: return signed_index <= m_vector.size() + 1;
+            default: throw std::invalid_argument("unknown BoundLimit type");
         }
     }
 
     template<typename SizeType, typename = std::enable_if_t<std::is_integral_v<SizeType> > >
-    std::optional<std::size_t> bounded_index(SizeType index) const {
+    std::optional<std::size_t> bounded_index(SizeType index, BoundLimit bound_limit = BoundLimit::before) const {
         std::size_t signed_index;
 
         if constexpr (std::is_signed_v<SizeType>) {
@@ -1397,10 +1411,12 @@ public:
             signed_index = static_cast<std::size_t>(index);
         }
 
-        if (signed_index < m_vector.size()) {
-            return signed_index;
+        switch (bound_limit) {
+            case BoundLimit::before: return signed_index < m_vector.size() ? std::make_optional(signed_index) : std::nullopt;
+            case BoundLimit::at: return signed_index <= m_vector.size() ? std::make_optional(signed_index) : std::nullopt;
+            case BoundLimit::after: return signed_index <= m_vector.size() + 1 ? std::make_optional(signed_index) : std::nullopt;
+            default: throw std::invalid_argument("unknown BoundLimit type");
         }
-        return std::nullopt;
     }
 
 
