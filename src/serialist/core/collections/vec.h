@@ -1237,6 +1237,26 @@ public:
     }
 
 
+    template<typename E = T, typename = std::enable_if_t<utils::is_equality_comparable_v<E> && !std::is_floating_point_v<E>>>
+    Vec& unique() {
+        sort();
+        auto end_it = std::unique(m_vector.begin(), m_vector.end());
+        m_vector.erase(end_it, m_vector.end());
+        return *this;
+    }
+
+    template<typename E = T, typename = std::enable_if_t<std::is_floating_point_v<E>>>
+    Vec& unique(double tolerance) {
+        sort();
+        auto end_it = std::unique(m_vector.begin(), m_vector.end(),
+                                  [tolerance](const T& a, const T& b) {
+                                      return std::abs(a - b) <= tolerance;
+                                  });
+        m_vector.erase(end_it, m_vector.end());
+        return *this;
+    }
+
+
     template<typename E = T, typename = std::enable_if_t<utils::is_sortable_v<E> > >
     bool is_sorted(bool ascending = true) const {
         if (ascending)
