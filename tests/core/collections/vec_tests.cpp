@@ -457,6 +457,27 @@ TEST_CASE("Vec sort", "[sort]") {
 }
 
 
+TEST_CASE("Vec unique", "[unique]") {
+    SECTION("Int vector") {
+        Vec v = {1, 2, 3, 1, 2, 3};
+        v.unique();
+        REQUIRE(v.size() == 3);
+        REQUIRE(v[0] == 1);
+        REQUIRE(v[1] == 2);
+        REQUIRE(v[2] == 3);
+    }
+
+    SECTION("Double vector") {
+        Vec v = {1.0, 2.0, 3.0, 1.0, 2.0, 3.0};
+        v.unique(1e-6);
+        REQUIRE(v.size() == 3);
+        REQUIRE(v[0] == 1.0);
+        REQUIRE(v[1] == 2.0);
+        REQUIRE(v[2] == 3.0);
+    }
+}
+
+
 TEST_CASE("Vec reorder", "[reorder]") {
     Vec v({5, 2, 8, 1, 9});
 
