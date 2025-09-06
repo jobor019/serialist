@@ -296,6 +296,66 @@ private:
     bool m_include_start;
 };
 
+
+// ==============================================================================================
+
+
+/**
+ * @brief Class representing a range of values that fulfils two conditions:
+ *        1. Each value is in range [start, end]
+ *        2. Each value is a multiple of a value in `modulo_values` modulo `octave`
+ *
+ *        Example use case: generate all pitches of class [0, 4, 7] in instrument range [38, 82].
+ */
+template<typename T>
+class ModuloRange {
+public:
+    ModuloRange(T start, T end, const Vec<T>& modulo_values, T octave)
+    : m_start(start), m_end(end), m_modulo_bases(modulo_values), m_octave(octave) {
+        static_assert(std::is_integral_v<T>, "T must be an integral type");
+
+        if (m_octave <= 0) {
+            throw std::invalid_argument("Octave must be greater than 0");
+        }
+    }
+
+    Vec<T> to_vec() const {
+        auto start_values = Vec<T>::allocated(m_modulo_bases.size());
+        for (const auto& modulo_base: m_modulo_bases) {
+            if (T s = m_start + utils::modulo(modulo_base - m_start, m_octave); s <= m_end) {
+                start_values.append(s);
+            }
+        }
+
+        auto num_octaves = Vec<std::size_t>::allocated(start_values.size());
+        for (const auto& start_value: start_values) {
+            num_octaves.append((m_end - start_value) / m_octave + 1);
+        }
+
+        auto range = Vec<T>::allocated(num_octaves.sum());
+
+        for (std::size_t i = 0; i < start_values.size(); ++i) {
+            for (std::size_t j = 0; j < num_octaves[i]; ++j) {
+                range.append(start_values[i] + j * m_octave);
+            }
+        }
+
+        range.sort();
+        return range;
+    }
+
+
+
+
+private:
+
+    T m_start;
+    T m_end;
+    Vec<T> m_modulo_bases;
+    T m_octave;
+
+};
+
 } // namespace serialist
 
 #endif //SERIALISTLOOPER_RANGE_H

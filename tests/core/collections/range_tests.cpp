@@ -185,3 +185,14 @@ TEST_CASE("Inverse") {
         }
     }
 }
+
+
+TEST_CASE("ModuloRange: Basic operations", "[range]") {
+    REQUIRE(ModuloRange(21, 108, Vec{0, 7}, 12).to_vec() == Vec{24, 31, 36, 43, 48, 55, 60, 67, 72, 79, 84, 91, 96, 103, 108});
+
+    REQUIRE(ModuloRange(21, 21, Vec{0, 7}, 12).to_vec().empty());
+    REQUIRE(ModuloRange(21, 22, Vec{0, 7}, 12).to_vec().empty());
+    REQUIRE(ModuloRange(21, 0, Vec{0, 7}, 12).to_vec().empty());
+    REQUIRE(ModuloRange(21, 108, {}, 12).to_vec().empty());
+
+}
