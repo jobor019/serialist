@@ -84,6 +84,7 @@ add_library(${CORE_NAME}
         generatives/router.h
         param/multi_socket.h
         generatives/index_node.h
+        generatives/trigger_node.h
         # BELOW: Automatically added - move to correct location above and append ${CMAKE_CURRENT_SOURCE_DIR}
 
 )
