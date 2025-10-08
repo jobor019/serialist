@@ -1,6 +1,8 @@
 #ifndef SERIALIST_PULSE_FILTER_H
 #define SERIALIST_PULSE_FILTER_H
 
+#include <map>
+
 #include "core/generative.h"
 #include "core/types/trigger.h"
 #include "core/temporal/pulse.h"
@@ -12,170 +14,229 @@
 
 namespace serialist {
 
+
 class PulseFilter : public Flushable<Trigger> {
+    using PulseState = Held<PulseIdentifier, true>;
+
+
+    class Strategy {
+    public:
+        Strategy() = default;
+        virtual ~Strategy() = default;
+        Strategy(const Strategy&) = delete;
+        Strategy& operator=(const Strategy&) = delete;
+        Strategy(Strategy&&) noexcept = default;
+        Strategy& operator=(Strategy&&) noexcept = default;
+
+        virtual Voice<Trigger> process(Voice<Trigger>&& triggers, PulseState& pulses) = 0;
+
+        virtual Voice<Trigger> activate(PulseState& pulses) { return {}; };
+        virtual Voice<Trigger> deactivate(PulseState& pulses) { return {}; };
+
+        static Voice<Trigger> flush(PulseState& pulses) {
+            return ids_to_pulse_offs(pulses.flush());
+        }
+
+    protected:
+        static void register_pulse_ons(const Voice<Trigger>& triggers, PulseState& pulses) {
+            for (const auto& trigger : triggers) {
+                if (trigger.is_pulse_on()) {
+                    register_pulse_on(trigger.get_id(), pulses);
+                }
+            }
+        }
+
+
+        static Voice<PulseIdentifier> handle_pulse_offs(const Voice<Trigger>& triggers
+                                                        , bool release_matched
+                                                        , PulseState& pulses) {
+            Voice<PulseIdentifier> output;
+            for (const auto& trigger : triggers) {
+                if (trigger.is_pulse_off()) {
+                    if (auto released = handle_pulse_off(trigger.get_id(), release_matched, pulses)) {
+                        output.append(*released);
+                    }
+                }
+            }
+            return output;
+        }
+
+
+        static void register_pulse_on(std::size_t id, PulseState& pulses) {
+            pulses.bind(PulseIdentifier{id});
+        }
+
+
+        static std::optional<PulseIdentifier> handle_pulse_off(std::size_t id, bool release, PulseState& pulses) {
+            if (auto p = pulses.find([id](const PulseIdentifier& pulse) { return pulse.id == id; })) {
+                if (release) {
+                    pulses.release(p->get());
+                    return p->get();
+                }
+                // otherwise: just flag it as triggered without releasing
+                p->get().triggered = true;
+            }
+            return std::nullopt;
+        }
+
+
+        static Voice<Trigger> flush_triggered(PulseState& pulses) {
+            return ids_to_pulse_offs(pulses.flush([](const PulseIdentifier& p) { return !p.triggered; }));
+        }
+
+
+        static Voice<Trigger> ids_to_pulse_offs(const Voice<PulseIdentifier>& ids) {
+            return ids.as_type<Trigger>([](const PulseIdentifier& p) {
+                return Trigger::pulse_off(p.id);
+            });
+        }
+
+    };
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    /**
+     * @brief Pass through both pulse_ons and pulse_offs. Flush any flagged pulse_offs on next pulse_off
+     */
+    class Open : public Strategy {
+    public:
+        Voice<Trigger> process(Voice<Trigger>&& triggers, PulseState& pulses) override {
+            Voice<Trigger> flushed;
+
+            // We may have lingering pulses from a previous non-immediate closed state
+            if (Trigger::contains_pulse_off(triggers)) {
+                flushed = flush_triggered(pulses);
+            }
+
+            register_pulse_ons(triggers, pulses);
+
+            // we ignore the output here since it's already contained in `triggers`.
+            // Using the output from this function only would not work, since it doesn't contain any pulse_ons
+            handle_pulse_offs(triggers, true, pulses);
+
+            return merge_without_duplicates(std::move(flushed), std::move(triggers));
+        }
+    };
+
+    /**
+     * @brief Immediately flush all pulse_offs (flagged or not) on activation. Block all pulses.
+     */
+    class PauseImmediate : public Strategy {
+    public:
+        Voice<Trigger> process(Voice<Trigger>&& triggers, PulseState& pulses) override {
+            assert(pulses.get_held().empty());
+            return {};
+        }
+
+        Voice<Trigger> activate(PulseState& pulses) override { return flush(pulses); }
+    };
+
+    /**
+     * @brief Flush all pulse_offs (flagged or not) on next pulse_off. Block all pulses.
+     */
+    class PauseQuantized : public Strategy {
+    public:
+        Voice<Trigger> process(Voice<Trigger>&& triggers, PulseState& pulses) override {
+            if (Trigger::contains_pulse_off(triggers)) {
+                return flush(pulses);
+            }
+
+            return {};
+        }
+    };
+
+    /**
+     * @brief Block all pulse_ons. Flag matching pulse_offs but do not output. Flush flagged on deactivation.
+     */
+    class SustainImmediate : public Strategy {
+    public:
+        Voice<Trigger> process(Voice<Trigger>&& triggers, PulseState& pulses) override {
+            handle_pulse_offs(triggers, false, pulses);
+            return {};
+        }
+
+        Voice<Trigger> deactivate(PulseState& pulses) override {
+            return flush_triggered(pulses);
+        }
+    };
+
+    /**
+     * @brief Block all pulse_ons. Flag matching pulse_offs but do not output.
+     */
+    class SustainQuantized : public Strategy {
+    public:
+        Voice<Trigger> process(Voice<Trigger>&& triggers, PulseState& pulses) override {
+            handle_pulse_offs(triggers, false, pulses);
+            return {};
+        }
+    };
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    enum class StrategyType {
+        open,
+        pause_immediate,
+        pause_quantized,
+        sustain_immediate,
+        sustain_quantized,
+    };
+    
 public:
-    enum class Mode { sustain, pause };
+    enum class State { open, pause, sustain };
 
-    static constexpr auto DEFAULT_MODE = Mode::sustain;
-    static constexpr auto DEFAULT_IMMEDIATE_VALUE = true;
-    static constexpr auto DEFAULT_CLOSED_STATE = false;
-    static constexpr double STATE_OPEN = 1.0;
-    static constexpr double STATE_CLOSED = 0.0;
+    static constexpr auto DEFAULT_STATE = State::open;
+    static constexpr auto DEFAULT_IMMEDIATE_VALUE = false;
 
 
-    Voice<Trigger> process(Voice<Trigger>&& triggers, bool is_closed, Mode mode, bool is_immediate) {
+    PulseFilter() = default;
+    ~PulseFilter() override = default;
 
-        if (mode != m_mode) {
-            // For now, we don't need to handle this case gracefully during runtime
-            m_mode = mode;
-            if (!m_is_first_value) {
-                return flush();
-            }
+    // Note: Copy constructor and assignment operator are  required since m_strategies isn't copy-constructible.
+    // There's however no need to copy any state when copying a PulseFilter - it will be properly initialized with the
+    // correct strategy immediately, and we don't want to copy any stored pulses to another voice.
+    PulseFilter(const PulseFilter&) {};
+    PulseFilter& operator=(const PulseFilter&) {
+        return *this;
+    };
+    PulseFilter(PulseFilter&&) = default;
+    PulseFilter& operator=(PulseFilter&&) = default;
+
+    Voice<Trigger> process(Voice<Trigger>&& triggers, State state, bool is_immediate) {
+        Voice<Trigger> flushed;
+
+        if (auto new_strategy = parse_strategy_type(state, is_immediate); new_strategy != m_active_strategy) {
+            flushed = activate(new_strategy);
         }
 
-        if (is_immediate != m_immediate) {
-            // For now, we don't need to handle this case gracefully during runtime
-            m_immediate = is_immediate;
-            if (!m_is_first_value) {
-                return flush();
-            }
-        }
-
-        // Already open
-        if (!m_closed && !is_closed) {
-            return process_open(std::move(triggers));
-        }
-
-        // Closed in this cycle
-        // ReSharper disable once CppDFAConstantConditions
-        if (!m_closed && is_closed) {
-            m_closed = is_closed;
-            return close(std::move(triggers));
-        }
-
-        // Opened in this cycle
-        // ReSharper disable once CppDFAConstantConditions
-        if (m_closed && !is_closed) {
-            m_closed = is_closed;
-            return open(std::move(triggers));
-        }
-
-        // Otherwise: already closed
-        return process_closed(std::move(triggers));
+        return merge_without_duplicates(std::move(flushed), active_strategy().process(std::move(triggers), m_pulses));
     }
 
 
     Voice<Trigger> flush() override {
-        return ids_to_pulse_offs(m_pulses.flush());
+        return Strategy::flush(m_pulses);
     }
+
 
 private:
-    Voice<Trigger> open(Voice<Trigger>&& triggers) {
-        Voice<Trigger> flushed;
-        if (m_mode == Mode::sustain && m_immediate) {
-            flushed = flush_triggered();
-        }
 
-        return merge_without_duplicates(std::move(flushed), process_open(std::move(triggers)));
-    }
-
-
-    Voice<Trigger> close(Voice<Trigger>&& triggers) {
-        if (m_mode == Mode::sustain) {
-            register_pulse_ons(triggers);
-
-            // Flag any pulse_offs without releasing them
-            handle_pulse_offs(triggers, false);
-
-            // Remove all pulse offs from output
-            triggers.filter_drain([](const Trigger& t) { return !t.is_pulse_off(); });
-            return triggers;
-        }
-
-        // mode == pause
-        if (m_immediate) {
-            return flush();
-        } else {
-            return process_closed(std::move(triggers));
+    static StrategyType parse_strategy_type(State state, bool is_immediate) {
+        switch (state) {
+            case State::open:
+                return StrategyType::open;
+            case State::pause:
+                return is_immediate ? StrategyType::pause_immediate : StrategyType::pause_quantized;
+            case State::sustain:
+                return is_immediate ? StrategyType::sustain_immediate : StrategyType::sustain_quantized;
+            default:
+                throw std::invalid_argument("Invalid strategy type");
         }
     }
 
 
-    Voice<Trigger> process_closed(Voice<Trigger>&& triggers) {
-        // Pulse on (all modes): ignore
-        //
-        // Pulse offs:
-        //   sustain (immediate & !immediate): flag matching held pulses as triggered, without releasing them
-        //   pause (immediate):                same as above
-        //   pause (!immediate):               release any matched held pulses
-        bool release_matched = m_mode == Mode::pause && !m_immediate;
-        return ids_to_pulse_offs(handle_pulse_offs(triggers, release_matched));
-    }
-
-
-    Voice<Trigger> process_open(Voice<Trigger>&& triggers) {
-        // Pulse ons (all modes): process as usual
-        //
-        // Pulse offs:
-        //   sustain (!immediate): we may have lingering pulses from a previous closed state, which should all
-        //                         be released on the next pulse_off (independently of matching id)
-        //   sustain (immediate):  passthrough
-        //   pause (both):         passthrough
-
-        Voice<Trigger> flushed;
-        if (m_mode == Mode::sustain && !m_immediate && Trigger::contains_pulse_off(triggers)) {
-            flushed = flush_triggered();
-        }
-
-        register_pulse_ons(triggers);
-        handle_pulse_offs(triggers, true);
-
-        return merge_without_duplicates(std::move(flushed), std::move(triggers));
-    }
-
-
-    void register_pulse_ons(const Voice<Trigger>& triggers) {
-        for (const auto& trigger : triggers) {
-            if (trigger.is_pulse_on()) {
-                register_pulse_on(trigger.get_id());
-            }
-        }
-    }
-
-
-    Voice<PulseIdentifier> handle_pulse_offs(const Voice<Trigger>& triggers, bool release_matched) {
-        Voice<PulseIdentifier> output;
-        for (const auto& trigger : triggers) {
-            if (trigger.is_pulse_off()) {
-                if (auto released = handle_pulse_off(trigger.get_id(), release_matched)) {
-                    output.append(*released);
-                }
-            }
-        }
-        return output;
-    }
-
-
-    void register_pulse_on(std::size_t id) {
-        m_pulses.bind(PulseIdentifier{id});
-    }
-
-
-    std::optional<PulseIdentifier> handle_pulse_off(std::size_t id, bool release) {
-        if (auto p = m_pulses.find([id](const PulseIdentifier& pulse) { return pulse.id == id; })) {
-            if (release) {
-                m_pulses.release(p->get());
-                return p->get();
-            }
-            // otherwise: just flag it as triggered without releasing
-            p->get().triggered = true;
-        }
-        return std::nullopt;
-    }
-
-
-    Voice<Trigger> flush_triggered() {
-        return ids_to_pulse_offs(m_pulses.flush([](const PulseIdentifier& p) { return !p.triggered; }));
+    Voice<Trigger> activate(StrategyType strategy) {
+        Voice<Trigger> output = active_strategy().deactivate(m_pulses);
+        m_active_strategy = strategy;
+        return merge_without_duplicates(active_strategy().activate(m_pulses), std::move(output));
     }
 
 
@@ -191,21 +252,25 @@ private:
 
         return std::move(triggers);
     }
+    
 
-
-    static Voice<Trigger> ids_to_pulse_offs(const Voice<PulseIdentifier>& ids) {
-        return ids.as_type<Trigger>([](const PulseIdentifier& p) {
-            return Trigger::pulse_off(p.id);
-        });
+    Strategy& active_strategy() {
+        return *m_strategies[m_active_strategy];
     }
 
-    bool m_is_first_value = true; // avoid flushing on first value
+    static std::map<StrategyType, std::unique_ptr<Strategy>> make_strategies() {
+        std::map<StrategyType, std::unique_ptr<Strategy>> strategies;
+        strategies[StrategyType::open] = std::make_unique<Open>();
+        strategies[StrategyType::pause_immediate] = std::make_unique<PauseImmediate>();
+        strategies[StrategyType::pause_quantized] = std::make_unique<PauseQuantized>();
+        strategies[StrategyType::sustain_immediate] = std::make_unique<SustainImmediate>();
+        strategies[StrategyType::sustain_quantized] = std::make_unique<SustainQuantized>();
+        return strategies;
+    }
 
-    Held<PulseIdentifier, true> m_pulses;
-    Mode m_mode = DEFAULT_MODE;
-    bool m_immediate = DEFAULT_IMMEDIATE_VALUE;
-
-    bool m_closed = DEFAULT_CLOSED_STATE;
+    std::map<StrategyType, std::unique_ptr<Strategy>> m_strategies = make_strategies();
+    StrategyType m_active_strategy = StrategyType::open;
+    PulseState m_pulses;
 };
 
 
@@ -215,7 +280,6 @@ class PulseFilterNode : public NodeBase<Trigger> {
 public:
     struct Keys {
         static const inline std::string FILTER_STATE = "filter_state";
-        static const inline std::string MODE = "mode";
         static const inline std::string IMMEDIATE = "immediate";
         static const inline std::string CLASS_NAME = "pulse_filter";
     };
@@ -225,7 +289,6 @@ public:
                     , ParameterHandler& parent
                     , Node<Trigger>* trigger = nullptr
                     , Node<Facet>* filter_state = nullptr
-                    , Node<Facet>* mode = nullptr
                     , Node<Facet>* immediate = nullptr
                     , Node<Facet>* enabled = nullptr
                     , Node<Facet>* num_voices = nullptr
@@ -233,7 +296,6 @@ public:
         : NodeBase(identifier, parent, enabled, num_voices, class_name)
         , m_trigger(add_socket(param::properties::trigger, trigger))
         , m_filter_state(add_socket(Keys::FILTER_STATE, filter_state))
-        , m_mode(add_socket(Keys::MODE, mode))
         , m_immediate(add_socket(Keys::IMMEDIATE, immediate)) {}
 
 
@@ -254,8 +316,6 @@ public:
 
         auto trigger = m_trigger.process();
         auto filter_state = m_filter_state.process();
-
-        auto mode = m_mode.process().first_or(PulseFilter::DEFAULT_MODE);
         auto immediate = m_immediate.process().first_or(PulseFilter::DEFAULT_IMMEDIATE_VALUE);
 
         auto num_voices = voice_count(trigger.size(), filter_state.size());
@@ -267,16 +327,11 @@ public:
             output.merge_uneven(m_pulse_filters.resize(num_voices), true);
         }
 
-        trigger.adapted_to(num_voices);
-        auto is_closed = filter_state
-                .adapted_to(num_voices)
-                .as_type<bool>([](const Facet& f) {
-                    return utils::equals(static_cast<double>(f), PulseFilter::STATE_CLOSED);
-                })
-                .firsts_or(false);
+        auto triggers = trigger.adapted_to(num_voices);
+        auto filter_states = filter_state.adapted_to(num_voices).firsts_or(PulseFilter::DEFAULT_STATE);
 
         for (std::size_t i = 0; i < num_voices; ++i) {
-            output[i].extend(m_pulse_filters[i].process(std::move(trigger[i]), is_closed[i], mode, immediate));
+            output[i].extend(m_pulse_filters[i].process(std::move(triggers[i]), filter_states[i], immediate));
         }
 
         m_current_value = std::move(output);
@@ -321,7 +376,6 @@ private:
 
     Socket<Trigger>& m_trigger;
     Socket<Facet>& m_filter_state;
-    Socket<Facet>& m_mode;
     Socket<Facet>& m_immediate;
 
     EnabledGate m_enabled_gate;
@@ -341,11 +395,10 @@ struct PulseFilterWrapper {
 
     ParameterHandler ph;
     Sequence<Trigger> trigger{param::properties::trigger, ph, Voices<Trigger>::empty_like()};
-    Sequence<Facet, FloatType> filter_state{Keys::FILTER_STATE
+    Sequence<Facet, PulseFilter::State> filter_state{Keys::FILTER_STATE
                                             , ph
-                                            , Voices<FloatType>::singular(PulseFilter::STATE_OPEN)
+                                            , Voices<PulseFilter::State>::singular(PulseFilter::DEFAULT_STATE)
     };
-    Variable<Facet, PulseFilter::Mode> mode{Keys::MODE, ph, PulseFilter::DEFAULT_MODE};
     Variable<Facet, bool> immediate{Keys::IMMEDIATE, ph, PulseFilter::DEFAULT_IMMEDIATE_VALUE};
 
     Sequence<Facet, bool> enabled{param::properties::enabled, ph, Voices<bool>::singular(true)};
@@ -354,7 +407,6 @@ struct PulseFilterWrapper {
                                       , ph
                                       , &trigger
                                       , &filter_state
-                                      , &mode
                                       , &immediate
                                       , &enabled
                                       , &num_voices

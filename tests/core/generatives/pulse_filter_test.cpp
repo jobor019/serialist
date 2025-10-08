@@ -7,19 +7,15 @@
 #include <catch2/generators/catch_generators_all.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-
-
 #include "generators.h"
 #include "matchers/m1m.h"
-#include "matchers/m11.h"
-#include "matchers/m1s.h"
-#include "matchers/mms.h"
 
 using namespace serialist;
 using namespace serialist::test;
 
-auto CLOSED = Voices<double>::singular(PulseFilter::STATE_CLOSED);
-auto OPEN = Voices<double>::singular(PulseFilter::STATE_OPEN);
+auto PAUSE = Voices<PulseFilter::State>::singular(PulseFilter::State::pause);
+auto SUSTAIN = Voices<PulseFilter::State>::singular(PulseFilter::State::sustain);
+auto OPEN = Voices<PulseFilter::State>::singular(PulseFilter::State::open);
 
 auto NO_TRIGGER = Voices<Trigger>::empty_like();
 
@@ -32,18 +28,18 @@ Voices<Trigger> single_pulse_off(std::size_t id) {
     return Voices<Trigger>::singular(Trigger::pulse_off(id));
 }
 
-TEST_CASE("PulseFilter: Pause mode", "[pulse_filter]") {
+TEST_CASE("PulseFilter: Pause-Open", "[pulse_filter]") {
     PulseFilterWrapper<> w;
     auto& trigger = w.trigger;
     auto& filter_state = w.filter_state;
-
-    w.mode.set_value(PulseFilter::Mode::pause);
 
     auto runner = NodeRunner{&w.pulse_filter_node};
 
     filter_state.set_values(OPEN);
 
     SECTION("immediate") {
+        w.immediate.set_value(true);
+
         // Initially open: passthrough
         auto [pulse_on1, id1] = single_pulse_on();
         trigger.set_values(pulse_on1);
@@ -65,7 +61,7 @@ TEST_CASE("PulseFilter: Pause mode", "[pulse_filter]") {
         trigger.set_values(NO_TRIGGER);
 
         // Immediately output any remaining pulse_offs (id1) on first closed step
-        filter_state.set_values(CLOSED);
+        filter_state.set_values(PAUSE);
         REQUIRE_THAT(runner.step(), m1m::equalst_off(id1));
 
         // Ignore any further pulse_ons & pulse_offs until we're back open
@@ -88,13 +84,13 @@ TEST_CASE("PulseFilter: Sustain mode", "[pulse_filter]") {
     auto& trigger = w.trigger;
     auto& filter_state = w.filter_state;
 
-    w.mode.set_value(PulseFilter::Mode::sustain);
-
     auto runner = NodeRunner{&w.pulse_filter_node};
 
     filter_state.set_values(OPEN);
 
     SECTION("immediate") {
+        w.immediate.set_value(true);
+
         // Initially open: passthrough
         auto [pulse_on1, id1] = single_pulse_on();
         trigger.set_values(pulse_on1);
@@ -116,7 +112,7 @@ TEST_CASE("PulseFilter: Sustain mode", "[pulse_filter]") {
         trigger.set_values(NO_TRIGGER);
 
         // Close filter: no particular action
-        filter_state.set_values(CLOSED);
+        filter_state.set_values(SUSTAIN);
         REQUIRE_THAT(runner.step(), m1m::emptyt());
 
         // Queue pulse_off for id1: sustain until opened again

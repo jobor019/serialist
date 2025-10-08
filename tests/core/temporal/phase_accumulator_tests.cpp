@@ -4,7 +4,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "core/policies/policies.h"
-#include "core/temporal/phase_node.h"
+#include "core/temporal/phase_accumulator.h"
 
 #include "node_runner.h"
 #include "generators.h"

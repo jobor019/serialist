@@ -3,7 +3,7 @@ SET(CORE_NAME core)
 add_library(${CORE_NAME}
         INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/temporal/filters.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/temporal/phase_node.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/temporal/phase_accumulator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/temporal/phase_pulse.h
         ${CMAKE_CURRENT_SOURCE_DIR}/temporal/pulse.h
         ${CMAKE_CURRENT_SOURCE_DIR}/temporal/time_gate.h

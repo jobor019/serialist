@@ -163,7 +163,7 @@ public:
         , m_octave(NodeBase<T>::add_socket(Keys::OCTAVE, octave)) {}
 
 
-    Voices<T> process() {
+    Voices<T> process() override {
         if (auto t = NodeBase<T>::pop_time(); !t) {
             return m_current_value;
         }

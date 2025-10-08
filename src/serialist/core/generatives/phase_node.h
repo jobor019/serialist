@@ -4,7 +4,7 @@
 
 #include "core/algo/random/random.h"
 #include "core/temporal/filters.h"
-#include "core/temporal/phase_node.h"
+#include "core/temporal/phase_accumulator.h"
 #include "core/types/facet.h"
 #include "core/generatives/stereotypes/base_stereotypes.h"
 #include "core/types/trigger.h"
