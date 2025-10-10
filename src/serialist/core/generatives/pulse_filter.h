@@ -182,7 +182,7 @@ class PulseFilter : public Flushable<Trigger> {
     };
     
 public:
-    enum class State { open, pause, sustain };
+    enum class State { pause, open, sustain };
 
     static constexpr auto DEFAULT_STATE = State::open;
     static constexpr auto DEFAULT_IMMEDIATE_VALUE = false;

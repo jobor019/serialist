@@ -124,40 +124,49 @@ enum class Enum1 {
 
 
 template<typename T>
-void assert_enum() {
+void assert_int_enum_round_trip() {
     auto count = static_cast<int>(magic_enum::enum_count<T>());
+    CAPTURE(count);
     REQUIRE(count > 0);
     for (int i = 0; i < count; ++i) {
-        auto e = static_cast<T>(i);
-        auto f1 = static_cast<Facet>(e);
-        auto f2 = Facet(e);
-        REQUIRE(static_cast<T>(f1) == e);
-        REQUIRE(static_cast<T>(f2) == e);
+        auto enum_value = static_cast<T>(i);
+        auto facet_cast_value = static_cast<Facet>(enum_value);
+        auto facet_ctor_value = Facet(enum_value);
+        REQUIRE(static_cast<T>(facet_cast_value) == enum_value);
+        REQUIRE(static_cast<T>(facet_ctor_value) == enum_value);
     }
 }
 
 
-TEST_CASE("Enum conversion", "[facet]") {
-    // True assertions
-    assert_enum<Enum100>();
-    assert_enum<Enum37>();
-    assert_enum<Enum19>();
-    assert_enum<Enum11>();
-    assert_enum<Enum7>();
-    assert_enum<Enum3>();
-    assert_enum<Enum2>();
-    assert_enum<Enum1>();
+TEST_CASE("Facet: Double to enum conversion is discretized correctly", "[facet]") {
+    auto eps2 = 2.0 * Facet::ENUM_EPSILON;
+    REQUIRE(static_cast<Enum3>(Facet(0.0)) == Enum3::e1);
+    REQUIRE(static_cast<Enum3>(Facet(1.0/3.0 - eps2)) == Enum3::e1);
+    REQUIRE(static_cast<Enum3>(Facet(1.0/3.0 + eps2)) == Enum3::e2);
+    REQUIRE(static_cast<Enum3>(Facet(2.0/3.0 - eps2)) == Enum3::e2);
+    REQUIRE(static_cast<Enum3>(Facet(2.0/3.0 + eps2)) == Enum3::e3);
+    REQUIRE(static_cast<Enum3>(Facet(1.0)) == Enum3::e3);
 
-
-    // False assertions
-    auto max_enum = Enum100::e100;
-    auto prev_enum =static_cast<Enum100>(0);
-    for (int i = 1; i < static_cast<int>(max_enum); ++i) {
-        auto f = Facet(prev_enum);
-        prev_enum = static_cast<Enum100>(i);
-        REQUIRE(static_cast<Enum100>(f) != prev_enum);
+    SECTION("Out of bounds values are clamped") {
+        REQUIRE(static_cast<Enum3>(Facet(-0.1)) == Enum3::e1);
+        REQUIRE(static_cast<Enum3>(Facet(1.1)) == Enum3::e3);
     }
 }
+
+
+TEST_CASE("Facet: Int to enum conversion is discretized correctly", "[facet]") {
+    SECTION("Int enum round trip") {
+        assert_int_enum_round_trip<Enum100>();
+        assert_int_enum_round_trip<Enum37>();
+        assert_int_enum_round_trip<Enum19>();
+        assert_int_enum_round_trip<Enum11>();
+        assert_int_enum_round_trip<Enum7>();
+        assert_int_enum_round_trip<Enum3>();
+        assert_int_enum_round_trip<Enum2>();
+        assert_int_enum_round_trip<Enum1>();
+    }
+}
+
 
 TEST_CASE("Arithmetic operators", "[facet]") {
     Facet f1(1.0);

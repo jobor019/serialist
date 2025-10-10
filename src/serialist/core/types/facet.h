@@ -270,12 +270,26 @@ private:
 
     template<typename T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
     static T double_to_enum(double d) {
-        d = std::min(1.0, std::max(0.0, d));
-        constexpr auto n_values = magic_enum::enum_count<T>();
+        if (std::isnan(d)) d = 0.0;
+        d = std::clamp(d, 0.0, 1.0);
 
-        auto index = std::floor((d + ENUM_EPSILON) * n_values);
+        constexpr std::size_t n = magic_enum::enum_count<T>();
+        static_assert(n > 0, "Enum must have at least one value");
 
-        return static_cast<T>(index);
+        if (utils::equals(d, 0.0, ENUM_EPSILON)) {
+            return magic_enum::enum_values<T>()[0];
+        }
+
+        if (utils::equals(d, 1.0, ENUM_EPSILON)) {
+            return magic_enum::enum_values<T>()[n - 1];
+        }
+
+        const double scaled = (d + ENUM_EPSILON) * static_cast<double>(n);
+        std::size_t idx = static_cast<std::size_t>(std::floor(scaled));
+
+        if (idx >= n) idx = n - 1; // paranoia guard
+
+        return magic_enum::enum_values<T>()[idx];
     }
 
 
