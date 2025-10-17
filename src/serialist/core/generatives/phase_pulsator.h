@@ -308,7 +308,7 @@ struct PhasePulsatorParameters {
 class SingleThresholdStrategy {
 public:
     static constexpr double JUMP_DETECTION_THRESHOLD = 0.3;
-    static constexpr double THRESHOLD_PROXIMITY = 1e-3;
+    static constexpr double THRESHOLD_PROXIMITY = 0.01;
 
     using State = PhasePulsatorState;
     using Params = PhasePulsatorParameters;

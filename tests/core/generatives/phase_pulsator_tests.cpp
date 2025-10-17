@@ -267,12 +267,14 @@ TEST_CASE("PhasePulsator: Initial cursor position (R1.1.4)", "[phase_pulsator]")
     NodeRunner runner{&w.pulsator_node};
 
     SECTION("Initial cursor close to 0.0 triggers pulse") {
-        cursor.set_values(0.0);
+        auto cursor_position = GENERATE(0.0, 0.001, 0.005, 0.009);
+        assert(cursor_position < SingleThresholdStrategy::THRESHOLD_PROXIMITY);
+        cursor.set_values(cursor_position);
         REQUIRE_THAT(runner.step(), m1m::equalst_on());
     }
 
     SECTION("Initial cursor close to 1.0 triggers pulse") {
-        cursor.set_values(1.0);
+        cursor.set_values(Phase::max());
         REQUIRE_THAT(runner.step(), m1m::equalst_on());
     }
 
@@ -959,38 +961,38 @@ TEST_CASE("PhasePulsator: Legato edge cases (R1.2.6)", "[phase_pulsator]") {
 }
 
 
-TEST_CASE("PhasePulsator: correct inferred voice count of first value after being enabled", "[phase_pulsator]") {
-    // Test added due to a bug discovered at runtime
+TEST_CASE("PhasePulsator: Voice Count edge cases (R1.2.7)", "[phase_pulsator]") {
+    SECTION("Correctly inferred voice count of first value after being enabled") {
+        PhasePulsatorWrapper w;
+        PhaseWrapper phase_w;
+        NodeRunner runner{&w.pulsator_node};
+        runner.add_generative(phase_w.phase_node);
 
-    PhasePulsatorWrapper w;
-    PhaseWrapper phase_w;
-    NodeRunner runner{&w.pulsator_node};
-    runner.add_generative(phase_w.phase_node);
+        // four voices with different phases
+        phase_w.period.set_values(Voices<double>::transposed({0.8, 0.9, 1.0, 1.1}));
 
-    // four voices with different phases
-    phase_w.period.set_values(Voices<double>::transposed({0.8, 0.9, 1.0, 1.1}));
+        auto& pulse = w.pulsator_node;
 
-    auto& pulse = w.pulsator_node;
+        pulse.set_cursor(&phase_w.phase_node);
 
-    pulse.set_cursor(&phase_w.phase_node);
+        // Step to an arbitrary point
+        auto r = runner.step_until(DomainTimePoint::ticks(2.5), Anchor::after);
+        REQUIRE_THAT(r, mms::size<Trigger>(4, MatchType::all)); // Note: mms, not m1s since some voices may be empty
 
-    // Step to an arbitrary point
-    auto r = runner.step_until(DomainTimePoint::ticks(2.5), Anchor::after);
-    REQUIRE_THAT(r, mms::size<Trigger>(4, MatchType::all)); // Note: mms, not m1s since some voices may be empty
+        w.enabled.set_values(false);
 
-    w.enabled.set_values(false);
+        // First step after disabled: we expect a flush here
+        r = runner.step();
+        REQUIRE_THAT(r, m1s::size<Trigger>(4));
 
-    // First step after disabled: we expect a flush here
-    r = runner.step();
-    REQUIRE_THAT(r, m1s::size<Trigger>(4));
+        // Second step after disabled: we expect empty output
+        r = runner.step();
+        REQUIRE_THAT(r, m11::empty<Trigger>());
 
-    // Second step after disabled: we expect empty output
-    r = runner.step();
-    REQUIRE_THAT(r, m11::empty<Trigger>());
+        w.enabled.set_values(true);
 
-    w.enabled.set_values(true);
-
-    // First step after re-enabling: we expect size to once again be same as inferred by the phase node
-    r = runner.step();
-    REQUIRE_THAT(r, mms::size<Trigger>(4));
+        // First step after re-enabling: we expect size to once again be same as inferred by the phase node
+        r = runner.step();
+        REQUIRE_THAT(r, mms::size<Trigger>(4));
+    }
 }
