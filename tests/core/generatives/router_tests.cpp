@@ -139,6 +139,39 @@ TEST_CASE("Router: route (multi)", "[router]") {
         REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m11::emptyf());
         REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::emptyf());
     }
+
+    SECTION("Empty map") {
+        set_map(map, {});
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m11::emptyf());
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m11::emptyf());
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::emptyf());
+    }
+
+    SECTION("Map index outside input range") {
+        set_map(map, {4}); // output 4:th input (invalid) on first outlet
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m11::emptyf());
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m11::emptyf());
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::emptyf());
+    }
+
+    SECTION("Map index outside output range") {
+        set_map(map, {0, 0, 0, 0}); // output 0:th input on four outlets (last outlet invalid
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m11::eqf(111));
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m11::eqf(111));
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::eqf(111));
+    }
 }
 
 
@@ -986,4 +1019,75 @@ TEST_CASE("Router: route pulse (single), resizing input", "[router]") {
 
     // output: [- - -], no change in state
     REQUIRE_THAT(r, m11::empty<Trigger>());
+}
+
+
+TEST_CASE("Router: route pulse (multi) handles mappings correctly", "[router]") {
+    RouterPulseWrapper w(3, 3);
+
+    w.mode.set_value(RouterMode::route);
+    w.uses_index.set_value(true);
+
+    std::size_t pulse_id = 1;
+    w.set_input(0, Voices<Trigger>::singular(Trigger::with_manual_id(Trigger::Type::pulse_on, pulse_id)));
+    w.set_input(1, Voices<Trigger>::singular(Trigger::pulse_off(pulse_id)));
+    w.set_input(2, Voices<Trigger>::empty_like());
+
+    auto& router = w.router_node;
+    auto& map = w.routing_map;
+
+    SECTION("Unit map") {
+        set_map(map, {0.0, 1.0, 2.0});
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[0]), m1m::equalst_on(pulse_id));
+        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[1]), m1m::equalst_off(pulse_id));
+        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[2]), m1m::emptyt());
+    }
+
+    SECTION("Subset") {
+        set_map(map, {0.0});
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[0]), m1m::equalst_on(pulse_id));
+        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[1]), m1m::emptyt());
+        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[2]), m1m::emptyt());
+    }
+
+    SECTION("Empty map") {
+        set_map(map, {});
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[0]), m1m::emptyt());
+        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[1]), m1m::emptyt());
+        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[2]), m1m::emptyt());
+    }
+
+    SECTION("Map index outside input range") {
+        set_map(map, {4}); // output 4:th input (invalid) on first outlet
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[0]), m1m::emptyt());
+        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[1]), m1m::emptyt());
+        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[2]), m1m::emptyt());
+    }
+
+    SECTION("Map index outside output range") {
+        set_map(map, {0, 0, 0, 0}); // output 0:th input on four outlets (last outlet invalid
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[0]), m1m::equalst_on(pulse_id));
+        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[1]), m1m::equalst_on(pulse_id));
+        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[2]), m1m::equalst_on(pulse_id));
+    }
 }

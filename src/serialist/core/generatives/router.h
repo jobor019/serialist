@@ -238,7 +238,7 @@ public:
 
 
     /**
-     * @brief apply to 1-1 mapping (i.e. mapping defines inlet and outlets)
+     * @brief apply to N-M mapping (i.e. mapping defines inlet and outlets)
      */
     template<typename T>
     MultiVoices<T> apply_multi(MultiVoices<T>&& input) const {
@@ -246,13 +246,9 @@ public:
             return {Voices<T>::empty_like()};
         }
 
-        // This should be handled at parse time.
-        // We need the spec to correspond to actual output in later stages (PulseRouter)
-        assert(input.size() >= m_mapping.size());
-
         auto output = MultiVoices<T>::allocated(m_mapping.size());
         for (const auto& i : m_mapping) {
-            if (i) {
+            if (i && *i < input.size()) {
                 output.append(input[*i]);
             } else {
                 output.append(Voices<T>::empty_like());
@@ -982,10 +978,12 @@ public:
      * @brief append empty voices to any non-routed outlet, to ensure that every outlet always has a value
      */
     MultiVoices<T> adjust_size(MultiVoices<T>&& output) const {
-        assert(output.size() <= m_num_outlets);
-
         if (output.size() == m_num_outlets)
             return output;
+
+        if (output.size() > m_num_outlets) {
+            return output.slice(0, static_cast<long>(m_num_outlets));
+        }
 
         for (std::size_t outlet_index = output.size(); outlet_index < m_num_outlets; ++outlet_index) {
             output.append(Voices<T>::empty_like());
@@ -1223,15 +1221,17 @@ public:
 
         auto [output, mapping] = m_router.process(std::move(input), spec, mode, index_type);
 
-        // Since MultioutletHeldPulses cannot distinguish between a single voice with no output (Voices::empty_like)
+        // Since MultiOutletHeldPulses cannot distinguish between a single voice with no output (Voices::empty_like)
         // and a completely empty output resulting from an empty mapping (Voices::empty_like too),
         // we need to handle this case separately by flushing all outlets
         if (mapping.is_empty()) {
             // If the mapping is empty, no output should've passed through
-            assert(output.size() == 1 && output[0].is_empty_like());
+            assert(output.all([](const Voices<Trigger>& v) { return v.is_empty_like(); }));
             m_previous_mapping = std::move(mapping);
             return m_held.flush();
         }
+
+        output = m_router.adjust_size(std::move(output));
 
         auto flushed = mapping.flush_dangling_triggers(output, m_previous_mapping, m_held, flush_mode);
 
@@ -1241,7 +1241,7 @@ public:
 
         m_previous_mapping = std::move(mapping);
 
-        return m_router.adjust_size(std::move(output));
+        return output;
     }
 
 
