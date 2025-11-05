@@ -10,7 +10,7 @@ class Index {
 public:
     using IndexType = int64_t;
 
-    enum class Strategy { cont, mod, clip, pass };
+    enum class Strategy { mod, cont, clip, pass };
 
     enum class Type { phase, index };
 
