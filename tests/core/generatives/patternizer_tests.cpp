@@ -60,3 +60,43 @@ TEST_CASE("Patternizer: negative mode", "[patternizer]") {
     REQUIRE_THAT(r, m1m::sizef(3));
     REQUIRE_THAT(r, m1m::eqf(Vec{11, 12, 13}));
 }
+
+
+TEST_CASE("Patternizer: inverse", "[patternizer]") {
+    PatternizerIntWrapper<> w;
+
+    w.chord.set_values(Voices<int>::singular({10, 11, 12, 13}));
+
+    w.inverse.set_value(true);
+    w.pattern_uses_index.set_value(true);
+    w.octave.set_values(12);
+
+    // auto mode = GENERATE(Mode::mod, Mode::cont);
+    auto mode = Mode::cont;
+    w.mode.set_values(mode);
+    CAPTURE(mode);
+
+    w.trigger.set_values(Trigger::pulse_on());
+
+    NodeRunner runner{&w.patternizer_mode};
+
+    w.pattern.set_values(Voices<double>::singular({0}));
+    auto r = runner.step();
+    REQUIRE_THAT(r, m1m::sizef(1));
+    REQUIRE_THAT(r, m1m::eqf(Vec{13}));
+
+    w.pattern.set_values(Voices<double>::singular({0, 1}));
+    r = runner.step();
+    REQUIRE_THAT(r, m1m::sizef(2));
+    REQUIRE_THAT(r, m1m::eqf(Vec{13, 12}));
+
+    w.pattern.set_values(Voices<double>::singular({0, 1, 2}));
+    r = runner.step();
+    REQUIRE_THAT(r, m1m::sizef(3));
+    REQUIRE_THAT(r, m1m::eqf(Vec{13, 12, 11}));
+
+    w.pattern.set_values(Voices<double>::singular({0, 1, 2, 3}));
+    r = runner.step();
+    REQUIRE_THAT(r, m1m::sizef(4));
+    REQUIRE_THAT(r, m1m::eqf(Vec{13, 12, 11, 10}));
+}

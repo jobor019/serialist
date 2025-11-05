@@ -113,7 +113,7 @@ private:
                                    , std::optional<T> octave
                                    , bool invert) {
         if (mode == Mode::cont && octave) {
-            return Index::apply_octave(index, v, *octave);
+            return Index::apply_octave(index, v, *octave, invert);
         }
 
         if (auto i = index.get(v.size(), mode_to_strategy(mode), invert)) {
