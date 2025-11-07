@@ -146,6 +146,17 @@ TEST_CASE("Router: route (multi)", "[router]") {
         REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::emptyf());
     }
 
+    SECTION("Offset subset") {
+        set_map(map, {1.0, 2.0});
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m11::eqf(222.0));
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[1]), m11::eqf(333.0));
+        REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[2]), m11::emptyf());
+    }
+
     SECTION("Single value") {
         set_map(map, {2.0});
         router.update_time(TimePoint{});
@@ -598,7 +609,7 @@ TEST_CASE("Router (Pulse): route single pulse", "[router]") {
         auto multi_r = router.process();
 
         REQUIRE(multi_r.size() == 1);
-        auto r = RunResult<Trigger>::dummy(multi_r[0]);
+        auto r = dummy(multi_r, 0);
 
         REQUIRE_THAT(r, mms::sizet(3));
         REQUIRE_THAT(r, mms::equalst_on(0));
@@ -611,7 +622,7 @@ TEST_CASE("Router (Pulse): route single pulse", "[router]") {
         multi_r = router.process();
 
         REQUIRE(multi_r.size() == 1);
-        r = RunResult<Trigger>::dummy(multi_r[0]);
+        r = dummy(multi_r, 0);
 
         REQUIRE_THAT(r, mms::sizet(3));
         REQUIRE_THAT(r, mms::emptyt(0));
@@ -626,7 +637,7 @@ TEST_CASE("Router (Pulse): route single pulse", "[router]") {
         auto multi_r = router.process();
 
         REQUIRE(multi_r.size() == 1);
-        auto r = RunResult<Trigger>::dummy(multi_r[0]);
+        auto r = dummy(multi_r, 0);
 
         REQUIRE_THAT(r, mms::sizet(2));
         REQUIRE_THAT(r, mms::emptyt(0));
@@ -638,7 +649,7 @@ TEST_CASE("Router (Pulse): route single pulse", "[router]") {
         multi_r = router.process();
 
         REQUIRE(multi_r.size() == 1);
-        r = RunResult<Trigger>::dummy(multi_r[0]);
+        r = dummy(multi_r, 0);
 
         REQUIRE_THAT(r, mms::sizet(2));
         REQUIRE_THAT(r, mms::equalst_on(0));
@@ -651,7 +662,7 @@ TEST_CASE("Router (Pulse): route single pulse", "[router]") {
         auto multi_r = router.process();
 
         REQUIRE(multi_r.size() == 1);
-        auto r = RunResult<Trigger>::dummy(multi_r[0]);
+        auto r = dummy(multi_r, 0);
 
         REQUIRE_THAT(r, mms::sizet(4));
         REQUIRE_THAT(r, mms::equalst_on(0));
@@ -668,7 +679,7 @@ TEST_CASE("Router (Pulse): route single pulse", "[router]") {
         auto multi_r = router.process();
 
         REQUIRE(multi_r.size() == 1);
-        auto r = RunResult<Trigger>::dummy(multi_r[0]);
+        auto r = dummy(multi_r, 0);
 
         REQUIRE_THAT(r, mms::sizet(3));
         REQUIRE_THAT(r, mms::equalst_on(0));
@@ -682,7 +693,7 @@ TEST_CASE("Router (Pulse): route single pulse", "[router]") {
         auto multi_r = router.process();
 
         REQUIRE(multi_r.size() == 1);
-        auto r = RunResult<Trigger>::dummy(multi_r[0]);
+        auto r = dummy(multi_r, 0);
         REQUIRE_THAT(r, m11::empty<Trigger>());
     }
 
@@ -696,7 +707,7 @@ TEST_CASE("Router (Pulse): route single pulse", "[router]") {
         auto multi_r = router.process();
 
         REQUIRE(multi_r.size() == 1);
-        auto r = RunResult<Trigger>::dummy(multi_r[0]);
+        auto r = dummy(multi_r, 0);
 
         REQUIRE_THAT(r, mms::sizet(3));
         REQUIRE_THAT(r, mms::equalst_off(0));
@@ -735,7 +746,7 @@ TEST_CASE("Router (Pulse): route single pulse, changing routing", "[router]") {
         router.process();
         auto multi_r = router.process();
         REQUIRE(multi_r.size() == 1);
-        auto r = RunResult<Trigger>::dummy(multi_r[0]);
+        auto r = dummy(multi_r, 0);
 
         // Expected flush of voice 0 (new state after flush: [- -])
         REQUIRE_THAT(r, mms::sizet(2));
@@ -760,7 +771,7 @@ TEST_CASE("Router (Pulse): route single pulse, changing routing", "[router]") {
         router.process();
         auto multi_r = router.process();
         REQUIRE(multi_r.size() == 1);
-        auto r = RunResult<Trigger>::dummy(multi_r[0]);
+        auto r = dummy(multi_r, 0);
 
         // No flush of voice 0, but flag its active ON as triggered (new state after flush: [ON(a, triggered) -])
         REQUIRE_THAT(r, mms::sizet(2));
@@ -774,7 +785,7 @@ TEST_CASE("Router (Pulse): route single pulse, changing routing", "[router]") {
         router.process();
         multi_r = router.process();
         REQUIRE(multi_r.size() == 1);
-        r = RunResult<Trigger>::dummy(multi_r[0]);
+        r = dummy(multi_r, 0);
 
         // Expected flush of voice 0 (new state after flush: [ON(b) ON(b)])
         REQUIRE_THAT(r, mms::sizet(2));
@@ -805,7 +816,7 @@ TEST_CASE("Router (Pulse): route single pulse, changing routing", "[router]") {
         router.process();
         auto multi_r = router.process();
         REQUIRE(multi_r.size() == 1);
-        auto r = RunResult<Trigger>::dummy(multi_r[0]);
+        auto r = dummy(multi_r, 0);
 
         // Expected flush of both pulses in voice 0 (new state after flush: [- -])
         REQUIRE_THAT(r, mms::sizet(2));
@@ -828,7 +839,7 @@ TEST_CASE("Router (Pulse): route single pulse, changing routing", "[router]") {
         router.process();
         auto multi_r = router.process();
         REQUIRE(multi_r.size() == 1);
-        auto r = RunResult<Trigger>::dummy(multi_r[0]);
+        auto r = dummy(multi_r, 0);
 
         REQUIRE_THAT(r, mms::sizet(2));
         REQUIRE_THAT(r, mms::emptyt(0));
@@ -853,7 +864,7 @@ TEST_CASE("Router (Pulse): route single pulse, changing routing", "[router]") {
         router.process();
         auto multi_r = router.process();
         REQUIRE(multi_r.size() == 1);
-        auto r = RunResult<Trigger>::dummy(multi_r[0]);
+        auto r = dummy(multi_r, 0);
 
         REQUIRE_THAT(r, mms::sizet(2));
         REQUIRE_THAT(r, mms::containst_off(0, pulse_on.get_id()));
@@ -877,7 +888,7 @@ TEST_CASE("Router (Pulse): route single pulse, changing routing", "[router]") {
         router.update_time(TimePoint{});
         auto multi_r = router.process();
         REQUIRE(multi_r.size() == 1);
-        auto r = RunResult<Trigger>::dummy(multi_r[0]);
+        auto r = dummy(multi_r, 0);
 
         REQUIRE_THAT(r, mms::sizet(2));
         REQUIRE_THAT(r, mms::equalst_off(0, pulse_on_a.get_id()));
@@ -895,7 +906,7 @@ TEST_CASE("Router (Pulse): route single pulse, changing routing", "[router]") {
         router.update_time(TimePoint{});
         auto multi_r = router.process();
         REQUIRE(multi_r.size() == 1);
-        auto r = RunResult<Trigger>::dummy(multi_r[0]);
+        auto r = dummy(multi_r, 0);
 
         REQUIRE_THAT(r, mms::sizet(1));
         REQUIRE_THAT(r, mms::containst_on(0));
@@ -905,7 +916,7 @@ TEST_CASE("Router (Pulse): route single pulse, changing routing", "[router]") {
         router.update_time(TimePoint{});
         multi_r = router.process();
         REQUIRE(multi_r.size() == 1);
-        r = RunResult<Trigger>::dummy(multi_r[0]);
+        r = dummy(multi_r, 0);
 
         // No input: state still [ON]
         REQUIRE_THAT(r, mms::sizet(1));
@@ -917,7 +928,7 @@ TEST_CASE("Router (Pulse): route single pulse, changing routing", "[router]") {
         router.update_time(TimePoint{});
         multi_r = router.process();
         REQUIRE(multi_r.size() == 1);
-        r = RunResult<Trigger>::dummy(multi_r[0]);
+        r = dummy(multi_r, 0);
 
         REQUIRE_THAT(r, mms::sizet(1));
         REQUIRE_THAT(r, mms::equalst_off(0, pulse_on.get_id()));
@@ -949,7 +960,7 @@ TEST_CASE("Router (Pulse): route single pulse, switching mode", "[router]") {
         router.update_time(TimePoint{});
         auto multi_r = router.process();
         REQUIRE(multi_r.size() == 1);
-        auto r = RunResult<Trigger>::dummy(multi_r[0]);
+        auto r = dummy(multi_r, 0);
 
         // Initial state: [ON(a) ON(b)]
         REQUIRE_THAT(r, mms::sizet(2));
@@ -964,7 +975,7 @@ TEST_CASE("Router (Pulse): route single pulse, switching mode", "[router]") {
         router.process();
         multi_r = router.process();
         REQUIRE(multi_r.size() == 1);
-        r = RunResult<Trigger>::dummy(multi_r[0]);
+        r = dummy(multi_r, 0);
 
         REQUIRE_THAT(r, mms::sizet(2));
         REQUIRE_THAT(r, mms::equalst_off(0, pulse_on_voice0.get_id()));
@@ -996,7 +1007,7 @@ TEST_CASE("Router (Pulse): route single pulse, resizing input", "[router]") {
     router.update_time(TimePoint{});
     multi_r = router.process();
     REQUIRE(multi_r.size() == 1);
-    auto r = RunResult<Trigger>::dummy(multi_r[0]);
+    auto r = dummy(multi_r, 0);
 
     // We expect third voice to be flushed here: output: [- - OFF], new state: [ON ON]
     REQUIRE_THAT(r, mms::sizet(3));
@@ -1009,7 +1020,7 @@ TEST_CASE("Router (Pulse): route single pulse, resizing input", "[router]") {
     router.update_time(TimePoint{});
     multi_r = router.process();
     REQUIRE(multi_r.size() == 1);
-    r = RunResult<Trigger>::dummy(multi_r[0]);
+    r = dummy(multi_r, 0);
 
     // output: [- - ON], new state: [ON ON ON]
     REQUIRE_THAT(r, mms::sizet(3));
@@ -1022,7 +1033,7 @@ TEST_CASE("Router (Pulse): route single pulse, resizing input", "[router]") {
     router.update_time(TimePoint{});
     multi_r = router.process();
     REQUIRE(multi_r.size() == 1);
-    r = RunResult<Trigger>::dummy(multi_r[0]);
+    r = dummy(multi_r, 0);
 
     // output: [- - -], no change in state
     REQUIRE_THAT(r, m11::empty<Trigger>());
@@ -1032,7 +1043,7 @@ TEST_CASE("Router (Pulse): route single pulse, resizing input", "[router]") {
     router.update_time(TimePoint{});
     multi_r = router.process();
     REQUIRE(multi_r.size() == 1);
-    r = RunResult<Trigger>::dummy(multi_r[0]);
+    r = dummy(multi_r, 0);
 
     // output: [- - -], no change in state
     REQUIRE_THAT(r, m11::empty<Trigger>());
@@ -1059,9 +1070,9 @@ TEST_CASE("Router (Pulse): route multiple pulses handles mappings correctly", "[
         auto multi_r = router.process();
 
         REQUIRE(multi_r.size() == 3);
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[0]), m1m::equalst_on(pulse_id));
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[1]), m1m::equalst_off(pulse_id));
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[2]), m1m::emptyt());
+        REQUIRE_THAT(dummy(multi_r, 0), m1m::equalst_on(pulse_id));
+        REQUIRE_THAT(dummy(multi_r, 1), m1m::equalst_off(pulse_id));
+        REQUIRE_THAT(dummy(multi_r, 2), m1m::emptyt());
     }
 
     SECTION("Subset") {
@@ -1070,9 +1081,20 @@ TEST_CASE("Router (Pulse): route multiple pulses handles mappings correctly", "[
         auto multi_r = router.process();
 
         REQUIRE(multi_r.size() == 3);
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[0]), m1m::equalst_on(pulse_id));
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[1]), m1m::emptyt());
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[2]), m1m::emptyt());
+        REQUIRE_THAT(dummy(multi_r, 0), m1m::equalst_on(pulse_id));
+        REQUIRE_THAT(dummy(multi_r, 1), m1m::emptyt());
+        REQUIRE_THAT(dummy(multi_r, 2), m1m::emptyt());
+    }
+
+    SECTION("Offset subset") {
+        set_map(map, {1.0});
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(dummy(multi_r, 0), m1m::equalst_off(pulse_id));
+        REQUIRE_THAT(dummy(multi_r, 1), m1m::emptyt());
+        REQUIRE_THAT(dummy(multi_r, 2), m1m::emptyt());
     }
 
     SECTION("Empty map") {
@@ -1081,9 +1103,9 @@ TEST_CASE("Router (Pulse): route multiple pulses handles mappings correctly", "[
         auto multi_r = router.process();
 
         REQUIRE(multi_r.size() == 3);
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[0]), m1m::emptyt());
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[1]), m1m::emptyt());
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[2]), m1m::emptyt());
+        REQUIRE_THAT(dummy(multi_r, 0), m1m::emptyt());
+        REQUIRE_THAT(dummy(multi_r, 1), m1m::emptyt());
+        REQUIRE_THAT(dummy(multi_r, 2), m1m::emptyt());
     }
 
     SECTION("Map index outside input range") {
@@ -1092,9 +1114,9 @@ TEST_CASE("Router (Pulse): route multiple pulses handles mappings correctly", "[
         auto multi_r = router.process();
 
         REQUIRE(multi_r.size() == 3);
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[0]), m1m::emptyt());
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[1]), m1m::emptyt());
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[2]), m1m::emptyt());
+        REQUIRE_THAT(dummy(multi_r, 0), m1m::emptyt());
+        REQUIRE_THAT(dummy(multi_r, 1), m1m::emptyt());
+        REQUIRE_THAT(dummy(multi_r, 2), m1m::emptyt());
     }
 
     SECTION("Map index outside output range") {
@@ -1103,9 +1125,9 @@ TEST_CASE("Router (Pulse): route multiple pulses handles mappings correctly", "[
         auto multi_r = router.process();
 
         REQUIRE(multi_r.size() == 3);
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[0]), m1m::equalst_on(pulse_id));
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[1]), m1m::equalst_on(pulse_id));
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[2]), m1m::equalst_on(pulse_id));
+        REQUIRE_THAT(dummy(multi_r, 0), m1m::equalst_on(pulse_id));
+        REQUIRE_THAT(dummy(multi_r, 1), m1m::equalst_on(pulse_id));
+        REQUIRE_THAT(dummy(multi_r, 2), m1m::equalst_on(pulse_id));
     }
 
     SECTION("Map index outside input range") {
@@ -1114,9 +1136,9 @@ TEST_CASE("Router (Pulse): route multiple pulses handles mappings correctly", "[
         auto multi_r = router.process();
 
         REQUIRE(multi_r.size() == 3);
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[0]), m1m::emptyt());
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[1]), m1m::emptyt());
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[2]), m1m::emptyt());
+        REQUIRE_THAT(dummy(multi_r, 0), m1m::emptyt());
+        REQUIRE_THAT(dummy(multi_r, 1), m1m::emptyt());
+        REQUIRE_THAT(dummy(multi_r, 2), m1m::emptyt());
     }
 }
 
@@ -1133,7 +1155,7 @@ TEST_CASE("Router (Pulse): route multiple pulses, changing routing", "[router]")
 
     set_map(map, {0.0, 1.0});
 
-    SECTION("Close voice by decreasing map size flushes immediately") {
+    SECTION("Closing voice by decreasing map size flushes immediately") {
         flush.set_value(FlushMode::always);
 
         auto pulse_on1 = Trigger::pulse_on();
@@ -1161,6 +1183,41 @@ TEST_CASE("Router (Pulse): route multiple pulses, changing routing", "[router]")
         REQUIRE_THAT(dummy(multi_r, 0), m1m::emptyt());
         REQUIRE_THAT(dummy(multi_r, 1), m1m::equalst_off(pulse_on2.get_id()));
     }
+
+
+    SECTION("Closing voice by decreasing map size as well as rerouting flushes immediately") {
+        flush.set_value(FlushMode::always);
+
+        auto pulse_on1 = Trigger::pulse_on();
+        auto pulse_on2 = Trigger::pulse_on();
+        auto pulse_on3 = Trigger::pulse_on();
+        CAPTURE(pulse_on1.get_id(), pulse_on2.get_id(), pulse_on3.get_id());
+
+        // Initial state: [ON(1) ON(2)]
+        w.set_input(0, Voices<Trigger>::singular(pulse_on1));
+        w.set_input(1, Voices<Trigger>::singular(pulse_on2));
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 2);
+        REQUIRE_THAT(dummy(multi_r, 0), m1m::equalst_on(pulse_on1.get_id()));
+        REQUIRE_THAT(dummy(multi_r, 1), m1m::equalst_on(pulse_on2.get_id()));
+
+        // Reroute input 1 to output 0 and also close output 1
+        set_map(map, {1.0});
+        w.set_input(0, Voices<Trigger>::empty_like());
+        w.set_input(1, Voices<Trigger>::singular(pulse_on3));
+
+        router.update_time(TimePoint{});
+        multi_r = router.process();
+        REQUIRE(multi_r.size() == 2);
+        auto r = dummy(multi_r, 0);
+        REQUIRE_THAT(r, mms::sizet(0, 2));
+        REQUIRE_THAT(r, m1m::containst_off(pulse_on1.get_id()));
+        REQUIRE_THAT(r, m1m::containst_on(pulse_on3.get_id()));
+        REQUIRE_THAT(dummy(multi_r, 1), m1m::containst_off(pulse_on2.get_id()));
+    }
+
 
     SECTION("Changing map to other index flushes on next pulse (FlushMode::any_pulse)") {
         flush.set_value(FlushMode::any_pulse);
@@ -1203,7 +1260,7 @@ TEST_CASE("Router (Pulse): route multiple pulses, changing routing", "[router]")
     }
 
 
-    SECTION("Change to other index with multiple active pulses flushes all pulses") {
+    SECTION("Changing to other index with multiple active pulses flushes all pulses") {
         flush.set_value(FlushMode::always);
 
         auto pulse_on_a = Trigger::pulse_on();

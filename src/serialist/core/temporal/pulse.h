@@ -185,10 +185,10 @@ public:
             return;
         }
 
-        assert(output.size() == flushed.size()); // number of outlets should be the same
-        auto num_outlets = output.size();
+        assert(output.size() >= flushed.size());
+        auto num_mergeable = std::min(output.size(), flushed.size());
 
-        for (std::size_t outlet_index = 0; outlet_index < num_outlets; ++outlet_index) {
+        for (std::size_t outlet_index = 0; outlet_index < num_mergeable; ++outlet_index) {
             if (!flushed.empty()) {
                 auto& outlet_voices = output[outlet_index];
                 auto& flushed_voices = flushed[outlet_index];
