@@ -131,6 +131,15 @@ struct MappingChange {
     }
 
 
+    static bool unchanged(const SimpleChange& change_spec) {
+        return change_spec.empty() || change_spec.all([](Type t) { return t == Type::no_change; });
+    }
+
+    static bool unchanged(const NestedChange& change_spec) {
+        return change_spec.empty() || change_spec.all([](const Vec<Type>& change) { return unchanged(change); });
+    }
+
+
 };
 
 
@@ -150,15 +159,17 @@ public:
     /**
      * @param indices 1d list of indices, where each position corresponds to a given outlet (multi) or voice (single)
      * @param num_inputs
+     * @param target_num_outputs
      * @param index_type
      * @param voice_mapping
      */
     static Route parse_route(const Voices<Facet>& indices
                              , std::size_t num_inputs
+                             , std::optional<std::size_t> target_num_outputs
                              , Index::Type index_type
                              , bool voice_mapping) {
         // outputs will always have the same shape as indices, but some may be empty
-        auto num_outputs = indices.size();
+        auto num_outputs = target_num_outputs ? std::min(*target_num_outputs, indices.size()) : indices.size();
         auto firsts = indices.firsts<>();
 
         auto mapping = MappingType::allocated(num_outputs);
@@ -782,7 +793,7 @@ public:
             if (auto* other = std::get_if<T>(&m)) {
                 auto changes = other->get_changes(mapping);
 
-                if (changes.empty()) {
+                if (MappingChange::unchanged(changes)) {
                     return MultiVoices<Trigger>{};
                 }
 
@@ -827,9 +838,7 @@ private:
                                                       , const MultiVoices<Trigger>& output_triggers
                                                       , FlushMode flush_mode
                                                       , bool is_voice_mapping) {
-        if (changes.empty()) {
-            return {};
-        }
+        assert(!MappingChange::unchanged(changes));
 
         // mapping refers to voices indices in the first outlet
         if (is_voice_mapping) {
@@ -838,7 +847,7 @@ private:
         }
 
         // otherwise: mapping refers to entire outlets
-        assert(output_triggers.size() == changes.size());
+        // assert(output_triggers.size() == changes.size());
         return flush_dangling_outlets(changes, held, output_triggers, flush_mode);
     }
 
@@ -847,9 +856,7 @@ private:
                                                       , MultiOutletHeldPulses& held
                                                       , const MultiVoices<Trigger>& output_triggers
                                                       , FlushMode flush_mode) {
-        if (changes.empty()) {
-            return {};
-        }
+        assert(!MappingChange::unchanged(changes));
 
         auto num_outlets = changes.size();
         auto flushed = MultiVoices<Trigger>::allocated(num_outlets);
@@ -880,7 +887,7 @@ private:
 
             if (changes[outlet_index] == MappingChange::Type::index_change) {
 
-                if (flush_mode == FlushMode::always || !output_triggers.empty()) {
+                if (flush_mode == FlushMode::always || !output_triggers[outlet_index].is_empty_like()) {
                     flushed[outlet_index] = held.flush_outlet(outlet_index, target_voice_count);
                 } else {
                     held.flag_as_triggered(outlet_index);
@@ -1000,7 +1007,7 @@ private:
         auto& voices = input[0];
         auto num_incoming_voices = voices.size();
 
-        auto route_mapping = Route::parse_route(indices, num_incoming_voices, index_type, true);
+        auto route_mapping = Route::parse_route(indices, num_incoming_voices, std::nullopt, index_type, true);
         auto output = route_mapping.apply_single(std::move(voices));
 
         return {{output}, RouterMapping{route_mapping}};
@@ -1012,7 +1019,7 @@ private:
                                                          , Index::Type index_type) {
         auto num_inlets = input.size();
 
-        auto route_mapping = Route::parse_route(indices, num_inlets, index_type, false);
+        auto route_mapping = Route::parse_route(indices, num_inlets, num_outlets(), index_type, false);
         auto output = route_mapping.apply_multi(std::move(input));
 
         return {output, RouterMapping{route_mapping}};
@@ -1231,8 +1238,6 @@ public:
             return m_held.flush();
         }
 
-        output = m_router.adjust_size(std::move(output));
-
         auto flushed = mapping.flush_dangling_triggers(output, m_previous_mapping, m_held, flush_mode);
 
         m_held.process(output);
@@ -1241,7 +1246,7 @@ public:
 
         m_previous_mapping = std::move(mapping);
 
-        return output;
+        return m_router.adjust_size(std::move(output));
     }
 
 

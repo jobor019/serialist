@@ -205,11 +205,17 @@ public:
 
 
     void process(Vec<Voices<Trigger>>& output) {
-        assert(output.size() == num_outlets());
+        assert(output.size() <= num_outlets());
 
         for (std::size_t outlet_index = 0; outlet_index < output.size(); ++outlet_index) {
             process(output[outlet_index], outlet_index);
         }
+
+        for (std::size_t outlet_index = output.size(); outlet_index < num_outlets(); ++outlet_index) {
+            output.append(m_held[outlet_index].flush().as_type<Trigger>());
+        }
+
+        assert(output.size() == num_outlets());
     }
 
     void process(Voices<Trigger>& voices, std::size_t outlet_index) {

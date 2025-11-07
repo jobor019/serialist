@@ -25,6 +25,10 @@ void set_map(Sequence<Facet, double>& map_node, std::initializer_list<double> va
     map_node.set_values(Voices<double>::transposed(Voice<double>{values}));
 }
 
+RunResult<Trigger> dummy(const Vec<Voices<Trigger>>& multi_voices, std::size_t index) {
+    return RunResult<Trigger>::dummy(multi_voices[index]);
+}
+
 
 TEST_CASE("Router: route (single)", "[router]") {
     RouterFacetWrapper w(1, 1);
@@ -92,6 +96,19 @@ TEST_CASE("Router: route (single)", "[router]") {
         REQUIRE(multi_r.size() == 1);
         REQUIRE_THAT(RunResult<Facet>::dummy(multi_r[0]), m1s::eqf(Vec<double>::repeated(5, 333)));
     }
+
+    SECTION("Mixed nulls") {
+        map.set_values(Voices<double>{{0.0}, {}, {1.0}});
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 1);
+        auto r = RunResult<Facet>::dummy(multi_r[0]);
+        REQUIRE_THAT(r, mms::eqf(0, 111));
+        REQUIRE_THAT(r, mms::emptyf(1));
+        REQUIRE_THAT(r, mms::eqf(2, 222));
+    }
+
 }
 
 
@@ -564,7 +581,7 @@ TEST_CASE("Router: distribute", "[router]") {
 // PULSE TESTS
 // ==============================================================================================
 
-TEST_CASE("Router: route pulse (single)", "[router]") {
+TEST_CASE("Router (Pulse): route single pulse", "[router]") {
     RouterPulseWrapper w(1, 1);
 
     w.mode.set_value(RouterMode::route);
@@ -689,7 +706,7 @@ TEST_CASE("Router: route pulse (single)", "[router]") {
 }
 
 
-TEST_CASE("Router: route pulse (single), changing routing", "[router]") {
+TEST_CASE("Router (Pulse): route single pulse, changing routing", "[router]") {
     RouterPulseWrapper w(1, 1);
 
     w.mode.set_value(RouterMode::route);
@@ -908,7 +925,7 @@ TEST_CASE("Router: route pulse (single), changing routing", "[router]") {
 }
 
 
-TEST_CASE("Router: route pulse (single), switching mode", "[router]") {
+TEST_CASE("Router (Pulse): route single pulse, switching mode", "[router]") {
     RouterPulseWrapper w(1, 1);
 
     w.mode.set_value(RouterMode::route);
@@ -957,7 +974,7 @@ TEST_CASE("Router: route pulse (single), switching mode", "[router]") {
 }
 
 
-TEST_CASE("Router: route pulse (single), resizing input", "[router]") {
+TEST_CASE("Router (Pulse): route single pulse, resizing input", "[router]") {
     RouterPulseWrapper w(1, 1);
 
     w.mode.set_value(RouterMode::route);
@@ -1022,7 +1039,7 @@ TEST_CASE("Router: route pulse (single), resizing input", "[router]") {
 }
 
 
-TEST_CASE("Router: route pulse (multi) handles mappings correctly", "[router]") {
+TEST_CASE("Router (Pulse): route multiple pulses handles mappings correctly", "[router]") {
     RouterPulseWrapper w(3, 3);
 
     w.mode.set_value(RouterMode::route);
@@ -1081,7 +1098,7 @@ TEST_CASE("Router: route pulse (multi) handles mappings correctly", "[router]") 
     }
 
     SECTION("Map index outside output range") {
-        set_map(map, {0, 0, 0, 0}); // output 0:th input on four outlets (last outlet invalid
+        set_map(map, {0, 0, 0, 0}); // output 0:th input on four outlets (last outlet invalid)
         router.update_time(TimePoint{});
         auto multi_r = router.process();
 
@@ -1090,10 +1107,21 @@ TEST_CASE("Router: route pulse (multi) handles mappings correctly", "[router]") 
         REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[1]), m1m::equalst_on(pulse_id));
         REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[2]), m1m::equalst_on(pulse_id));
     }
+
+    SECTION("Map index outside input range") {
+        set_map(map, {4}); // output 4:th input (invalid) on first outlet
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 3);
+        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[0]), m1m::emptyt());
+        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[1]), m1m::emptyt());
+        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[2]), m1m::emptyt());
+    }
 }
 
 
-TEST_CASE("Router: route pulse (multi), changing routing", "[router]") {
+TEST_CASE("Router (Pulse): route multiple pulses, changing routing", "[router]") {
     RouterPulseWrapper w(2, 2);
 
     w.mode.set_value(RouterMode::route);
@@ -1105,209 +1133,181 @@ TEST_CASE("Router: route pulse (multi), changing routing", "[router]") {
 
     set_map(map, {0.0, 1.0});
 
-    SECTION("Close voice by decreasing input count flushes immediately") {
+    SECTION("Close voice by decreasing map size flushes immediately") {
         flush.set_value(FlushMode::always);
 
         auto pulse_on1 = Trigger::pulse_on();
         auto pulse_on2 = Trigger::pulse_on();
+        CAPTURE(pulse_on1.get_id(), pulse_on2.get_id());
+
         // Initial state: [ON(1) ON(2)]
-        w.set_input(0, Voices<Trigger>{{pulse_on1}});
-        w.set_input(1, Voices<Trigger>{{pulse_on2}});
+        w.set_input(0, Voices<Trigger>::singular(pulse_on1));
+        w.set_input(1, Voices<Trigger>::singular(pulse_on2));
         router.update_time(TimePoint{});
         auto multi_r = router.process();
 
         REQUIRE(multi_r.size() == 2);
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[0]), m1m::equalst_on(pulse_on1.get_id()));
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[1]), m1m::equalst_on(pulse_on2.get_id()));
+        REQUIRE_THAT(dummy(multi_r, 0), m1m::equalst_on(pulse_on1.get_id()));
+        REQUIRE_THAT(dummy(multi_r, 1), m1m::equalst_on(pulse_on2.get_id()));
 
-        // Close voice 0 by decreasing input count
+        // Close voice 1 by decreasing map size, but keep input count the same
         set_map(map, {0.0});
-        w.set_input(0, Voices<Trigger>{{}, {}});
+        w.set_input(0, Voices<Trigger>::empty_like());
+        w.set_input(1, Voices<Trigger>::empty_like());
 
         router.update_time(TimePoint{});
         multi_r = router.process();
         REQUIRE(multi_r.size() == 2);
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[0]), m1m::emptyt());
-        REQUIRE_THAT(RunResult<Trigger>::dummy(multi_r[1]), m1m::equalst_off(pulse_on2.get_id()));
+        REQUIRE_THAT(dummy(multi_r, 0), m1m::emptyt());
+        REQUIRE_THAT(dummy(multi_r, 1), m1m::equalst_off(pulse_on2.get_id()));
     }
 
-    // SECTION("Change to other index flushes on next pulse (FlushMode::any_pulse)") {
-    //     flush.set_value(FlushMode::any_pulse);
-    //
-    //     auto pulse_on = Trigger::pulse_on();
-    //     // Initial state: [ON(a) -]
-    //     w.set_input(0, Voices<Trigger>{{pulse_on}, {}});
-    //     router.update_time(TimePoint{});
-    //     router.process();
-    //
-    //     // Change voice 0 routing with no new input
-    //     set_map(map, {1.0, 1.0});
-    //     w.set_input(0, Voices<Trigger>{{}, {}});
-    //
-    //     router.update_time(TimePoint{});
-    //     router.process();
-    //     auto multi_r = router.process();
-    //     REQUIRE(multi_r.size() == 1);
-    //     auto r = RunResult<Trigger>::dummy(multi_r[0]);
-    //
-    //     // No flush of voice 0, but flag its active ON as triggered (new state after flush: [ON(a, triggered) -])
-    //     REQUIRE_THAT(r, mms::sizet(2));
-    //     REQUIRE_THAT(r, mms::emptyt(0));
-    //     REQUIRE_THAT(r, mms::emptyt(1));
-    //
-    //     // Pulse input on voice 1 (which is routed to voice 0). note: not a pulse_off,
-    //     // but we still expect a flush of the triggered ON(a)
-    //     w.set_input(0, Voices<Trigger>{{}, {Trigger::pulse_on()}});
-    //     router.update_time(TimePoint{});
-    //     router.process();
-    //     multi_r = router.process();
-    //     REQUIRE(multi_r.size() == 1);
-    //     r = RunResult<Trigger>::dummy(multi_r[0]);
-    //
-    //     // Expected flush of voice 0 (new state after flush: [ON(b) ON(b)])
-    //     REQUIRE_THAT(r, mms::sizet(2));
-    //     REQUIRE_THAT(r, mms::equalst_off({0, 0}, pulse_on.get_id()));
-    //     REQUIRE_THAT(r, mms::equalst_on({0, 1}));
-    //     REQUIRE_THAT(r, mms::equalst_on(1));
-    // }
-    //
-    // SECTION("Change to other index with multiple active pulses flushes all pulses") {
-    //     flush.set_value(FlushMode::always);
-    //
-    //     auto pulse_on_a = Trigger::pulse_on();
-    //
-    //     w.set_input(0, Voices<Trigger>{{pulse_on_a}, {}});
-    //     router.update_time(TimePoint{});
-    //     router.process(); // Initial state: [ON(a) -]
-    //
-    //     auto pulse_on_b = Trigger::pulse_on();
-    //     w.set_input(0, Voices<Trigger>{{pulse_on_b}, {}});
-    //     router.update_time(TimePoint{});
-    //     router.process(); // Updated state: [ON(a)ON(b) -]
-    //
-    //     // Change voice 0 routing with no new input
-    //     set_map(map, {1.0, 1.0});
-    //     w.set_input(0, Voices<Trigger>{{}, {}});
-    //
-    //     router.update_time(TimePoint{});
-    //     router.process();
-    //     auto multi_r = router.process();
-    //     REQUIRE(multi_r.size() == 1);
-    //     auto r = RunResult<Trigger>::dummy(multi_r[0]);
-    //
-    //     // Expected flush of both pulses in voice 0 (new state after flush: [- -])
-    //     REQUIRE_THAT(r, mms::sizet(2));
-    //     REQUIRE_THAT(r, mms::sizet(0, 2));
-    //     REQUIRE_THAT(r, mms::containst_off(0, pulse_on_a.get_id()));
-    //     REQUIRE_THAT(r, mms::containst_off(0, pulse_on_b.get_id()));
-    //     REQUIRE_THAT(r, mms::emptyt(1));
-    // }
-    //
-    //
-    // SECTION("Change to other index with no active pulses does not flush anything") {
-    //     w.set_input(0, Voices<Trigger>{{}, {}});
-    //     router.update_time(TimePoint{});
-    //     router.process(); // Initial state: [- -]
-    //
-    //     set_map(map, {1.0, 1.0});
-    //     w.set_input(0, Voices<Trigger>{{}, {}});
-    //
-    //     router.update_time(TimePoint{});
-    //     router.process();
-    //     auto multi_r = router.process();
-    //     REQUIRE(multi_r.size() == 1);
-    //     auto r = RunResult<Trigger>::dummy(multi_r[0]);
-    //
-    //     REQUIRE_THAT(r, mms::sizet(2));
-    //     REQUIRE_THAT(r, mms::emptyt(0));
-    //     REQUIRE_THAT(r, mms::emptyt(1));
-    // }
-    //
-    //
-    // SECTION("Closing an outlet flushes all active pulses independently of FlushMode") {
-    //     auto flush_mode = GENERATE(FlushMode::always, FlushMode::any_pulse);
-    //     flush.set_value(flush_mode);
-    //
-    //     auto pulse_on = Trigger::pulse_on();
-    //     w.set_input(0, Voices<Trigger>{{pulse_on}, {}});
-    //     router.update_time(TimePoint{});
-    //     router.process(); // Initial state: [ON -]
-    //
-    //     // Closing first outlet
-    //     map.set_values({{}, {1.0}});
-    //     w.set_input(0, Voices<Trigger>{{}, {}});
-    //
-    //     router.update_time(TimePoint{});
-    //     router.process();
-    //     auto multi_r = router.process();
-    //     REQUIRE(multi_r.size() == 1);
-    //     auto r = RunResult<Trigger>::dummy(multi_r[0]);
-    //
-    //     REQUIRE_THAT(r, mms::sizet(2));
-    //     REQUIRE_THAT(r, mms::containst_off(0, pulse_on.get_id()));
-    //     REQUIRE_THAT(r, mms::emptyt(1));
-    // }
-    //
-    // SECTION("Change to empty mapping flushes all active pulses") {
-    //     auto flush_mode = GENERATE(FlushMode::always, FlushMode::any_pulse);
-    //     flush.set_value(flush_mode);
-    //
-    //     auto pulse_on_a = Trigger::pulse_on();
-    //     auto pulse_on_b = Trigger::pulse_on();
-    //     w.set_input(0, Voices<Trigger>{ {pulse_on_a}, {pulse_on_b} });
-    //     router.update_time(TimePoint{});
-    //     router.process(); // Initial state: [ON(a) ON(b)]
-    //
-    //
-    //     map.set_values(Voices<double>::empty_like());
-    //     w.set_input(0, Voices<Trigger>{{}, {}});
-    //
-    //     router.update_time(TimePoint{});
-    //     auto multi_r = router.process();
-    //     REQUIRE(multi_r.size() == 1);
-    //     auto r = RunResult<Trigger>::dummy(multi_r[0]);
-    //
-    //     REQUIRE_THAT(r, mms::sizet(2));
-    //     REQUIRE_THAT(r, mms::equalst_off(0, pulse_on_a.get_id()));
-    //     REQUIRE_THAT(r, mms::equalst_off(1, pulse_on_b.get_id()));
-    // }
-    //
-    //
-    // SECTION("Empty input on a single-voice inlet does not flush") {
-    //     auto pulse_on = Trigger::pulse_on();
-    //
-    //
-    //     map.set_values(0.0);
-    //     w.set_input(0, Voices<Trigger>::singular(pulse_on));
-    //
-    //     router.update_time(TimePoint{});
-    //     auto multi_r = router.process();
-    //     REQUIRE(multi_r.size() == 1);
-    //     auto r = RunResult<Trigger>::dummy(multi_r[0]);
-    //
-    //     REQUIRE_THAT(r, mms::sizet(1));
-    //     REQUIRE_THAT(r, mms::containst_on(0));
-    //
-    //     // State: [ON]
-    //     w.set_input(0, Voices<Trigger>::empty_like());
-    //     router.update_time(TimePoint{});
-    //     multi_r = router.process();
-    //     REQUIRE(multi_r.size() == 1);
-    //     r = RunResult<Trigger>::dummy(multi_r[0]);
-    //
-    //     // No input: state still [ON]
-    //     REQUIRE_THAT(r, mms::sizet(1));
-    //     REQUIRE_THAT(r, mms::emptyt(0));
-    //
-    //     // Close outlet, expect flush
-    //     map.set_values(Voices<double>::empty_like());
-    //
-    //     router.update_time(TimePoint{});
-    //     multi_r = router.process();
-    //     REQUIRE(multi_r.size() == 1);
-    //     r = RunResult<Trigger>::dummy(multi_r[0]);
-    //
-    //     REQUIRE_THAT(r, mms::sizet(1));
-    //     REQUIRE_THAT(r, mms::equalst_off(0, pulse_on.get_id()));
-    // }
+    SECTION("Changing map to other index flushes on next pulse (FlushMode::any_pulse)") {
+        flush.set_value(FlushMode::any_pulse);
+
+        auto pulse_on = Trigger::pulse_on();
+        CAPTURE(pulse_on.get_id());
+
+        // Initial state: [ON(a) -]
+        w.set_input(0, Voices<Trigger>{{pulse_on}});
+        w.set_input(1, Voices<Trigger>::empty_like());
+        router.update_time(TimePoint{});
+        router.process();
+
+        // Change voice 0 routing with no new input
+        set_map(map, {1.0, 1.0});
+        w.set_input(0, Voices<Trigger>::empty_like());
+
+        router.update_time(TimePoint{});
+        router.process();
+        auto multi_r = router.process();
+
+        // No flush of voice 0, but flag its active ON as triggered (new state after flush: [ON(a, triggered) -])
+        REQUIRE(multi_r.size() == 2);
+        REQUIRE_THAT(dummy(multi_r, 0), m1m::emptyt());
+        REQUIRE_THAT(dummy(multi_r, 1), m1m::emptyt());
+
+        // Pulse input on voice 1 (which is routed to voice 0). note: not a pulse_off,
+        // but we still expect a flush of the triggered ON(a)
+        w.set_input(1, Voices<Trigger>::singular(Trigger::pulse_on()));
+        router.update_time(TimePoint{});
+        router.process();
+        multi_r = router.process();
+
+        // Expected flush of voice 0 (new state after flush: [ON(b) ON(b)])
+        REQUIRE(multi_r.size() == 2);
+        REQUIRE_THAT(dummy(multi_r, 0), m1m::sizet(2));
+        REQUIRE_THAT(dummy(multi_r, 0), mms::containst_on(0));
+        REQUIRE_THAT(dummy(multi_r, 0), mms::containst_off(0, pulse_on.get_id()));
+        REQUIRE_THAT(dummy(multi_r, 1), mms::equalst_on(0));
+    }
+
+
+    SECTION("Change to other index with multiple active pulses flushes all pulses") {
+        flush.set_value(FlushMode::always);
+
+        auto pulse_on_a = Trigger::pulse_on();
+        CAPTURE(pulse_on_a.get_id());
+
+        w.set_input(0, Voices<Trigger>::singular(pulse_on_a));
+        w.set_input(1, Voices<Trigger>::empty_like());
+        router.update_time(TimePoint{});
+        router.process(); // Initial state: [ON(a) -]
+
+        auto pulse_on_b = Trigger::pulse_on();
+        CAPTURE(pulse_on_b.get_id());
+
+        w.set_input(0, Voices<Trigger>::singular(pulse_on_b));
+        router.update_time(TimePoint{});
+        router.process(); // Updated state: [ON(a)ON(b) -]
+
+        // Change voice 0 routing with no new input
+        set_map(map, {1.0, 1.0});
+        w.set_input(0, Voices<Trigger>{{}, {}});
+
+        router.update_time(TimePoint{});
+        router.process();
+        auto multi_r = router.process();
+
+
+        // Expected flush of both pulses in voice 0 (new state after flush: [- -])
+        REQUIRE(multi_r.size() == 2);
+        auto r = dummy(multi_r, 0);
+        REQUIRE_THAT(r, mms::sizet(1));
+        REQUIRE_THAT(r, mms::sizet(0, 2)); // single voice with two triggers
+        REQUIRE_THAT(r, mms::containst_off(0, pulse_on_a.get_id()));
+        REQUIRE_THAT(r, mms::containst_off(0, pulse_on_b.get_id()));
+        REQUIRE_THAT(dummy(multi_r, 1), m1m::emptyt());
+    }
+
+
+    SECTION("Changing map to other index with no active pulses does not flush anything") {
+        w.set_input(0, Voices<Trigger>::empty_like());
+        w.set_input(1, Voices<Trigger>::empty_like());
+        router.update_time(TimePoint{});
+        auto multi_r = router.process(); // Initial state: [- -]
+
+        REQUIRE(multi_r.size() == 2);
+        REQUIRE_THAT(dummy(multi_r, 0), m1m::emptyt());
+        REQUIRE_THAT(dummy(multi_r, 1), m1m::emptyt());
+
+        set_map(map, {1.0, 1.0});
+        w.set_input(0, Voices<Trigger>{{}, {}});
+
+        router.update_time(TimePoint{});
+        router.process();
+        multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 2);
+        REQUIRE_THAT(dummy(multi_r, 0), m1m::emptyt());
+        REQUIRE_THAT(dummy(multi_r, 1), m1m::emptyt());
+    }
+
+
+    SECTION("Closing an outlet flushes all active pulses independently of FlushMode") {
+        auto flush_mode = GENERATE(FlushMode::always, FlushMode::any_pulse);
+        flush.set_value(flush_mode);
+
+        auto pulse_on = Trigger::pulse_on();
+        w.set_input(0, Voices<Trigger>::singular(pulse_on));
+        w.set_input(1, Voices<Trigger>::empty_like());
+        router.update_time(TimePoint{});
+        router.process(); // Initial state: [ON -]
+
+        // Closing first outlet
+        map.set_values({{}, {1.0}});
+        w.set_input(0, Voices<Trigger>::empty_like());
+        w.set_input(1, Voices<Trigger>::empty_like());
+        router.update_time(TimePoint{});
+        router.process();
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 2);
+        REQUIRE_THAT(dummy(multi_r, 0), m1m::sizet(1));
+        REQUIRE_THAT(dummy(multi_r, 0), m1m::equalst_off(pulse_on.get_id()));
+        REQUIRE_THAT(dummy(multi_r, 1), m1m::emptyt());
+    }
+
+    SECTION("Changing map to empty mapping flushes all active pulses") {
+        auto flush_mode = GENERATE(FlushMode::always, FlushMode::any_pulse);
+        flush.set_value(flush_mode);
+
+        auto pulse_on_a = Trigger::pulse_on();
+        auto pulse_on_b = Trigger::pulse_on();
+        CAPTURE(pulse_on_a.get_id(), pulse_on_b.get_id());
+        w.set_input(0, Voices<Trigger>::singular(pulse_on_a));
+        w.set_input(1, Voices<Trigger>::singular(pulse_on_b));
+        router.update_time(TimePoint{});
+        router.process(); // Initial state: [ON(a) ON(b)]
+
+        map.set_values(Voices<double>::empty_like());
+        w.set_input(0, Voices<Trigger>::empty_like());
+        w.set_input(1, Voices<Trigger>::empty_like());
+        router.update_time(TimePoint{});
+        auto multi_r = router.process();
+
+        REQUIRE(multi_r.size() == 2);
+        REQUIRE_THAT(dummy(multi_r, 0), m1m::equalst_off(pulse_on_a.get_id()));
+        REQUIRE_THAT(dummy(multi_r, 1), m1m::equalst_off(pulse_on_b.get_id()));
+    }
 }

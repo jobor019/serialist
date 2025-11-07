@@ -59,7 +59,7 @@ ResultMatcher<T> size(std::size_t voice_index
                       , std::size_t n
                       , MatchType match_type = MatchType::last
                       , bool allow_no_comparison = false) {
-    return {cms::size<T>(n), "has voice " + serialize(voice_index) + " with " + serialize(n) + " entries", match_type, allow_no_comparison};
+    return {cms::size<T>(voice_index, n), "has voice at index " + serialize(voice_index) + " with " + serialize(n) + " entries", match_type, allow_no_comparison};
 }
 
 inline ResultMatcher<Facet> sizef(std::size_t n
